@@ -1,10 +1,17 @@
 package com.android.mms.adapters
 
+import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.text.TextUtils
+import android.view.Gravity
 import android.view.Menu
+import android.view.View
+import android.view.ViewGroup
+import android.widget.PopupMenu
+import androidx.appcompat.view.ContextThemeWrapper
 import com.goodwy.commons.dialogs.ConfirmationDialog
 import com.goodwy.commons.extensions.*
 import com.goodwy.commons.helpers.KEY_PHONE
@@ -51,6 +58,74 @@ class ConversationsAdapter(
     private var getBlockedNumbers = activity.getBlockedNumbers()
 
     override fun getActionMenuId() = R.menu.cab_conversations
+
+    override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+        super.onBindViewHolder(holder, position)
+        
+        // Override long-click to show popup menu instead of action mode
+        val conversation = getItem(position)
+        holder.itemView.setOnLongClickListener {
+            showPopupMenu(conversation, holder.itemView)
+            true
+        }
+    }
+
+    private fun showPopupMenu(conversation: Conversation, view: View) {
+        // Select the conversation first (for compatibility with existing logic)
+        val position = currentList.indexOf(conversation)
+        if (position != -1) {
+            selectedKeys.clear()
+            selectedKeys.add(conversation.hashCode())
+        }
+
+        val wrapper: Context = ContextThemeWrapper(activity, activity.getPopupMenuTheme())
+        val popupMenu = PopupMenu(wrapper, view, Gravity.END)
+        activity.menuInflater.inflate(R.menu.cab_conversations, popupMenu.menu)
+
+        // Use existing prepareActionMode logic to set visibility
+        val menu = popupMenu.menu
+        val selectedItems = getSelectedItems()
+        val isSingleSelection = isOneItemSelected()
+        val selectedConversation = selectedItems.firstOrNull() ?: return
+        val isGroupConversation = selectedConversation.isGroupConversation
+        val archiveAvailable = activity.config.isArchiveAvailable
+        val isAllBlockedNumbers = isAllBlockedNumbers()
+        val isAllUnblockedNumbers = isAllUnblockedNumbers()
+
+        menu.apply {
+            findItem(R.id.cab_block_number).isVisible = isAllUnblockedNumbers && !isAllBlockedNumbers
+            findItem(R.id.cab_unblock_number).isVisible = isAllBlockedNumbers && !isAllUnblockedNumbers
+            findItem(R.id.cab_add_number_to_contact).isVisible = isSingleSelection && !isGroupConversation
+            findItem(R.id.cab_dial_number).isVisible =
+                isSingleSelection && !isGroupConversation && !isShortCodeWithLetters(selectedConversation.phoneNumber)
+            findItem(R.id.cab_copy_number).isVisible = isSingleSelection && !isGroupConversation
+            findItem(R.id.cab_conversation_details).isVisible = isSingleSelection
+            findItem(R.id.cab_rename_conversation).isVisible = isSingleSelection && isGroupConversation
+            findItem(R.id.cab_mark_as_read).isVisible = selectedItems.any { !it.read }
+            findItem(R.id.cab_mark_as_unread).isVisible = selectedItems.any { it.read }
+            findItem(R.id.cab_archive).isVisible = archiveAvailable
+            checkPinBtnVisibility(this)
+            // Hide select_all as it doesn't make sense in a popup menu for single item
+            findItem(R.id.cab_select_all).isVisible = false
+            
+            // Remove icons from all menu items
+            for (i in 0 until size()) {
+                getItem(i)?.icon = null
+            }
+        }
+
+        popupMenu.setOnMenuItemClickListener { item ->
+            actionItemPressed(item.itemId)
+            selectedKeys.clear()
+            true
+        }
+
+        popupMenu.setOnDismissListener {
+            selectedKeys.clear()
+        }
+
+        popupMenu.show()
+    }
 
     override fun prepareActionMode(menu: Menu) {
         val selectedItems = getSelectedItems()
