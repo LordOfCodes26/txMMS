@@ -31,8 +31,8 @@
 
 # Gson
 -keep class com.goodwy.commons.models.SimpleContact { *; }
--keep class com.goodwy.smsmessenger.models.Attachment { *; }
--keep class com.goodwy.smsmessenger.models.MessageAttachment { *; }
+-keep class com.android.mms.models.Attachment { *; }
+-keep class com.android.mms.models.MessageAttachment { *; }
 
 #Goodwy
 -dontwarn org.bouncycastle.jsse.BCSSLParameters

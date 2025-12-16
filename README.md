@@ -6,6 +6,6 @@ you can easily customize the interface to suit your preferences and streamline y
 Our app allows you to quickly copy service codes and phone numbers from messages with just a few taps, saving you
 time and hassle. <br><br>
 
-[Google Play](https://play.google.com/store/apps/details?id=com.goodwy.smsmessenger)</br></br>
+[Google Play](https://play.google.com/store/apps/details?id=com.android.mms)</br></br>
 
 Based on [Simple SMS Messenger](https://github.com/SimpleMobileTools/Simple-SMS-Messenger).

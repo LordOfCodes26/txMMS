@@ -78,9 +78,6 @@ android {
     }
 
     buildTypes {
-        debug {
-            applicationIdSuffix = ".debug"
-        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
@@ -165,14 +162,16 @@ dependencies {
     detektPlugins(libs.compose.detekt)
 
     //Goodwy
-    "gplayImplementation"(libs.goodwy.commons.gplay)
-    "fossImplementation"(libs.goodwy.commons.foss)
-    "rustoreImplementation"(libs.goodwy.commons.rustore)
-//    implementation(libs.goodwy.commons)
+    api(project(":commons"))
+
     implementation(libs.behavio.rule)
     implementation(libs.rx.animation)
     implementation(libs.rx.java)
     implementation(libs.bundles.lifecycle)
     implementation(libs.swipe.action)
     implementation(libs.google.services)
+
+    // Circular Countdown
+    implementation("com.github.douglasspgyn:CircularCountdown:0.3.0")
+
 }

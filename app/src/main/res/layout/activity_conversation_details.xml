@@ -142,7 +142,7 @@
         layout="@layout/top_view_conversation_details"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        app:layout_behavior="com.goodwy.smsmessenger.helpers.ConversationDetailsTopBehavior"/>
+        app:layout_behavior="com.android.mms.helpers.ConversationDetailsTopBehavior"/>
 
     <androidx.core.widget.NestedScrollView
         android:id="@+id/conversation_details_nested_scrollview"
