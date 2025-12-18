@@ -266,6 +266,13 @@ class MainActivity : SimpleActivity() {
                 override fun onQueryTextChange(newText: String): Boolean {
                     if (isSearchOpen) {
                         searchQuery = newText
+                        if (newText.isNotEmpty()) {
+                            if (binding.searchHolder.alpha < 1f) {
+                                binding.searchHolder.fadeIn()
+                            }
+                        } else {
+                            fadeOutSearch()
+                        }
                         searchTextChanged(newText)
                     }
                     return true
@@ -304,7 +311,7 @@ class MainActivity : SimpleActivity() {
 
             override fun onMenuItemActionCollapse(item: MenuItem?): Boolean {
                 if (isSearchOpen) {
-                    searchTextChanged("", true)
+                    fadeOutSearch()
                 }
 
                 isSearchOpen = false
