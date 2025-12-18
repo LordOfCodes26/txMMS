@@ -98,8 +98,6 @@ class SettingsActivity : SimpleActivity() {
         super.onResume()
         setupTopAppBar(binding.settingsAppbar, NavigationIcon.Arrow)
 
-        setupPurchaseThankYou()
-
         setupCustomizeColors()
         setupOverflowIcon()
         setupFloatingButtonStyle()
@@ -114,7 +112,6 @@ class SettingsActivity : SimpleActivity() {
         setupFontSize()
         setupChangeDateTimeFormat()
         setupUseEnglish()
-        setupLanguage()
 
         setupUseSwipeToAction()
         setupSwipeVibration()
@@ -141,9 +138,6 @@ class SettingsActivity : SimpleActivity() {
         setupEnableDeliveryReports()
         setupShowCharacterCounter()
         setupUseSimpleCharacters()
-        setupSendLongMessageAsMMS()
-        setupGroupMessageAsMMS()
-        setupMMSFileSizeLimit()
 
         setupShowDividers()
         setupShowContactThumbnails()
@@ -168,6 +162,15 @@ class SettingsActivity : SimpleActivity() {
         setupTipJar()
         setupAbout()
         updateTextColors(binding.settingsNestedScrollview)
+        
+        // Hide "Other" section
+        binding.settingsOtherLabel.beGone()
+        binding.settingsOtherHolder.beGone()
+        
+        // Hide MMS-related items
+        binding.settingsSendLongMessageMmsHolder.beGone()
+        binding.settingsSendGroupMessageMmsHolder.beGone()
+        binding.settingsMmsFileSizeLimitHolder.beGone()
 
         if (blockedNumbersAtPause != -1 && blockedNumbersAtPause != getBlockedNumbers().hashCode()) {
             refreshConversations()
@@ -186,8 +189,7 @@ class SettingsActivity : SimpleActivity() {
                 settingsArchivedMessagesLabel,
                 settingsRecycleBinLabel,
                 settingsSecurityLabel,
-                settingsBackupsLabel,
-                settingsOtherLabel
+                settingsBackupsLabel
             ).forEach {
                 it.setTextColor(properPrimaryColor)
             }
@@ -204,8 +206,7 @@ class SettingsActivity : SimpleActivity() {
                 settingsRecycleBinHolder,
                 settingsArchivedMessagesHolder,
                 settingsSecurityHolder,
-                settingsBackupsHolder,
-                settingsOtherHolder
+                settingsBackupsHolder
             ).forEach {
                 it.setCardBackgroundColor(surfaceColor)
             }
@@ -243,11 +244,6 @@ class SettingsActivity : SimpleActivity() {
     override fun onPause() {
         super.onPause()
         blockedNumbersAtPause = getBlockedNumbers().hashCode()
-    }
-
-    private fun setupPurchaseThankYou() = binding.apply {
-        settingsPurchaseThankYouHolder.beGoneIf(isPro())
-        settingsPurchaseThankYouHolder.onClick = { launchPurchase() }
     }
 
     private fun setupCustomizeColors() = binding.apply {
@@ -448,18 +444,6 @@ class SettingsActivity : SimpleActivity() {
         }
     }
 
-    private fun setupLanguage() = binding.apply {
-        settingsLanguage.text = Locale.getDefault().displayLanguage
-        if (isTiramisuPlus()) {
-            settingsLanguageHolder.beVisible()
-            settingsLanguageHolder.setOnClickListener {
-                launchChangeAppLanguageIntent()
-            }
-        } else {
-            settingsLanguageHolder.beGone()
-        }
-    }
-
     private fun setupManageBlockedNumbers() = binding.apply {
         @SuppressLint("SetTextI18n")
         settingsManageBlockedNumbersCount.text = getBlockedNumbers().size.toString()
@@ -610,22 +594,6 @@ class SettingsActivity : SimpleActivity() {
         }
     }
 
-    private fun setupSendLongMessageAsMMS() = binding.apply {
-        settingsSendLongMessageMms.isChecked = config.sendLongMessageMMS
-        settingsSendLongMessageMmsHolder.setOnClickListener {
-            settingsSendLongMessageMms.toggle()
-            config.sendLongMessageMMS = settingsSendLongMessageMms.isChecked
-        }
-    }
-
-    private fun setupGroupMessageAsMMS() = binding.apply {
-        settingsSendGroupMessageMms.isChecked = config.sendGroupMessageMMS
-        settingsSendGroupMessageMmsHolder.setOnClickListener {
-            settingsSendGroupMessageMms.toggle()
-            config.sendGroupMessageMMS = settingsSendGroupMessageMms.isChecked
-        }
-    }
-
     private fun setupKeepConversationsArchived() = binding.apply {
         settingsKeepConversationsArchivedHolder.beVisibleIf(config.isArchiveAvailable)
         settingsKeepConversationsArchived.isChecked = config.keepConversationsArchived
@@ -674,27 +642,6 @@ class SettingsActivity : SimpleActivity() {
             else -> com.goodwy.commons.R.string.nothing
         }
     )
-
-    private fun setupMMSFileSizeLimit() = binding.apply {
-        settingsMmsFileSizeLimit.text = getMMSFileLimitText()
-        settingsMmsFileSizeLimitHolder.setOnClickListener {
-            val items = arrayListOf(
-                RadioItem(7, getString(R.string.mms_file_size_limit_none), FILE_SIZE_NONE),
-                RadioItem(6, getString(R.string.mms_file_size_limit_2mb), FILE_SIZE_2_MB),
-                RadioItem(5, getString(R.string.mms_file_size_limit_1mb), FILE_SIZE_1_MB),
-                RadioItem(4, getString(R.string.mms_file_size_limit_600kb), FILE_SIZE_600_KB),
-                RadioItem(3, getString(R.string.mms_file_size_limit_300kb), FILE_SIZE_300_KB),
-                RadioItem(2, getString(R.string.mms_file_size_limit_200kb), FILE_SIZE_200_KB),
-                RadioItem(1, getString(R.string.mms_file_size_limit_100kb), FILE_SIZE_100_KB),
-            )
-
-            val checkedItemId = items.find { it.value == config.mmsFileSizeLimit }?.id ?: 7
-            RadioGroupDialog(this@SettingsActivity, items, checkedItemId, R.string.mms_file_size_limit) {
-                config.mmsFileSizeLimit = it as Long
-                settingsMmsFileSizeLimit.text = getMMSFileLimitText()
-            }
-        }
-    }
 
     private fun setupUseSwipeToAction() {
         updateSwipeToActionVisible()
@@ -950,18 +897,6 @@ class SettingsActivity : SimpleActivity() {
             }
         }
     }
-
-    private fun getMMSFileLimitText() = getString(
-        when (config.mmsFileSizeLimit) {
-            FILE_SIZE_100_KB -> R.string.mms_file_size_limit_100kb
-            FILE_SIZE_200_KB -> R.string.mms_file_size_limit_200kb
-            FILE_SIZE_300_KB -> R.string.mms_file_size_limit_300kb
-            FILE_SIZE_600_KB -> R.string.mms_file_size_limit_600kb
-            FILE_SIZE_1_MB -> R.string.mms_file_size_limit_1mb
-            FILE_SIZE_2_MB -> R.string.mms_file_size_limit_2mb
-            else -> R.string.mms_file_size_limit_none
-        }
-    )
 
     private fun setupShowDividers() = binding.apply {
         settingsShowDividers.isChecked = config.useDividers
@@ -1235,7 +1170,6 @@ class SettingsActivity : SimpleActivity() {
 
     private fun updatePro(isPro: Boolean = isPro()) {
         binding.apply {
-            settingsPurchaseThankYouHolder.beGoneIf(isPro)
             settingsTipJarHolder.beVisibleIf(isPro)
 
             val stringId =
