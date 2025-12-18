@@ -1,17 +1,27 @@
 package com.android.mms.activities
 
 import android.annotation.SuppressLint
+import android.app.SearchManager
 import android.app.role.RoleManager
 import android.content.Intent
 import android.content.pm.ShortcutInfo
 import android.content.pm.ShortcutManager
+import android.graphics.Color
+import android.graphics.PorterDuff
 import android.graphics.drawable.Icon
 import android.graphics.drawable.LayerDrawable
 import android.os.Bundle
 import android.provider.Telephony
 import android.speech.RecognizerIntent
 import android.text.TextUtils
+import android.view.Menu
+import android.view.MenuItem
+import android.view.View
+import android.widget.ImageView
+import android.widget.TextView
 import androidx.appcompat.content.res.AppCompatResources
+import androidx.appcompat.widget.SearchView
+import androidx.core.view.MenuItemCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.goodwy.commons.dialogs.PermissionRequiredDialog
 import com.goodwy.commons.extensions.*
@@ -34,6 +44,7 @@ import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
 import java.util.*
+import kotlin.text.toFloat
 
 class MainActivity : SimpleActivity() {
     override var isSearchBarEnabled = true
@@ -47,6 +58,12 @@ class MainActivity : SimpleActivity() {
     private var lastSearchedText = ""
     private var bus: EventBus? = null
     private var isSpeechToTextAvailable = false
+    private var isSearchAlwaysShow = false
+    private var isSearchOpen = false
+    private var searchQuery = ""
+
+    private var mSearchMenuItem: MenuItem? = null
+    private var mSearchView: SearchView? = null
 
     private val binding by viewBinding(ActivityMainBinding::inflate)
 
@@ -70,6 +87,10 @@ class MainActivity : SimpleActivity() {
         }
         checkWhatsNewDialog()
         storeStateVariables()
+
+        binding.mainMenu.apply {
+            searchBeVisibleIf(isSearchAlwaysShow) //hide top search bar
+        }
 
         checkAndDeleteOldRecycleBinMessages()
         clearAllMessagesIfNeeded {
@@ -162,30 +183,34 @@ class MainActivity : SimpleActivity() {
             mainMenu.requireToolbar().inflateMenu(R.menu.menu_main)
 //            mainMenu.toggleHideOnScroll(config.hideTopBarWhenScroll)
 
-            if (baseConfig.useSpeechToText) {
-                isSpeechToTextAvailable = isSpeechToTextAvailable()
-                mainMenu.showSpeechToText = isSpeechToTextAvailable
-            }
-            mainMenu.setupMenu()
+            if (isSearchAlwaysShow) {
+                if (baseConfig.useSpeechToText) {
+                    isSpeechToTextAvailable = isSpeechToTextAvailable()
+                    mainMenu.showSpeechToText = isSpeechToTextAvailable
+                }
+                mainMenu.setupMenu()
 
-            mainMenu.onSpeechToTextClickListener = {
-                speechToText()
-            }
+                mainMenu.onSpeechToTextClickListener = {
+                    speechToText()
+                }
 
-            mainMenu.onSearchClosedListener = {
-                fadeOutSearch()
-            }
-
-            mainMenu.onSearchTextChangedListener = { text ->
-                if (text.isNotEmpty()) {
-                    if (binding.searchHolder.alpha < 1f) {
-                        binding.searchHolder.fadeIn()
-                    }
-                } else {
+                mainMenu.onSearchClosedListener = {
                     fadeOutSearch()
                 }
-                searchTextChanged(text)
-                mainMenu.clearSearch()
+
+                mainMenu.onSearchTextChangedListener = { text ->
+                    if (text.isNotEmpty()) {
+                        if (binding.searchHolder.alpha < 1f) {
+                            binding.searchHolder.fadeIn()
+                        }
+                    } else {
+                        fadeOutSearch()
+                    }
+                    searchTextChanged(text)
+                    mainMenu.clearSearch()
+                }
+            } else {
+                setupSearch(mainMenu.requireToolbar().menu)
             }
 
             mainMenu.requireToolbar().setOnMenuItemClickListener { menuItem ->
@@ -202,6 +227,110 @@ class MainActivity : SimpleActivity() {
 
             mainMenu.clearSearch()
         }
+    }
+
+    private fun setupSearch(menu: Menu) {
+        updateMenuItemColors(menu)
+        val searchManager = getSystemService(SEARCH_SERVICE) as SearchManager
+        mSearchMenuItem = menu.findItem(R.id.search)
+        mSearchView = (mSearchMenuItem!!.actionView as SearchView).apply {
+            val textColor = getProperTextColor()
+            findViewById<TextView>(androidx.appcompat.R.id.search_src_text).apply {
+                setTextColor(textColor)
+                setHintTextColor(textColor)
+                // Reduce left padding to a small value
+                val smallPadding = resources.getDimensionPixelSize(com.goodwy.commons.R.dimen.small_margin)
+                setPadding(smallPadding, paddingTop, paddingRight, paddingBottom)
+            }
+            findViewById<ImageView>(androidx.appcompat.R.id.search_close_btn).apply {
+                setImageResource(com.goodwy.commons.R.drawable.ic_clear_round)
+                setColorFilter(textColor)
+            }
+            findViewById<View>(androidx.appcompat.R.id.search_plate)?.apply { // search underline
+                background.setColorFilter(Color.TRANSPARENT, PorterDuff.Mode.MULTIPLY)
+                // Reduce left padding on the search plate to a small value
+                val smallPadding = resources.getDimensionPixelSize(com.goodwy.commons.R.dimen.small_margin)
+                setPadding(smallPadding, paddingTop, paddingRight, paddingBottom)
+            }
+            setIconifiedByDefault(false)
+            findViewById<ImageView>(androidx.appcompat.R.id.search_mag_icon).apply {
+                setColorFilter(textColor)
+            }
+
+            setSearchableInfo(searchManager.getSearchableInfo(componentName))
+            isSubmitButtonEnabled = false
+            queryHint = getString(R.string.search)
+            setOnQueryTextListener(object : SearchView.OnQueryTextListener {
+                override fun onQueryTextSubmit(query: String) = false
+
+                override fun onQueryTextChange(newText: String): Boolean {
+                    if (isSearchOpen) {
+                        searchQuery = newText
+                        searchTextChanged(newText)
+                    }
+                    return true
+                }
+            })
+        }
+
+        @Suppress("DEPRECATION")
+        MenuItemCompat.setOnActionExpandListener(mSearchMenuItem, object : MenuItemCompat.OnActionExpandListener {
+            override fun onMenuItemActionExpand(item: MenuItem?): Boolean {
+                isSearchOpen = true
+
+                // Animate search bar appearance with smooth translation (slide in from right)
+                mSearchView?.let { searchView ->
+                    searchView.post {
+                        // Get the parent toolbar width for smooth slide-in
+                        val toolbar = binding.mainMenu.requireToolbar()
+                        val slideDistance = toolbar.width.toFloat()
+
+                        // Start from right side
+                        searchView.translationX = slideDistance
+                        searchView.alpha = 0f
+
+                        // Animate to center with smooth deceleration
+                        searchView.animate()
+                            .translationX(0f)
+                            .alpha(1f)
+                            .setDuration(350)
+                            .setInterpolator(android.view.animation.DecelerateInterpolator(1.5f))
+                            .start()
+                    }
+                }
+
+                return true
+            }
+
+            override fun onMenuItemActionCollapse(item: MenuItem?): Boolean {
+                if (isSearchOpen) {
+                    searchTextChanged("", true)
+                }
+
+                isSearchOpen = false
+
+                // Animate search bar disappearance with smooth translation (slide out to right)
+                mSearchView?.let { searchView ->
+                    val toolbar = binding.mainMenu.requireToolbar()
+                    val slideDistance = toolbar.width.toFloat()
+
+                    searchView.animate()
+                        .translationX(slideDistance)
+                        .alpha(0f)
+                        .setDuration(300)
+                        .setInterpolator(android.view.animation.AccelerateInterpolator(1.2f))
+                        .withEndAction {
+                            searchView.translationX = 0f
+                            searchView.alpha = 1f
+                        }
+                        .start()
+                } ?: run {
+                    // binding.mainDialpadButton.beVisible()
+                }
+
+                return true
+            }
+        })
     }
 
     private fun refreshMenuItems() {
@@ -576,12 +705,13 @@ class MainActivity : SimpleActivity() {
     }
 
     private fun searchTextChanged(text: String, forceUpdate: Boolean = false) {
-        if (!binding.mainMenu.isSearchOpen && !forceUpdate) {
+        if (isSearchAlwaysShow && !binding.mainMenu.isSearchOpen && !forceUpdate) {
             return
         }
 
         lastSearchedText = text
         binding.searchPlaceholder2.beGoneIf(text.length >= 2)
+
         if (text.length >= 2) {
             ensureBackgroundThread {
                 val searchQuery = "%$text%"
@@ -595,7 +725,8 @@ class MainActivity : SimpleActivity() {
             binding.searchPlaceholder.beVisible()
             binding.searchResultsList.beGone()
         }
-        binding.mainMenu.clearSearch()
+        if (isSearchAlwaysShow)
+            binding.mainMenu.clearSearch()
     }
 
     private fun showSearchResults(
