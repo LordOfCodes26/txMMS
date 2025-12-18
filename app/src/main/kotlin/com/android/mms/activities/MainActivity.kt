@@ -132,7 +132,8 @@ class MainActivity : SimpleActivity() {
         }
 
         updateTextColors(binding.mainCoordinator)
-        binding.searchHolder.setBackgroundColor(getProperBackgroundColor())
+        //binding.searchHolder.setBackgroundColor(getProperBackgroundColor())
+        binding.searchHolder.setBackgroundColor(getSurfaceColor())
 
         val properPrimaryColor = getProperPrimaryColor()
         binding.noConversationsPlaceholder2.setTextColor(properPrimaryColor)
