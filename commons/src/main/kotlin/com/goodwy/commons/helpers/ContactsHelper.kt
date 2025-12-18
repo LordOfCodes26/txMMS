@@ -23,6 +23,7 @@ import androidx.core.util.size
 import androidx.core.net.toUri
 import androidx.core.graphics.scale
 import java.util.LinkedHashSet
+import com.goodwy.commons.helpers.getQuestionMarks
 
 class ContactsHelper(val context: Context) {
     companion object {
@@ -37,6 +38,7 @@ class ContactsHelper(val context: Context) {
         gettingDuplicates: Boolean = false,
         ignoredContactSources: HashSet<String> = HashSet(),
         showOnlyContactsWithNumbers: Boolean = context.baseConfig.showOnlyContactsWithNumbers,
+        loadExtendedFields: Boolean = true, // Set to false for list views to skip addresses, events, notes, websites, relations, IMs
         callback: (ArrayList<Contact>) -> Unit
     ) {
         ensureBackgroundThread {
@@ -53,7 +55,7 @@ class ContactsHelper(val context: Context) {
                 }
             }
 
-            getDeviceContacts(contacts, ignoredContactSources, gettingDuplicates)
+            getDeviceContacts(contacts, ignoredContactSources, gettingDuplicates, loadExtendedFields)
 
             val contactsSize = contacts.size
             val tempContacts = ArrayList<Contact>(contactsSize)
@@ -72,16 +74,37 @@ class ContactsHelper(val context: Context) {
             }
 
             if (context.baseConfig.mergeDuplicateContacts && ignoredContactSources.isEmpty() && !getAll) {
-                tempContacts.filter { displayContactSources.contains(it.source) }.groupBy { it.getNameToDisplay()
-                    .lowercase(Locale.getDefault()) }.values.forEach { it ->
-                    if (it.size == 1) {
-                        resultContacts.add(it.first())
+                // Optimize duplicate merging: filter and group in single pass
+                val contactsToMerge = ArrayList<Contact>()
+                val contactsToAdd = ArrayList<Contact>()
+                for (contact in tempContacts) {
+                    if (displayContactSources.contains(contact.source)) {
+                        contactsToMerge.add(contact)
                     } else {
-                        val sorted = it.sortedByDescending { it.getStringToCompare().length }
-                        val sortedWithNumbers = sorted.firstOrNull { it.phoneNumbers.isNotEmpty() }
-                        resultContacts.add(sortedWithNumbers ?: sorted.first())
+                        contactsToAdd.add(contact)
                     }
                 }
+                
+                // Group by name (lowercase) for merging
+                val groupedByName = HashMap<String, ArrayList<Contact>>()
+                for (contact in contactsToMerge) {
+                    val key = contact.getNameToDisplay().lowercase(Locale.getDefault())
+                    groupedByName.getOrPut(key) { ArrayList() }.add(contact)
+                }
+                
+                // Process grouped contacts
+                for (group in groupedByName.values) {
+                    if (group.size == 1) {
+                        resultContacts.add(group.first())
+                    } else {
+                        // Sort once and find best match
+                        group.sortByDescending { it.getStringToCompare().length }
+                        val bestMatch = group.firstOrNull { it.phoneNumbers.isNotEmpty() } ?: group.first()
+                        resultContacts.add(bestMatch)
+                    }
+                }
+                
+                resultContacts.addAll(contactsToAdd)
             } else {
                 resultContacts.addAll(tempContacts)
             }
@@ -140,7 +163,7 @@ class ContactsHelper(val context: Context) {
     }
 
     @SuppressLint("UseKtx")
-    private fun getDeviceContacts(contacts: SparseArray<Contact>, ignoredContactSources: HashSet<String>?, gettingDuplicates: Boolean) {
+    private fun getDeviceContacts(contacts: SparseArray<Contact>, ignoredContactSources: HashSet<String>?, gettingDuplicates: Boolean, loadExtendedFields: Boolean = true) {
         if (!context.hasPermission(PERMISSION_READ_CONTACTS)) {
             return
         }
@@ -242,13 +265,17 @@ class ContactsHelper(val context: Context) {
             contacts[key]?.let { it.phoneNumbers = phoneNumbers.valueAt(i) }
         }
 
-        applySparseArrayToContacts(getAddresses()) { contact, addresses -> contact.addresses = addresses }
-        applySparseArrayToContacts(getIMs()) { contact, ims -> contact.IMs = ims }
-        applySparseArrayToContacts(getEvents()) { contact, events -> contact.events = events }
-        applySparseArrayToContacts(getNotes()) { contact, note -> contact.notes = note }
         applySparseArrayToContacts(getNicknames()) { contact, nickname -> contact.nickname = nickname }
-        applySparseArrayToContacts(getWebsites()) { contact, websites -> contact.websites = websites }
-        applySparseArrayToContacts(getRelations()) { contact, relations -> contact.relations = relations }
+        
+        // Only load extended fields if requested (skip for list views to improve performance)
+        if (loadExtendedFields) {
+            applySparseArrayToContacts(getAddresses()) { contact, addresses -> contact.addresses = addresses }
+            applySparseArrayToContacts(getIMs()) { contact, ims -> contact.IMs = ims }
+            applySparseArrayToContacts(getEvents()) { contact, events -> contact.events = events }
+            applySparseArrayToContacts(getNotes()) { contact, note -> contact.notes = note }
+            applySparseArrayToContacts(getWebsites()) { contact, websites -> contact.websites = websites }
+            applySparseArrayToContacts(getRelations()) { contact, relations -> contact.relations = relations }
+        }
     }
 
     private fun getPhoneNumbers(contactId: Int? = null): SparseArray<ArrayList<PhoneNumber>> {
@@ -1753,25 +1780,27 @@ class ContactsHelper(val context: Context) {
     }
 
     fun deleteContacts(contacts: ArrayList<Contact>): Boolean {
+        if (!context.hasPermission(PERMISSION_WRITE_CONTACTS)) {
+            return false
+        }
+
         return try {
-            val operations = ArrayList<ContentProviderOperation>()
-            val selection = "${RawContacts._ID} = ?"
-            contacts.forEach {
-                ContentProviderOperation.newDelete(RawContacts.CONTENT_URI).apply {
-                    val selectionArgs = arrayOf(it.id.toString())
-                    withSelection(selection, selectionArgs)
-                    operations.add(build())
-                }
-
-                if (operations.size % BATCH_SIZE == 0) {
-                    context.contentResolver.applyBatch(AUTHORITY, operations)
-                    operations.clear()
-                }
+            val resolver = context.contentResolver
+            val contactIds = contacts.map { it.id.toLong() }.filter { it > 0 }
+            
+            if (contactIds.isEmpty()) {
+                return true
             }
 
-            if (context.hasPermission(PERMISSION_WRITE_CONTACTS)) {
-                context.contentResolver.applyBatch(AUTHORITY, operations)
+            // Use bulk delete with IN clause - much faster than individual ContentProviderOperations
+            // Process in chunks of 500 for optimal performance
+            val uri = RawContacts.CONTENT_URI
+            contactIds.chunked(500).forEach { chunk ->
+                val selection = "${RawContacts._ID} IN (${getQuestionMarks(chunk.size)})"
+                val selectionArgs = chunk.map { it.toString() }.toTypedArray()
+                resolver.delete(uri, selection, selectionArgs)
             }
+            
             true
         } catch (e: Exception) {
             context.showErrorToast(e)

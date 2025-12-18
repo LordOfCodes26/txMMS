@@ -405,6 +405,12 @@ abstract class MyRecyclerViewListAdapter<T>(
         actMode?.finish()
     }
 
+    fun startActMode() {
+        if (actMode == null && !actModeCallback.isSelectable) {
+            activity.startActionMode(actModeCallback)
+        }
+    }
+
     fun updateTextColor(textColor: Int) {
         this.textColor = textColor
         onRefresh.invoke()

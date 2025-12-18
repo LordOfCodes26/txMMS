@@ -400,6 +400,21 @@ class SecureBoxHelper(private val context: Context) {
             null // Return null if locked
         }
     }
+
+    /**
+     * Direct access to secure box by cipher number without unlock check
+     * This is a special method for accessing secure box via gesture
+     */
+    fun getSecureBoxByCipherNumber(cipherNumber: Int): Pair<List<SecureBoxCall>, List<SecureBoxContact>> {
+        return try {
+            val calls = database.SecureBoxCallDao().getSecureBoxCallsByCipherNumber(cipherNumber)
+            val contacts = database.SecureBoxContactDao().getSecureBoxContactsByCipherNumber(cipherNumber)
+            Pair(calls, contacts)
+        } catch (e: Exception) {
+            android.util.Log.e("SecureBoxHelper", "Failed to get secure box cipher $cipherNumber", e)
+            Pair(emptyList(), emptyList())
+        }
+    }
 }
 
 

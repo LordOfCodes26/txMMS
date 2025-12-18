@@ -114,7 +114,7 @@ class MyLiquidButton @JvmOverloads constructor(
                             ?: Color(context.getSurfaceColor())
 
                         val backdrop = rememberCanvasBackdrop {
-                            drawRect(defaultBackgroundColor)
+                            drawRect(Color(context.getSurfaceColor()).copy(alpha = 0.9f))
                         }
 
                         val iconRes = iconResState.value
@@ -147,7 +147,7 @@ class MyLiquidButton @JvmOverloads constructor(
                                     backdrop = backdrop,
                                     modifier = Modifier.size(56.dp),
                                     tint = iconTint ?: Color.Unspecified,
-                                    surfaceColor = Color(context.getSurfaceColor())
+                                    surfaceColor = Color(context.getSurfaceColor()).copy(alpha = 0.4f),
                                 ) {
                                     Icon(
                                         painter = painterResource(id = iconRes),

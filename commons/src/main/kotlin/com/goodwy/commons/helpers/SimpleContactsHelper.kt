@@ -31,6 +31,7 @@ import androidx.core.graphics.drawable.toDrawable
 import androidx.core.graphics.createBitmap
 import androidx.core.graphics.drawable.toBitmap
 import androidx.core.util.size
+import com.goodwy.commons.helpers.getQuestionMarks
 
 class SimpleContactsHelper(val context: Context) {
     fun getAvailableContacts(favoritesOnly: Boolean, callback: (ArrayList<SimpleContact>) -> Unit) {
@@ -511,13 +512,12 @@ class SimpleContactsHelper(val context: Context) {
 
     fun deleteContactRawIDs(ids: ArrayList<Int>, callback: () -> Unit) {
         ensureBackgroundThread {
-            val uri = Data.CONTENT_URI
-            val resolver = context.contentResolver ?: run {
+            if (!context.hasPermission(PERMISSION_WRITE_CONTACTS)) {
                 callback()
                 return@ensureBackgroundThread
             }
 
-            if (uri == null) {
+            val resolver = context.contentResolver ?: run {
                 callback()
                 return@ensureBackgroundThread
             }
@@ -528,16 +528,18 @@ class SimpleContactsHelper(val context: Context) {
                 return@ensureBackgroundThread
             }
 
-            validIds.chunked(30).forEach { chunk ->
-                val selection = "${Data.RAW_CONTACT_ID} IN (${getQuestionMarks(chunk.size)})"
+            // Use RawContacts.CONTENT_URI for bulk delete - much more efficient than Data.CONTENT_URI
+            // Increase chunk size from 30 to 500 for better performance with large contact lists
+            val uri = RawContacts.CONTENT_URI
+            validIds.chunked(500).forEach { chunk ->
+                val selection = "${RawContacts._ID} IN (${getQuestionMarks(chunk.size)})"
                 val selectionArgs = chunk.map { it.toString() }.toTypedArray()
 
                 try {
                     resolver.delete(uri, selection, selectionArgs)
-                } catch (_: Exception) {
-                    if (!context.hasPermission(PERMISSION_WRITE_CONTACTS)) {
-                        return@ensureBackgroundThread
-                    }
+                } catch (e: Exception) {
+                    // Log error but continue with remaining chunks
+                    context.showErrorToast(e)
                 }
             }
 
