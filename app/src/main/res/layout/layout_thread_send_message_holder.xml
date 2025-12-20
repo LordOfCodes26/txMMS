@@ -227,6 +227,16 @@
             android:src="@drawable/ic_send_vector"
             android:padding="@dimen/smaller_margin"
             android:textSize="@dimen/smaller_text_size" />
+
+        <douglasspgyn.com.github.circularcountdown.CircularCountdown
+            android:id="@+id/threadSendMessageCountdown"
+            android:layout_width="@dimen/medium_icon_size"
+            android:layout_height="@dimen/medium_icon_size"
+            android:visibility="gone"
+            app:countdownBackgroundColor="?attr/colorControlNormal"
+            app:countdownForegroundColor="?attr/colorPrimary"
+            app:countdownTextColor="?attr/colorPrimary"
+            app:countdownTextSize="24sp" />
     </LinearLayout>
 
 <!--    <View-->

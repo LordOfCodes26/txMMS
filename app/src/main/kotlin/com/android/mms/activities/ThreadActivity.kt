@@ -78,6 +78,8 @@ import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
 import org.joda.time.DateTime
+import douglasspgyn.com.github.circularcountdown.CircularCountdown
+import douglasspgyn.com.github.circularcountdown.listener.CircularListener
 import java.io.File
 import java.util.*
 import kotlin.collections.ArrayList
@@ -112,6 +114,7 @@ class ThreadActivity : SimpleActivity() {
 
     private var isAttachmentPickerVisible = false
     private var isSpeechToTextAvailable = false
+    private var isCountdownActive = false
 
     private val binding by viewBinding(ActivityThreadBinding::inflate)
 
@@ -792,6 +795,9 @@ class ThreadActivity : SimpleActivity() {
 
             threadSendMessage.backgroundTintList = properPrimaryColor.getColorStateList()
             threadSendMessageWrapper.isClickable = false
+            
+            // Initialize countdown view (hidden by default)
+            threadSendMessageCountdown.beGone()
             threadTypeMessage.onTextChangeListener {
                 messageToResend = null
                 checkSendMessageAvailability()
@@ -819,7 +825,11 @@ class ThreadActivity : SimpleActivity() {
 
                 threadTypeMessage.setOnKeyListener { _, keyCode, event ->
                     if (keyCode == KeyEvent.KEYCODE_ENTER && event.action == KeyEvent.ACTION_UP) {
-                        sendMessage()
+                        if (config.messageSendDelay > 0 && !isCountdownActive) {
+                            startSendMessageCountdown()
+                        } else {
+                            sendMessage()
+                        }
                         return@setOnKeyListener true
                     }
                     false
@@ -1568,10 +1578,14 @@ class ThreadActivity : SimpleActivity() {
                     alpha = 1f
                     contentDescription = getString(R.string.sending)
                     setOnClickListener {
-                        sendMessage()
-                        if (config.soundOnOutGoingMessages) {
-                            val audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
-                            audioManager.playSoundEffect(AudioManager.FX_KEYPRESS_SPACEBAR)
+                        if (config.messageSendDelay > 0 && !isCountdownActive) {
+                            startSendMessageCountdown()
+                        } else {
+                            sendMessage()
+                            if (config.soundOnOutGoingMessages) {
+                                val audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
+                                audioManager.playSoundEffect(AudioManager.FX_KEYPRESS_SPACEBAR)
+                            }
                         }
                     }
                 }
@@ -1595,6 +1609,68 @@ class ThreadActivity : SimpleActivity() {
         }
 
 //        updateMessageType()
+    }
+
+    private fun startSendMessageCountdown() {
+        if (isCountdownActive) return
+        
+        val delaySeconds = config.messageSendDelay
+        if (delaySeconds <= 0) {
+            sendMessage()
+            return
+        }
+
+        isCountdownActive = true
+        binding.messageHolder.apply {
+            // Hide the send button and show countdown
+            threadSendMessage.beGone()
+            threadSendMessageCountdown.beVisible()
+            
+            // Configure countdown colors dynamically (optional, colors can also be set in XML)
+            val primaryColor = getProperPrimaryColor()
+            val contrastColor = primaryColor.getContrastColor()
+            
+            try {
+                // Create and start countdown using the library's API
+                // create(minValue, maxValue, type) - counts from minValue to maxValue
+                threadSendMessageCountdown.create(0, delaySeconds, CircularCountdown.TYPE_SECOND)
+                    .listener(object : CircularListener {
+                        override fun onTick(progress: Int) {
+                            // Called during countdown - can be used for updates if needed
+                        }
+                        
+                        override fun onFinish(newCycle: Boolean, cycleCount: Int) {
+                            // Countdown finished, send message
+                            isCountdownActive = false
+                            hideCountdown()
+                            sendMessage()
+                            if (config.soundOnOutGoingMessages) {
+                                val audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
+                                audioManager.playSoundEffect(AudioManager.FX_KEYPRESS_SPACEBAR)
+                            }
+                        }
+                    })
+                    .start()
+            } catch (e: Exception) {
+                // If API methods don't match, fallback to immediate send
+                isCountdownActive = false
+                hideCountdown()
+                sendMessage()
+            }
+        }
+    }
+
+    private fun hideCountdown() {
+        binding.messageHolder.apply {
+            try {
+                // Stop the countdown if it's running
+                threadSendMessageCountdown.stop()
+            } catch (e: Exception) {
+                // Ignore if stop method doesn't exist or countdown is not running
+            }
+            threadSendMessageCountdown.beGone()
+            threadSendMessage.beVisible()
+        }
     }
 
     private fun sendMessage() {
@@ -1713,6 +1789,10 @@ class ThreadActivity : SimpleActivity() {
     private fun clearCurrentMessage() {
         binding.messageHolder.threadTypeMessage.setText("")
         getAttachmentsAdapter()?.clear()
+        if (isCountdownActive) {
+            isCountdownActive = false
+            hideCountdown()
+        }
         checkSendMessageAvailability()
     }
 
