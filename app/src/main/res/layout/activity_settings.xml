@@ -816,6 +816,26 @@
                     </RelativeLayout>
 
                     <RelativeLayout
+                        android:id="@+id/settings_message_send_delay_holder"
+                        style="@style/SettingsHolderSwitchStyle">
+
+                        <com.goodwy.commons.views.MyTextView
+                            android:id="@+id/settings_message_send_delay_label"
+                            style="@style/SettingsTextLabelStyle"
+                            android:layout_alignParentStart="true"
+                            android:layout_centerVertical="true"
+                            android:layout_toStartOf="@+id/settings_message_send_delay"
+                            android:text="@string/message_send_delay" />
+
+                        <com.goodwy.commons.views.MyTextView
+                            android:id="@+id/settings_message_send_delay"
+                            style="@style/SettingsTextValueStyle"
+                            android:layout_alignParentEnd="true"
+                            android:layout_marginEnd="@dimen/settings_margin"
+                            tools:text="@string/no_delay" />
+                    </RelativeLayout>
+
+                    <RelativeLayout
                         android:id="@+id/settings_use_simple_characters_holder"
                         style="@style/SettingsHolderSwitchStyle">
 

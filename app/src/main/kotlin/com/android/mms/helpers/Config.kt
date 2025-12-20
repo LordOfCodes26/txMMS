@@ -21,6 +21,10 @@ class Config(context: Context) : BaseConfig(context) {
         get() = prefs.getBoolean(SHOW_CHARACTER_COUNTER, true)
         set(showCharacterCounter) = prefs.edit { putBoolean(SHOW_CHARACTER_COUNTER, showCharacterCounter) }
 
+    var messageSendDelay: Int
+        get() = prefs.getInt(MESSAGE_SEND_DELAY, 0)
+        set(messageSendDelay) = prefs.edit { putInt(MESSAGE_SEND_DELAY, messageSendDelay) }
+
     var useSimpleCharacters: Boolean
         get() = prefs.getBoolean(USE_SIMPLE_CHARACTERS, false)
         set(useSimpleCharacters) = prefs.edit { putBoolean(USE_SIMPLE_CHARACTERS, useSimpleCharacters) }

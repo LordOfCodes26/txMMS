@@ -137,6 +137,7 @@ class SettingsActivity : SimpleActivity() {
         setupShowSimSelectionDialog()
         setupEnableDeliveryReports()
         setupShowCharacterCounter()
+        setupMessageSendDelay()
         setupUseSimpleCharacters()
 
         setupShowDividers()
@@ -530,6 +531,33 @@ class SettingsActivity : SimpleActivity() {
             settingsShowCharacterCounter.toggle()
         }
     }
+
+    private fun setupMessageSendDelay() = binding.apply {
+        settingsMessageSendDelay.text = getMessageSendDelayText()
+        settingsMessageSendDelayHolder.setOnClickListener {
+            val items = arrayListOf(
+                RadioItem(0, getString(R.string.no_delay)),
+                RadioItem(3, getString(R.string.delay_3s)),
+                RadioItem(5, getString(R.string.delay_5s)),
+                RadioItem(10, getString(R.string.delay_10s))
+            )
+
+            RadioGroupDialog(this@SettingsActivity, items, config.messageSendDelay, R.string.message_send_delay) {
+                config.messageSendDelay = it as Int
+                settingsMessageSendDelay.text = getMessageSendDelayText()
+            }
+        }
+    }
+
+    private fun getMessageSendDelayText() = getString(
+        when (config.messageSendDelay) {
+            0 -> R.string.no_delay
+            3 -> R.string.delay_3s
+            5 -> R.string.delay_5s
+            10 -> R.string.delay_10s
+            else -> R.string.no_delay
+        }
+    )
 
     @SuppressLint("PrivateResource")
     private fun setupActionOnMessageClick() = binding.apply {
