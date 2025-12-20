@@ -437,10 +437,12 @@ class SettingsActivity : SimpleActivity() {
             (config.wasUseEnglishToggled || Locale.getDefault().language != "en") && !isTiramisuPlus()
         )
         settingsUseEnglish.isChecked = config.useEnglish
+        settingsUseEnglish.setOnCheckedChangeListener { isChecked ->
+            config.useEnglish = isChecked
+            exitProcess(0)
+        }
         settingsUseEnglishHolder.setOnClickListener {
             settingsUseEnglish.toggle()
-            config.useEnglish = settingsUseEnglish.isChecked
-            exitProcess(0)
         }
     }
 
@@ -476,10 +478,12 @@ class SettingsActivity : SimpleActivity() {
 
     private fun setupUseSpeechToText() = binding.apply {
         settingsUseSpeechToText.isChecked = config.useSpeechToText
+        settingsUseSpeechToText.setOnCheckedChangeListener { isChecked ->
+            config.useSpeechToText = isChecked
+            config.needRestart = true
+        }
         settingsUseSpeechToTextHolder.setOnClickListener {
             settingsUseSpeechToText.toggle()
-            config.useSpeechToText = settingsUseSpeechToText.isChecked
-            config.needRestart = true
         }
     }
 
@@ -519,9 +523,11 @@ class SettingsActivity : SimpleActivity() {
 
     private fun setupShowCharacterCounter() = binding.apply {
         settingsShowCharacterCounter.isChecked = config.showCharacterCounter
+        settingsShowCharacterCounter.setOnCheckedChangeListener { isChecked ->
+            config.showCharacterCounter = isChecked
+        }
         settingsShowCharacterCounterHolder.setOnClickListener {
             settingsShowCharacterCounter.toggle()
-            config.showCharacterCounter = settingsShowCharacterCounter.isChecked
         }
     }
 
@@ -555,51 +561,63 @@ class SettingsActivity : SimpleActivity() {
 
     private fun setupUseSimpleCharacters() = binding.apply {
         settingsUseSimpleCharacters.isChecked = config.useSimpleCharacters
+        settingsUseSimpleCharacters.setOnCheckedChangeListener { isChecked ->
+            config.useSimpleCharacters = isChecked
+        }
         settingsUseSimpleCharactersHolder.setOnClickListener {
             settingsUseSimpleCharacters.toggle()
-            config.useSimpleCharacters = settingsUseSimpleCharacters.isChecked
         }
     }
 
     private fun setupSendOnEnter() = binding.apply {
         settingsSendOnEnter.isChecked = config.sendOnEnter
+        settingsSendOnEnter.setOnCheckedChangeListener { isChecked ->
+            config.sendOnEnter = isChecked
+        }
         settingsSendOnEnterHolder.setOnClickListener {
             settingsSendOnEnter.toggle()
-            config.sendOnEnter = settingsSendOnEnter.isChecked
         }
     }
 
     private fun setupSoundOnOutGoingMessages() = binding.apply {
         settingsSoundOnOutGoingMessages.isChecked = config.soundOnOutGoingMessages
+        settingsSoundOnOutGoingMessages.setOnCheckedChangeListener { isChecked ->
+            config.soundOnOutGoingMessages = isChecked
+        }
         settingsSoundOnOutGoingMessagesHolder.setOnClickListener {
             settingsSoundOnOutGoingMessages.toggle()
-            config.soundOnOutGoingMessages = settingsSoundOnOutGoingMessages.isChecked
         }
     }
 
     private fun setupShowSimSelectionDialog() = binding.apply {
         settingsShowSimSelectionDialogHolder.beVisibleIf(areMultipleSIMsAvailable())
         settingsShowSimSelectionDialog.isChecked = config.showSimSelectionDialog
+        settingsShowSimSelectionDialog.setOnCheckedChangeListener { isChecked ->
+            config.showSimSelectionDialog = isChecked
+        }
         settingsShowSimSelectionDialogHolder.setOnClickListener {
             settingsShowSimSelectionDialog.toggle()
-            config.showSimSelectionDialog = settingsShowSimSelectionDialog.isChecked
         }
     }
 
     private fun setupEnableDeliveryReports() = binding.apply {
         settingsEnableDeliveryReports.isChecked = config.enableDeliveryReports
+        settingsEnableDeliveryReports.setOnCheckedChangeListener { isChecked ->
+            config.enableDeliveryReports = isChecked
+        }
         settingsEnableDeliveryReportsHolder.setOnClickListener {
             settingsEnableDeliveryReports.toggle()
-            config.enableDeliveryReports = settingsEnableDeliveryReports.isChecked
         }
     }
 
     private fun setupKeepConversationsArchived() = binding.apply {
         settingsKeepConversationsArchivedHolder.beVisibleIf(config.isArchiveAvailable)
         settingsKeepConversationsArchived.isChecked = config.keepConversationsArchived
+        settingsKeepConversationsArchived.setOnCheckedChangeListener { isChecked ->
+            config.keepConversationsArchived = isChecked
+        }
         settingsKeepConversationsArchivedHolder.setOnClickListener {
             settingsKeepConversationsArchived.toggle()
-            config.keepConversationsArchived = settingsKeepConversationsArchived.isChecked
         }
     }
 
@@ -621,17 +639,21 @@ class SettingsActivity : SimpleActivity() {
 
     private fun setupCopyNumberAndDelete() = binding.apply {
         settingsCopyNumberAndDelete.isChecked = config.copyNumberAndDelete
+        settingsCopyNumberAndDelete.setOnCheckedChangeListener { isChecked ->
+            config.copyNumberAndDelete = isChecked
+        }
         settingsCopyNumberAndDeleteHolder.setOnClickListener {
             settingsCopyNumberAndDelete.toggle()
-            config.copyNumberAndDelete = settingsCopyNumberAndDelete.isChecked
         }
     }
 
     private fun setupNotifyTurnsOnScreen() = binding.apply {
         settingsNotifyTurnsOnScreen.isChecked = config.notifyTurnsOnScreen
+        settingsNotifyTurnsOnScreen.setOnCheckedChangeListener { isChecked ->
+            config.notifyTurnsOnScreen = isChecked
+        }
         settingsNotifyTurnsOnScreenHolder.setOnClickListener {
             settingsNotifyTurnsOnScreen.toggle()
-            config.notifyTurnsOnScreen = settingsNotifyTurnsOnScreen.isChecked
         }
     }
 
@@ -647,11 +669,13 @@ class SettingsActivity : SimpleActivity() {
         updateSwipeToActionVisible()
         binding.apply {
             settingsUseSwipeToAction.isChecked = config.useSwipeToAction
-            settingsUseSwipeToActionHolder.setOnClickListener {
-                settingsUseSwipeToAction.toggle()
-                config.useSwipeToAction = settingsUseSwipeToAction.isChecked
+            settingsUseSwipeToAction.setOnCheckedChangeListener { isChecked ->
+                config.useSwipeToAction = isChecked
                 config.needRestart = true
                 updateSwipeToActionVisible()
+            }
+            settingsUseSwipeToActionHolder.setOnClickListener {
+                settingsUseSwipeToAction.toggle()
             }
         }
     }
@@ -673,10 +697,12 @@ class SettingsActivity : SimpleActivity() {
     private fun setupSwipeVibration() {
         binding.apply {
             settingsSwipeVibration.isChecked = config.swipeVibration
+            settingsSwipeVibration.setOnCheckedChangeListener { isChecked ->
+                config.swipeVibration = isChecked
+                config.needRestart = true
+            }
             settingsSwipeVibrationHolder.setOnClickListener {
                 settingsSwipeVibration.toggle()
-                config.swipeVibration = settingsSwipeVibration.isChecked
-                config.needRestart = true
             }
         }
     }
@@ -684,10 +710,12 @@ class SettingsActivity : SimpleActivity() {
     private fun setupSwipeRipple() {
         binding.apply {
             settingsSwipeRipple.isChecked = config.swipeRipple
+            settingsSwipeRipple.setOnCheckedChangeListener { isChecked ->
+                config.swipeRipple = isChecked
+                config.needRestart = true
+            }
             settingsSwipeRippleHolder.setOnClickListener {
                 settingsSwipeRipple.toggle()
-                config.swipeRipple = settingsSwipeRipple.isChecked
-                config.needRestart = true
             }
         }
     }
@@ -798,9 +826,11 @@ class SettingsActivity : SimpleActivity() {
         binding.apply {
             //settingsSkipArchiveConfirmationHolder.beVisibleIf(config.swipeLeftAction == SWIPE_ACTION_ARCHIVE || config.swipeRightAction == SWIPE_ACTION_ARCHIVE)
             settingsSkipArchiveConfirmation.isChecked = config.skipArchiveConfirmation
+            settingsSkipArchiveConfirmation.setOnCheckedChangeListener { isChecked ->
+                config.skipArchiveConfirmation = isChecked
+            }
             settingsSkipArchiveConfirmationHolder.setOnClickListener {
                 settingsSkipArchiveConfirmation.toggle()
-                config.skipArchiveConfirmation = settingsSkipArchiveConfirmation.isChecked
             }
         }
     }
@@ -809,9 +839,11 @@ class SettingsActivity : SimpleActivity() {
         binding.apply {
             //settingsSkipDeleteConfirmationHolder.beVisibleIf(config.swipeLeftAction == SWIPE_ACTION_DELETE || config.swipeRightAction == SWIPE_ACTION_DELETE)
             settingsSkipDeleteConfirmation.isChecked = config.skipDeleteConfirmation
+            settingsSkipDeleteConfirmation.setOnCheckedChangeListener { isChecked ->
+                config.skipDeleteConfirmation = isChecked
+            }
             settingsSkipDeleteConfirmationHolder.setOnClickListener {
                 settingsSkipDeleteConfirmation.toggle()
-                config.skipDeleteConfirmation = settingsSkipDeleteConfirmation.isChecked
             }
         }
     }
@@ -819,10 +851,12 @@ class SettingsActivity : SimpleActivity() {
     private fun setupUseRecycleBin() = binding.apply {
         updateRecycleBinButtons()
         settingsUseRecycleBin.isChecked = config.useRecycleBin
+        settingsUseRecycleBin.setOnCheckedChangeListener { isChecked ->
+            config.useRecycleBin = isChecked
+            updateRecycleBinButtons()
+        }
         settingsUseRecycleBinHolder.setOnClickListener {
             settingsUseRecycleBin.toggle()
-            config.useRecycleBin = settingsUseRecycleBin.isChecked
-            updateRecycleBinButtons()
         }
     }
 
@@ -863,7 +897,7 @@ class SettingsActivity : SimpleActivity() {
 
     private fun setupAppPasswordProtection() = binding.apply {
         settingsAppPasswordProtection.isChecked = config.isAppPasswordProtectionOn
-        settingsAppPasswordProtectionHolder.setOnClickListener {
+        settingsAppPasswordProtection.setOnCheckedChangeListener { isChecked ->
             val tabToShow = if (config.isAppPasswordProtectionOn) config.appProtectionType else SHOW_ALL_TABS
             SecurityDialog(
                 activity = this@SettingsActivity,
@@ -893,27 +927,37 @@ class SettingsActivity : SimpleActivity() {
                             negative = 0
                         ) { }
                     }
+                } else {
+                    // Revert the switch if dialog was cancelled
+                    settingsAppPasswordProtection.isChecked = config.isAppPasswordProtectionOn
                 }
             }
+        }
+        settingsAppPasswordProtectionHolder.setOnClickListener {
+            settingsAppPasswordProtection.toggle()
         }
     }
 
     private fun setupShowDividers() = binding.apply {
         settingsShowDividers.isChecked = config.useDividers
+        settingsShowDividers.setOnCheckedChangeListener { isChecked ->
+            config.useDividers = isChecked
+            config.needRestart = true
+        }
         settingsShowDividersHolder.setOnClickListener {
             settingsShowDividers.toggle()
-            config.useDividers = settingsShowDividers.isChecked
-            config.needRestart = true
         }
     }
 
     private fun setupShowContactThumbnails() = binding.apply {
         settingsShowContactThumbnails.isChecked = config.showContactThumbnails
-        settingsShowContactThumbnailsHolder.setOnClickListener {
-            settingsShowContactThumbnails.toggle()
-            config.showContactThumbnails = settingsShowContactThumbnails.isChecked
+        settingsShowContactThumbnails.setOnCheckedChangeListener { isChecked ->
+            config.showContactThumbnails = isChecked
             settingsContactThumbnailsSizeHolder.beVisibleIf(config.showContactThumbnails)
             config.needRestart = true
+        }
+        settingsShowContactThumbnailsHolder.setOnClickListener {
+            settingsShowContactThumbnails.toggle()
         }
     }
 
@@ -958,19 +1002,23 @@ class SettingsActivity : SimpleActivity() {
 
     private fun setupUseRelativeDate() = binding.apply {
         settingsRelativeDate.isChecked = config.useRelativeDate
+        settingsRelativeDate.setOnCheckedChangeListener { isChecked ->
+            config.useRelativeDate = isChecked
+            config.needRestart = true
+        }
         settingsRelativeDateHolder.setOnClickListener {
             settingsRelativeDate.toggle()
-            config.useRelativeDate = settingsRelativeDate.isChecked
-            config.needRestart = true
         }
     }
 
     private fun setupUnreadAtTop() = binding.apply {
         settingsUnreadAtTop.isChecked = config.unreadAtTop
+        settingsUnreadAtTop.setOnCheckedChangeListener { isChecked ->
+            config.unreadAtTop = isChecked
+            config.needRestart = true
+        }
         settingsUnreadAtTopHolder.setOnClickListener {
             settingsUnreadAtTop.toggle()
-            config.unreadAtTop = settingsUnreadAtTop.isChecked
-            config.needRestart = true
         }
     }
 
@@ -1018,29 +1066,35 @@ class SettingsActivity : SimpleActivity() {
 
     private fun setupHideTopBarWhenScroll() = binding.apply {
         settingsHideBarWhenScroll.isChecked = config.hideTopBarWhenScroll
+        settingsHideBarWhenScroll.setOnCheckedChangeListener { isChecked ->
+            config.hideTopBarWhenScroll = isChecked
+            config.needRestart = true
+        }
         settingsHideBarWhenScrollHolder.setOnClickListener {
             settingsHideBarWhenScroll.toggle()
-            config.hideTopBarWhenScroll = settingsHideBarWhenScroll.isChecked
-            config.needRestart = true
         }
     }
 
     private fun setupChangeColourTopBarWhenScroll() = binding.apply {
         settingsChangeColourTopBar.isChecked = config.changeColourTopBar
+        settingsChangeColourTopBar.setOnCheckedChangeListener { isChecked ->
+            config.changeColourTopBar = isChecked
+            config.needRestart = true
+        }
         settingsChangeColourTopBarHolder.setOnClickListener {
             settingsChangeColourTopBar.toggle()
-            config.changeColourTopBar = settingsChangeColourTopBar.isChecked
-            config.needRestart = true
         }
     }
 
     private fun setupUseColoredContacts() = binding.apply {
         settingsColoredContacts.isChecked = config.useColoredContacts
-        settingsColoredContactsHolder.setOnClickListener {
-            settingsColoredContacts.toggle()
-            config.useColoredContacts = settingsColoredContacts.isChecked
+        settingsColoredContacts.setOnCheckedChangeListener { isChecked ->
+            config.useColoredContacts = isChecked
             settingsContactColorListHolder.beVisibleIf(config.useColoredContacts)
             config.needRestart = true
+        }
+        settingsColoredContactsHolder.setOnClickListener {
+            settingsColoredContacts.toggle()
         }
     }
 
@@ -1076,10 +1130,12 @@ class SettingsActivity : SimpleActivity() {
     private fun setupColorSimIcons() = binding.apply {
         settingsColorSimCardIconsHolder.beGoneIf(!areMultipleSIMsAvailable())
         settingsColorSimCardIcons.isChecked = config.colorSimIcons
+        settingsColorSimCardIcons.setOnCheckedChangeListener { isChecked ->
+            config.colorSimIcons = isChecked
+            settingsSimCardColorListHolder.beVisibleIf(config.colorSimIcons)
+        }
         settingsColorSimCardIconsHolder.setOnClickListener {
             settingsColorSimCardIcons.toggle()
-            config.colorSimIcons = settingsColorSimCardIcons.isChecked
-            settingsSimCardColorListHolder.beVisibleIf(config.colorSimIcons)
         }
     }
 
