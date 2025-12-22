@@ -1626,6 +1626,15 @@ class ThreadActivity : SimpleActivity() {
             threadSendMessage.beGone()
             threadSendMessageCountdown.beVisible()
             
+            // Add click listener to cancel countdown
+            threadSendMessageCountdown.setOnClickListener {
+                if (isCountdownActive) {
+                    isCountdownActive = false
+                    hideCountdown()
+                    toast(R.string.sending_cancelled)
+                }
+            }
+            
             // Configure countdown colors dynamically (optional, colors can also be set in XML)
             val primaryColor = getProperPrimaryColor()
             val contrastColor = primaryColor.getContrastColor()
@@ -1668,6 +1677,8 @@ class ThreadActivity : SimpleActivity() {
             } catch (e: Exception) {
                 // Ignore if stop method doesn't exist or countdown is not running
             }
+            // Remove click listener
+            threadSendMessageCountdown.setOnClickListener(null)
             threadSendMessageCountdown.beGone()
             threadSendMessage.beVisible()
         }
