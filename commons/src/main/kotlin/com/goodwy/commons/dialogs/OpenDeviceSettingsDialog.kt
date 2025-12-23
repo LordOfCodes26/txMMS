@@ -15,22 +15,55 @@ import com.goodwy.commons.compose.extensions.MyDevices
 import com.goodwy.commons.compose.theme.AppThemeSurface
 import com.goodwy.commons.databinding.DialogOpenDeviceSettingsBinding
 import com.goodwy.commons.extensions.getAlertDialogBuilder
+import com.goodwy.commons.extensions.getProperPrimaryColor
 import com.goodwy.commons.extensions.openDeviceSettings
 import com.goodwy.commons.extensions.setupDialogStuff
+import eightbitlab.com.blurview.BlurTarget
+import eightbitlab.com.blurview.BlurView
 
-class OpenDeviceSettingsDialog(val activity: BaseSimpleActivity, message: String) {
+class OpenDeviceSettingsDialog(val activity: BaseSimpleActivity, message: String, blurTarget: BlurTarget) {
 
     init {
         activity.apply {
             val view = DialogOpenDeviceSettingsBinding.inflate(layoutInflater, null, false)
             view.openDeviceSettings.text = message
-            getAlertDialogBuilder()
-                .setNegativeButton(R.string.close, null)
-                .setPositiveButton(R.string.go_to_settings) { _, _ ->
+
+            // Setup BlurView with the provided BlurTarget
+            val blurView = view.blurView
+            val decorView = window.decorView
+            val windowBackground = decorView.background
+            
+            blurView.setOverlayColor(0xa3ffffff.toInt())
+            blurView.setupWith(blurTarget)
+                .setFrameClearDrawable(windowBackground)
+                .setBlurRadius(8f)
+                .setBlurAutoUpdate(true)
+
+            // Setup custom buttons inside BlurView
+            val primaryColor = getProperPrimaryColor()
+            val positiveButton = view.root.findViewById<com.google.android.material.button.MaterialButton>(R.id.positive_button)
+            val negativeButton = view.root.findViewById<com.google.android.material.button.MaterialButton>(R.id.negative_button)
+            val buttonsContainer = view.root.findViewById<android.widget.LinearLayout>(R.id.buttons_container)
+
+            buttonsContainer?.visibility = android.view.View.VISIBLE
+
+            if (positiveButton != null) {
+                positiveButton.visibility = android.view.View.VISIBLE
+                positiveButton.setTextColor(primaryColor)
+                positiveButton.setOnClickListener {
                     openDeviceSettings()
-                }.apply {
-                    setupDialogStuff(view.root, this)
                 }
+            }
+
+            if (negativeButton != null) {
+                negativeButton.visibility = android.view.View.VISIBLE
+                negativeButton.setTextColor(primaryColor)
+                negativeButton.setOnClickListener { /* dialog will be dismissed on cancel */ }
+            }
+
+            getAlertDialogBuilder().apply {
+                setupDialogStuff(view.root, this, titleId = 0)
+            }
         }
     }
 }

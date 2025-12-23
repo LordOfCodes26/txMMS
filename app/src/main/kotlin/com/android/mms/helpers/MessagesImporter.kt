@@ -14,6 +14,7 @@ import com.android.mms.models.ImportResult
 import com.android.mms.models.MessagesBackup
 import com.android.mms.models.MmsBackup
 import com.android.mms.models.SmsBackup
+import com.android.mms.R
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromStream
@@ -70,7 +71,9 @@ class MessagesImporter(private val activity: SimpleActivity) {
                 deserializedList
             }
 
-            ImportMessagesDialog(activity, messages)
+            val blurTarget = activity.findViewById<eightbitlab.com.blurview.BlurTarget>(R.id.mainBlurTarget)
+                ?: throw IllegalStateException("mainBlurTarget not found")
+            ImportMessagesDialog(activity, messages, blurTarget)
         } catch (_: SerializationException) {
             activity.toast(com.goodwy.commons.R.string.invalid_file_format)
         } catch (_: IllegalArgumentException) {

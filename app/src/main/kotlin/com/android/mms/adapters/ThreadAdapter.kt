@@ -280,13 +280,17 @@ class ThreadAdapter(
     private fun selectText() {
         val firstItem = getSelectedItems().firstOrNull() as? Message ?: return
         if (firstItem.body.trim().isNotEmpty()) {
-            SelectTextDialog(activity, firstItem.body)
+            val blurTarget = activity.findViewById<eightbitlab.com.blurview.BlurTarget>(com.android.mms.R.id.mainBlurTarget)
+                ?: throw IllegalStateException("mainBlurTarget not found")
+            SelectTextDialog(activity, firstItem.body, blurTarget)
         }
     }
 
     private fun showMessageDetails() {
         val message = getSelectedItems().firstOrNull() as? Message ?: return
-        MessageDetailsDialog(activity, message)
+        val blurTarget = activity.findViewById<eightbitlab.com.blurview.BlurTarget>(com.android.mms.R.id.mainBlurTarget)
+            ?: throw IllegalStateException("mainBlurTarget not found")
+        MessageDetailsDialog(activity, message, blurTarget)
     }
 
     private fun askConfirmDelete(message: Message? = null) {
@@ -307,7 +311,9 @@ class ThreadAdapter(
         }
         val question = String.format(resources.getString(baseString), items)
 
-        DeleteConfirmationDialog(activity, question, activity.config.useRecycleBin && !isRecycleBin) { skipRecycleBin ->
+        val blurTarget = activity.findViewById<eightbitlab.com.blurview.BlurTarget>(com.android.mms.R.id.mainBlurTarget)
+            ?: throw IllegalStateException("mainBlurTarget not found")
+        DeleteConfirmationDialog(activity, question, activity.config.useRecycleBin && !isRecycleBin, blurTarget) { skipRecycleBin ->
             ensureBackgroundThread {
                 val messagesToRemove = if (message != null) arrayListOf(message) else getSelectedItems()
                 if (messagesToRemove.isNotEmpty()) {
@@ -332,7 +338,9 @@ class ThreadAdapter(
         val baseString = R.string.restore_confirmation
         val question = String.format(resources.getString(baseString), items)
 
-        ConfirmationDialog(activity, question) {
+        val blurTarget = activity.findViewById<eightbitlab.com.blurview.BlurTarget>(com.android.mms.R.id.mainBlurTarget)
+            ?: throw IllegalStateException("mainBlurTarget not found")
+        ConfirmationDialog(activity, question, blurTarget = blurTarget) {
             ensureBackgroundThread {
                 val messagesToRestore = getSelectedItems()
                 if (messagesToRestore.isNotEmpty()) {
@@ -482,7 +490,11 @@ class ThreadAdapter(
                                 }
                             }
                             ACTION_COPY_MESSAGE -> activity.copyToClipboard(message.body)
-                            ACTION_SELECT_TEXT -> SelectTextDialog(activity, message.body)
+                            ACTION_SELECT_TEXT -> {
+                                val blurTarget = activity.findViewById<eightbitlab.com.blurview.BlurTarget>(com.android.mms.R.id.mainBlurTarget)
+                                    ?: throw IllegalStateException("mainBlurTarget not found")
+                                SelectTextDialog(activity, message.body, blurTarget)
+                            }
                             ACTION_NOTHING -> showPopupMenu(message, this)
                             else -> return@setOnClickListener
                         }
@@ -567,7 +579,11 @@ class ThreadAdapter(
 
                 3 -> activity.shareTextIntent(text)
 
-                4 -> MessageDetailsDialog(activity, message)
+                4 -> {
+                    val blurTarget = activity.findViewById<eightbitlab.com.blurview.BlurTarget>(com.android.mms.R.id.mainBlurTarget)
+                        ?: throw IllegalStateException("mainBlurTarget not found")
+                    MessageDetailsDialog(activity, message, blurTarget)
+                }
 
                 5 -> {
                     val attachment = message.attachment?.attachments?.firstOrNull()
@@ -583,7 +599,11 @@ class ThreadAdapter(
                     }
                 }
 
-                6 -> SelectTextDialog(activity, text)
+                6 -> {
+                    val blurTarget = activity.findViewById<eightbitlab.com.blurview.BlurTarget>(com.android.mms.R.id.mainBlurTarget)
+                        ?: throw IllegalStateException("mainBlurTarget not found")
+                    SelectTextDialog(activity, text, blurTarget)
+                }
 
                 7 -> activity.copyToClipboard(text)
 

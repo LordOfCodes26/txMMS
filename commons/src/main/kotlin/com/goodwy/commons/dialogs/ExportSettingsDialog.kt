@@ -5,6 +5,7 @@ import com.goodwy.commons.R
 import com.goodwy.commons.activities.BaseSimpleActivity
 import com.goodwy.commons.databinding.DialogExportSettingsBinding
 import com.goodwy.commons.extensions.*
+import eightbitlab.com.blurview.BlurTarget
 
 class ExportSettingsDialog(
     val activity: BaseSimpleActivity, val defaultFilename: String, val hidePath: Boolean,
@@ -26,7 +27,9 @@ class ExportSettingsDialog(
             } else {
                 exportSettingsPath.setText(activity.humanizePath(folder))
                 exportSettingsPath.setOnClickListener {
-                    FilePickerDialog(activity, folder, false, showFAB = true) {
+                    val blurTarget = activity.findViewById<BlurTarget>(R.id.mainBlurTarget)
+                        ?: throw IllegalStateException("mainBlurTarget not found")
+                    FilePickerDialog(activity, folder, false, showFAB = true, blurTarget = blurTarget) {
                         exportSettingsPath.setText(activity.humanizePath(it))
                         folder = it
                     }
@@ -56,7 +59,9 @@ class ExportSettingsDialog(
                         activity.baseConfig.lastExportedSettingsFolder = folder
                         if (!hidePath && activity.getDoesFilePathExist(newPath)) {
                             val title = String.format(activity.getString(R.string.file_already_exists_overwrite), newPath.getFilenameFromPath())
-                            ConfirmationDialog(activity, title) {
+                            val blurTarget = activity.findViewById<BlurTarget>(R.id.mainBlurTarget)
+                                ?: throw IllegalStateException("mainBlurTarget not found")
+                            ConfirmationDialog(activity, title, blurTarget = blurTarget) {
                                 callback(newPath, filename)
                                 alertDialog.dismiss()
                             }

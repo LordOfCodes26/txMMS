@@ -221,9 +221,12 @@ class ConversationDetailsActivity : SimpleActivity() {
 
             text = conversation?.title
             setOnClickListener {
+                val blurTarget = findViewById<eightbitlab.com.blurview.BlurTarget>(com.android.mms.R.id.mainBlurTarget)
+                    ?: throw IllegalStateException("mainBlurTarget not found")
                 RenameConversationDialog(
                     this@ConversationDetailsActivity,
-                    conversation!!
+                    conversation!!,
+                    blurTarget
                 ) { title ->
                     text = title
                     ensureBackgroundThread {
@@ -286,7 +289,9 @@ class ConversationDetailsActivity : SimpleActivity() {
             setTextColor(getProperTextColor())
             setOnClickListener {
                 if (conversation != null) {
-                    RenameConversationDialog(this@ConversationDetailsActivity, conversation!!) { title ->
+                    val blurTarget = findViewById<eightbitlab.com.blurview.BlurTarget>(com.android.mms.R.id.mainBlurTarget)
+                        ?: throw IllegalStateException("mainBlurTarget not found")
+                    RenameConversationDialog(this@ConversationDetailsActivity, conversation!!, blurTarget) { title ->
                         text = title
                         ensureBackgroundThread {
                             conversation = renameConversation(conversation!!, newTitle = title)
@@ -441,7 +446,9 @@ class ConversationDetailsActivity : SimpleActivity() {
         val baseString = if (isBlockNumbers) com.goodwy.strings.R.string.unblock_confirmation else com.goodwy.commons.R.string.block_confirmation
         val question = String.format(resources.getString(baseString), numbersString)
 
-        ConfirmationDialog(this, question) {
+        val blurTarget = findViewById<eightbitlab.com.blurview.BlurTarget>(com.android.mms.R.id.mainBlurTarget)
+            ?: throw IllegalStateException("mainBlurTarget not found")
+        ConfirmationDialog(this, question, blurTarget = blurTarget) {
             ensureBackgroundThread {
                 numbers.forEach {
                     if (isBlockNumbers) {

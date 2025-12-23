@@ -20,9 +20,12 @@ import com.android.mms.activities.SimpleActivity
 import com.android.mms.databinding.DialogExportMessagesBinding
 import com.android.mms.extensions.config
 import com.android.mms.helpers.MessagesReader
+import eightbitlab.com.blurview.BlurTarget
+import eightbitlab.com.blurview.BlurView
 
 class ExportMessagesDialog(
     private val activity: SimpleActivity,
+    private val blurTarget: BlurTarget,
     private val callback: (fileName: String) -> Unit,
 ) {
     private val config = activity.config
@@ -30,6 +33,17 @@ class ExportMessagesDialog(
 
     @SuppressLint("SetTextI18n")
     private val binding = DialogExportMessagesBinding.inflate(activity.layoutInflater).apply {
+        // Setup BlurView
+        val blurView = root.findViewById<eightbitlab.com.blurview.BlurView>(com.android.mms.R.id.blurView)
+        val decorView = activity.window.decorView
+        val windowBackground = decorView.background
+        
+        blurView?.setOverlayColor(0xa3ffffff.toInt())
+        blurView?.setupWith(blurTarget)
+            ?.setFrameClearDrawable(windowBackground)
+            ?.setBlurRadius(8f)
+            ?.setBlurAutoUpdate(true)
+        
         exportSmsCheckbox.isChecked = config.exportSms
         exportMmsCheckbox.isChecked = config.exportMms
         exportMessagesFilename.setText(

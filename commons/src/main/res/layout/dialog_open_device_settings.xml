@@ -1,11 +1,49 @@
 <?xml version="1.0" encoding="utf-8"?>
-<com.goodwy.commons.views.MyTextView xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/open_device_settings"
-    android:layout_width="wrap_content"
-    android:layout_height="wrap_content"
-    android:lineSpacingExtra="3dp"
-    android:paddingLeft="@dimen/bigger_margin"
-    android:paddingTop="@dimen/bigger_margin"
-    android:paddingRight="@dimen/bigger_margin"
-    android:paddingBottom="@dimen/normal_margin"
-    android:textSize="@dimen/bigger_text_size" />
+<eightbitlab.com.blurview.BlurView
+    android:id="@+id/blurView"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <com.goodwy.commons.views.MyTextView
+            android:id="@+id/open_device_settings"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:lineSpacingExtra="3dp"
+            android:paddingLeft="@dimen/bigger_margin"
+            android:paddingTop="@dimen/bigger_margin"
+            android:paddingRight="@dimen/bigger_margin"
+            android:paddingBottom="@dimen/normal_margin"
+            android:textSize="@dimen/bigger_text_size" />
+
+        <LinearLayout
+            android:id="@+id/buttons_container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            style="@style/DialogButtonContainerStyle"
+            android:visibility="gone">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/negative_button"
+                style="@style/Widget.Material3.Button.TextButton.Dialog"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/close"
+                android:visibility="gone" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/positive_button"
+                style="@style/Widget.Material3.Button.TextButton.Dialog"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/normal_margin"
+                android:text="@string/go_to_settings"
+                android:visibility="gone" />
+
+        </LinearLayout>
+    </LinearLayout>
+</eightbitlab.com.blurview.BlurView>

@@ -10,12 +10,30 @@ import com.goodwy.commons.extensions.getAlertDialogBuilder
 import com.goodwy.commons.extensions.getTimeFormatWithSeconds
 import com.goodwy.commons.extensions.setupDialogStuff
 import com.android.mms.R
+import com.android.mms.databinding.DialogMessageDetailsBinding
+import com.android.mms.databinding.ScheduleMessageDialogBinding
 import com.android.mms.extensions.subscriptionManagerCompat
 import com.android.mms.models.Message
+import com.goodwy.commons.extensions.viewBinding
 import org.joda.time.DateTime
+import eightbitlab.com.blurview.BlurTarget
+import kotlin.getValue
 
-class MessageDetailsDialog(val activity: BaseSimpleActivity, val message: Message) : BasePropertiesDialog(activity) {
+class MessageDetailsDialog(val activity: BaseSimpleActivity, val message: Message, blurTarget: BlurTarget) : BasePropertiesDialog(activity) {
+
+    private val binding by activity.viewBinding(DialogMessageDetailsBinding::inflate)
     init {
+        // Setup BlurView
+        val blurView = binding.root.findViewById<eightbitlab.com.blurview.BlurView>(com.android.mms.R.id.blurView)
+        val decorView = activity.window.decorView
+        val windowBackground = decorView.background
+
+        blurView?.setOverlayColor(0xa3ffffff.toInt())
+        blurView?.setupWith(blurTarget)
+            ?.setFrameClearDrawable(windowBackground)
+            ?.setBlurRadius(8f)
+            ?.setBlurAutoUpdate(true)
+
         addProperty(R.string.message_type, if (message.isMMS) "MMS" else "SMS")
         addProperty(com.goodwy.strings.R.string.status, message.getStatus())
 

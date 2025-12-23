@@ -16,11 +16,15 @@ import com.goodwy.commons.compose.extensions.MyDevices
 import com.goodwy.commons.compose.theme.AppThemeSurface
 import com.goodwy.commons.databinding.DialogMessageBinding
 import com.goodwy.commons.extensions.getAlertDialogBuilder
+import com.goodwy.commons.extensions.getProperPrimaryColor
 import com.goodwy.commons.extensions.setupDialogStuff
+import eightbitlab.com.blurview.BlurTarget
+import eightbitlab.com.blurview.BlurView
 
 class PermissionRequiredDialog(
     val activity: Activity,
     textId: Int,
+    blurTarget: BlurTarget,
     private val positiveActionCallback: () -> Unit,
     private val negativeActionCallback: (() -> Unit)? = null
 ) {
@@ -30,14 +34,54 @@ class PermissionRequiredDialog(
         val view = DialogMessageBinding.inflate(activity.layoutInflater, null, false)
         view.message.text = activity.getString(textId)
 
-        activity.getAlertDialogBuilder()
-            .setPositiveButton(R.string.grant_permission) { _, _ -> positiveActionCallback() }
-            .setNegativeButton(R.string.cancel) { _, _ -> negativeActionCallback?.invoke() }.apply {
-                val title = activity.getString(R.string.permission_required)
-                activity.setupDialogStuff(view.root, this, titleText = title) { alertDialog ->
-                    dialog = alertDialog
-                }
+        // Setup BlurView with the provided BlurTarget
+        val blurView = view.blurView
+        val decorView = activity.window.decorView
+        val windowBackground = decorView.background
+        
+        blurView.setOverlayColor(0xa3ffffff.toInt())
+        blurView.setupWith(blurTarget)
+            .setFrameClearDrawable(windowBackground)
+            .setBlurRadius(8f)
+            .setBlurAutoUpdate(true)
+
+        // Setup custom buttons inside BlurView
+        val primaryColor = activity.getProperPrimaryColor()
+        
+        // Access buttons via findViewById in case binding hasn't been regenerated
+        val positiveButton = view.root.findViewById<com.google.android.material.button.MaterialButton>(R.id.positive_button)
+        val negativeButton = view.root.findViewById<com.google.android.material.button.MaterialButton>(R.id.negative_button)
+        val buttonsContainer = view.root.findViewById<android.widget.LinearLayout>(R.id.buttons_container)
+        
+        // Ensure buttons container is visible first
+        buttonsContainer?.visibility = android.view.View.VISIBLE
+        
+        if (positiveButton != null) {
+            positiveButton.visibility = android.view.View.VISIBLE
+            positiveButton.text = activity.resources.getString(R.string.grant_permission)
+            positiveButton.setTextColor(primaryColor)
+            positiveButton.setOnClickListener {
+                dialog?.dismiss()
+                positiveActionCallback()
             }
+        }
+
+        if (negativeButton != null) {
+            negativeButton.visibility = android.view.View.VISIBLE
+            negativeButton.text = activity.resources.getString(R.string.cancel)
+            negativeButton.setTextColor(primaryColor)
+            negativeButton.setOnClickListener {
+                dialog?.dismiss()
+                negativeActionCallback?.invoke()
+            }
+        }
+
+        activity.getAlertDialogBuilder().apply {
+            val title = activity.getString(R.string.permission_required)
+            activity.setupDialogStuff(view.root, this, titleText = title) { alertDialog ->
+                dialog = alertDialog
+            }
+        }
     }
 }
 

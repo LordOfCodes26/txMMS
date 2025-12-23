@@ -25,41 +25,78 @@ import com.goodwy.commons.compose.theme.SimpleTheme
 import com.goodwy.commons.databinding.DialogCreateNewFolderBinding
 import com.goodwy.commons.extensions.*
 import com.goodwy.commons.helpers.isRPlus
+import eightbitlab.com.blurview.BlurTarget
+import eightbitlab.com.blurview.BlurView
 import java.io.File
 
-class CreateNewFolderDialog(val activity: BaseSimpleActivity, val path: String, val callback: (path: String) -> Unit) {
+class CreateNewFolderDialog(val activity: BaseSimpleActivity, val path: String, blurTarget: BlurTarget, val callback: (path: String) -> Unit) {
+    private var dialog: AlertDialog? = null
+
     init {
         val view = DialogCreateNewFolderBinding.inflate(activity.layoutInflater, null, false)
         view.folderPath.setText("${activity.humanizePath(path).trimEnd('/')}/")
 
-        activity.getAlertDialogBuilder()
-            .setPositiveButton(R.string.ok, null)
-            .setNegativeButton(R.string.cancel, null)
-            .apply {
-                activity.setupDialogStuff(view.root, this, R.string.create_new_folder) { alertDialog ->
-                    alertDialog.showKeyboard(view.folderName)
-                    alertDialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(View.OnClickListener {
-                        val name = view.folderName.value
-                        when {
-                            name.isEmpty() -> activity.toast(R.string.empty_name)
-                            name.isAValidFilename() -> {
-                                val file = File(path, name)
-                                if (file.exists()) {
-                                    activity.toast(R.string.name_taken)
-                                    return@OnClickListener
-                                }
+        // Setup BlurView with the provided BlurTarget
+        val blurView = view.blurView
+        val decorView = activity.window.decorView
+        val windowBackground = decorView.background
+        
+        blurView.setOverlayColor(0xa3ffffff.toInt())
+        blurView.setupWith(blurTarget)
+            .setFrameClearDrawable(windowBackground)
+            .setBlurRadius(8f)
+            .setBlurAutoUpdate(true)
 
-                                createFolder("$path/$name", alertDialog)
-                            }
+        // Setup title inside BlurView
+        val titleTextView = view.root.findViewById<com.goodwy.commons.views.MyTextView>(R.id.dialog_title)
+        titleTextView?.apply {
+            visibility = android.view.View.VISIBLE
+            setText(R.string.create_new_folder)
+        }
 
-                            else -> activity.toast(R.string.invalid_name)
+        // Setup custom buttons inside BlurView
+        val primaryColor = activity.getProperPrimaryColor()
+        val positiveButton = view.root.findViewById<com.google.android.material.button.MaterialButton>(R.id.positive_button)
+        val negativeButton = view.root.findViewById<com.google.android.material.button.MaterialButton>(R.id.negative_button)
+
+        if (positiveButton != null) {
+            positiveButton.setTextColor(primaryColor)
+            positiveButton.setOnClickListener {
+                val name = view.folderName.value
+                when {
+                    name.isEmpty() -> activity.toast(R.string.empty_name)
+                    name.isAValidFilename() -> {
+                        val file = File(path, name)
+                        if (file.exists()) {
+                            activity.toast(R.string.name_taken)
+                            return@setOnClickListener
                         }
-                    })
+
+                        createFolder("$path/$name", dialog)
+                    }
+
+                    else -> activity.toast(R.string.invalid_name)
                 }
             }
+        }
+
+        if (negativeButton != null) {
+            negativeButton.setTextColor(primaryColor)
+            negativeButton.setOnClickListener {
+                dialog?.dismiss()
+            }
+        }
+
+        activity.getAlertDialogBuilder().apply {
+            // Pass titleId = 0 to prevent setupDialogStuff from adding title outside BlurView
+            activity.setupDialogStuff(view.root, this, titleId = 0) { alertDialog ->
+                dialog = alertDialog
+                alertDialog.showKeyboard(view.folderName)
+            }
+        }
     }
 
-    private fun createFolder(path: String, alertDialog: AlertDialog) {
+    private fun createFolder(path: String, alertDialog: AlertDialog?) {
         try {
             when {
                 activity.isRestrictedSAFOnlyRoot(path) && activity.createAndroidSAFDirectory(path) -> sendSuccess(alertDialog, path)
@@ -99,9 +136,9 @@ class CreateNewFolderDialog(val activity: BaseSimpleActivity, val path: String, 
         }
     }
 
-    private fun sendSuccess(alertDialog: AlertDialog, path: String) {
+    private fun sendSuccess(alertDialog: AlertDialog?, path: String) {
         callback(path.trimEnd('/'))
-        alertDialog.dismiss()
+        alertDialog?.dismiss()
     }
 }
 

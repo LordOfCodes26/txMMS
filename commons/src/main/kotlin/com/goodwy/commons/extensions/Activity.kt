@@ -45,6 +45,7 @@ import com.goodwy.commons.helpers.MyContentProvider.COL_LAST_UPDATED_TS
 import com.goodwy.commons.helpers.MyContentProvider.MY_CONTENT_URI
 import com.goodwy.commons.models.*
 import com.goodwy.commons.views.MyTextView
+import eightbitlab.com.blurview.BlurTarget
 import java.io.*
 import java.util.Locale
 import java.util.TreeSet
@@ -88,7 +89,11 @@ fun Activity.appLaunched(appId: String) {
     if (!baseConfig.wasAppRated) {
         if (!isTalkBackOn()) {
             if (baseConfig.appRunCount % 40 == 0) {
-                if (isPlayStoreInstalled() || isRuStoreInstalled()) RateStarsDialog(this)
+                if (isPlayStoreInstalled() || isRuStoreInstalled()) {
+                    val blurTarget = findViewById<eightbitlab.com.blurview.BlurTarget>(R.id.mainBlurTarget)
+                        ?: throw IllegalStateException("mainBlurTarget not found")
+                    RateStarsDialog(this, blurTarget)
+                }
             }
         }
     }
@@ -109,7 +114,9 @@ fun BaseSimpleActivity.isShowingSAFDialog(path: String): Boolean {
     return if ((!isRPlus() && isPathOnSD(path) && !isSDCardSetAsDefaultStorage() && (baseConfig.sdTreeUri.isEmpty() || !hasProperStoredTreeUri(false)))) {
         runOnUiThread {
             if (!isDestroyed && !isFinishing) {
-                WritePermissionDialog(this, WritePermissionDialogMode.SdCard) {
+                val blurTarget = findViewById<eightbitlab.com.blurview.BlurTarget>(R.id.mainBlurTarget)
+                    ?: throw IllegalStateException("mainBlurTarget not found")
+                WritePermissionDialog(this, WritePermissionDialogMode.SdCard, blurTarget) {
                     Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
                         putExtra(EXTRA_SHOW_ADVANCED, true)
                         try {
@@ -145,7 +152,9 @@ fun BaseSimpleActivity.isShowingSAFDialogSdk30(path: String, showRationale: Bool
             if (!isDestroyed && !isFinishing) {
                 if (showRationale) {
                     val level = getFirstParentLevel(path)
-                    WritePermissionDialog(this, WritePermissionDialogMode.OpenDocumentTreeSDK30(path.getFirstParentPath(this, level))) {
+                    val blurTarget = findViewById<eightbitlab.com.blurview.BlurTarget>(R.id.mainBlurTarget)
+                        ?: throw IllegalStateException("mainBlurTarget not found")
+                    WritePermissionDialog(this, WritePermissionDialogMode.OpenDocumentTreeSDK30(path.getFirstParentPath(this, level)), blurTarget) {
                         openDocumentTreeSdk30(path)
 
                     }
@@ -189,7 +198,9 @@ fun BaseSimpleActivity.isShowingSAFCreateDocumentDialogSdk30(path: String): Bool
     return if (!hasProperStoredDocumentUriSdk30(path)) {
         runOnUiThread {
             if (!isDestroyed && !isFinishing) {
-                WritePermissionDialog(this, WritePermissionDialogMode.CreateDocumentSDK30) {
+                val blurTarget = findViewById<eightbitlab.com.blurview.BlurTarget>(R.id.mainBlurTarget)
+                    ?: throw IllegalStateException("mainBlurTarget not found")
+                WritePermissionDialog(this, WritePermissionDialogMode.CreateDocumentSDK30, blurTarget) {
                     Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
                         type = DocumentsContract.Document.MIME_TYPE_DIR
                         putExtra(EXTRA_SHOW_ADVANCED, true)
@@ -227,20 +238,26 @@ fun BaseSimpleActivity.isShowingAndroidSAFDialog(path: String, openInSystemAppAl
         runOnUiThread {
             if (!isDestroyed && !isFinishing) {
                 if (!openInSystemAppAllowed) {
+                    val blurTarget = findViewById<BlurTarget>(R.id.mainBlurTarget)
+                        ?: throw IllegalStateException("mainBlurTarget not found")
                     ConfirmationDialog(
                         this,
                         "",
                         R.string.confirm_storage_access_restricted_text,
                         positive = android.R.string.ok,
-                        negative = 0
+                        negative = 0,
+                        blurTarget = blurTarget
                     ) {}
                 } else {
+                    val blurTarget = findViewById<BlurTarget>(R.id.mainBlurTarget)
+                        ?: throw IllegalStateException("mainBlurTarget not found")
                     ConfirmationAdvancedDialog(
                         this,
                         "",
                         R.string.confirm_storage_access_restricted_text,
                         R.string.confirm_storage_access_restricted_text_open_system,
-                        R.string.cancel
+                        R.string.cancel,
+                        blurTarget = blurTarget
                     ) { success ->
                         if (success) {
                             val uri = createAndroidDataOrObbUri(path)
@@ -325,7 +342,9 @@ fun BaseSimpleActivity.isShowingOTGDialog(path: String): Boolean {
 fun BaseSimpleActivity.showOTGPermissionDialog(path: String) {
     runOnUiThread {
         if (!isDestroyed && !isFinishing) {
-            WritePermissionDialog(this, WritePermissionDialogMode.Otg) {
+            val blurTarget = findViewById<eightbitlab.com.blurview.BlurTarget>(R.id.mainBlurTarget)
+                ?: throw IllegalStateException("mainBlurTarget not found")
+            WritePermissionDialog(this, WritePermissionDialogMode.Otg, blurTarget) {
                 Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
                     try {
                         startActivityForResult(this, OPEN_DOCUMENT_TREE_OTG)
@@ -687,7 +706,9 @@ fun BaseSimpleActivity.checkWhatsNew(releases: List<Release>, currVersion: Int) 
     releases.filterTo(newReleases) { it.id > baseConfig.lastVersion }
 
     if (newReleases.isNotEmpty()) {
-        WhatsNewDialog(this, newReleases)
+        val blurTarget = findViewById<eightbitlab.com.blurview.BlurTarget>(R.id.mainBlurTarget)
+            ?: throw IllegalStateException("mainBlurTarget not found")
+        WhatsNewDialog(this, newReleases, blurTarget)
     }
 
     baseConfig.lastVersion = currVersion
@@ -1384,10 +1405,13 @@ fun Activity.performSecurityCheck(
     if (protectionType == PROTECTION_FINGERPRINT && isRPlus()) {
         showBiometricPrompt(successCallback, failureCallback)
     } else {
+        val blurTarget = findViewById<eightbitlab.com.blurview.BlurTarget>(R.id.mainBlurTarget)
+            ?: throw IllegalStateException("mainBlurTarget not found")
         SecurityDialog(
             activity = this,
             requiredHash = requiredHash,
             showTabIndex = protectionType,
+            blurTarget = blurTarget,
             callback = { hash, type, success ->
                 if (success) {
                     successCallback?.invoke(hash, type)
@@ -1430,7 +1454,9 @@ fun Activity.showBiometricPrompt(
 
 fun Activity.handleHiddenFolderPasswordProtection(callback: () -> Unit) {
     if (baseConfig.isHiddenPasswordProtectionOn) {
-        SecurityDialog(this, baseConfig.hiddenPasswordHash, baseConfig.hiddenProtectionType) { _, _, success ->
+        val blurTarget = findViewById<eightbitlab.com.blurview.BlurTarget>(R.id.mainBlurTarget)
+            ?: throw IllegalStateException("mainBlurTarget not found")
+        SecurityDialog(this, baseConfig.hiddenPasswordHash, baseConfig.hiddenProtectionType, blurTarget) { _, _, success ->
             if (success) {
                 callback()
             }
@@ -1442,7 +1468,9 @@ fun Activity.handleHiddenFolderPasswordProtection(callback: () -> Unit) {
 
 fun Activity.handleAppPasswordProtection(callback: (success: Boolean) -> Unit) {
     if (baseConfig.isAppPasswordProtectionOn) {
-        SecurityDialog(this, baseConfig.appPasswordHash, baseConfig.appProtectionType) { _, _, success ->
+        val blurTarget = findViewById<eightbitlab.com.blurview.BlurTarget>(R.id.mainBlurTarget)
+            ?: throw IllegalStateException("mainBlurTarget not found")
+        SecurityDialog(this, baseConfig.appPasswordHash, baseConfig.appProtectionType, blurTarget) { _, _, success ->
             callback(success)
         }
     } else {
@@ -1452,7 +1480,9 @@ fun Activity.handleAppPasswordProtection(callback: (success: Boolean) -> Unit) {
 
 fun Activity.handleDeletePasswordProtection(callback: () -> Unit) {
     if (baseConfig.isDeletePasswordProtectionOn) {
-        SecurityDialog(this, baseConfig.deletePasswordHash, baseConfig.deleteProtectionType) { _, _, success ->
+        val blurTarget = findViewById<eightbitlab.com.blurview.BlurTarget>(R.id.mainBlurTarget)
+            ?: throw IllegalStateException("mainBlurTarget not found")
+        SecurityDialog(this, baseConfig.deletePasswordHash, baseConfig.deleteProtectionType, blurTarget) { _, _, success ->
             if (success) {
                 callback()
             }
@@ -1464,7 +1494,9 @@ fun Activity.handleDeletePasswordProtection(callback: () -> Unit) {
 
 fun Activity.handleLockedFolderOpening(path: String, callback: (success: Boolean) -> Unit) {
     if (baseConfig.isFolderProtected(path)) {
-        SecurityDialog(this, baseConfig.getFolderProtectionHash(path), baseConfig.getFolderProtectionType(path)) { _, _, success ->
+        val blurTarget = findViewById<eightbitlab.com.blurview.BlurTarget>(R.id.mainBlurTarget)
+            ?: throw IllegalStateException("mainBlurTarget not found")
+        SecurityDialog(this, baseConfig.getFolderProtectionHash(path), baseConfig.getFolderProtectionType(path), blurTarget) { _, _, success ->
             callback(success)
         }
     } else {
@@ -1619,10 +1651,14 @@ fun Activity.showPickSecondsDialog(
         items.add(RadioItem(-3, getString(R.string.during_day_at_hh_mm)))
     }
 
-    RadioGroupDialog(this, items, selectedIndex, showOKButton = isSnoozePicker, cancelCallback = cancelCallback) {
+    val blurTarget = findViewById<BlurTarget>(R.id.mainBlurTarget)
+        ?: throw IllegalStateException("mainBlurTarget not found")
+    RadioGroupDialog(this, items, selectedIndex, showOKButton = isSnoozePicker, cancelCallback = cancelCallback, blurTarget = blurTarget) {
         when (it) {
             -2 -> {
-                CustomIntervalPickerDialog(this, showSeconds = showSecondsAtCustomDialog) {
+                val blurTarget = findViewById<eightbitlab.com.blurview.BlurTarget>(R.id.mainBlurTarget)
+                    ?: throw IllegalStateException("mainBlurTarget not found")
+                CustomIntervalPickerDialog(this, showSeconds = showSecondsAtCustomDialog, blurTarget = blurTarget) {
                     callback(it)
                 }
             }
@@ -1689,11 +1725,14 @@ fun BaseSimpleActivity.showModdedAppWarning() {
     val label =
         "You are using a fake version of the app. For your own " +
             "safety download the original version. Thanks"
+    val blurTarget = findViewById<BlurTarget>(R.id.mainBlurTarget)
+        ?: throw IllegalStateException("mainBlurTarget not found")
     ConfirmationDialog(
         activity = this,
         message = label,
         positive = R.string.ok,
-        negative = 0
+        negative = 0,
+        blurTarget = blurTarget
     ) {
         launchMoreAppsFromUsIntent()
     }
@@ -1772,9 +1811,12 @@ fun Activity.maybeShowNumberPickerDialog(
                 )
             }
 
+            val blurTarget = findViewById<BlurTarget>(R.id.mainBlurTarget)
+                ?: throw IllegalStateException("mainBlurTarget not found")
             RadioGroupDialog(
                 activity = this,
                 items = ArrayList(items),
+                blurTarget = blurTarget
             ) { selectedPhoneNumber ->
                 callback(selectedPhoneNumber as PhoneNumber)
             }

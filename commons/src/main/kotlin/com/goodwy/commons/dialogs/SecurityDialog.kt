@@ -12,11 +12,14 @@ import com.goodwy.commons.extensions.*
 import com.goodwy.commons.helpers.*
 import com.goodwy.commons.interfaces.HashListener
 import com.goodwy.commons.views.MyDialogViewPager
+import eightbitlab.com.blurview.BlurTarget
+import eightbitlab.com.blurview.BlurView
 
 class SecurityDialog(
     private val activity: Activity,
     private val requiredHash: String,
     private val showTabIndex: Int,
+    blurTarget: BlurTarget,
     private val callback: (hash: String, type: Int, success: Boolean) -> Unit
 ) : HashListener {
     private var dialog: AlertDialog? = null
@@ -25,6 +28,17 @@ class SecurityDialog(
     private var viewPager: MyDialogViewPager
 
     init {
+        // Setup BlurView with the provided BlurTarget
+        val blurView = binding.root.findViewById<BlurView>(R.id.blurView)
+        val decorView = activity.window.decorView
+        val windowBackground = decorView.background
+        
+        blurView?.setOverlayColor(0xa3ffffff.toInt())
+        blurView?.setupWith(blurTarget)
+            ?.setFrameClearDrawable(windowBackground)
+            ?.setBlurRadius(8f)
+            ?.setBlurAutoUpdate(true)
+        
         binding.apply {
             viewPager = dialogTabViewPager
             viewPager.offscreenPageLimit = 2
@@ -79,11 +93,24 @@ class SecurityDialog(
             }
         }
 
+        // Setup custom button inside BlurView
+        val primaryColor = activity.getProperPrimaryColor()
+        val negativeButton = binding.root.findViewById<com.google.android.material.button.MaterialButton>(R.id.negative_button)
+        val buttonsContainer = binding.root.findViewById<android.widget.LinearLayout>(R.id.buttons_container)
+        
+        buttonsContainer?.visibility = android.view.View.VISIBLE
+        
+        negativeButton?.apply {
+            visibility = android.view.View.VISIBLE
+            text = activity.resources.getString(R.string.cancel)
+            setTextColor(primaryColor)
+            setOnClickListener { onCancelFail() }
+        }
+
         activity.getAlertDialogBuilder()
             .setOnCancelListener { onCancelFail() }
-            .setNegativeButton(R.string.cancel) { _, _ -> onCancelFail() }
             .apply {
-                activity.setupDialogStuff(binding.root, this) { alertDialog ->
+                activity.setupDialogStuff(binding.root, this, titleId = 0) { alertDialog ->
                 dialog = alertDialog
                 }
             }

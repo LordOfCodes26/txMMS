@@ -159,5 +159,5 @@ dependencies {
 
     // Bouncy overscroll spring effect
     implementation("androidx.dynamicanimation:dynamicanimation:1.1.0")
-
+    implementation("com.github.Dimezis:BlurView:version-3.2.0")
 }

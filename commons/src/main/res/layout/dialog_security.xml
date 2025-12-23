@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<com.goodwy.commons.views.MyScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<eightbitlab.com.blurview.BlurView
+    android:id="@+id/blurView"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+<com.goodwy.commons.views.MyScrollView
     android:id="@+id/dialog_scrollview"
     android:layout_width="match_parent"
     android:layout_height="wrap_content">
@@ -33,3 +38,21 @@
             android:layout_below="@+id/dialog_tab_layout"/>
     </RelativeLayout>
 </com.goodwy.commons.views.MyScrollView>
+
+    <LinearLayout
+        android:id="@+id/buttons_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        style="@style/DialogButtonContainerStyle">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/negative_button"
+            style="@style/Widget.Material3.Button.TextButton.Dialog"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="0"
+            android:text="@string/cancel"
+            android:visibility="visible" />
+
+    </LinearLayout>
+</eightbitlab.com.blurview.BlurView>

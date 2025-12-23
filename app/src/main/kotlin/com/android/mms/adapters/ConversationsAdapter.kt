@@ -199,7 +199,9 @@ class ConversationsAdapter(
         val baseString = if (isBlockNumbers) com.goodwy.strings.R.string.unblock_confirmation else com.goodwy.commons.R.string.block_confirmation
         val question = String.format(resources.getString(baseString), numbersString)
 
-        ConfirmationDialog(activity, question) {
+        val blurTarget = activity.findViewById<eightbitlab.com.blurview.BlurTarget>(com.android.mms.R.id.mainBlurTarget)
+            ?: throw IllegalStateException("mainBlurTarget not found")
+        ConfirmationDialog(activity, question, blurTarget = blurTarget) {
             blockNumbers(isBlockNumbers)
         }
     }
@@ -271,7 +273,9 @@ class ConversationsAdapter(
         }
         val question = String.format(resources.getString(baseString), items)
 
-        ConfirmationDialog(activity, question) {
+        val blurTarget = activity.findViewById<eightbitlab.com.blurview.BlurTarget>(com.android.mms.R.id.mainBlurTarget)
+            ?: throw IllegalStateException("mainBlurTarget not found")
+        ConfirmationDialog(activity, question, blurTarget = blurTarget) {
             ensureBackgroundThread {
                 deleteConversations()
             }
@@ -285,7 +289,9 @@ class ConversationsAdapter(
         val baseString = R.string.archive_confirmation
         val question = String.format(resources.getString(baseString), items)
 
-        ConfirmationDialog(activity, question) {
+        val blurTarget = activity.findViewById<eightbitlab.com.blurview.BlurTarget>(com.android.mms.R.id.mainBlurTarget)
+            ?: throw IllegalStateException("mainBlurTarget not found")
+        ConfirmationDialog(activity, question, blurTarget = blurTarget) {
             ensureBackgroundThread {
                 archiveConversations()
             }
@@ -362,7 +368,9 @@ class ConversationsAdapter(
     }
 
     private fun renameConversation(conversation: Conversation) {
-        RenameConversationDialog(activity, conversation) {
+        val blurTarget = activity.findViewById<eightbitlab.com.blurview.BlurTarget>(com.android.mms.R.id.mainBlurTarget)
+            ?: throw IllegalStateException("mainBlurTarget not found")
+        RenameConversationDialog(activity, conversation, blurTarget) {
             ensureBackgroundThread {
                 val updatedConv = activity.renameConversation(conversation, newTitle = it)
                 activity.runOnUiThread {
@@ -486,7 +494,9 @@ class ConversationsAdapter(
             val baseString = R.string.archive_confirmation
             val question = String.format(resources.getString(baseString), item)
 
-            ConfirmationDialog(activity, question) {
+            val blurTarget = activity.findViewById<eightbitlab.com.blurview.BlurTarget>(com.android.mms.R.id.mainBlurTarget)
+                ?: throw IllegalStateException("mainBlurTarget not found")
+            ConfirmationDialog(activity, question, blurTarget = blurTarget) {
                 ensureBackgroundThread {
                     swipedArchiveConversations(conversation)
                 }
@@ -530,7 +540,9 @@ class ConversationsAdapter(
             }
             val question = String.format(resources.getString(baseString), item)
 
-            ConfirmationDialog(activity, question) {
+            val blurTarget = activity.findViewById<eightbitlab.com.blurview.BlurTarget>(com.android.mms.R.id.mainBlurTarget)
+                ?: throw IllegalStateException("mainBlurTarget not found")
+            ConfirmationDialog(activity, question, blurTarget = blurTarget) {
                 ensureBackgroundThread {
                     swipedDeleteConversations(conversation)
                 }

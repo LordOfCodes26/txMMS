@@ -96,12 +96,15 @@ fun Activity.startContactDetailsIntentRecommendation(contact: SimpleContact) {
         (!isPackageInstalled(simpleContacts) && !isPackageInstalled(simpleContactsDebug) &&
             !isPackageInstalled(newSimpleContacts) && !isPackageInstalled(newSimpleContactsDebug))
     ) {
+        val blurTarget = findViewById<eightbitlab.com.blurview.BlurTarget>(R.id.mainBlurTarget)
+            ?: throw IllegalStateException("mainBlurTarget not found")
         NewAppDialog(
             activity = this,
             packageName = if (packageName.startsWith("dev.")) newSimpleContacts else simpleContacts,
             title = getString(com.goodwy.strings.R.string.recommendation_dialog_contacts_g),
             text = getString(com.goodwy.commons.R.string.right_contacts),
-            drawable = AppCompatResources.getDrawable(this, com.goodwy.commons.R.drawable.ic_contacts)
+            drawable = AppCompatResources.getDrawable(this, com.goodwy.commons.R.drawable.ic_contacts),
+            blurTarget = blurTarget
         ) {
             startContactDetailsIntent(contact)
         }

@@ -26,9 +26,12 @@ import com.goodwy.commons.compose.extensions.andThen
 import com.goodwy.commons.compose.theme.AppThemeSurface
 import com.goodwy.commons.databinding.DialogEnterPasswordBinding
 import com.goodwy.commons.extensions.*
+import eightbitlab.com.blurview.BlurTarget
+import eightbitlab.com.blurview.BlurView
 
 class EnterPasswordDialog(
     val activity: BaseSimpleActivity,
+    blurTarget: BlurTarget,
     private val callback: (password: String) -> Unit,
     private val cancelCallback: () -> Unit
 ) {
@@ -37,29 +40,62 @@ class EnterPasswordDialog(
     private val view: DialogEnterPasswordBinding = DialogEnterPasswordBinding.inflate(activity.layoutInflater, null, false)
 
     init {
-        activity.getAlertDialogBuilder()
-            .setPositiveButton(R.string.ok, null)
-            .setNegativeButton(R.string.cancel, null)
-            .apply {
-                activity.setupDialogStuff(view.root, this, R.string.enter_password) { alertDialog ->
-                    dialog = alertDialog
-                    alertDialog.showKeyboard(view.password)
-                    alertDialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-                        val password = view.password.value
+        // Setup BlurView with the provided BlurTarget
+        val blurView = view.blurView
+        val decorView = activity.window.decorView
+        val windowBackground = decorView.background
+        
+        blurView.setOverlayColor(0xa3ffffff.toInt())
+        blurView.setupWith(blurTarget)
+            .setFrameClearDrawable(windowBackground)
+            .setBlurRadius(8f)
+            .setBlurAutoUpdate(true)
 
-                        if (password.isEmpty()) {
-                            activity.toast(R.string.empty_password)
-                            return@setOnClickListener
-                        }
+        // Setup title inside BlurView
+        val titleTextView = view.root.findViewById<com.goodwy.commons.views.MyTextView>(R.id.dialog_title)
+        titleTextView?.apply {
+            visibility = android.view.View.VISIBLE
+            setText(R.string.enter_password)
+        }
 
-                        callback(password)
-                    }
+        // Setup custom buttons inside BlurView
+        val primaryColor = activity.getProperPrimaryColor()
+        val positiveButton = view.root.findViewById<com.google.android.material.button.MaterialButton>(R.id.positive_button)
+        val negativeButton = view.root.findViewById<com.google.android.material.button.MaterialButton>(R.id.negative_button)
 
-                    alertDialog.setOnDismissListener {
-                        cancelCallback()
-                    }
+        if (positiveButton != null) {
+            positiveButton.setTextColor(primaryColor)
+            positiveButton.setOnClickListener {
+                val password = view.password.value
+
+                if (password.isEmpty()) {
+                    activity.toast(R.string.empty_password)
+                    return@setOnClickListener
+                }
+
+                callback(password)
+                dialog?.dismiss()
+            }
+        }
+
+        if (negativeButton != null) {
+            negativeButton.setTextColor(primaryColor)
+            negativeButton.setOnClickListener {
+                dialog?.dismiss()
+            }
+        }
+
+        activity.getAlertDialogBuilder().apply {
+            // Pass titleId = 0 to prevent setupDialogStuff from adding title outside BlurView
+            activity.setupDialogStuff(view.root, this, titleId = 0) { alertDialog ->
+                dialog = alertDialog
+                alertDialog.showKeyboard(view.password)
+
+                alertDialog.setOnDismissListener {
+                    cancelCallback()
                 }
             }
+        }
     }
 
     fun dismiss(notify: Boolean = true) {

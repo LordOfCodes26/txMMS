@@ -30,6 +30,7 @@ import com.goodwy.commons.models.RadioItem
 import com.goodwy.commons.models.isGlobalThemingEnabled
 import com.goodwy.strings.R as stringsR
 import com.google.android.material.snackbar.Snackbar
+import eightbitlab.com.blurview.BlurTarget
 import com.mikhaellopez.rxanimation.RxAnimation
 import com.mikhaellopez.rxanimation.shake
 import kotlin.math.abs
@@ -270,7 +271,9 @@ class CustomizationActivity : BaseSimpleActivity() {
             items.add(RadioItem(key, getString(value.labelId)))
         }
 
-        RadioGroupDialog(this@CustomizationActivity, items, curSelectedThemeId, R.string.theme) {
+        val blurTarget = findViewById<BlurTarget>(R.id.mainBlurTarget)
+            ?: throw IllegalStateException("mainBlurTarget not found")
+        RadioGroupDialog(this@CustomizationActivity, items, curSelectedThemeId, R.string.theme, blurTarget = blurTarget) {
             updateColorTheme(it as Int, true)
             if (it != THEME_CUSTOM && it != THEME_SYSTEM && !baseConfig.wasCustomThemeSwitchDescriptionShown) {
                 baseConfig.wasCustomThemeSwitchDescriptionShown = true
@@ -486,12 +489,15 @@ class CustomizationActivity : BaseSimpleActivity() {
 
     private fun promptSaveDiscard() {
         lastSavePromptTS = System.currentTimeMillis()
+        val blurTarget = findViewById<BlurTarget>(R.id.mainBlurTarget)
+            ?: throw IllegalStateException("mainBlurTarget not found")
         ConfirmationAdvancedDialog(
             activity = this,
             message = "",
             messageId = R.string.save_before_closing,
             positive = R.string.save,
-            negative = R.string.discard
+            negative = R.string.discard,
+            blurTarget = blurTarget
         ) {
             if (it) {
                 saveChanges(true)
@@ -652,12 +658,15 @@ class CustomizationActivity : BaseSimpleActivity() {
             } else {
                 val message = resources.getString(stringsR.string.app_icon_color_shortcuts_warning_g) + "\n\n" +
                     resources.getString(stringsR.string.app_icon_color_warning_g)
+                val blurTarget = findViewById<BlurTarget>(R.id.mainBlurTarget)
+                    ?: throw IllegalStateException("mainBlurTarget not found")
                 ConfirmationDialog(
                     activity = this,
                     message = message,
                     messageId = stringsR.string.app_icon_color_warning_g,
                     positive = R.string.ok,
-                    negative = 0
+                    negative = 0,
+                    blurTarget = blurTarget
                 ) {
                     baseConfig.wasAppIconCustomizationWarningShown = true
                     pickAppIconColor()
@@ -700,8 +709,11 @@ class CustomizationActivity : BaseSimpleActivity() {
     }
 
     private fun pickTextColor() {
+        val blurTarget = findViewById<BlurTarget>(R.id.mainBlurTarget)
+            ?: throw IllegalStateException("mainBlurTarget not found")
         ColorPickerDialog(this, curTextColor,
-            title = resources.getString(R.string.text_color)
+            title = resources.getString(R.string.text_color),
+            blurTarget = blurTarget
         ) { wasPositivePressed, color, _ ->
             if (wasPositivePressed) {
                 if (hasColorChanged(curTextColor, color)) {
@@ -714,10 +726,13 @@ class CustomizationActivity : BaseSimpleActivity() {
     }
 
     private fun pickTextCursorColor() {
+        val blurTarget = findViewById<BlurTarget>(R.id.mainBlurTarget)
+            ?: throw IllegalStateException("mainBlurTarget not found")
         ColorPickerDialog(this, curTextCursorColor,
             addDefaultColorButton = true,
             colorDefault = -3,
-            title = resources.getString(stringsR.string.text_cursor_color)
+            title = resources.getString(stringsR.string.text_cursor_color),
+            blurTarget = blurTarget
         ) { wasPositivePressed, color, wasDefaultPressed ->
             if (wasPositivePressed) {
                 if (hasColorChanged(curTextCursorColor, color)) {
@@ -751,8 +766,11 @@ class CustomizationActivity : BaseSimpleActivity() {
     }
 
     private fun pickBackgroundColor() {
+        val blurTarget = findViewById<BlurTarget>(R.id.mainBlurTarget)
+            ?: throw IllegalStateException("mainBlurTarget not found")
         ColorPickerDialog(this, curBackgroundColor,
-            title = resources.getString(R.string.background_color)
+            title = resources.getString(R.string.background_color),
+            blurTarget = blurTarget
         ) { wasPositivePressed, color, _ ->
             if (wasPositivePressed) {
                 if (hasColorChanged(curBackgroundColor, color)) {
@@ -775,11 +793,14 @@ class CustomizationActivity : BaseSimpleActivity() {
         }
 
         if (!packageName.startsWith("dev.goodwy")) {
+            val blurTarget = findViewById<eightbitlab.com.blurview.BlurTarget>(R.id.mainBlurTarget)
+                ?: throw IllegalStateException("mainBlurTarget not found")
             curPrimaryGridColorPicker = GridColorPickerDialog(
                 activity = this,
                 color = curPrimaryColor,
                 colorBackground = curBackgroundColor,
                 isPrimaryColorPicker = true,
+                blurTarget = blurTarget
             ) { wasPositivePressed, color ->
                 curPrimaryGridColorPicker = null
                 if (wasPositivePressed) {
@@ -807,12 +828,15 @@ class CustomizationActivity : BaseSimpleActivity() {
                 }
             }
         } else {
+            val blurTarget = findViewById<BlurTarget>(R.id.mainBlurTarget)
+                ?: throw IllegalStateException("mainBlurTarget not found")
             ColorPickerDialog(
                 activity = this,
                 color = curPrimaryColor,
                 addDefaultColorButton = true,
                 colorDefault = resources.getColor(R.color.default_primary_color),
-                title = resources.getString(R.string.primary_color)
+                title = resources.getString(R.string.primary_color),
+                blurTarget = blurTarget
             ) { wasPositivePressed, color, wasDefaultPressed ->
                 if (wasPositivePressed || wasDefaultPressed) {
                     if (hasColorChanged(curPrimaryColor, color)) {
@@ -842,12 +866,15 @@ class CustomizationActivity : BaseSimpleActivity() {
     }
 
     private fun pickAccentColor() {
+        val blurTarget = findViewById<BlurTarget>(R.id.mainBlurTarget)
+            ?: throw IllegalStateException("mainBlurTarget not found")
         ColorPickerDialog(
             activity = this,
             color = curAccentColor,
             addDefaultColorButton = true,
             colorDefault = resources.getColor(R.color.default_accent_color),
-            title = resources.getString(stringsR.string.accent_color)
+            title = resources.getString(stringsR.string.accent_color),
+            blurTarget = blurTarget
         ) { wasPositivePressed, color, wasDefaultPressed ->
             if (wasPositivePressed || wasDefaultPressed) {
                 if (hasColorChanged(curAccentColor, color)) {
@@ -864,6 +891,8 @@ class CustomizationActivity : BaseSimpleActivity() {
     }
 
     private fun pickAppIconColor() {
+        val blurTarget = findViewById<eightbitlab.com.blurview.BlurTarget>(R.id.mainBlurTarget)
+            ?: throw IllegalStateException("mainBlurTarget not found")
         IconListDialog(
             activity = this@CustomizationActivity,
             items = getAppIconIDs(),
@@ -871,7 +900,8 @@ class CustomizationActivity : BaseSimpleActivity() {
             defaultItemId = APP_ICON_ORIGINAL + 1,
             titleId = R.string.app_icon_color,
             descriptionId = resources.getString(stringsR.string.app_icon_color_shortcuts_warning_g) + "\n\n"
-                + resources.getString(stringsR.string.app_icon_color_warning_g)
+                + resources.getString(stringsR.string.app_icon_color_warning_g),
+            blurTarget = blurTarget
         ) { wasPositivePressed, newValue ->
             if (wasPositivePressed && isProVersion()) {
                 if (curAppIconColor != newValue - 1) {
@@ -903,11 +933,14 @@ class CustomizationActivity : BaseSimpleActivity() {
                 binding.applyToAll.isChecked = true
                 updateColorTheme(getCurrentThemeId())
                 saveChanges(false)
+                val blurTarget = findViewById<BlurTarget>(R.id.mainBlurTarget)
+                    ?: throw IllegalStateException("mainBlurTarget not found")
                 ConfirmationDialog(
                     activity = this,
                     message = "",
                     messageId = stringsR.string.global_theme_success_g,
                     positive = R.string.ok,
+                    blurTarget = blurTarget,
                     negative = 0,
                     callback = {}
                 )
@@ -1070,11 +1103,14 @@ class CustomizationActivity : BaseSimpleActivity() {
             }
             customizationUseAccentColorFaq.imageTintList = ColorStateList.valueOf(getProperTextColor())
             customizationUseAccentColorFaq.setOnClickListener {
+                val blurTarget = findViewById<BlurTarget>(R.id.mainBlurTarget)
+                    ?: throw IllegalStateException("mainBlurTarget not found")
                 ConfirmationDialog(
                     activity = this@CustomizationActivity,
                     messageId = stringsR.string.use_accent_color_summary,
                     positive = R.string.ok,
-                    negative = 0
+                    negative = 0,
+                    blurTarget = blurTarget
                 ) {}
             }
         }

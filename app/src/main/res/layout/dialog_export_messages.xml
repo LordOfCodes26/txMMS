@@ -1,7 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<eightbitlab.com.blurview.BlurView
+    android:id="@+id/blurView"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
+    xmlns:tools="http://schemas.android.com/tools">
+<ScrollView
     android:id="@+id/export_messages_scrollview"
     android:layout_width="match_parent"
     android:layout_height="wrap_content">
@@ -60,3 +65,4 @@
 
     </LinearLayout>
 </ScrollView>
+</eightbitlab.com.blurview.BlurView>

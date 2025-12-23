@@ -1,8 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<eightbitlab.com.blurview.BlurView
+    android:id="@+id/blurView"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+<LinearLayout
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <com.goodwy.commons.views.MyTextView
+        android:id="@+id/dialog_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        style="@style/DialogTitleStyle"
+        android:visibility="gone" />
+
+<RelativeLayout
     android:id="@+id/dialog_holder"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="wrap_content">
 
     <ImageView
         android:id="@+id/call_confirm_phone"
@@ -15,46 +32,30 @@
         android:layout_marginTop="42dp"
         android:src="@drawable/ic_phone_vector" />
 
-    <androidx.appcompat.widget.AppCompatButton
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/cancel_button"
-        style="@style/Widget.AppCompat.Button.Colored"
+        style="@style/Widget.Material3.Button.TextButton.Dialog"
         android:layout_width="wrap_content"
-        android:layout_height="32dp"
+        android:layout_height="wrap_content"
         android:layout_below="@+id/call_confirm_phone"
         android:layout_toStartOf="@+id/call_button"
         android:layout_marginTop="42dp"
         android:layout_marginEnd="@dimen/normal_margin"
         android:layout_marginBottom="@dimen/normal_margin"
-        android:background="@drawable/button_gray_bg"
-        android:lines="1"
-        android:paddingStart="12dp"
-        android:paddingEnd="12dp"
-        android:paddingTop="5dp"
-        android:paddingBottom="5dp"
-        android:text="@string/cancel"
-        android:textAllCaps="true"
-        android:textColor="@color/white"
-        android:textSize="16sp" />
+        android:text="@string/cancel" />
 
-    <androidx.appcompat.widget.AppCompatButton
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/call_button"
-        style="@style/Widget.AppCompat.Button.Colored"
+        style="@style/Widget.Material3.Button.TextButton.Dialog"
         android:layout_width="wrap_content"
-        android:layout_height="32dp"
+        android:layout_height="wrap_content"
         android:layout_below="@+id/call_confirm_phone"
         android:layout_alignParentEnd="true"
         android:layout_marginTop="42dp"
         android:layout_marginEnd="@dimen/normal_margin"
         android:layout_marginBottom="@dimen/normal_margin"
-        android:background="@drawable/button_gray_bg"
-        android:lines="1"
-        android:paddingStart="12dp"
-        android:paddingEnd="12dp"
-        android:paddingTop="5dp"
-        android:paddingBottom="5dp"
-        android:text="@string/call"
-        android:textAllCaps="true"
-        android:textColor="@color/white"
-        android:textSize="16sp" />
+        android:text="@string/call" />
 
 </RelativeLayout>
+</LinearLayout>
+</eightbitlab.com.blurview.BlurView>

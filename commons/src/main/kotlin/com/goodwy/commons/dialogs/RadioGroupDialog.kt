@@ -19,6 +19,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -35,11 +36,10 @@ import com.goodwy.commons.compose.extensions.MyDevices
 import com.goodwy.commons.compose.theme.AppThemeSurface
 import com.goodwy.commons.compose.theme.SimpleTheme
 import com.goodwy.commons.databinding.DialogRadioGroupBinding
-import com.goodwy.commons.extensions.getAlertDialogBuilder
-import com.goodwy.commons.extensions.onGlobalLayout
-import com.goodwy.commons.extensions.setupDialogStuff
-import com.goodwy.commons.extensions.toast
+import com.goodwy.commons.extensions.*
 import com.goodwy.commons.models.RadioItem
+import eightbitlab.com.blurview.BlurTarget
+import eightbitlab.com.blurview.BlurView
 
 class RadioGroupDialog(
     val activity: Activity,
@@ -49,6 +49,7 @@ class RadioGroupDialog(
     showOKButton: Boolean = false,
     val defaultItemId: Int? = null,
     val cancelCallback: (() -> Unit)? = null,
+    blurTarget: BlurTarget,
     val callback: (newValue: Any) -> Unit
 ) {
     private var dialog: AlertDialog? = null
@@ -74,21 +75,63 @@ class RadioGroupDialog(
             }
         }
 
-        val builder = activity.getAlertDialogBuilder()
-                .setOnCancelListener { cancelCallback?.invoke() }
+        // Setup BlurView with the provided BlurTarget
+        val blurView = view.blurView
+        val decorView = activity.window.decorView
+        val windowBackground = decorView.background
+        
+        blurView.setOverlayColor(0xa3ffffff.toInt())
+        blurView.setupWith(blurTarget)
+            .setFrameClearDrawable(windowBackground)
+            .setBlurRadius(8f)
+            .setBlurAutoUpdate(true)
 
-        if (selectedItemId != -1 && showOKButton) {
-            builder.setPositiveButton(R.string.ok) { dialog, which -> itemSelected(selectedItemId) }
+        // Setup title inside BlurView
+        val titleTextView = view.root.findViewById<com.goodwy.commons.views.MyTextView>(R.id.dialog_title)
+        if (titleId != 0) {
+            titleTextView?.apply {
+                beVisible()
+                text = activity.resources.getString(titleId)
+            }
+        } else {
+            titleTextView?.beGone()
         }
 
-        builder.apply {
-            if (defaultItemId != null) {
-                setNeutralButton(R.string.default_color) { _, _ ->
-                    val checkedId = items.indexOfFirst {it.id == defaultItemId}
+        // Setup custom buttons inside BlurView
+        val primaryColor = activity.getProperPrimaryColor()
+        val positiveButton = view.root.findViewById<com.google.android.material.button.MaterialButton>(R.id.positive_button)
+        val neutralButton = view.root.findViewById<com.google.android.material.button.MaterialButton>(R.id.neutral_button)
+        val buttonsContainer = view.root.findViewById<android.widget.LinearLayout>(R.id.buttons_container)
+
+        // Setup positive button (OK)
+        if (selectedItemId != -1 && showOKButton) {
+            buttonsContainer?.visibility = android.view.View.VISIBLE
+            if (positiveButton != null) {
+                positiveButton.visibility = android.view.View.VISIBLE
+                positiveButton.setTextColor(primaryColor)
+                positiveButton.setOnClickListener { itemSelected(selectedItemId) }
+            }
+        }
+
+        // Setup neutral button (Default)
+        if (defaultItemId != null) {
+            buttonsContainer?.visibility = android.view.View.VISIBLE
+            if (neutralButton != null) {
+                neutralButton.visibility = android.view.View.VISIBLE
+                neutralButton.setTextColor(primaryColor)
+                neutralButton.setOnClickListener {
+                    val checkedId = items.indexOfFirst { it.id == defaultItemId }
                     itemSelected(checkedId)
                 }
             }
-            activity.setupDialogStuff(view.root, this, titleId) { alertDialog ->
+        }
+
+        val builder = activity.getAlertDialogBuilder()
+                .setOnCancelListener { cancelCallback?.invoke() }
+
+        builder.apply {
+            // Pass empty titleText to prevent setupDialogStuff from adding title outside BlurView
+            activity.setupDialogStuff(view.root, this, titleText = "") { alertDialog ->
                 dialog = alertDialog
             }
         }
@@ -150,7 +193,8 @@ fun RadioGroupAlertDialog(
                                 .padding(top = 24.dp, bottom = SimpleTheme.dimens.padding.medium)
                                 .padding(horizontal = 24.dp),
                             color = dialogTextColor,
-                            fontSize = 21.sp
+                            fontSize = 21.sp,
+                            fontWeight = FontWeight.Bold
                         )
                     }
                     RadioGroupDialogComponent(

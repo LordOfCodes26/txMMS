@@ -19,12 +19,15 @@ import com.android.mms.R
 import com.android.mms.databinding.DialogExportBlockedKeywordsBinding
 import com.android.mms.extensions.config
 import com.android.mms.helpers.BLOCKED_KEYWORDS_EXPORT_EXTENSION
+import eightbitlab.com.blurview.BlurTarget
+import eightbitlab.com.blurview.BlurView
 import java.io.File
 
 class ExportBlockedKeywordsDialog(
     val activity: BaseSimpleActivity,
     val path: String,
     val hidePath: Boolean,
+    val blurTarget: BlurTarget,
     callback: (file: File) -> Unit,
 ) {
     private var realPath = path.ifEmpty { activity.internalStoragePath }
@@ -33,6 +36,17 @@ class ExportBlockedKeywordsDialog(
     init {
         val view =
             DialogExportBlockedKeywordsBinding.inflate(activity.layoutInflater, null, false).apply {
+                // Setup BlurView
+                val blurView = root.findViewById<eightbitlab.com.blurview.BlurView>(com.android.mms.R.id.blurView)
+                val decorView = activity.window.decorView
+                val windowBackground = decorView.background
+                
+                blurView?.setOverlayColor(0xa3ffffff.toInt())
+                blurView?.setupWith(blurTarget)
+                    ?.setFrameClearDrawable(windowBackground)
+                    ?.setBlurRadius(8f)
+                    ?.setBlurAutoUpdate(true)
+                
                 exportBlockedKeywordsFolder.text = activity.humanizePath(realPath)
                 exportBlockedKeywordsFilename.setText("${activity.getString(R.string.blocked_keywords)}_${getCurrentFormattedDateTime()}")
 
@@ -41,7 +55,7 @@ class ExportBlockedKeywordsDialog(
                     exportBlockedKeywordsFolder.beGone()
                 } else {
                     exportBlockedKeywordsFolder.setOnClickListener {
-                        FilePickerDialog(activity, realPath, false, showFAB = true) {
+                        FilePickerDialog(activity, realPath, false, showFAB = true, blurTarget = blurTarget) {
                             exportBlockedKeywordsFolder.text = activity.humanizePath(it)
                             realPath = it
                         }

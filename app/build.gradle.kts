@@ -173,5 +173,5 @@ dependencies {
 
     // Circular Countdown
     implementation("com.github.douglasspgyn:CircularCountdown:0.3.0")
-
+    implementation("com.github.Dimezis:BlurView:version-3.2.0")
 }

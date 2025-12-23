@@ -44,12 +44,11 @@ import com.goodwy.commons.compose.theme.AppThemeSurface
 import com.goodwy.commons.compose.theme.SimpleTheme
 import com.goodwy.commons.databinding.DialogWritePermissionBinding
 import com.goodwy.commons.databinding.DialogWritePermissionOtgBinding
-import com.goodwy.commons.extensions.fromHtml
-import com.goodwy.commons.extensions.getAlertDialogBuilder
-import com.goodwy.commons.extensions.humanizePath
-import com.goodwy.commons.extensions.setupDialogStuff
+import com.goodwy.commons.extensions.*
+import eightbitlab.com.blurview.BlurTarget
+import eightbitlab.com.blurview.BlurView
 
-class WritePermissionDialog(activity: Activity, val writePermissionDialogMode: WritePermissionDialogMode, val callback: () -> Unit) {
+class WritePermissionDialog(activity: Activity, val writePermissionDialogMode: WritePermissionDialogMode, blurTarget: BlurTarget, val callback: () -> Unit) {
 
     @Immutable
     sealed class WritePermissionDialogMode {
@@ -75,6 +74,21 @@ class WritePermissionDialog(activity: Activity, val writePermissionDialogMode: W
             null,
             false
         )
+        
+        // Setup BlurView with the provided BlurTarget
+        val blurView = if (writePermissionDialogMode == WritePermissionDialogMode.SdCard) {
+            sdCardView.root.findViewById<BlurView>(R.id.blurView)
+        } else {
+            otgView.root.findViewById<BlurView>(R.id.blurView)
+        }
+        val decorView = activity.window.decorView
+        val windowBackground = decorView.background
+        
+        blurView?.setOverlayColor(0xa3ffffff.toInt())
+        blurView?.setupWith(blurTarget)
+            ?.setFrameClearDrawable(windowBackground)
+            ?.setBlurRadius(8f)
+            ?.setBlurAutoUpdate(true)
 
         var dialogTitle = R.string.confirm_storage_access_title
 
@@ -114,17 +128,39 @@ class WritePermissionDialog(activity: Activity, val writePermissionDialogMode: W
             }
         }
 
+        // Setup title inside BlurView
+        val currentView = if (writePermissionDialogMode == WritePermissionDialogMode.SdCard) sdCardView.root else otgView.root
+        val titleTextView = currentView.findViewById<com.goodwy.commons.views.MyTextView>(R.id.dialog_title)
+        titleTextView?.apply {
+            beVisible()
+            text = activity.getString(dialogTitle)
+        }
+
+        // Setup custom buttons inside BlurView
+        val primaryColor = activity.getProperPrimaryColor()
+        val positiveButton = currentView.findViewById<com.google.android.material.button.MaterialButton>(R.id.positive_button)
+        val buttonsContainer = currentView.findViewById<android.widget.LinearLayout>(R.id.buttons_container)
+        
+        buttonsContainer?.visibility = android.view.View.VISIBLE
+        
+        positiveButton?.apply {
+            visibility = android.view.View.VISIBLE
+            text = activity.resources.getString(R.string.ok)
+            setTextColor(primaryColor)
+            setOnClickListener { dialogConfirmed() }
+        }
+
         activity.getAlertDialogBuilder()
-            .setPositiveButton(R.string.ok) { _, _ -> dialogConfirmed() }
             .setOnCancelListener {
                 BaseSimpleActivity.funAfterSAFPermission?.invoke(false)
                 BaseSimpleActivity.funAfterSAFPermission = null
             }
             .apply {
+                // Pass empty titleText to prevent setupDialogStuff from adding title outside BlurView
                 activity.setupDialogStuff(
-                    if (writePermissionDialogMode == WritePermissionDialogMode.SdCard) sdCardView.root else otgView.root,
+                    currentView,
                     this,
-                    dialogTitle
+                    titleText = ""
                 ) { alertDialog ->
                     dialog = alertDialog
                 }

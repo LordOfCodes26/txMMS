@@ -11,12 +11,26 @@ import com.android.mms.extensions.getPackageDrawable
 import com.android.mms.databinding.DialogChooseSocialBinding
 import com.android.mms.databinding.ItemChooseSocialBinding
 import com.goodwy.commons.models.contacts.SocialAction
+import eightbitlab.com.blurview.BlurTarget
+import eightbitlab.com.blurview.BlurView
 
-class ChooseSocialDialog(val activity: Activity, actions: ArrayList<SocialAction>, val callback: (action: SocialAction) -> Unit) {
+class ChooseSocialDialog(val activity: Activity, actions: ArrayList<SocialAction>, val blurTarget: BlurTarget, val callback: (action: SocialAction) -> Unit) {
     private lateinit var dialog: AlertDialog
 
     init {
         val binding = DialogChooseSocialBinding.inflate(activity.layoutInflater)
+        
+        // Setup BlurView
+        val blurView = binding.root.findViewById<eightbitlab.com.blurview.BlurView>(com.android.mms.R.id.blurView)
+        val decorView = activity.window.decorView
+        val windowBackground = decorView.background
+        
+        blurView?.setOverlayColor(0xa3ffffff.toInt())
+        blurView?.setupWith(blurTarget)
+            ?.setFrameClearDrawable(windowBackground)
+            ?.setBlurRadius(8f)
+            ?.setBlurAutoUpdate(true)
+        
         actions.sortBy { it.type }
         actions.forEach { action ->
             val item = ItemChooseSocialBinding.inflate(activity.layoutInflater).apply {

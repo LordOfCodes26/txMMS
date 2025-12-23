@@ -100,12 +100,15 @@ class RecycleBinConversationsActivity : SimpleActivity() {
     }
 
     private fun removeAll() {
+        val blurTarget = findViewById<eightbitlab.com.blurview.BlurTarget>(R.id.mainBlurTarget)
+            ?: throw IllegalStateException("mainBlurTarget not found")
         ConfirmationDialog(
             activity = this,
             message = "",
             messageId = R.string.empty_recycle_bin_messages_confirmation,
             positive = com.goodwy.commons.R.string.yes,
-            negative = com.goodwy.commons.R.string.no
+            negative = com.goodwy.commons.R.string.no,
+            blurTarget = blurTarget
         ) {
             ensureBackgroundThread {
                 emptyMessagesRecycleBin()

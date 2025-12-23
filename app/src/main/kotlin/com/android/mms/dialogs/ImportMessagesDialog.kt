@@ -13,10 +13,13 @@ import com.android.mms.extensions.config
 import com.android.mms.helpers.MessagesImporter
 import com.android.mms.models.ImportResult
 import com.android.mms.models.MessagesBackup
+import eightbitlab.com.blurview.BlurTarget
+import eightbitlab.com.blurview.BlurView
 
 class ImportMessagesDialog(
     private val activity: SimpleActivity,
     private val messages: List<MessagesBackup>,
+    private val blurTarget: BlurTarget,
 ) {
 
     private val config = activity.config
@@ -24,6 +27,17 @@ class ImportMessagesDialog(
     init {
         var ignoreClicks = false
         val binding = DialogImportMessagesBinding.inflate(activity.layoutInflater).apply {
+            // Setup BlurView
+            val blurView = root.findViewById<eightbitlab.com.blurview.BlurView>(com.android.mms.R.id.blurView)
+            val decorView = activity.window.decorView
+            val windowBackground = decorView.background
+            
+            blurView?.setOverlayColor(0xa3ffffff.toInt())
+            blurView?.setupWith(blurTarget)
+                ?.setFrameClearDrawable(windowBackground)
+                ?.setBlurRadius(8f)
+                ?.setBlurAutoUpdate(true)
+            
             importSmsCheckbox.isChecked = config.importSms
             importMmsCheckbox.isChecked = config.importMms
         }

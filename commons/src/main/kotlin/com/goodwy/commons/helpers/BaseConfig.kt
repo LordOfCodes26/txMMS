@@ -265,7 +265,7 @@ open class BaseConfig(val context: Context) {
         set(useDividers) = prefs.edit { putBoolean(USE_DIVIDERS, useDividers) }
 
     var useColoredContacts: Boolean
-        get() = prefs.getBoolean(USE_COLORED_CONTACTS, true)
+        get() = prefs.getBoolean(USE_COLORED_CONTACTS, false)
         set(useColoredContacts) = prefs.edit { putBoolean(USE_COLORED_CONTACTS, useColoredContacts) }
 
     var contactColorList: Int

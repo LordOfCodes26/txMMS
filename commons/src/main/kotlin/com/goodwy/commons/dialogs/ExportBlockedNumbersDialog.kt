@@ -7,6 +7,7 @@ import com.goodwy.commons.databinding.DialogExportBlockedNumbersBinding
 import com.goodwy.commons.extensions.*
 import com.goodwy.commons.helpers.BLOCKED_NUMBERS_EXPORT_EXTENSION
 import com.goodwy.commons.helpers.ensureBackgroundThread
+import eightbitlab.com.blurview.BlurTarget
 import java.io.File
 
 class ExportBlockedNumbersDialog(
@@ -28,7 +29,9 @@ class ExportBlockedNumbersDialog(
                 exportBlockedNumbersFolder.beGone()
             } else {
                 exportBlockedNumbersFolder.setOnClickListener {
-                    FilePickerDialog(activity, realPath, false, showFAB = true) {
+                    val blurTarget = activity.findViewById<BlurTarget>(R.id.mainBlurTarget)
+                        ?: throw IllegalStateException("mainBlurTarget not found")
+                    FilePickerDialog(activity, realPath, false, showFAB = true, blurTarget = blurTarget) {
                         exportBlockedNumbersFolder.text = activity.humanizePath(it)
                         realPath = it
                     }

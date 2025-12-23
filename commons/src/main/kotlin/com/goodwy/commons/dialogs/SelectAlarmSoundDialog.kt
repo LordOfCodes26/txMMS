@@ -12,6 +12,7 @@ import com.goodwy.commons.R
 import com.goodwy.commons.activities.BaseSimpleActivity
 import com.goodwy.commons.databinding.DialogSelectAlarmSoundBinding
 import com.goodwy.commons.extensions.*
+import eightbitlab.com.blurview.BlurTarget
 import com.goodwy.commons.helpers.SILENT
 import com.goodwy.commons.models.AlarmSound
 import com.goodwy.commons.models.RadioItem
@@ -91,7 +92,9 @@ class SelectAlarmSoundDialog(
                 setOnLongClickListener {
                     val items = arrayListOf(RadioItem(1, context.getString(R.string.remove)))
 
-                    RadioGroupDialog(activity, items) {
+                    val blurTarget = activity.findViewById<BlurTarget>(R.id.mainBlurTarget)
+                        ?: throw IllegalStateException("mainBlurTarget not found")
+                    RadioGroupDialog(activity, items, blurTarget = blurTarget) {
                         removeAlarmSound(alarmSound)
                     }
                     true

@@ -8,10 +8,23 @@ import com.goodwy.commons.extensions.showKeyboard
 import com.goodwy.commons.extensions.value
 import com.android.mms.databinding.DialogAddBlockedKeywordBinding
 import com.android.mms.extensions.config
+import eightbitlab.com.blurview.BlurTarget
+import eightbitlab.com.blurview.BlurView
 
-class AddBlockedKeywordDialog(val activity: BaseSimpleActivity, private val originalKeyword: String? = null, val callback: () -> Unit) {
+class AddBlockedKeywordDialog(val activity: BaseSimpleActivity, private val originalKeyword: String? = null, val blurTarget: BlurTarget, val callback: () -> Unit) {
     init {
         val binding = DialogAddBlockedKeywordBinding.inflate(activity.layoutInflater).apply {
+            // Setup BlurView
+            val blurView = root.findViewById<eightbitlab.com.blurview.BlurView>(com.android.mms.R.id.blurView)
+            val decorView = activity.window.decorView
+            val windowBackground = decorView.background
+            
+            blurView?.setOverlayColor(0xa3ffffff.toInt())
+            blurView?.setupWith(blurTarget)
+                ?.setFrameClearDrawable(windowBackground)
+                ?.setBlurRadius(8f)
+                ?.setBlurAutoUpdate(true)
+            
             if (originalKeyword != null) {
                 addBlockedKeywordEdittext.setText(originalKeyword)
             }

@@ -53,7 +53,9 @@ class ArchivedConversationsAdapter(
         val baseString = com.goodwy.commons.R.string.deletion_confirmation
         val question = String.format(resources.getString(baseString), items)
 
-        ConfirmationDialog(activity, question) {
+        val blurTarget = activity.findViewById<eightbitlab.com.blurview.BlurTarget>(com.android.mms.R.id.mainBlurTarget)
+            ?: throw IllegalStateException("mainBlurTarget not found")
+        ConfirmationDialog(activity, question, blurTarget = blurTarget) {
             ensureBackgroundThread {
                 deleteConversations()
             }
@@ -167,7 +169,9 @@ class ArchivedConversationsAdapter(
             val baseString = com.goodwy.commons.R.string.deletion_confirmation
             val question = String.format(resources.getString(baseString), item)
 
-            ConfirmationDialog(activity, question) {
+            val blurTarget = activity.findViewById<eightbitlab.com.blurview.BlurTarget>(com.android.mms.R.id.mainBlurTarget)
+                ?: throw IllegalStateException("mainBlurTarget not found")
+            ConfirmationDialog(activity, question, blurTarget = blurTarget) {
                 ensureBackgroundThread {
                     swipedDeleteConversations(conversation)
                 }

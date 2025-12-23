@@ -17,7 +17,10 @@ import com.goodwy.commons.compose.extensions.MyDevices
 import com.goodwy.commons.compose.theme.AppThemeSurface
 import com.goodwy.commons.databinding.DialogMessageBinding
 import com.goodwy.commons.extensions.getAlertDialogBuilder
+import com.goodwy.commons.extensions.getProperPrimaryColor
 import com.goodwy.commons.extensions.setupDialogStuff
+import eightbitlab.com.blurview.BlurTarget
+import eightbitlab.com.blurview.BlurView
 
 /**
  * A simple dialog without any view, just a messageId, a positive button and optionally a negative button
@@ -36,6 +39,7 @@ class ConfirmationDialog(
     negative: Int = R.string.no,
     val cancelOnTouchOutside: Boolean = true,
     dialogTitle: String = "",
+    blurTarget: BlurTarget,
     val callback: () -> Unit
 ) {
     private var dialog: AlertDialog? = null
@@ -44,11 +48,50 @@ class ConfirmationDialog(
         val view = DialogMessageBinding.inflate(activity.layoutInflater, null, false)
         view.message.text = message.ifEmpty { activity.resources.getString(messageId) }
 
-        val builder = activity.getAlertDialogBuilder()
-            .setPositiveButton(positive) { _, _ -> dialogConfirmed() }
+        // Setup BlurView with the provided BlurTarget
+        val blurView = view.blurView
+        val decorView = activity.window.decorView
+        val windowBackground = decorView.background
+        
+        blurView.setOverlayColor(0xa3ffffff.toInt())
+        blurView.setupWith(blurTarget)
+            .setFrameClearDrawable(windowBackground)
+            .setBlurRadius(8f)
+            .setBlurAutoUpdate(true)
+
+        // Setup custom buttons inside BlurView
+        val primaryColor = activity.getProperPrimaryColor()
+        
+        // Access buttons via findViewById in case binding hasn't been regenerated
+        val positiveButton = view.root.findViewById<com.google.android.material.button.MaterialButton>(R.id.positive_button)
+        val negativeButton = view.root.findViewById<com.google.android.material.button.MaterialButton>(R.id.negative_button)
+        val buttonsContainer = view.root.findViewById<android.widget.LinearLayout>(R.id.buttons_container)
+        
+        // Ensure buttons container is visible first
+        buttonsContainer?.visibility = android.view.View.VISIBLE
+        
+        if (positiveButton != null) {
+            positiveButton.visibility = android.view.View.VISIBLE
+            positiveButton.text = activity.resources.getString(positive)
+            positiveButton.setTextColor(primaryColor)
+            positiveButton.setOnClickListener { dialogConfirmed() }
+        }
 
         if (negative != 0) {
-            builder.setNegativeButton(negative, null)
+            negativeButton?.apply {
+                visibility = android.view.View.VISIBLE
+                text = activity.resources.getString(negative)
+                setTextColor(primaryColor)
+                setOnClickListener { dialog?.dismiss() }
+            }
+        } else {
+            negativeButton?.visibility = android.view.View.GONE
+        }
+
+        val builder = activity.getAlertDialogBuilder()
+
+        if (!cancelOnTouchOutside) {
+            builder.setOnCancelListener { dialog?.dismiss() }
         }
 
         builder.apply {

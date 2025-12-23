@@ -9,6 +9,8 @@ import com.goodwy.commons.activities.BaseSimpleActivity
 import com.goodwy.commons.databinding.DialogRadioGroupBinding
 import com.goodwy.commons.databinding.RadioButtonBinding
 import com.goodwy.commons.extensions.*
+import eightbitlab.com.blurview.BlurTarget
+import eightbitlab.com.blurview.BlurView
 
 /**
  * A dialog for choosing between internal, root, SD card (optional) storage
@@ -21,7 +23,7 @@ import com.goodwy.commons.extensions.*
  */
 class StoragePickerDialog(
     val activity: BaseSimpleActivity, val currPath: String, val showRoot: Boolean, pickSingleOption: Boolean,
-    val callback: (pickedPath: String) -> Unit
+    private val blurTarget: BlurTarget, val callback: (pickedPath: String) -> Unit
 ) {
     private val ID_INTERNAL = 1
     private val ID_SD = 2
@@ -53,6 +55,18 @@ class StoragePickerDialog(
         val resources = activity.resources
         val layoutParams = RadioGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
         val view = DialogRadioGroupBinding.inflate(inflater, null, false)
+        
+        // Setup BlurView with the provided BlurTarget
+        val blurView = view.root.findViewById<BlurView>(R.id.blurView)
+        val decorView = activity.window.decorView
+        val windowBackground = decorView.background
+        
+        blurView?.setOverlayColor(0xa3ffffff.toInt())
+        blurView?.setupWith(blurTarget)
+            ?.setFrameClearDrawable(windowBackground)
+            ?.setBlurRadius(8f)
+            ?.setBlurAutoUpdate(true)
+        
         radioGroup = view.dialogRadioGroup
         val basePath = currPath.getBasePath(activity)
 
@@ -111,8 +125,16 @@ class StoragePickerDialog(
             radioGroup.addView(rootButton, layoutParams)
         }
 
+        // Setup title inside BlurView
+        val titleTextView = view.root.findViewById<com.goodwy.commons.views.MyTextView>(R.id.dialog_title)
+        titleTextView?.apply {
+            beVisible()
+            text = activity.getString(R.string.select_storage)
+        }
+        
         activity.getAlertDialogBuilder().apply {
-            activity.setupDialogStuff(view.root, this, R.string.select_storage) { alertDialog ->
+            // Pass empty titleText to prevent setupDialogStuff from adding title outside BlurView
+            activity.setupDialogStuff(view.root, this, titleText = "") { alertDialog ->
                 dialog = alertDialog
             }
         }

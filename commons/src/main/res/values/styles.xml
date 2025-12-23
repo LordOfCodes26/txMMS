@@ -287,6 +287,27 @@
         <item name="android:textColor">@color/you_primary_color</item>
     </style>
 
+    <!-- Standardized Dialog Title Style -->
+    <style name="DialogTitleStyle">
+        <item name="android:textSize">@dimen/actionbar_text_size</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:gravity">start|center_vertical</item>
+        <item name="android:paddingStart">@dimen/big_margin</item>
+        <item name="android:paddingTop">@dimen/big_margin</item>
+        <item name="android:paddingEnd">@dimen/big_margin</item>
+        <item name="android:paddingBottom">@dimen/normal_margin</item>
+    </style>
+
+    <!-- Standardized Dialog Button Container Style -->
+    <style name="DialogButtonContainerStyle">
+        <item name="android:paddingStart">@dimen/big_margin</item>
+        <item name="android:paddingTop">@dimen/small_margin</item>
+        <item name="android:paddingEnd">@dimen/big_margin</item>
+        <item name="android:paddingBottom">@dimen/big_margin</item>
+        <item name="android:orientation">horizontal</item>
+        <item name="android:gravity">end</item>
+    </style>
+
     <!-- Used at dark Material You Time picker. Some of its parts cannot be customized through themes, we use these hacky ways. -->
     <style name="MyTimePickerMaterialTheme.Dark" parent="@android:style/Theme.DeviceDefault.Dialog">
         <item name="colorAccent">@color/you_primary_color</item>

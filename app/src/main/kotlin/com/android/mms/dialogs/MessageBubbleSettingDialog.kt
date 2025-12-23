@@ -19,11 +19,14 @@ import com.android.mms.helpers.BUBBLE_STYLE_ROUNDED
 import com.google.android.material.snackbar.Snackbar
 import com.mikhaellopez.rxanimation.RxAnimation
 import com.mikhaellopez.rxanimation.shake
+import eightbitlab.com.blurview.BlurTarget
+import eightbitlab.com.blurview.BlurView
 import kotlin.math.abs
 
 class MessageBubbleSettingDialog(
     private val activity: SimpleActivity,
     private val isPro: Boolean,
+    private val blurTarget: BlurTarget,
     private val callback: (style: Int) -> Unit,
 ) {
     private val binding = DialogMessageBubbleSettingBinding.inflate(activity.layoutInflater)
@@ -32,6 +35,17 @@ class MessageBubbleSettingDialog(
     private var dialog: AlertDialog? = null
 
     init {
+        // Setup BlurView
+        val blurView = binding.root.findViewById<eightbitlab.com.blurview.BlurView>(com.android.mms.R.id.blurView)
+        val decorView = activity.window.decorView
+        val windowBackground = decorView.background
+        
+        blurView?.setOverlayColor(0xa3ffffff.toInt())
+        blurView?.setupWith(blurTarget)
+            ?.setFrameClearDrawable(windowBackground)
+            ?.setBlurRadius(8f)
+            ?.setBlurAutoUpdate(true)
+        
         setupBubbleInvertColor()
         setupBubbleUseContactColor()
         setupColors()

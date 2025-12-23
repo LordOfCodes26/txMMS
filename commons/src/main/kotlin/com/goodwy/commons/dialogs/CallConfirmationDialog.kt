@@ -35,16 +35,37 @@ import com.goodwy.commons.compose.extensions.MyDevices
 import com.goodwy.commons.compose.theme.AppThemeSurface
 import com.goodwy.commons.databinding.DialogCallConfirmationBinding
 import com.goodwy.commons.extensions.*
+import eightbitlab.com.blurview.BlurTarget
+import eightbitlab.com.blurview.BlurView
 
-class CallConfirmationDialog(val activity: BaseSimpleActivity, private val callee: String, private val callback: () -> Unit) {
+class CallConfirmationDialog(val activity: BaseSimpleActivity, private val callee: String, blurTarget: BlurTarget, private val callback: () -> Unit) {
     private var view = DialogCallConfirmationBinding.inflate(activity.layoutInflater, null, false)
 
     init {
+        // Setup BlurView with the provided BlurTarget
+        val blurView = view.blurView
+        val decorView = activity.window.decorView
+        val windowBackground = decorView.background
+        
+        blurView.setOverlayColor(0xa3ffffff.toInt())
+        blurView.setupWith(blurTarget)
+            .setFrameClearDrawable(windowBackground)
+            .setBlurRadius(8f)
+            .setBlurAutoUpdate(true)
+
+        // Setup title inside BlurView
+        val titleTextView = view.root.findViewById<com.goodwy.commons.views.MyTextView>(R.id.dialog_title)
+        val title = String.format(activity.getString(R.string.confirm_calling_person), callee)
+        titleTextView?.apply {
+            visibility = android.view.View.VISIBLE
+            text = title
+        }
+
         view.callConfirmPhone.applyColorFilter(activity.getProperTextColor())
         activity.getAlertDialogBuilder()
             .apply {
-                val title = String.format(activity.getString(R.string.confirm_calling_person), callee)
-                activity.setupDialogStuff(view.root, this, titleText = title) { alertDialog ->
+                // Pass titleText = "" to prevent setupDialogStuff from adding title outside BlurView
+                activity.setupDialogStuff(view.root, this, titleText = "") { alertDialog ->
                     view.callConfirmPhone.apply {
                         startAnimation(AnimationUtils.loadAnimation(activity, R.anim.shake_pulse_animation))
                         setOnClickListener {

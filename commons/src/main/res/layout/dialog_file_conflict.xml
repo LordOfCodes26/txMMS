@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
+<eightbitlab.com.blurview.BlurView
+    android:id="@+id/blurView"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+<LinearLayout
     android:id="@+id/conflict_dialog_holder"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
@@ -13,10 +18,7 @@
         android:id="@+id/conflict_dialog_title"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:paddingLeft="@dimen/small_margin"
-        android:paddingTop="@dimen/small_margin"
-        android:paddingRight="@dimen/small_margin"
-        android:paddingBottom="@dimen/activity_margin"
+        style="@style/DialogTitleStyle"
         tools:text="File already exists"/>
 
     <RadioGroup
@@ -73,4 +75,31 @@
         android:paddingBottom="@dimen/activity_margin"
         android:text="@string/apply_to_all"/>
 
+    <LinearLayout
+        android:id="@+id/buttons_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        style="@style/DialogButtonContainerStyle">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/negative_button"
+            style="@style/Widget.Material3.Button.TextButton.Dialog"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="0"
+            android:text="@string/cancel"
+            android:visibility="gone" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/positive_button"
+            style="@style/Widget.Material3.Button.TextButton.Dialog"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/normal_margin"
+            android:layout_weight="0"
+            android:text="@string/ok"
+            android:visibility="visible" />
+
+    </LinearLayout>
 </LinearLayout>
+</eightbitlab.com.blurview.BlurView>

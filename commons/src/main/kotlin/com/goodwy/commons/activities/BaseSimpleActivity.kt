@@ -43,6 +43,7 @@ import com.goodwy.commons.R
 import com.goodwy.commons.asynctasks.CopyMoveTask
 import com.goodwy.commons.dialogs.*
 import com.goodwy.commons.dialogs.WritePermissionDialog.WritePermissionDialogMode
+import eightbitlab.com.blurview.BlurTarget
 import com.goodwy.commons.extensions.*
 import com.goodwy.commons.helpers.*
 import com.goodwy.commons.interfaces.CopyMoveListener
@@ -815,7 +816,9 @@ abstract class BaseSimpleActivity : EdgeToEdgeActivity() {
         }
 
         funAfterSAFPermission = callback
-        WritePermissionDialog(this, WritePermissionDialogMode.Otg) {
+        val blurTarget = findViewById<eightbitlab.com.blurview.BlurTarget>(R.id.mainBlurTarget)
+            ?: throw IllegalStateException("mainBlurTarget not found")
+        WritePermissionDialog(this, WritePermissionDialogMode.Otg, blurTarget) {
             Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
                 try {
                     startActivityForResult(this, OPEN_DOCUMENT_TREE_OTG)
@@ -1114,9 +1117,12 @@ abstract class BaseSimpleActivity : EdgeToEdgeActivity() {
                             copyHidden = copyHidden
                         ).execute(pair)
                     } else {
+                        val blurTarget = findViewById<BlurTarget>(R.id.mainBlurTarget)
+                            ?: throw IllegalStateException("mainBlurTarget not found")
                         PermissionRequiredDialog(
                             activity = this,
                             textId = R.string.allow_notifications_files,
+                            blurTarget = blurTarget,
                             positiveActionCallback = { openNotificationSettings() })
                     }
                 }
@@ -1152,10 +1158,13 @@ abstract class BaseSimpleActivity : EdgeToEdgeActivity() {
         ensureBackgroundThread {
             if (getDoesFilePathExist(newFileDirItem.path)) {
                 runOnUiThread {
+                    val blurTarget = findViewById<eightbitlab.com.blurview.BlurTarget>(R.id.mainBlurTarget)
+                        ?: throw IllegalStateException("mainBlurTarget not found")
                     FileConflictDialog(
                         activity = this,
                         fileDirItem = newFileDirItem,
-                        showApplyToAllCheckbox = files.size > 1
+                        showApplyToAllCheckbox = files.size > 1,
+                        blurTarget = blurTarget
                     ) { resolution, applyForAll ->
                         if (applyForAll) {
                             conflictResolutions.clear()
@@ -1312,11 +1321,14 @@ abstract class BaseSimpleActivity : EdgeToEdgeActivity() {
     fun checkAppOnSDCard() {
         if (!baseConfig.wasAppOnSDShown && isAppInstalledOnSDCard()) {
             baseConfig.wasAppOnSDShown = true
+            val blurTarget = findViewById<BlurTarget>(R.id.mainBlurTarget)
+                ?: throw IllegalStateException("mainBlurTarget not found")
             ConfirmationDialog(
                 activity = this,
                 message = "",
                 messageId = R.string.app_on_sd_card,
                 positive = R.string.ok,
+                blurTarget = blurTarget,
                 negative = 0
             ) {}
         }
@@ -1372,7 +1384,7 @@ abstract class BaseSimpleActivity : EdgeToEdgeActivity() {
     }
 
     @SuppressLint("InlinedApi")
-    protected fun launchSetDefaultDialerIntent() {
+    fun launchSetDefaultDialerIntent() {
         if (isQPlus()) {
             val roleManager = getSystemService(RoleManager::class.java)
             if (

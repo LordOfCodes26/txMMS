@@ -434,9 +434,12 @@ class MainActivity : SimpleActivity() {
                         handlePermission(PERMISSION_READ_CONTACTS) {
                             handleNotificationPermission { granted ->
                                 if (!granted) {
+                                    val blurTarget = findViewById<eightbitlab.com.blurview.BlurTarget>(R.id.mainBlurTarget)
+                                        ?: throw IllegalStateException("mainBlurTarget not found")
                                     PermissionRequiredDialog(
                                         activity = this,
                                         textId = com.goodwy.commons.R.string.allow_notifications_incoming_messages,
+                                        blurTarget = blurTarget,
                                         positiveActionCallback = { openNotificationSettings() })
                                 }
                             }

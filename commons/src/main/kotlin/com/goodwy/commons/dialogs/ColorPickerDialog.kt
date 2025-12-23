@@ -45,6 +45,8 @@ import com.goodwy.commons.databinding.DialogColorPickerBinding
 import com.goodwy.commons.extensions.*
 import com.goodwy.commons.helpers.isQPlus
 import com.goodwy.strings.R as stringsR
+import eightbitlab.com.blurview.BlurTarget
+import eightbitlab.com.blurview.BlurView
 import java.util.LinkedList
 import androidx.core.graphics.toColorInt
 
@@ -78,6 +80,7 @@ class ColorPickerDialog(
     colorDefault: Int = -3,
     val currentColorCallback: ((color: Int) -> Unit)? = null,
     val title: String = activity.resources.getString(stringsR.string.color_title),
+    blurTarget: BlurTarget,
     val callback: (wasPositivePressed: Boolean, color: Int, wasDefaultPressed: Boolean) -> Unit
 ) {
     private val baseConfig = activity.baseConfig
@@ -106,20 +109,74 @@ class ColorPickerDialog(
             title = title
         )
 
-        val textColor = activity.getProperTextColor()
-        val builder = activity.getAlertDialogBuilder() //val builder = AlertDialog.Builder(activity, R.style.MyDialog)
-            .setPositiveButton(R.string.ok) { _, _ -> confirmNewColor() }
-            .setNegativeButton(R.string.cancel) { _, _ -> dialogDismissed() }
+        // Setup BlurView with the provided BlurTarget
+        val blurView = binding.blurView
+        val decorView = activity.window.decorView
+        val windowBackground = decorView.background
+        
+        blurView.setOverlayColor(0xa3ffffff.toInt())
+        blurView.setupWith(blurTarget)
+            .setFrameClearDrawable(windowBackground)
+            .setBlurRadius(8f)
+            .setBlurAutoUpdate(true)
+
+        // Setup title inside BlurView
+        val titleTextView = binding.root.findViewById<com.goodwy.commons.views.MyTextView>(R.id.dialog_title)
+        titleTextView?.apply {
+            beVisible()
+            text = title
+        }
+        // Hide the old title
+        binding.colorPickerTitle.beGone()
+
+        val builder = activity.getAlertDialogBuilder()
             .setOnCancelListener { dialogDismissed() }
-            .apply {
-                if (addDefaultColorButton) {
-                    setNeutralButton(R.string.default_color) { _, _ -> confirmDefaultColor(colorDefault) }
-                }
-            }
 
         builder.apply {
-            activity.setupDialogStuff(binding.root, this) { alertDialog ->
+            // Pass empty titleText to prevent setupDialogStuff from adding title outside BlurView
+            activity.setupDialogStuff(binding.root, this, titleText = "") { alertDialog ->
                 dialog = alertDialog
+                
+                val textColor = activity.getProperTextColor()
+                val primaryColor = activity.getProperPrimaryColor()
+                
+                // Setup custom buttons inside BlurView after dialog is created
+                val positiveButton = binding.root.findViewById<com.google.android.material.button.MaterialButton>(R.id.positive_button)
+                val negativeButton = binding.root.findViewById<com.google.android.material.button.MaterialButton>(R.id.negative_button)
+                val neutralButton = binding.root.findViewById<com.google.android.material.button.MaterialButton>(R.id.neutral_button)
+                val buttonsContainer = binding.root.findViewById<android.widget.LinearLayout>(R.id.buttons_container)
+
+                buttonsContainer?.visibility = android.view.View.VISIBLE
+
+                if (positiveButton != null) {
+                    positiveButton.visibility = android.view.View.VISIBLE
+                    positiveButton.setTextColor(primaryColor)
+                    positiveButton.setOnClickListener { 
+                        confirmNewColor()
+                        dialog?.dismiss()
+                    }
+                }
+
+                if (negativeButton != null) {
+                    negativeButton.beVisible()
+                    negativeButton.setTextColor(primaryColor)
+                    negativeButton.setOnClickListener { 
+                        dialogDismissed()
+                        dialog?.dismiss()
+                    }
+                }
+
+                if (addDefaultColorButton && neutralButton != null) {
+                    neutralButton.beVisible()
+                    neutralButton.setTextColor(primaryColor)
+                    neutralButton.setOnClickListener { 
+                        confirmDefaultColor(colorDefault)
+                        dialog?.dismiss()
+                    }
+                } else {
+                    neutralButton?.beGone()
+                }
+
 //                binding.colorPickerArrow.applyColorFilter(textColor)
                 binding.colorPickerHexArrow.applyColorFilter(textColor)
                 binding.colorPickerHueCursor.applyColorFilter(textColor)

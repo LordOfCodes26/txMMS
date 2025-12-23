@@ -13,6 +13,7 @@ import com.goodwy.commons.activities.BaseSimpleActivity
 import com.goodwy.commons.databases.ContactsDatabase
 import com.goodwy.commons.dialogs.CallConfirmationDialog
 import com.goodwy.commons.dialogs.RadioGroupDialog
+import eightbitlab.com.blurview.BlurTarget
 import com.goodwy.commons.helpers.*
 import com.goodwy.commons.interfaces.ContactsDao
 import com.goodwy.commons.interfaces.GroupsDao
@@ -358,8 +359,12 @@ fun BaseSimpleActivity.initiateCall(contact: Contact, onStartCallIntent: (phoneN
                 items.add(RadioItem(index, "${phoneNumber.value} (${getPhoneNumberTypeText(phoneNumber.type, phoneNumber.label)})", phoneNumber.value))
             }
 
-            RadioGroupDialog(this, items) {
-                onStartCallIntent(it as String)
+            if (this is BaseSimpleActivity) {
+                val blurTarget = findViewById<BlurTarget>(R.id.mainBlurTarget)
+                    ?: throw IllegalStateException("mainBlurTarget not found")
+                RadioGroupDialog(this, items, blurTarget = blurTarget) {
+                    onStartCallIntent(it as String)
+                }
             }
         }
     }
@@ -367,7 +372,9 @@ fun BaseSimpleActivity.initiateCall(contact: Contact, onStartCallIntent: (phoneN
 
 fun BaseSimpleActivity.tryInitiateCall(contact: Contact, onStartCallIntent: (phoneNumber: String) -> Unit) {
     if (baseConfig.showCallConfirmation) {
-        CallConfirmationDialog(this, contact.getNameToDisplay()) {
+        val blurTarget = findViewById<BlurTarget>(R.id.mainBlurTarget)
+            ?: throw IllegalStateException("mainBlurTarget not found")
+        CallConfirmationDialog(this, contact.getNameToDisplay(), blurTarget = blurTarget) {
             initiateCall(contact, onStartCallIntent)
         }
     } else {

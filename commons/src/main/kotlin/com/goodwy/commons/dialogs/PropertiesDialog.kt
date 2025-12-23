@@ -18,6 +18,7 @@ import java.io.File
 import java.io.InputStream
 import java.util.*
 import androidx.core.net.toUri
+import eightbitlab.com.blurview.BlurTarget
 
 class PropertiesDialog : BasePropertiesDialog {
     private var mCountHiddenItems = false
@@ -332,7 +333,9 @@ class PropertiesDialog : BasePropertiesDialog {
     }
 
     private fun removeEXIFFromPath(path: String) {
-        ConfirmationDialog(mActivity, "", R.string.remove_exif_confirmation) {
+        val blurTarget = mActivity.findViewById<BlurTarget>(R.id.mainBlurTarget)
+            ?: throw IllegalStateException("mainBlurTarget not found")
+        ConfirmationDialog(mActivity, "", R.string.remove_exif_confirmation, blurTarget = blurTarget) {
             try {
                 ExifInterface(path).removeValues()
                 mActivity.toast(R.string.exif_removed)
@@ -345,7 +348,9 @@ class PropertiesDialog : BasePropertiesDialog {
     }
 
     private fun removeEXIFFromPaths(paths: List<String>) {
-        ConfirmationDialog(mActivity, "", R.string.remove_exif_confirmation) {
+        val blurTarget = mActivity.findViewById<BlurTarget>(R.id.mainBlurTarget)
+            ?: throw IllegalStateException("mainBlurTarget not found")
+        ConfirmationDialog(mActivity, "", R.string.remove_exif_confirmation, blurTarget = blurTarget) {
             try {
                 paths.filter { mActivity.isPathOnInternalStorage(it) && it.canModifyEXIF() }.forEach {
                     ExifInterface(it).removeValues()

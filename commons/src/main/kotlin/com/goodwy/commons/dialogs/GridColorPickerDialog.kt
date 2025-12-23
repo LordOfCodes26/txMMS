@@ -36,6 +36,8 @@ import com.goodwy.commons.databinding.DialogGridColorPickerBinding
 import com.goodwy.commons.extensions.*
 import com.goodwy.commons.interfaces.LineColorPickerListener
 import com.goodwy.commons.views.MyAppBarLayout
+import eightbitlab.com.blurview.BlurTarget
+import eightbitlab.com.blurview.BlurView
 
 class GridColorPickerDialog(
     val activity: BaseSimpleActivity,
@@ -54,6 +56,7 @@ class GridColorPickerDialog(
     val primaryColors800: Int = R.array.line_90,
     val appIconIDs: ArrayList<Int>? = null,
     val appBar: MyAppBarLayout? = null,
+    blurTarget: BlurTarget,
     val callback: (wasPositivePressed: Boolean, color: Int) -> Unit
 ) {
     companion object {
@@ -70,6 +73,17 @@ class GridColorPickerDialog(
     private val backgroundColor = activity.baseConfig.backgroundColor
 
     init {
+        // Setup BlurView with the provided BlurTarget
+        val blurView = view.root.findViewById<BlurView>(R.id.blurView)
+        val decorView = activity.window.decorView
+        val windowBackground = decorView.background
+        
+        blurView?.setOverlayColor(0xa3ffffff.toInt())
+        blurView?.setupWith(blurTarget)
+            ?.setFrameClearDrawable(windowBackground)
+            ?.setBlurRadius(8f)
+            ?.setBlurAutoUpdate(true)
+
         view.apply {
             hexCode.text = color.toHex().substring(1)
             hexCode.setOnClickListener {

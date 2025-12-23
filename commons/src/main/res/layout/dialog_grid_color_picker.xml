@@ -1,7 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<eightbitlab.com.blurview.BlurView
+    android:id="@+id/blurView"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+<ScrollView
     android:id="@+id/color_picker_scrollview"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
@@ -20,15 +25,15 @@
 
         <com.goodwy.commons.views.MyTextView
             android:id="@+id/grid_color_title"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_centerInParent="true"
             android:layout_marginStart="68dp"
             android:layout_marginEnd="68dp"
-            android:gravity="center"
+            android:gravity="start|center_vertical"
             android:maxLines="2"
             android:text="@string/color_title"
-            android:textSize="@dimen/actionbar_text_size" />
+            android:textSize="@dimen/actionbar_text_size"
+            android:textStyle="bold" />
 
         <ImageView
             android:id="@+id/grid_color_cancel"
@@ -198,5 +203,6 @@
             tools:text="#FF0000" />
     </RelativeLayout>
 
-</RelativeLayout>
+    </RelativeLayout>
 </ScrollView>
+</eightbitlab.com.blurview.BlurView>

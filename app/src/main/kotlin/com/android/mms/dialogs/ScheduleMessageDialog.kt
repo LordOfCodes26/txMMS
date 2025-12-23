@@ -21,12 +21,15 @@ import com.android.mms.R
 import com.android.mms.databinding.ScheduleMessageDialogBinding
 import com.android.mms.extensions.config
 import com.android.mms.extensions.roundToClosestMultipleOf
+import eightbitlab.com.blurview.BlurTarget
+import eightbitlab.com.blurview.BlurView
 import org.joda.time.DateTime
 import java.util.Calendar
 
 class ScheduleMessageDialog(
     private val activity: BaseSimpleActivity,
     private var dateTime: DateTime? = null,
+    private val blurTarget: BlurTarget,
     private val callback: (dateTime: DateTime?) -> Unit
 ) {
     private val binding = ScheduleMessageDialogBinding.inflate(activity.layoutInflater)
@@ -39,6 +42,17 @@ class ScheduleMessageDialog(
     private val calendar = Calendar.getInstance()
 
     init {
+        // Setup BlurView
+        val blurView = binding.root.findViewById<eightbitlab.com.blurview.BlurView>(com.android.mms.R.id.blurView)
+        val decorView = activity.window.decorView
+        val windowBackground = decorView.background
+        
+        blurView?.setOverlayColor(0xa3ffffff.toInt())
+        blurView?.setupWith(blurTarget)
+            ?.setFrameClearDrawable(windowBackground)
+            ?.setBlurRadius(8f)
+            ?.setBlurAutoUpdate(true)
+        
         arrayOf(binding.subtitle, binding.editTime, binding.editDate).forEach {
             it.setTextColor(textColor)
         }

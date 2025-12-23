@@ -18,27 +18,64 @@ import com.goodwy.commons.compose.extensions.MyDevices
 import com.goodwy.commons.compose.theme.AppThemeSurface
 import com.goodwy.commons.databinding.DialogMessageBinding
 import com.goodwy.commons.extensions.getAlertDialogBuilder
+import com.goodwy.commons.extensions.getProperPrimaryColor
 import com.goodwy.commons.extensions.setupDialogStuff
+import eightbitlab.com.blurview.BlurTarget
+import eightbitlab.com.blurview.BlurView
 
 // similar fo ConfirmationDialog, but has a callback for negative button too
 class ConfirmationAdvancedDialog(
     activity: Activity, message: String = "", messageId: Int = R.string.proceed_with_deletion, positive: Int = R.string.yes,
-    negative: Int = R.string.no, val cancelOnTouchOutside: Boolean = true, val fromHtml: Boolean = false, val callback: (result: Boolean) -> Unit
+    negative: Int = R.string.no, val cancelOnTouchOutside: Boolean = true, blurTarget: BlurTarget, val fromHtml: Boolean = false, val callback: (result: Boolean) -> Unit
 ) {
     private var dialog: AlertDialog? = null
 
     init {
         val view = DialogMessageBinding.inflate(activity.layoutInflater, null, false)
-        val text = message.ifEmpty { activity.resources.getString(messageId) }
+        var text = message.ifEmpty { activity.resources.getString(messageId) }
         view.message.text = if (fromHtml) Html.fromHtml(text) else text
         if (fromHtml) view.message.movementMethod = LinkMovementMethod.getInstance()
 
-        val builder = activity.getAlertDialogBuilder()
-            .setPositiveButton(positive) { _, _ -> positivePressed() }
+        // Setup BlurView with the provided BlurTarget
+        val blurView = view.blurView
+        val decorView = activity.window.decorView
+        val windowBackground = decorView.background
+        blurView.setOverlayColor(0xa3ffffff.toInt())
+        blurView.setupWith(blurTarget)
+            .setFrameClearDrawable(windowBackground) // Optional: makes background opaque when there's transparent space
+            .setBlurRadius(8f) // Blur radius - adjust as needed (typical range: 1-25)
+            .setBlurAutoUpdate(true)
+
+        // Setup custom buttons inside BlurView
+        val primaryColor = activity.getProperPrimaryColor()
+        
+        // Access buttons via findViewById in case binding hasn't been regenerated
+        val positiveButton = view.root.findViewById<com.google.android.material.button.MaterialButton>(R.id.positive_button)
+        val negativeButton = view.root.findViewById<com.google.android.material.button.MaterialButton>(R.id.negative_button)
+        val buttonsContainer = view.root.findViewById<android.view.ViewGroup>(R.id.buttons_container)
+        
+        positiveButton?.apply {
+            visibility = android.view.View.VISIBLE
+            text = activity.resources.getString(positive)
+            setTextColor(primaryColor)
+            setOnClickListener { positivePressed() }
+        }
 
         if (negative != 0) {
-            builder.setNegativeButton(negative) { _, _ -> negativePressed() }
+            negativeButton?.apply {
+                visibility = android.view.View.VISIBLE
+                text = activity.resources.getString(negative)
+                setTextColor(primaryColor)
+                setOnClickListener { negativePressed() }
+            }
+        } else {
+            negativeButton?.visibility = android.view.View.GONE
         }
+        
+        // Ensure buttons container is visible
+        buttonsContainer?.visibility = android.view.View.VISIBLE
+
+        val builder = activity.getAlertDialogBuilder()
 
         if (!cancelOnTouchOutside) {
             builder.setOnCancelListener { negativePressed() }

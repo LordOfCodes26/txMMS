@@ -39,10 +39,25 @@ import com.goodwy.commons.extensions.isDynamicTheme
 import com.goodwy.commons.extensions.isSystemInDarkMode
 import com.goodwy.commons.extensions.setupDialogStuff
 import com.goodwy.commons.models.Release
+import eightbitlab.com.blurview.BlurTarget
+import eightbitlab.com.blurview.BlurView
 
-class WhatsNewDialog(val activity: Activity, val releases: List<Release>) {
+class WhatsNewDialog(val activity: Activity, val releases: List<Release>, blurTarget: BlurTarget) {
+    private var dialog: androidx.appcompat.app.AlertDialog? = null
+    
     init {
         val view = DialogWhatsNewBinding.inflate(LayoutInflater.from(activity), null, false)
+        
+        // Setup BlurView with the provided BlurTarget
+        val blurView = view.root.findViewById<BlurView>(R.id.blurView)
+        val decorView = activity.window.decorView
+        val windowBackground = decorView.background
+        
+        blurView?.setOverlayColor(0xa3ffffff.toInt())
+        blurView?.setupWith(blurTarget)
+            ?.setFrameClearDrawable(windowBackground)
+            ?.setBlurRadius(8f)
+            ?.setBlurAutoUpdate(true)
 //        view.whatsNewContent.text = getNewReleases()
         // Find the container and hide the original TextView
         val container = view.whatsNewHolder
@@ -53,10 +68,32 @@ class WhatsNewDialog(val activity: Activity, val releases: List<Release>) {
         val disclaimerIndex = container.indexOfChild(view.whatsNewDisclaimer)
         setupReleaseCards(container, disclaimerIndex, sortedReleases)
 
+        // Setup custom button inside BlurView
+        val primaryColor = activity.getProperPrimaryColor()
+        val positiveButton = view.root.findViewById<com.google.android.material.button.MaterialButton>(R.id.positive_button)
+        val buttonsContainer = view.root.findViewById<android.widget.LinearLayout>(R.id.buttons_container)
+        
+        buttonsContainer?.visibility = android.view.View.VISIBLE
+        
+        positiveButton?.apply {
+            visibility = android.view.View.VISIBLE
+            text = activity.resources.getString(R.string.ok)
+            setTextColor(primaryColor)
+            setOnClickListener { dialog?.dismiss() }
+        }
+        
+        // Add title inside BlurView
+        val titleView = view.root.findViewById<com.goodwy.commons.views.MyTextView>(R.id.dialog_title)
+        titleView?.apply {
+            visibility = android.view.View.VISIBLE
+            text = activity.resources.getString(R.string.whats_new)
+        }
+
         activity.getAlertDialogBuilder()
-            .setPositiveButton(R.string.ok, null)
             .apply {
-                activity.setupDialogStuff(view.root, this, R.string.whats_new, cancelOnTouchOutside = false)
+                activity.setupDialogStuff(view.root, this, titleId = 0, cancelOnTouchOutside = false) { alertDialog ->
+                    dialog = alertDialog
+                }
             }
     }
 

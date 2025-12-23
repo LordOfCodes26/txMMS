@@ -49,6 +49,8 @@ import com.goodwy.commons.extensions.toast
 import com.goodwy.commons.helpers.ensureBackgroundThread
 import com.goodwy.commons.models.FileDirItem
 import com.goodwy.commons.views.Breadcrumbs
+import eightbitlab.com.blurview.BlurTarget
+import eightbitlab.com.blurview.BlurView
 import java.io.File
 
 /**
@@ -74,6 +76,7 @@ class FilePickerDialog(
     private val titleText: Int = R.string.select_folder,
     private val useAccentColor: Boolean = false,
     private val enforceStorageRestrictions: Boolean = true,
+    blurTarget: BlurTarget,
     private val callback: (pickedPath: String) -> Unit
 ) : Breadcrumbs.BreadcrumbsListener {
 
@@ -125,6 +128,17 @@ class FilePickerDialog(
         mDialogView.filepickerFabsHolder.apply {
             (layoutParams as CoordinatorLayout.LayoutParams).bottomMargin = secondaryFabBottomMargin
         }
+
+        // Setup BlurView with the provided BlurTarget
+        val blurView = mDialogView.blurView
+        val decorView = activity.window.decorView
+        val windowBackground = decorView.background
+        
+        blurView.setOverlayColor(0xa3ffffff.toInt())
+        blurView.setupWith(blurTarget)
+            .setFrameClearDrawable(windowBackground)
+            .setBlurRadius(8f)
+            .setBlurAutoUpdate(true)
 
         mDialogView.filepickerPlaceholder.setTextColor(activity.getProperTextColor())
         mDialogView.filepickerFastscroller.updateColors(activity.getProperPrimaryColor())
@@ -178,7 +192,9 @@ class FilePickerDialog(
     private fun getTitle() = if (pickFile) R.string.select_file else titleText
 
     private fun createNewFolder() {
-        CreateNewFolderDialog(activity, currPath) {
+        val blurTarget = activity.findViewById<BlurTarget>(R.id.mainBlurTarget)
+            ?: throw IllegalStateException("mainBlurTarget not found")
+        CreateNewFolderDialog(activity, currPath, blurTarget = blurTarget) {
             callback(it)
             mDialog?.dismiss()
         }
@@ -379,7 +395,9 @@ class FilePickerDialog(
 
     override fun breadcrumbClicked(id: Int) {
         if (id == 0) {
-            StoragePickerDialog(activity, currPath, forceShowRoot, true) {
+            val blurTarget = activity.findViewById<eightbitlab.com.blurview.BlurTarget>(R.id.mainBlurTarget)
+                ?: throw IllegalStateException("mainBlurTarget not found")
+            StoragePickerDialog(activity, currPath, forceShowRoot, true, blurTarget) {
                 currPath = it
                 tryUpdateItems()
             }

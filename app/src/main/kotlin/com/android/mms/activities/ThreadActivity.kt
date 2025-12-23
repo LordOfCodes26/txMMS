@@ -898,9 +898,12 @@ class ThreadActivity : SimpleActivity() {
             if (alarmManager.canScheduleExactAlarms()) {
                 callback()
             } else {
+                val blurTarget = findViewById<eightbitlab.com.blurview.BlurTarget>(R.id.mainBlurTarget)
+                    ?: throw IllegalStateException("mainBlurTarget not found")
                 PermissionRequiredDialog(
                     activity = this,
                     textId = com.goodwy.commons.R.string.allow_alarm_scheduled_messages,
+                    blurTarget = blurTarget,
                     positiveActionCallback = {
                         openRequestExactAlarmSettings(BuildConfig.APPLICATION_ID)
                     },
@@ -944,9 +947,12 @@ class ThreadActivity : SimpleActivity() {
             binding.shortCodeHolder.replyDisabledInfo.apply {
                 applyColorFilter(textColor)
                 setOnClickListener {
+                    val blurTarget = findViewById<eightbitlab.com.blurview.BlurTarget>(R.id.mainBlurTarget)
+                        ?: throw IllegalStateException("mainBlurTarget not found")
                     InvalidNumberDialog(
                         activity = this@ThreadActivity,
-                        text = getString(R.string.invalid_short_code_desc)
+                        text = getString(R.string.invalid_short_code_desc),
+                        blurTarget = blurTarget
                     )
                 }
                 tooltipText = getString(com.goodwy.commons.R.string.more_info)
@@ -1129,7 +1135,9 @@ class ThreadActivity : SimpleActivity() {
             else com.goodwy.commons.R.string.block_confirmation
         val question = String.format(resources.getString(baseString), numbersString)
 
-        ConfirmationDialog(this, question) {
+        val blurTarget = findViewById<eightbitlab.com.blurview.BlurTarget>(R.id.mainBlurTarget)
+            ?: throw IllegalStateException("mainBlurTarget not found")
+        ConfirmationDialog(this, question, blurTarget = blurTarget) {
             ensureBackgroundThread {
                 numbers.forEach {
                     if (isBlockNumbers) {
@@ -1148,7 +1156,9 @@ class ThreadActivity : SimpleActivity() {
 
     private fun askConfirmDelete() {
         val confirmationMessage = R.string.delete_whole_conversation_confirmation
-        ConfirmationDialog(this, getString(confirmationMessage)) {
+        val blurTarget = findViewById<eightbitlab.com.blurview.BlurTarget>(R.id.mainBlurTarget)
+            ?: throw IllegalStateException("mainBlurTarget not found")
+        ConfirmationDialog(this, getString(confirmationMessage), blurTarget = blurTarget) {
             ensureBackgroundThread {
                 if (isRecycleBin) {
                     emptyMessagesRecycleBinForConversation(threadId)
@@ -1164,8 +1174,10 @@ class ThreadActivity : SimpleActivity() {
     }
 
     private fun askConfirmRestoreAll() {
-        ConfirmationDialog(this, getString(R.string.restore_confirmation)) {
-            ensureBackgroundThread {
+        val blurTarget = findViewById<eightbitlab.com.blurview.BlurTarget>(R.id.mainBlurTarget)
+            ?: throw IllegalStateException("mainBlurTarget not found")
+        ConfirmationDialog(this, getString(R.string.restore_confirmation), blurTarget = blurTarget) {
+            ensureBackgroundThread{
                 restoreAllMessagesFromRecycleBinForConversation(threadId)
                 runOnUiThread {
                     refreshConversations()
@@ -1276,7 +1288,9 @@ class ThreadActivity : SimpleActivity() {
 
     @SuppressLint("MissingPermission")
     private fun renameConversation() {
-        RenameConversationDialog(this, conversation!!) { title ->
+        val blurTarget = findViewById<eightbitlab.com.blurview.BlurTarget>(R.id.mainBlurTarget)
+            ?: throw IllegalStateException("mainBlurTarget not found")
+        RenameConversationDialog(this, conversation!!, blurTarget) { title ->
             ensureBackgroundThread {
                 conversation = renameConversation(conversation!!, newTitle = title)
                 runOnUiThread {
@@ -1415,7 +1429,9 @@ class ThreadActivity : SimpleActivity() {
             RadioItem(2, getString(com.goodwy.commons.R.string.text))
         )
 
-        RadioGroupDialog(this@ThreadActivity, items) {
+        val blurTarget = findViewById<eightbitlab.com.blurview.BlurTarget>(R.id.mainBlurTarget)
+            ?: throw IllegalStateException("mainBlurTarget not found")
+        RadioGroupDialog(this@ThreadActivity, items, blurTarget = blurTarget) {
             val privateCursor = getMyContactsCursor(favoritesOnly = false, withPhoneNumbersOnly = true)
             if (it == 1) {
                 ContactsHelper(this).getContacts(showOnlyContactsWithNumbers = false) { contacts ->
@@ -1712,7 +1728,9 @@ class ThreadActivity : SimpleActivity() {
                 }
                 items.add(RadioItem(it.id, it.label, it, drawable = drawable))
             }
-            RadioGroupIconDialog(this@ThreadActivity, items) {
+            val blurTarget = findViewById<eightbitlab.com.blurview.BlurTarget>(R.id.mainBlurTarget)
+                ?: throw IllegalStateException("mainBlurTarget not found")
+            RadioGroupIconDialog(this@ThreadActivity, items, blurTarget = blurTarget) {
                 val simId = (it as SIMCard).subscriptionId
                 if (isScheduledMessage) {
                     sendScheduledMessage(text, simId)
@@ -2022,10 +2040,13 @@ class ThreadActivity : SimpleActivity() {
             RadioItem(TYPE_SEND, getString(R.string.send_now)),
             RadioItem(TYPE_DELETE, getString(com.goodwy.commons.R.string.delete))
         )
+        val blurTarget = findViewById<eightbitlab.com.blurview.BlurTarget>(R.id.mainBlurTarget)
+            ?: throw IllegalStateException("mainBlurTarget not found")
         RadioGroupDialog(
             activity = this,
             items = items,
-            titleId = R.string.scheduled_message
+            titleId = R.string.scheduled_message,
+            blurTarget = blurTarget
         ) { any ->
             when (any as Int) {
                 TYPE_DELETE -> cancelScheduledMessageAndRefresh(message.id)
@@ -2068,7 +2089,9 @@ class ThreadActivity : SimpleActivity() {
 
     private fun launchScheduleSendDialog(originalDateTime: DateTime? = null) {
         askForExactAlarmPermissionIfNeeded {
-            ScheduleMessageDialog(this, originalDateTime) { newDateTime ->
+            val blurTarget = findViewById<eightbitlab.com.blurview.BlurTarget>(R.id.mainBlurTarget)
+                ?: throw IllegalStateException("mainBlurTarget not found")
+            ScheduleMessageDialog(this, originalDateTime, blurTarget) { newDateTime ->
                 if (newDateTime != null) {
                     scheduledDateTime = newDateTime
                     showScheduleMessageDialog()

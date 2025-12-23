@@ -164,10 +164,13 @@ class ManageBlockedKeywordsActivity : SimpleActivity(), RefreshRecyclerViewListe
     }
 
     private fun tryExportBlockedNumbers() {
+        val blurTarget = findViewById<eightbitlab.com.blurview.BlurTarget>(R.id.mainBlurTarget)
+            ?: throw IllegalStateException("mainBlurTarget not found")
         ExportBlockedKeywordsDialog(
             activity = this,
             path = config.lastBlockedKeywordExportPath,
-            hidePath = true
+            hidePath = true,
+            blurTarget = blurTarget
         ) { file ->
             try {
                 createDocument.launch(file.name)
@@ -208,7 +211,9 @@ class ManageBlockedKeywordsActivity : SimpleActivity(), RefreshRecyclerViewListe
     }
 
     private fun addOrEditBlockedKeyword(keyword: String? = null) {
-        AddBlockedKeywordDialog(this, keyword) {
+        val blurTarget = findViewById<eightbitlab.com.blurview.BlurTarget>(R.id.mainBlurTarget)
+            ?: throw IllegalStateException("mainBlurTarget not found")
+        AddBlockedKeywordDialog(this, keyword, blurTarget = blurTarget) {
             updateBlockedKeywords()
         }
     }

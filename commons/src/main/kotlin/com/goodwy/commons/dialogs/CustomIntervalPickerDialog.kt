@@ -41,17 +41,55 @@ import com.goodwy.commons.extensions.*
 import com.goodwy.commons.helpers.DAY_SECONDS
 import com.goodwy.commons.helpers.HOUR_SECONDS
 import com.goodwy.commons.helpers.MINUTE_SECONDS
+import eightbitlab.com.blurview.BlurTarget
+import eightbitlab.com.blurview.BlurView
 
-class CustomIntervalPickerDialog(val activity: Activity, val selectedSeconds: Int = 0, val showSeconds: Boolean = false, val callback: (minutes: Int) -> Unit) {
+class CustomIntervalPickerDialog(val activity: Activity, val selectedSeconds: Int = 0, val showSeconds: Boolean = false, blurTarget: BlurTarget, val callback: (minutes: Int) -> Unit) {
     private var dialog: AlertDialog? = null
     private var view = DialogCustomIntervalPickerBinding.inflate(activity.layoutInflater, null, false)
 
     init {
+        // Setup BlurView with the provided BlurTarget
+        val blurView = view.root.findViewById<BlurView>(R.id.blurView)
+        val decorView = activity.window.decorView
+        val windowBackground = decorView.background
+        
+        blurView?.setOverlayColor(0xa3ffffff.toInt())
+        blurView?.setupWith(blurTarget)
+            ?.setFrameClearDrawable(windowBackground)
+            ?.setBlurRadius(8f)
+            ?.setBlurAutoUpdate(true)
+
+        // Setup title inside BlurView - hide it as the dialog is self-explanatory
+        val titleTextView = view.root.findViewById<com.goodwy.commons.views.MyTextView>(R.id.dialog_title)
+        titleTextView?.beGone()
+
+        // Setup custom buttons inside BlurView
+        val primaryColor = activity.getProperPrimaryColor()
+        val positiveButton = view.root.findViewById<com.google.android.material.button.MaterialButton>(R.id.positive_button)
+        val negativeButton = view.root.findViewById<com.google.android.material.button.MaterialButton>(R.id.negative_button)
+        val buttonsContainer = view.root.findViewById<android.widget.LinearLayout>(R.id.buttons_container)
+        
+        buttonsContainer?.visibility = android.view.View.VISIBLE
+        
+        positiveButton?.apply {
+            visibility = android.view.View.VISIBLE
+            text = activity.resources.getString(R.string.ok)
+            setTextColor(primaryColor)
+            setOnClickListener { confirmReminder() }
+        }
+        
+        negativeButton?.apply {
+            beVisible()
+            text = activity.resources.getString(R.string.cancel)
+            setTextColor(primaryColor)
+            setOnClickListener { dialog?.dismiss() }
+        }
+
         activity.getAlertDialogBuilder()
-            .setPositiveButton(R.string.ok) { _, _ -> confirmReminder() }
-            .setNegativeButton(R.string.cancel, null)
             .apply {
-                activity.setupDialogStuff(view.root, this) { alertDialog ->
+                // Pass empty titleText to prevent setupDialogStuff from adding title outside BlurView
+                activity.setupDialogStuff(view.root, this, titleText = "") { alertDialog ->
                     dialog = alertDialog
                     alertDialog.showKeyboard(view.dialogCustomIntervalValue)
                 }
@@ -85,7 +123,7 @@ class CustomIntervalPickerDialog(val activity: Activity, val selectedSeconds: In
             dialogCustomIntervalValue.setOnKeyListener(object : View.OnKeyListener {
                 override fun onKey(v: View?, keyCode: Int, event: KeyEvent): Boolean {
                     if (event.action == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_ENTER) {
-                        dialog?.getButton(DialogInterface.BUTTON_POSITIVE)?.performClick()
+                        positiveButton?.performClick()
                         return true
                     }
 
