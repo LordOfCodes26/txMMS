@@ -217,6 +217,14 @@ class MainActivity : SimpleActivity() {
 
             mainMenu.requireToolbar().setOnMenuItemClickListener { menuItem ->
                 when (menuItem.itemId) {
+                    R.id.select_conversations -> {
+                        // Ensure search UI is closed/collapsed before entering selection ActionMode
+                        if (binding.mainMenu.isSearchOpen) {
+                            binding.mainMenu.closeSearch()
+                        }
+                        mSearchMenuItem?.collapseActionView()
+                        getOrCreateConversationsAdapter().startActMode()
+                    }
                     R.id.show_recycle_bin -> launchRecycleBin()
                     R.id.show_archived -> launchArchivedConversations()
                     R.id.show_blocked_numbers -> showBlockedNumbers()
