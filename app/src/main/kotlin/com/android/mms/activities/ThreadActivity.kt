@@ -259,6 +259,7 @@ class ThreadActivity : SimpleActivity() {
         val archiveAvailable = config.isArchiveAvailable
         binding.threadToolbar.menu.apply {
             findItem(R.id.delete).isVisible = threadItems.isNotEmpty()
+            findItem(R.id.select_messages).isVisible = threadItems.isNotEmpty()
             findItem(R.id.restore).isVisible = threadItems.isNotEmpty() && isRecycleBin
             findItem(R.id.archive).isVisible =
                 threadItems.isNotEmpty() && conversation?.isArchived == false && !isRecycleBin && archiveAvailable
@@ -300,6 +301,7 @@ class ThreadActivity : SimpleActivity() {
                 R.id.dial_number -> dialNumber()
                 R.id.manage_people -> managePeople()
                 R.id.mark_as_unread -> markAsUnread()
+                R.id.select_messages -> getOrCreateThreadAdapter().startActMode()
                 else -> return@setOnMenuItemClickListener false
             }
             return@setOnMenuItemClickListener true

@@ -154,6 +154,8 @@ class ThreadAdapter(
         val isOneItemSelected = isOneItemSelected()
         val selectedItem = getSelectedItems().firstOrNull() as? Message
         val hasText = selectedItem?.body != null && selectedItem.body != ""
+        val selectedMessages = getSelectedItems().filterIsInstance<Message>()
+        val hasAnyText = selectedMessages.any { it.body.isNotBlank() }
         val showSaveAs = getSelectedItems().all {
             it is Message && (it.attachment?.attachments?.size ?: 0) > 0
         } && getSelectedAttachments().isNotEmpty()
@@ -162,7 +164,7 @@ class ThreadAdapter(
             findItem(R.id.cab_copy_to_clipboard).isVisible = isOneItemSelected && hasText
             findItem(R.id.cab_save_as).isVisible = showSaveAs
             findItem(R.id.cab_share).isVisible = isOneItemSelected && hasText
-            findItem(R.id.cab_forward_message).isVisible = isOneItemSelected
+            findItem(R.id.cab_forward_message).isVisible = selectedKeys.isNotEmpty() && hasAnyText
             findItem(R.id.cab_select_text).isVisible = isOneItemSelected && hasText
             findItem(R.id.cab_properties).isVisible = isOneItemSelected
             findItem(R.id.cab_restore).isVisible = isRecycleBin
@@ -351,11 +353,19 @@ class ThreadAdapter(
     }
 
     private fun forwardMessage() {
-        val message = getSelectedItems().firstOrNull() as? Message ?: return
-        val attachment = message.attachment?.attachments?.firstOrNull()
+        val selectedMessages = getSelectedItems().filterIsInstance<Message>()
+        if (selectedMessages.isEmpty()) return
+
+        val isSingle = selectedMessages.size == 1
+        val mergedBody = selectedMessages
+            .mapNotNull { it.body.takeIf(String::isNotBlank) }
+            .joinToString(separator = "\n")
+
+        // Keep old behavior for single-selection attachment forwarding.
+        val attachment = if (isSingle) selectedMessages.first().attachment?.attachments?.firstOrNull() else null
         Intent(activity, NewConversationActivity::class.java).apply {
             action = Intent.ACTION_SEND
-            putExtra(Intent.EXTRA_TEXT, message.body)
+            putExtra(Intent.EXTRA_TEXT, mergedBody)
 
             if (attachment != null) {
                 putExtra(Intent.EXTRA_STREAM, attachment.getUri())
@@ -363,6 +373,7 @@ class ThreadAdapter(
 
             activity.startActivity(this)
         }
+        finishActMode()
     }
 
     private fun getSelectedItems(): ArrayList<ThreadItem> {
