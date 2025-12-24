@@ -354,6 +354,7 @@ class MainActivity : SimpleActivity() {
         binding.mainMenu.requireToolbar().menu.apply {
             findItem(R.id.show_recycle_bin).isVisible = config.useRecycleBin
             findItem(R.id.show_archived).isVisible = config.isArchiveAvailable
+            findItem(R.id.about).isVisible = false
             findItem(R.id.show_blocked_numbers).title =
                 if (config.showBlockedNumbers) getString(com.goodwy.strings.R.string.hide_blocked_numbers)
                 else getString(com.goodwy.strings.R.string.show_blocked_numbers)
