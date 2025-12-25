@@ -29,6 +29,8 @@ import com.goodwy.commons.extensions.getFolderLastModifieds
 import com.goodwy.commons.extensions.getIsPathDirectory
 import com.goodwy.commons.extensions.getOTGItems
 import com.goodwy.commons.extensions.getParentPath
+import com.goodwy.commons.extensions.getProperAccentColor
+import com.goodwy.commons.extensions.getProperBlurOverlayColor
 import com.goodwy.commons.extensions.getProperPrimaryColor
 import com.goodwy.commons.extensions.getProperTextColor
 import com.goodwy.commons.extensions.getSomeAndroidSAFDocument
@@ -111,11 +113,6 @@ class FilePickerDialog(
         setupFavorites()
 
         val builder = activity.getAlertDialogBuilder()
-            .setNegativeButton(R.string.cancel, null)
-
-        if (!pickFile) {
-            builder.setPositiveButton(R.string.ok, null)
-        }
 
         if (showFAB) {
             mDialogView.filepickerFab.apply {
@@ -134,7 +131,7 @@ class FilePickerDialog(
         val decorView = activity.window.decorView
         val windowBackground = decorView.background
         
-        blurView.setOverlayColor(0xa3ffffff.toInt())
+        blurView.setOverlayColor(activity.getProperBlurOverlayColor())
         blurView.setupWith(blurTarget)
             .setFrameClearDrawable(windowBackground)
             .setBlurRadius(8f)
@@ -165,8 +162,41 @@ class FilePickerDialog(
             }
         }
 
+        // Setup title inside BlurView
+        val titleTextView = mDialogView.root.findViewById<com.goodwy.commons.views.MyTextView>(R.id.dialog_title)
+        titleTextView?.apply {
+            beVisible()
+            text = activity.resources.getString(getTitle())
+        }
+
+        // Setup custom buttons inside BlurView
+        val primaryColor = if (useAccentColor) {
+            activity.getProperAccentColor()
+        } else {
+            activity.getProperPrimaryColor()
+        }
+        val positiveButton = mDialogView.root.findViewById<com.google.android.material.button.MaterialButton>(R.id.positive_button)
+        val negativeButton = mDialogView.root.findViewById<com.google.android.material.button.MaterialButton>(R.id.negative_button)
+        val buttonsContainer = mDialogView.root.findViewById<android.widget.LinearLayout>(R.id.buttons_container)
+
+        if (!pickFile) {
+            buttonsContainer?.visibility = android.view.View.VISIBLE
+            positiveButton?.apply {
+                visibility = android.view.View.VISIBLE
+                setTextColor(primaryColor)
+                setOnClickListener { verifyPath() }
+            }
+        }
+        
+        negativeButton?.apply {
+            visibility = android.view.View.VISIBLE
+            setTextColor(primaryColor)
+            setOnClickListener { mDialog?.dismiss() }
+        }
+
         builder.apply {
-            activity.setupDialogStuff(mDialogView.root, this, getTitle()) { alertDialog ->
+            // Pass empty titleText to prevent setupDialogStuff from adding title outside BlurView
+            activity.setupDialogStuff(mDialogView.root, this, titleText = "") { alertDialog ->
                 mDialog = alertDialog
                 alertDialog.onBackPressedDispatcher.addCallback(alertDialog) {
                     val breadcrumbs = mDialogView.filepickerBreadcrumbs
@@ -179,12 +209,6 @@ class FilePickerDialog(
                         alertDialog.onBackPressedDispatcher.onBackPressed()
                     }
                 }
-            }
-        }
-
-        if (!pickFile) {
-            mDialog?.getButton(AlertDialog.BUTTON_POSITIVE)?.setOnClickListener {
-                verifyPath()
             }
         }
     }

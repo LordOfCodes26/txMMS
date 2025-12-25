@@ -15,6 +15,7 @@ import com.goodwy.commons.compose.extensions.MyDevices
 import com.goodwy.commons.compose.theme.AppThemeSurface
 import com.goodwy.commons.databinding.DialogOpenDeviceSettingsBinding
 import com.goodwy.commons.extensions.getAlertDialogBuilder
+import com.goodwy.commons.extensions.getProperBlurOverlayColor
 import com.goodwy.commons.extensions.getProperPrimaryColor
 import com.goodwy.commons.extensions.openDeviceSettings
 import com.goodwy.commons.extensions.setupDialogStuff
@@ -33,7 +34,7 @@ class OpenDeviceSettingsDialog(val activity: BaseSimpleActivity, message: String
             val decorView = window.decorView
             val windowBackground = decorView.background
             
-            blurView.setOverlayColor(0xa3ffffff.toInt())
+            blurView.setOverlayColor(activity.getProperBlurOverlayColor())
             blurView.setupWith(blurTarget)
                 .setFrameClearDrawable(windowBackground)
                 .setBlurRadius(8f)

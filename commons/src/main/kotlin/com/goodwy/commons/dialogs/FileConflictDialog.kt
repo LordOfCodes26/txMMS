@@ -33,6 +33,7 @@ import com.goodwy.commons.databinding.DialogFileConflictBinding
 import com.goodwy.commons.extensions.baseConfig
 import com.goodwy.commons.extensions.beVisibleIf
 import com.goodwy.commons.extensions.getAlertDialogBuilder
+import com.goodwy.commons.extensions.getProperBlurOverlayColor
 import com.goodwy.commons.extensions.getProperPrimaryColor
 import com.goodwy.commons.extensions.setupDialogStuff
 import com.goodwy.commons.helpers.CONFLICT_KEEP_BOTH
@@ -59,7 +60,7 @@ class FileConflictDialog(
         val decorView = activity.window.decorView
         val windowBackground = decorView.background
         
-        blurView?.setOverlayColor(0xa3ffffff.toInt())
+        blurView?.setOverlayColor(activity.getProperBlurOverlayColor())
         blurView?.setupWith(blurTarget)
             ?.setFrameClearDrawable(windowBackground)
             ?.setBlurRadius(8f)

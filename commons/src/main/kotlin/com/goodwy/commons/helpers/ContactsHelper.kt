@@ -1018,8 +1018,6 @@ class ContactsHelper(val context: Context) {
             context.baseConfig.wasLocalAccountInitialized = true
         }
 
-        val telegramName = context.getString(R.string.telegram)
-        val viberName = context.getString(R.string.viber)
         val phoneStorageName = context.getString(R.string.phone_storage)
         val accounts = AccountManager.get(context).accounts
         val seenAccountKeys = HashSet<String>()
@@ -1028,16 +1026,30 @@ class ContactsHelper(val context: Context) {
                 add("${account.name}|${account.type}")
             }
         }
+        
+        // Helper function to check if account is SIM card or phone storage
+        fun isSimOrPhoneStorage(accountName: String, accountType: String): Boolean {
+            val nameLower = accountName.lowercase(Locale.getDefault())
+            val typeLower = accountType.lowercase(Locale.getDefault())
+            
+            // Phone storage: empty account name/type or "phone" account
+            val isPhoneStorage = (accountName.isEmpty() && accountType.isEmpty()) ||
+                (nameLower == "phone" && accountType.isEmpty())
+            
+            // SIM card: account type contains "sim" or "icc"
+            val isSimCard = typeLower.contains("sim") || typeLower.contains("icc")
+            
+            return isPhoneStorage || isSimCard
+        }
+        
         for (account in accounts) {
             if (ContentResolver.getIsSyncable(account, AUTHORITY) >= 0) {
-                val accountKey = "${account.name}|${account.type}"
-                if (seenAccountKeys.add(accountKey)) {
-                    val publicName = when (account.type) {
-                        TELEGRAM_PACKAGE -> telegramName
-                        VIBER_PACKAGE -> viberName
-                        else -> account.name
+                // Only include SIM card and phone storage accounts
+                if (isSimOrPhoneStorage(account.name, account.type)) {
+                    val accountKey = "${account.name}|${account.type}"
+                    if (seenAccountKeys.add(accountKey)) {
+                        sources.add(ContactSource(account.name, account.type, account.name))
                     }
-                    sources.add(ContactSource(account.name, account.type, publicName))
                 }
             }
         }
@@ -1055,9 +1067,14 @@ class ContactsHelper(val context: Context) {
                     }
                 }
                 account.name.isNotEmpty() && account.type.isNotEmpty() -> {
-                    val accountKey = "${account.name}|${account.type}"
-                    if (!existingAccountKeys.contains(accountKey)) {
-                        sources.add(account)
+                    // Only include SIM card accounts from content resolver
+                    val typeLower = account.type.lowercase(Locale.getDefault())
+                    val isSimCard = typeLower.contains("sim") || typeLower.contains("icc")
+                    if (isSimCard) {
+                        val accountKey = "${account.name}|${account.type}"
+                        if (!existingAccountKeys.contains(accountKey)) {
+                            sources.add(account)
+                        }
                     }
                 }
             }

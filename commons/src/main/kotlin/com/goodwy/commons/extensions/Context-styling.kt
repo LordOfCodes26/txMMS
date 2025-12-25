@@ -244,3 +244,18 @@ fun Context.getProperTextCursorColor() = when {
     isDynamicTheme() -> resources.getColor(R.color.you_primary_color, theme)
     else -> baseConfig.textCursorColor
 }
+
+fun Context.getProperBlurOverlayColor(): Int {
+    val isDark = when {
+        isDynamicTheme() -> isSystemInDarkMode()
+        isAutoTheme() -> isSystemInDarkMode()
+        isDarkTheme() || isBlackTheme() -> true
+        isLightTheme() || isGrayTheme() -> false
+        else -> baseConfig.backgroundColor.getContrastColor() == Color.WHITE
+    }
+    return if (isDark) {
+        0xa3000000.toInt() // Black overlay with alpha for dark mode
+    } else {
+        0xa3ffffff.toInt() // White overlay with alpha for light mode
+    }
+}

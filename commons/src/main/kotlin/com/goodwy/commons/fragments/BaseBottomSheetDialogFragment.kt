@@ -49,7 +49,7 @@ abstract class BaseBottomSheetDialogFragment : BottomSheetDialogFragment() {
                 val blurView = view.findViewById<BlurView>(R.id.blurView)
                 val decorView = activity.window.decorView
                 val windowBackground = decorView.background
-                blurView.setOverlayColor(0xa3ffffff.toInt())
+                blurView.setOverlayColor(requireContext().getProperBlurOverlayColor())
                 blurView?.setupWith(blurTarget)
                     ?.setFrameClearDrawable(windowBackground)
                     ?.setBlurRadius(8f)

@@ -18,6 +18,7 @@ import com.goodwy.commons.compose.extensions.MyDevices
 import com.goodwy.commons.compose.theme.AppThemeSurface
 import com.goodwy.commons.databinding.DialogMessageBinding
 import com.goodwy.commons.extensions.getAlertDialogBuilder
+import com.goodwy.commons.extensions.getProperBlurOverlayColor
 import com.goodwy.commons.extensions.getProperPrimaryColor
 import com.goodwy.commons.extensions.setupDialogStuff
 import eightbitlab.com.blurview.BlurTarget
@@ -40,7 +41,7 @@ class ConfirmationAdvancedDialog(
         val blurView = view.blurView
         val decorView = activity.window.decorView
         val windowBackground = decorView.background
-        blurView.setOverlayColor(0xa3ffffff.toInt())
+        blurView.setOverlayColor(activity.getProperBlurOverlayColor())
         blurView.setupWith(blurTarget)
             .setFrameClearDrawable(windowBackground) // Optional: makes background opaque when there's transparent space
             .setBlurRadius(8f) // Blur radius - adjust as needed (typical range: 1-25)

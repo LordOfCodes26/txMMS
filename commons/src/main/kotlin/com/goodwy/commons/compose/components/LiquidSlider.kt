@@ -206,7 +206,7 @@ fun LiquidSlider(
                         drawRect(Color.White.copy(alpha = 1f - progress))
                     }
                 )
-                .size(40f.dp, 24f.dp)
+                .size(30f.dp, 20f.dp)
         )
     }
 }

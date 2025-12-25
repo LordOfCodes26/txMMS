@@ -224,7 +224,7 @@ abstract class MyRecyclerViewAdapter(
         return positions
     }
 
-    protected fun selectAll() {
+    protected open fun selectAll() {
         val cnt = itemCount - positionOffset
         for (i in 0 until cnt) {
             toggleItemSelection(true, i, false)
