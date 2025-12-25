@@ -1,27 +1,65 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/delete_remember_holder"
+<eightbitlab.com.blurview.BlurView
+    android:id="@+id/blurView"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+<LinearLayout
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:paddingLeft="@dimen/big_margin"
-    android:paddingTop="@dimen/big_margin"
-    android:paddingRight="@dimen/big_margin">
+    android:orientation="vertical">
 
-    <com.goodwy.commons.views.MyTextView
-        android:id="@+id/delete_remember_title"
+    <RelativeLayout
+        android:id="@+id/delete_remember_holder"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:paddingStart="@dimen/small_margin"
-        android:paddingEnd="0dp"
-        android:paddingBottom="@dimen/activity_margin"
-        android:text="@string/delete_whole_conversation_confirmation"
-        android:textSize="@dimen/bigger_text_size" />
+        android:paddingLeft="@dimen/big_margin"
+        android:paddingTop="@dimen/big_margin"
+        android:paddingRight="@dimen/big_margin">
 
-    <com.goodwy.commons.views.MyAppCompatCheckbox
-        android:id="@+id/skip_the_recycle_bin_checkbox"
+        <com.goodwy.commons.views.MyTextView
+            android:id="@+id/delete_remember_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingStart="@dimen/small_margin"
+            android:paddingEnd="0dp"
+            android:paddingBottom="@dimen/activity_margin"
+            android:text="@string/delete_whole_conversation_confirmation"
+            android:textSize="@dimen/bigger_text_size" />
+
+        <com.goodwy.commons.views.MyAppCompatCheckbox
+            android:id="@+id/skip_the_recycle_bin_checkbox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/delete_remember_title"
+            android:text="@string/skip_the_recycle_bin_messages" />
+
+    </RelativeLayout>
+
+    <LinearLayout
+        android:id="@+id/buttons_container"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_below="@+id/delete_remember_title"
-        android:text="@string/skip_the_recycle_bin_messages" />
+        style="@style/DialogButtonContainerStyle"
+        android:visibility="visible">
 
-</RelativeLayout>
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/negative_button"
+            style="@style/Widget.Material3.Button.TextButton.Dialog"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/no"
+            android:visibility="visible" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/positive_button"
+            style="@style/Widget.Material3.Button.TextButton.Dialog"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/normal_margin"
+            android:text="@string/yes"
+            android:visibility="visible" />
+
+    </LinearLayout>
+</LinearLayout>
+</eightbitlab.com.blurview.BlurView>

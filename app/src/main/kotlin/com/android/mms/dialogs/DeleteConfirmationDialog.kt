@@ -4,6 +4,8 @@ import android.app.Activity
 import androidx.appcompat.app.AlertDialog
 import com.goodwy.commons.extensions.beGoneIf
 import com.goodwy.commons.extensions.getAlertDialogBuilder
+import com.goodwy.commons.extensions.getProperBlurOverlayColor
+import com.goodwy.commons.extensions.getProperPrimaryColor
 import com.goodwy.commons.extensions.setupDialogStuff
 import com.android.mms.databinding.DialogDeleteConfirmationBinding
 import eightbitlab.com.blurview.BlurTarget
@@ -25,19 +27,50 @@ class DeleteConfirmationDialog(
         val decorView = activity.window.decorView
         val windowBackground = decorView.background
 
-        blurView?.setOverlayColor(0xa3ffffff.toInt())
-        blurView?.setupWith(blurTarget)
-            ?.setFrameClearDrawable(windowBackground)
-            ?.setBlurRadius(8f)
-            ?.setBlurAutoUpdate(true)
+        if (blurView != null) {
+            blurView.setOverlayColor(activity.getProperBlurOverlayColor())
+            blurView.setupWith(blurTarget)
+                .setFrameClearDrawable(windowBackground)
+                .setBlurRadius(8f)
+                .setBlurAutoUpdate(true)
+        }
 
         binding.deleteRememberTitle.text = message
         binding.skipTheRecycleBinCheckbox.beGoneIf(!showSkipRecycleBinOption)
+
+        // Setup custom buttons inside BlurView
+        val primaryColor = if (activity is com.goodwy.commons.activities.BaseSimpleActivity) {
+            (activity as com.goodwy.commons.activities.BaseSimpleActivity).getProperPrimaryColor()
+        } else {
+            activity.getColor(com.goodwy.commons.R.color.color_primary)
+        }
+        val buttonsContainer = binding.root.findViewById<android.widget.LinearLayout>(com.goodwy.commons.R.id.buttons_container)
+        val positiveButton = binding.root.findViewById<com.google.android.material.button.MaterialButton>(com.goodwy.commons.R.id.positive_button)
+        val negativeButton = binding.root.findViewById<com.google.android.material.button.MaterialButton>(com.goodwy.commons.R.id.negative_button)
+
+        buttonsContainer?.visibility = android.view.View.VISIBLE
+
+        positiveButton?.apply {
+            visibility = android.view.View.VISIBLE
+            text = activity.resources.getString(com.goodwy.commons.R.string.yes)
+            setTextColor(primaryColor)
+            setOnClickListener {
+                dialogConfirmed()
+            }
+        }
+
+        negativeButton?.apply {
+            visibility = android.view.View.VISIBLE
+            text = activity.resources.getString(com.goodwy.commons.R.string.no)
+            setTextColor(primaryColor)
+            setOnClickListener {
+                dialog?.dismiss()
+            }
+        }
+
         activity.getAlertDialogBuilder()
-            .setPositiveButton(com.goodwy.commons.R.string.yes) { _, _ -> dialogConfirmed() }
-            .setNegativeButton(com.goodwy.commons.R.string.no, null)
             .apply {
-                activity.setupDialogStuff(binding.root, this) { alertDialog ->
+                activity.setupDialogStuff(binding.root, this, titleId = 0) { alertDialog ->
                     dialog = alertDialog
                 }
             }

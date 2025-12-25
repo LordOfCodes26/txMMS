@@ -2,6 +2,7 @@ package com.android.mms.dialogs
 
 import androidx.appcompat.app.AlertDialog
 import com.goodwy.commons.extensions.getAlertDialogBuilder
+import com.goodwy.commons.extensions.getProperBlurOverlayColor
 import com.goodwy.commons.extensions.getProperPrimaryColor
 import com.goodwy.commons.extensions.setupDialogStuff
 import com.goodwy.commons.extensions.toast
@@ -23,6 +24,7 @@ class ImportMessagesDialog(
 ) {
 
     private val config = activity.config
+    private var dialog: AlertDialog? = null
 
     init {
         var ignoreClicks = false
@@ -32,7 +34,7 @@ class ImportMessagesDialog(
             val decorView = activity.window.decorView
             val windowBackground = decorView.background
             
-            blurView?.setOverlayColor(0xa3ffffff.toInt())
+            blurView?.setOverlayColor(activity.getProperBlurOverlayColor())
             blurView?.setupWith(blurTarget)
                 ?.setFrameClearDrawable(windowBackground)
                 ?.setBlurRadius(8f)
@@ -44,51 +46,78 @@ class ImportMessagesDialog(
 
         binding.importProgress.setIndicatorColor(activity.getProperPrimaryColor())
 
+        // Setup custom title view inside BlurView
+        val titleTextView = binding.root.findViewById<com.goodwy.commons.views.MyTextView>(com.goodwy.commons.R.id.dialog_title)
+        titleTextView?.apply {
+            visibility = android.view.View.VISIBLE
+            setText(R.string.import_messages)
+        }
+
+        // Setup custom buttons inside BlurView
+        val primaryColor = activity.getProperPrimaryColor()
+        val buttonsContainer = binding.root.findViewById<android.widget.LinearLayout>(com.goodwy.commons.R.id.buttons_container)
+        val positiveButton = binding.root.findViewById<com.google.android.material.button.MaterialButton>(com.goodwy.commons.R.id.positive_button)
+        val negativeButton = binding.root.findViewById<com.google.android.material.button.MaterialButton>(com.goodwy.commons.R.id.negative_button)
+
+        buttonsContainer?.visibility = android.view.View.VISIBLE
+
+        positiveButton?.apply {
+            visibility = android.view.View.VISIBLE
+            text = activity.resources.getString(com.goodwy.commons.R.string.ok)
+            setTextColor(primaryColor)
+            setOnClickListener {
+                if (ignoreClicks) {
+                    return@setOnClickListener
+                }
+
+                if (!binding.importSmsCheckbox.isChecked && !binding.importMmsCheckbox.isChecked) {
+                    activity.toast(R.string.no_option_selected)
+                    return@setOnClickListener
+                }
+
+                ignoreClicks = true
+                activity.toast(com.goodwy.commons.R.string.importing)
+                config.importSms = binding.importSmsCheckbox.isChecked
+                config.importMms = binding.importMmsCheckbox.isChecked
+
+                dialog?.setCanceledOnTouchOutside(false)
+                binding.importProgress.show()
+                arrayOf(
+                    binding.importMmsCheckbox,
+                    binding.importSmsCheckbox,
+                    this,
+                    negativeButton
+                ).forEach {
+                    it?.isEnabled = false
+                    it?.alpha = 0.6f
+                }
+
+                ensureBackgroundThread {
+                    MessagesImporter(activity).restoreMessages(messages) {
+                        handleParseResult(it)
+                        dialog?.dismiss()
+                    }
+                }
+            }
+        }
+
+        negativeButton?.apply {
+            visibility = android.view.View.VISIBLE
+            text = activity.resources.getString(com.goodwy.commons.R.string.cancel)
+            setTextColor(primaryColor)
+            setOnClickListener {
+                dialog?.dismiss()
+            }
+        }
+
         activity.getAlertDialogBuilder()
-            .setPositiveButton(com.goodwy.commons.R.string.ok, null)
-            .setNegativeButton(com.goodwy.commons.R.string.cancel, null)
             .apply {
                 activity.setupDialogStuff(
                     view = binding.root,
                     dialog = this,
-                    titleId = R.string.import_messages
+                    titleId = 0
                 ) { alertDialog ->
-                    val positiveButton = alertDialog.getButton(AlertDialog.BUTTON_POSITIVE)
-                    val negativeButton = alertDialog.getButton(AlertDialog.BUTTON_NEGATIVE)
-                    positiveButton.setOnClickListener {
-                        if (ignoreClicks) {
-                            return@setOnClickListener
-                        }
-
-                        if (!binding.importSmsCheckbox.isChecked && !binding.importMmsCheckbox.isChecked) {
-                            activity.toast(R.string.no_option_selected)
-                            return@setOnClickListener
-                        }
-
-                        ignoreClicks = true
-                        activity.toast(com.goodwy.commons.R.string.importing)
-                        config.importSms = binding.importSmsCheckbox.isChecked
-                        config.importMms = binding.importMmsCheckbox.isChecked
-
-                        alertDialog.setCanceledOnTouchOutside(false)
-                        binding.importProgress.show()
-                        arrayOf(
-                            binding.importMmsCheckbox,
-                            binding.importSmsCheckbox,
-                            positiveButton,
-                            negativeButton
-                        ).forEach {
-                            it.isEnabled = false
-                            it.alpha = 0.6f
-                        }
-
-                        ensureBackgroundThread {
-                            MessagesImporter(activity).restoreMessages(messages) {
-                                handleParseResult(it)
-                                alertDialog.dismiss()
-                            }
-                        }
-                    }
+                    dialog = alertDialog
                 }
             }
     }

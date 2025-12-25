@@ -6,6 +6,7 @@ import android.widget.RadioGroup
 import androidx.appcompat.app.AlertDialog
 import com.goodwy.commons.extensions.beGone
 import com.goodwy.commons.extensions.getAlertDialogBuilder
+import com.goodwy.commons.extensions.getProperBlurOverlayColor
 import com.goodwy.commons.extensions.setupDialogStuff
 import com.android.mms.extensions.getPackageDrawable
 import com.android.mms.databinding.DialogChooseSocialBinding
@@ -25,7 +26,7 @@ class ChooseSocialDialog(val activity: Activity, actions: ArrayList<SocialAction
         val decorView = activity.window.decorView
         val windowBackground = decorView.background
         
-        blurView?.setOverlayColor(0xa3ffffff.toInt())
+        blurView?.setOverlayColor(activity.getProperBlurOverlayColor())
         blurView?.setupWith(blurTarget)
             ?.setFrameClearDrawable(windowBackground)
             ?.setBlurRadius(8f)

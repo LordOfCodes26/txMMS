@@ -40,7 +40,7 @@ class MessageBubbleSettingDialog(
         val decorView = activity.window.decorView
         val windowBackground = decorView.background
         
-        blurView?.setOverlayColor(0xa3ffffff.toInt())
+        blurView?.setOverlayColor(activity.getProperBlurOverlayColor())
         blurView?.setupWith(blurTarget)
             ?.setFrameClearDrawable(windowBackground)
             ?.setBlurRadius(8f)
@@ -91,13 +91,34 @@ class MessageBubbleSettingDialog(
             binding.styleIos.alpha = 0.6f
         }
 
-        activity.getAlertDialogBuilder()
-            .setPositiveButton(com.goodwy.commons.R.string.ok) { _, _ ->
+        // Setup custom title view inside BlurView
+        val titleTextView = binding.root.findViewById<com.goodwy.commons.views.MyTextView>(com.goodwy.commons.R.id.dialog_title)
+        titleTextView?.apply {
+            visibility = android.view.View.VISIBLE
+            setText(com.goodwy.strings.R.string.speech_bubble)
+        }
+
+        // Setup custom button inside BlurView
+        val primaryColor = activity.getProperPrimaryColor()
+        val buttonsContainer = binding.root.findViewById<android.widget.LinearLayout>(com.goodwy.commons.R.id.buttons_container)
+        val positiveButton = binding.root.findViewById<com.google.android.material.button.MaterialButton>(com.goodwy.commons.R.id.positive_button)
+
+        buttonsContainer?.visibility = android.view.View.VISIBLE
+
+        positiveButton?.apply {
+            visibility = android.view.View.VISIBLE
+            text = activity.resources.getString(com.goodwy.commons.R.string.ok)
+            setTextColor(primaryColor)
+            setOnClickListener {
                 config.bubbleStyle = currentBubbleStyle
                 callback(currentBubbleStyle)
+                dialog?.dismiss()
             }
+        }
+
+        activity.getAlertDialogBuilder()
             .apply {
-                activity.setupDialogStuff(binding.root, this, com.goodwy.strings.R.string.speech_bubble) { alertDialog ->
+                activity.setupDialogStuff(binding.root, this, titleId = 0) { alertDialog ->
                     dialog = alertDialog
                 }
             }

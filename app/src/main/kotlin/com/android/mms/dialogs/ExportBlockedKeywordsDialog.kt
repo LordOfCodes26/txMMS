@@ -7,6 +7,8 @@ import com.goodwy.commons.extensions.beGone
 import com.goodwy.commons.extensions.getAlertDialogBuilder
 import com.goodwy.commons.extensions.getCurrentFormattedDateTime
 import com.goodwy.commons.extensions.getParentPath
+import com.goodwy.commons.extensions.getProperBlurOverlayColor
+import com.goodwy.commons.extensions.getProperPrimaryColor
 import com.goodwy.commons.extensions.humanizePath
 import com.goodwy.commons.extensions.internalStoragePath
 import com.goodwy.commons.extensions.isAValidFilename
@@ -41,7 +43,7 @@ class ExportBlockedKeywordsDialog(
                 val decorView = activity.window.decorView
                 val windowBackground = decorView.background
                 
-                blurView?.setOverlayColor(0xa3ffffff.toInt())
+                blurView?.setOverlayColor(activity.getProperBlurOverlayColor())
                 blurView?.setupWith(blurTarget)
                     ?.setFrameClearDrawable(windowBackground)
                     ?.setBlurRadius(8f)
@@ -63,39 +65,66 @@ class ExportBlockedKeywordsDialog(
                 }
             }
 
+        // Setup custom title view inside BlurView
+        val titleTextView = view.root.findViewById<com.goodwy.commons.views.MyTextView>(com.goodwy.commons.R.id.dialog_title)
+        titleTextView?.apply {
+            visibility = android.view.View.VISIBLE
+            setText(R.string.export_blocked_keywords)
+        }
+
+        // Setup custom buttons inside BlurView
+        val primaryColor = activity.getProperPrimaryColor()
+        val buttonsContainer = view.root.findViewById<android.widget.LinearLayout>(com.goodwy.commons.R.id.buttons_container)
+        val positiveButton = view.root.findViewById<com.google.android.material.button.MaterialButton>(com.goodwy.commons.R.id.positive_button)
+        val negativeButton = view.root.findViewById<com.google.android.material.button.MaterialButton>(com.goodwy.commons.R.id.negative_button)
+
+        buttonsContainer?.visibility = android.view.View.VISIBLE
+
+        positiveButton?.apply {
+            visibility = android.view.View.VISIBLE
+            text = activity.resources.getString(com.goodwy.commons.R.string.ok)
+            setTextColor(primaryColor)
+            setOnClickListener {
+                val filename = view.exportBlockedKeywordsFilename.value
+                when {
+                    filename.isEmpty() -> activity.toast(com.goodwy.commons.R.string.empty_name)
+                    filename.isAValidFilename() -> {
+                        val file =
+                            File(realPath, "$filename$BLOCKED_KEYWORDS_EXPORT_EXTENSION")
+                        if (!hidePath && file.exists()) {
+                            activity.toast(com.goodwy.commons.R.string.name_taken)
+                            return@setOnClickListener
+                        }
+
+                        ensureBackgroundThread {
+                            config.lastBlockedKeywordExportPath =
+                                file.absolutePath.getParentPath()
+                            callback(file)
+                        }
+                    }
+
+                    else -> activity.toast(com.goodwy.commons.R.string.invalid_name)
+                }
+            }
+        }
+
+        negativeButton?.apply {
+            visibility = android.view.View.VISIBLE
+            text = activity.resources.getString(com.goodwy.commons.R.string.cancel)
+            setTextColor(primaryColor)
+            setOnClickListener {
+                // Dialog will be dismissed by setupDialogStuff
+            }
+        }
+
         activity.getAlertDialogBuilder()
-            .setPositiveButton(com.goodwy.commons.R.string.ok, null)
-            .setNegativeButton(com.goodwy.commons.R.string.cancel, null)
             .apply {
                 activity.setupDialogStuff(
                     view = view.root,
                     dialog = this,
-                    titleId = R.string.export_blocked_keywords
+                    titleId = 0
                 ) { alertDialog ->
                     alertDialog.showKeyboard(view.exportBlockedKeywordsFilename)
-                    alertDialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-                        val filename = view.exportBlockedKeywordsFilename.value
-                        when {
-                            filename.isEmpty() -> activity.toast(com.goodwy.commons.R.string.empty_name)
-                            filename.isAValidFilename() -> {
-                                val file =
-                                    File(realPath, "$filename$BLOCKED_KEYWORDS_EXPORT_EXTENSION")
-                                if (!hidePath && file.exists()) {
-                                    activity.toast(com.goodwy.commons.R.string.name_taken)
-                                    return@setOnClickListener
-                                }
-
-                                ensureBackgroundThread {
-                                    config.lastBlockedKeywordExportPath =
-                                        file.absolutePath.getParentPath()
-                                    callback(file)
-                                    alertDialog.dismiss()
-                                }
-                            }
-
-                            else -> activity.toast(com.goodwy.commons.R.string.invalid_name)
-                        }
-                    }
                 }
             }
     }

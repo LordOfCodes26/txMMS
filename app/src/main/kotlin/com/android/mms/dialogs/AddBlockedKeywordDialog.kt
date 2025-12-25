@@ -3,6 +3,8 @@ package com.android.mms.dialogs
 import androidx.appcompat.app.AlertDialog
 import com.goodwy.commons.activities.BaseSimpleActivity
 import com.goodwy.commons.extensions.getAlertDialogBuilder
+import com.goodwy.commons.extensions.getProperBlurOverlayColor
+import com.goodwy.commons.extensions.getProperPrimaryColor
 import com.goodwy.commons.extensions.setupDialogStuff
 import com.goodwy.commons.extensions.showKeyboard
 import com.goodwy.commons.extensions.value
@@ -19,7 +21,7 @@ class AddBlockedKeywordDialog(val activity: BaseSimpleActivity, private val orig
             val decorView = activity.window.decorView
             val windowBackground = decorView.background
             
-            blurView?.setOverlayColor(0xa3ffffff.toInt())
+            blurView?.setOverlayColor(activity.getProperBlurOverlayColor())
             blurView?.setupWith(blurTarget)
                 ?.setFrameClearDrawable(windowBackground)
                 ?.setBlurRadius(8f)
@@ -30,25 +32,45 @@ class AddBlockedKeywordDialog(val activity: BaseSimpleActivity, private val orig
             }
         }
 
+        // Setup custom buttons inside BlurView
+        val primaryColor = activity.getProperPrimaryColor()
+        val buttonsContainer = binding.root.findViewById<android.widget.LinearLayout>(com.goodwy.commons.R.id.buttons_container)
+        val positiveButton = binding.root.findViewById<com.google.android.material.button.MaterialButton>(com.goodwy.commons.R.id.positive_button)
+        val negativeButton = binding.root.findViewById<com.google.android.material.button.MaterialButton>(com.goodwy.commons.R.id.negative_button)
+
+        buttonsContainer?.visibility = android.view.View.VISIBLE
+
+        positiveButton?.apply {
+            visibility = android.view.View.VISIBLE
+            text = activity.resources.getString(com.goodwy.commons.R.string.ok)
+            setTextColor(primaryColor)
+            setOnClickListener {
+                val newBlockedKeyword = binding.addBlockedKeywordEdittext.value
+                if (originalKeyword != null && newBlockedKeyword != originalKeyword) {
+                    activity.config.removeBlockedKeyword(originalKeyword)
+                }
+
+                if (newBlockedKeyword.isNotEmpty()) {
+                    activity.config.addBlockedKeyword(newBlockedKeyword)
+                }
+
+                callback()
+            }
+        }
+
+        negativeButton?.apply {
+            visibility = android.view.View.VISIBLE
+            text = activity.resources.getString(com.goodwy.commons.R.string.cancel)
+            setTextColor(primaryColor)
+            setOnClickListener {
+                // Dialog will be dismissed by setupDialogStuff
+            }
+        }
+
         activity.getAlertDialogBuilder()
-            .setPositiveButton(com.goodwy.commons.R.string.ok, null)
-            .setNegativeButton(com.goodwy.commons.R.string.cancel, null)
             .apply {
-                activity.setupDialogStuff(binding.root, this) { alertDialog ->
+                activity.setupDialogStuff(binding.root, this, titleId = 0) { alertDialog ->
                     alertDialog.showKeyboard(binding.addBlockedKeywordEdittext)
-                    alertDialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-                        val newBlockedKeyword = binding.addBlockedKeywordEdittext.value
-                        if (originalKeyword != null && newBlockedKeyword != originalKeyword) {
-                            activity.config.removeBlockedKeyword(originalKeyword)
-                        }
-
-                        if (newBlockedKeyword.isNotEmpty()) {
-                            activity.config.addBlockedKeyword(newBlockedKeyword)
-                        }
-
-                        callback()
-                        alertDialog.dismiss()
-                    }
                 }
             }
     }

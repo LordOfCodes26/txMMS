@@ -12,6 +12,8 @@ import com.goodwy.commons.activities.BaseSimpleActivity
 import com.goodwy.commons.extensions.applyColorFilter
 import com.goodwy.commons.extensions.getAlertDialogBuilder
 import com.goodwy.commons.extensions.getDatePickerDialogTheme
+import com.goodwy.commons.extensions.getProperBlurOverlayColor
+import com.goodwy.commons.extensions.getProperPrimaryColor
 import com.goodwy.commons.extensions.getProperTextColor
 import com.goodwy.commons.extensions.getTimeFormat
 import com.goodwy.commons.extensions.isDynamicTheme
@@ -47,7 +49,7 @@ class ScheduleMessageDialog(
         val decorView = activity.window.decorView
         val windowBackground = decorView.background
         
-        blurView?.setOverlayColor(0xa3ffffff.toInt())
+        blurView?.setOverlayColor(activity.getProperBlurOverlayColor())
         blurView?.setupWith(blurTarget)
             ?.setFrameClearDrawable(windowBackground)
             ?.setBlurRadius(8f)
@@ -86,19 +88,47 @@ class ScheduleMessageDialog(
             return
         }
 
+        // Setup custom title view inside BlurView
+        val titleTextView = binding.root.findViewById<com.goodwy.commons.views.MyTextView>(com.goodwy.commons.R.id.dialog_title)
+        titleTextView?.apply {
+            visibility = android.view.View.VISIBLE
+            setText(R.string.schedule_message)
+        }
+
+        // Setup custom buttons inside BlurView
+        val primaryColor = activity.getProperPrimaryColor()
+        val buttonsContainer = binding.root.findViewById<android.widget.LinearLayout>(com.goodwy.commons.R.id.buttons_container)
+        val positiveButton = binding.root.findViewById<com.google.android.material.button.MaterialButton>(com.goodwy.commons.R.id.positive_button)
+        val negativeButton = binding.root.findViewById<com.google.android.material.button.MaterialButton>(com.goodwy.commons.R.id.negative_button)
+
+        buttonsContainer?.visibility = android.view.View.VISIBLE
+
+        positiveButton?.apply {
+            visibility = android.view.View.VISIBLE
+            text = activity.resources.getString(com.goodwy.commons.R.string.ok)
+            setTextColor(primaryColor)
+            setOnClickListener {
+                if (validateDateTime()) {
+                    callback(dateTime)
+                    previewDialog?.dismiss()
+                }
+            }
+        }
+
+        negativeButton?.apply {
+            visibility = android.view.View.VISIBLE
+            text = activity.resources.getString(com.goodwy.commons.R.string.cancel)
+            setTextColor(primaryColor)
+            setOnClickListener {
+                previewDialog?.dismiss()
+            }
+        }
+
         activity.getAlertDialogBuilder()
-            .setPositiveButton(com.goodwy.commons.R.string.ok, null)
-            .setNegativeButton(com.goodwy.commons.R.string.cancel, null)
             .apply {
                 previewShown = true
-                activity.setupDialogStuff(binding.root, this, R.string.schedule_message) { dialog ->
+                activity.setupDialogStuff(binding.root, this, titleId = 0) { dialog ->
                     previewDialog = dialog
-                    dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-                        if (validateDateTime()) {
-                            callback(dateTime)
-                            dialog.dismiss()
-                        }
-                    }
 
                     dialog.setOnDismissListener {
                         previewShown = false
