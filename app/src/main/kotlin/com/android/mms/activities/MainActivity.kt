@@ -135,6 +135,7 @@ class MainActivity : SimpleActivity() {
         //binding.searchHolder.setBackgroundColor(getProperBackgroundColor())
         binding.searchHolder.setBackgroundColor(getSurfaceColor())
         binding.conversationsFastscroller.setBackgroundColor(getSurfaceColor())
+        binding.mainHolder.setBackgroundColor(getSurfaceColor())
 
         val properPrimaryColor = getProperPrimaryColor()
         binding.noConversationsPlaceholder2.setTextColor(properPrimaryColor)
