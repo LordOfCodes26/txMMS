@@ -1,0 +1,345 @@
+<resources>
+    <string name="message">통보문</string>
+    <string name="settings_icon">설정 아이콘</string>
+    <string name="total_g">합계: %s</string>
+    <string name="last_g">마지막: %s</string>
+    <string name="next_g">다음: %s</string>
+    <string name="time">시간</string>
+    <string name="interval">간격</string>
+    <string name="symbols_first">기호 우선(예: !@#$)</string>
+    <string name="use_custom_notifications">사용자 지정 알림 사용</string>
+    <string name="turn_on_screen">화면 켜기</string>
+    <string name="hide_top_bar_when_scrolling">화면 내리기할때 프로그람 상단 표시줄 숨기기</string>
+    <string name="unread_indicator_position">읽지않은 표식 위치</string>
+    <string name="start">시작</string>
+    <string name="end">끝</string>
+
+    <!-- Support project -->
+    <string name="rate_g">평점 주기</string>
+    <string name="action_support_project">과제 지원</string>
+    <string name="pref_pay_summary"> </string>
+    <string name="support_project_summary"> </string>
+    <string name="learn_more">더 보기</string>
+    <string name="themes">양상</string>
+    <string name="themes_summary">"선택된 응용프로그람 양상, 자동 양상변경 및 Android 12+용 체계양상 지원 "</string>
+    <string name="color_title">색상</string>
+    <string name="color_summary">기본 색상, 배경, 문자 및 탐색모음의 수동 조정</string>
+    <string name="plus_title">제목</string>
+    <string name="plus_summary"> </string>
+    <string name="about_summary">
+        <![CDATA[
+            <i>
+            </i>
+        ]]></string>
+    <string name="lifebuoy_title"> </string>
+    <string name="lifebuoy_summary"> </string>
+    <string name="participants_title">참가자</string>
+    <string name="participants_subtitle"><![CDATA[]]></string>
+    <string name="special_thanks_to">특별한 감사 대상</string>
+    <string name="tip_kind">좋은 지원</string>
+    <string name="tip_excellent">우수한 지원</string>
+    <string name="tip_incredible">많은 지원</string>
+    <string name="tip_jar">지원</string>
+    <string name="any_support_unlock_all"> </string>
+    <string name="one_time_purchase">한번 지원</string>
+    <string name="monthly">월간 지원</string>
+    <string name="yearly">년간 지원</string>
+    <string name="unlock">잠금 해제</string>
+    <string name="donate_text_g">
+        <![CDATA[            
+            감사합니다!
+        ]]>
+    </string>
+
+    <!--Billing-->
+    <string name="donate_text_no_gp_g"><![CDATA[
+감사합니다!
+]]></string>
+    <string name="restored_previous_purchase_please_restart">이전 구매를 복원했습니다. 모든 기능을 사용하려면 프로그람을 다시 기동하십시오.</string>
+    <string name="no_purchase_found">구매를 찾을수 없습니다.</string>
+    <string name="restore_purchase">구매 복원</string>
+    <string name="restoring_purchase">구매 복원중…</string>
+
+    <string name="no_connection">련결 없음</string>
+    <string name="per_month">%s/월</string>
+    <string name="per_year">%s/년</string>
+
+    <string name="use_accent_color_summary">일부 UI요소에 사용되는 추가색입니다.</string>
+    <string name="app_icon_color_warning_g">참고: 일부 기본화면은 사용자설정 프로그람 아이콘을 옳바르게 표시하지 않을수 있습니다. 아이콘이 사라지면 실행기호(가능한 경우)를 통해 프로그람을 실행해보십시오.         실행 후 기본 아이콘 색상을 복원합니다. 극단적인 경우 프로그람을 다시 설치해야 할수 있습니다.</string>
+    <string name="app_icon_color_shortcuts_warning_g">주의: 프로그람 아이콘을 변경하면 프로그람 바로가기가 삭제됩니다.</string>
+    <string name="show_contact_thumbnails_g">주소록 그림화상 보기</string>
+    <string name="use_icon_tabs_summary">태브의 문자 대신 아이콘</string>
+    <string name="use_icon_tabs">태브 아이콘 사용</string>
+    <string name="round_play_icon_summary">기본 색상에 재생/일시중지 아이콘의 색상이 지정됩니다.</string>
+    <string name="round_play_icon">반복 재생/일시 중지 아이콘</string>
+    <string name="save_recordings_in_summary">앤드로이드 10에서 시작, 응용프로그람은 파일에 접근할수 없습니다</string>
+    <string name="gray_theme">회색</string>
+    <string name="pref_category_appearance">양상</string>
+    <string name="pref_theme_summary">미리 설치된 양상 선택</string>
+    <string name="customization_theme_summary">양상 및 대면부 색상 선택</string>
+    <string name="recorder_g">기록</string>
+    <string name="player_g">배우</string>
+    <string name="general">일반</string>
+    <string name="default_tab">기본 태브</string>
+    <string name="color">색</string>
+    <string name="black">ブラック</string>
+    <string name="black_locked">ブラック(ロック式)</string>
+    <string name="show_dividers">구분 표시</string>
+    <string name="colored_contacts">주소록 색상 아이콘</string>
+    <string name="contact_color_list">주소록 색상 목록</string>
+    <string name="transparent_navigation_bar">투명 하단 차림표띠</string>
+    <string name="kids_mode">어린이 방식</string>
+    <string name="kids_mode_summary">단순한 대면부, 색선택</string>
+    <string name="restart_required">응용프로그람이 재기동하여야 합니다.</string>
+    <string name="transparent_bar">투명한 차림표띠</string>
+    <string name="bottom_navigation_bar">하단 차림표띠</string>
+    <string name="bottom_navigation_bar_summary">태브가 밑에 현시됩니다.</string>
+    <string name="tab_navigation">태브 탐색</string>
+    <string name="top">우</string>
+    <string name="bottom">아래</string>
+    <string name="relative_date">상대 날자</string>
+    <string name="color_sim_card_icons">색 SIM카드 아이콘</string>
+    <string name="tabs">태브</string>
+    <string name="open_search_when_open_contacts">주소록 태브를 열때 검색 열기</string>
+    <string name="end_search_when_changing_tab">태브 변경 시 검색 완료</string>
+    <string name="change_top_bar_colour_when_scrolling">화면 내릴때 상단 표시띠 색상 변경</string>
+    <string name="global_theme_success_g">현재 양상이 모든 응용프로그람들에 성공적으로 적용되였습니다. 이 양상에 대한 변경사항은 자동으로 동기화됩니다</string>
+    <string name="enter_pattern">도형암호 입력</string>
+    <string name="call_screen_background">통화 화면 배경</string>
+    <string name="contact_photo">주소록 사진</string>
+    <string name="blurry_contact_photo">주소록 사진 흐림효과</string>
+    <string name="blurry_wallpaper">배경화면 흐림효과</string>
+    <string name="text_cursor_color">문자유표 색상</string>
+    <string name="top_app_bar_colored">색이 지정된 웃부분 응용프로그람 도구띠</string>
+    <string name="top_app_bar_color_icon">응용프르그람 도구띠의 색아이콘</string>
+    <string name="top_app_bar_color_title">색 응용프로그람 도구띠 제목</string>
+    <string name="overflow_icon">초과 아이콘</string>
+    <string name="lines_count">행수</string>
+    <string name="show_button_blocked_numbers">차단된 통화를 숨기지 않는 단추 표시</string>
+    <string name="flash_for_alerts">경고용 빛</string>
+    <string name="clean_theme_g">청소</string>
+    <string name="concept_theme_g">개념</string>
+    <string name="default_folder_to_open_g">프로그람시작시 열기할 등록부</string>
+    <string name="last_used_g">마지막 사용</string>
+    <string name="home_folder_g">기본화면 등록부</string>
+    <string name="primary_sim_card">기본 SIM카드</string>
+    <string name="button_primary">기본 단추</string>
+    <string name="button_secondary">보조 단추</string>
+    <string name="skip_archive_confirmation">보관 확인 창 비활성화</string>
+    <string name="swipe_gestures">밀기동작</string>
+    <string name="swipe_left_action">왼쪽으로 밀기동작</string>
+    <string name="swipe_right_action">오른쪽으로 밀기동작</string>
+    <string name="use_swipe_gestures">밀기동작 사용</string>
+    <string name="use_swipe_gestures_summary">태브의 밀기동작을 비활성화합니다</string>
+    <string name="volume_g">음량</string>
+    <string name="vibrate_g">진동</string>
+    <string name="ripple_g">잔물결</string>
+    <string name="use_contact_colors">주소록 색사용</string>
+
+    <string name="accent_color">강조 색상</string>
+    <string name="use_accent_color">강조 색상 사용</string>
+    <string name="system_theme_description">이 양상에서는 색상을 수동으로 조정할수 없습니다. 색상은 체계 설정에 따라 동적으로 변경됩니다.</string>
+    <string name="incoming_call">수신 전화</string>
+    <string name="outgoing_call">호출 전화</string>
+    <string name="missed_call">부재중 전화</string>
+    <string name="unblock_number">차단 해제 번호</string>
+    <string name="unblock_numbers">번호 차단 해제</string>
+    <string name="show_blocked_numbers">차단된 표시</string>
+    <string name="hide_blocked_numbers">차단된 번호 숨기기</string>
+    <string name="paste_g">삽입하다</string>
+    <string name="recents">최근</string>
+    <string name="blocked_call">차단된 통화</string>
+    <string name="unblock_confirmation">\"%s\" 차단을 해제하시겠습니까?</string>
+
+    <!-- Other -->
+    <string name="contact_thumbnails_size">주소록 그림 크기</string>
+    <string name="long_click_g">%s을(를) 길게 누릅니다.</string>
+    <string name="use_persian_digits">페르시아 수자를 사용하십시오</string>
+    <string name="floating_button_style">류동단추 형식</string>
+    <string name="square">바른사각형</string>
+    <string name="on">켜짐</string>
+    <string name="purchase_simple_thank_you_g">구매하기</string>
+    <string name="copyright_g">v %1$s\nCopyright © ChonHa %2$d</string>
+    <string name="update_thank_you_g">최신 판본으로 갱신해 주십시오.</string>
+    <string name="faq_2_text_commons_g">
+        <![CDATA[
+        ]]>
+    </string>
+    <string name="faq_6_text_commons_g"> </string>
+    <string name="faq_8_text_commons_g"> </string>
+    <string name="faq_100_title_commons_g">비공개 주소란 무엇입니까?</string>
+    <string name="faq_100_text_commons_g">비공개 주소는 응용프로그람 내에서 만들어집니다. 이 주소는 다른 응용프로그람에서 볼수 없습니다.
+        프로그람을 삭제하면 모든 비공개 주소가 함께 삭제되므로 프로그람을 삭제하기전에 주소를 여벌복사 하십시오.</string>
+    <string name="faq_101_title_commons_g">비공개 주소를 만들려면 어떻게 해야 합니까?</string>
+    <string name="faq_101_text_commons_g">주소를 만들때는 주소의 출처를 선택해야 합니다: %s</string>
+    <string name="contributors_label_g"><![CDATA[
+이 목록에는 저희 응용프로그람에 큰 도움을 주신 모든 분들이 포함되여 있습니다.
+]]></string>
+    <string name="deprecated_app_g">낡은 판본 경고: 이 판본의 앱은 더이상 관리되지 않습니다. Pro 판본을 설치해 주십시오.</string>
+    <string name="pro_app_refund_g"> </string>
+
+    <!-- Contacts -->
+    <string name="add_number">번호 추가</string>
+    <string name="add_email">전자우편 추가</string>
+    <string name="add_address">주소 추가</string>
+    <string name="add_im">IM 추가</string>
+    <string name="add_event">사건 추가</string>
+    <string name="add_notes">기록 추가</string>
+    <string name="add_website">웨브싸이트 추가</string>
+    <string name="add_group">그룹 추가</string>
+    <string name="add_related_person">관련자 추가</string>
+
+    <string name="video_call">영상 통화</string>
+    <string name="screen_slide_animation">화면 동화효과</string>
+    <string name="screen_slide_animation_zoomout">확대</string>
+    <string name="screen_slide_animation_depth">깊이</string>
+    <string name="show_phone_numbers_g">기본화면에 전화번호 표시</string>
+
+    <!-- Apps -->
+    <string name="show_nicknames_instead_of_names">이름 대신 주소록의 별명(있는 경우)을 표시합니다.</string>
+    <string name="death">죽음</string>
+    <string name="add_field">마당 추가</string>
+    <string name="failed_open_link">련결을 열수 없습니다</string>
+    <string name="get">받기</string>
+    <string name="open">열기</string>
+    <string name="collection">집합</string>
+    <string name="collection_summary">프로그람 잠금을 해제하기 위한 집합구축</string>
+    <string name="support_project_to_unlock">잠금 해제를 위한 과제 지원</string>
+    <string name="limited_supply">제한된 공급</string>
+    <string name="recommendation_dialog_contacts_g">
+        <![CDATA[
+        ]]></string>
+    <string name="recommendation_dialog_dialer_g">
+        <![CDATA[
+        ]]></string>
+    <string name="recommendation_dialog_messages_g">
+        <![CDATA[
+        ]]></string>
+    <string name="recommendation_dialog_gallery_g">
+        <![CDATA[
+        ]]></string>
+
+    <!-- SMS -->
+    <string name="copy_code">코드 복사</string>
+    <string name="action_on_message_click">통보문 누름시 동작</string>
+    <string name="invert_color">색상 반전</string>
+    <string name="speech_bubble">대화형식</string>
+
+    <!-- Gallery -->
+    <string name="text_alignment_along_edges">변두리를 따라</string>
+    <string name="voice_input">음성 입력</string>
+    <string name="status">상태</string>
+    <string name="library">도서관</string>
+    <string name="open_in_maps">지도에서 열기</string>
+
+    <!-- Dialer -->
+    <string name="all_g">모두</string>
+    <string name="message_call_later">후에 전화해도 됩니까?</string>
+    <string name="message_on_my_way">지금 갑니다.</string>
+    <string name="message_cant_talk_right_now">미안합니다, 지금은 통화할수 없습니다.</string>
+    <string name="remind_me">알려주기</string>
+    <string name="mute">음끄기</string>
+
+    <!-- Relation types -->
+    <string name="search_the_web">인터네트 검색</string>
+    <string name="show_number_blocking_button">수자 잠금단추 표시</string>
+    <string name="blocking_type_silence">조용한 전화</string>
+    <string name="blocking_type_silence_summary">수신 통화에 대한 종소리를 무음으로 할것인지 설정합니다.</string>
+    <string name="enable_blocking_summary">비활성화하면 모든 통화차단 설정이 제거됩니다. 하지만, 차단 목록에 있는 번호의 통보문은 계속 차단됩니다.\n빠른 설정을 추가하여 편리하게 전환할수 있습니다.</string>
+    <string name="block_unknown_calls_summary">알수 없는 번호로 걸려오는 전화는 차단되고 \"최근 통화\" 목록에 표시됩니다.\n주소록에 있는 사람과 최근에 통화한 사람의 수신전화는 계속 울립니다.</string>
+    <string name="bottom_indent">하단 들여쓰기</string>
+    <string name="is_do_not_block_contacts_and_recent">주소록 및 최근 통화를 차단하지 마십시오</string>
+    <string name="relation_g">관계</string>
+    <string name="relations_g">관련자</string>
+    <string name="relation_hint_g">관련자</string>
+    <!-- Android ContactContract.Relation types -->
+    <string name="relation_assistant_g">Assistant</string>
+    <string name="relation_brother_g">Brother</string>
+    <string name="relation_child_g">Child</string>
+    <string name="relation_domestic_partner_g">Domestic Partner</string>
+    <string name="relation_father_g">Father</string>
+    <string name="relation_friend_g">Friend</string>
+    <string name="relation_manager_g">Manager</string>
+    <string name="relation_mother_g">Mother</string>
+    <string name="relation_parent_g">Parent</string>
+    <string name="relation_partner_g">Partner</string>
+    <string name="relation_referred_by_g">Referred by</string>
+    <string name="relation_relative_g">Relative</string>
+    <string name="relation_sister_g">Sister</string>
+    <string name="relation_spouse_g">Spouse</string>
+    <!-- vCard 4.0 relation types -->
+    <string name="relation_contact_g">Contact</string>
+    <string name="relation_acquaintance_g">Acquaintance</string>
+    <string name="relation_met_g">Met</string>
+    <string name="relation_co_worker_g">Co-worker</string>
+    <string name="relation_colleague_g">Colleague</string>
+    <string name="relation_co_resident_g">Co-resident</string>
+    <string name="relation_neighbor_g">Neighbor</string>
+    <string name="relation_sibling_g">Sibling</string>
+    <string name="relation_kin_g">Kin</string>
+    <string name="relation_kin_alt_g">Relative</string>
+    <string name="relation_muse_g">Muse</string>
+    <string name="relation_crush_g">Crush</string>
+    <string name="relation_date_g">회의</string>
+    <string name="relation_sweetheart_g">Sweetheart</string>
+    <string name="relation_me_g">Me</string>
+    <string name="relation_agent_g">Agent</string>
+    <string name="relation_emergency_g">Emergency Contact</string>
+    <!-- Additional relation types -->
+    <string name="relation_superior_g">Boss</string>
+    <string name="relation_subordinate_g">Subordinate</string>
+    <string name="relation_husband_g">Husband</string>
+    <string name="relation_wife_g">Wife</string>
+    <string name="relation_son_g">Son</string>
+    <string name="relation_daughter_g">Daughter</string>
+    <string name="relation_grandparent_g">Grandparent</string>
+    <string name="relation_grandfather_g">Grandfather</string>
+    <string name="relation_grandmother_g">Grandmother</string>
+    <string name="relation_grandchild_g">Grandchild</string>
+    <string name="relation_grandson_g">Grandson</string>
+    <string name="relation_granddaughter_g">Granddaughter</string>
+    <string name="relation_uncle_g">Uncle</string>
+    <string name="relation_aunt_g">Aunt</string>
+    <string name="relation_nephew_g">Nephew</string>
+    <string name="relation_niece_g">Niece</string>
+    <string name="relation_father_in_law_g">Father-in-law</string>
+    <string name="relation_mother_in_law_g">Mother-in-law</string>
+    <string name="relation_son_in_law_g">Son-in-law</string>
+    <string name="relation_daughter_in_law_g">Daughter-in-law</string>
+    <string name="relation_brother_in_law_g">Brother-in-law</string>
+    <string name="relation_sister_in_law_g">Sister-in-law</string>
+
+    <!-- RuStore -->
+    <string name="billing_general_error">Error</string>
+    <string name="billing_purchase_confirm_in_progress">Confirming the purchase…</string>
+    <string name="billing_purchase_delete_in_progress">Deleting the purchase…</string>
+    <string name="billing_product_confirmed">Product confirmed/substantiated</string>
+    <string name="billing_product_deleted">Purchase canceled</string>
+    <string name="billing_subscriptions">Subscriptions</string>
+    <string name="billing_change_to_google_play">Change to Google Play</string>
+    <string name="billing_change_to_ru_store">Change to RuStore</string>
+    <string name="billing_error_application_signature_not_correct">RuStore를 통해 결제하려면 RuStore에서 앱 판본을 설치해야 합니다.</string>
+    <string name="date">날자</string>
+    <string name="starts">시작</string>
+    <string name="ends">끝납니다</string>
+    <string name="time_zone">시간대</string>
+    <string name="event_type">사건 류형</string>
+    <string name="availability">가용도</string>
+    <string name="attendees">참석자</string>
+    <string name="typeface">서체</string>
+    <string name="minus">부수</string>
+    <string name="more_apps_from_us_g">더 많은 프로그람</string>
+    <string name="text_alignment">문자 정렬</string>
+    <string name="use_persian_calendar">페르샤 달력을 사용하십시오</string>
+    <string name="blocking_type">차단형</string>
+    <string name="blocking_type_do_not_reject">거부하지 마십시오</string>
+    <string name="blocking_type_do_not_reject_summary">사용자가 응답하지 않은것처럼 수신전화를 거부합니다.</string>
+    <string name="blocking_type_reject">거부하다</string>
+    <string name="blocking_type_reject_summary">사용자가 수동으로 거부한것처럼 수신통화를 거부합니다.</string>
+    <string name="circle">원</string>
+    <string name="off">련결 끊김</string>
+    <string name="сalls_and_messages_blocked_warning">차단된 번호로 오는 전화와 통보문은 수신되지 않습니다.</string>
+    <string name="messages_blocked_warning">차단된 번호에서 온 통보문은 수신되지 않습니다.</string>
+    <string name="enable_blocking">차단 활성화</string>
+    <string name="plus">을 더한</string>
+</resources>
