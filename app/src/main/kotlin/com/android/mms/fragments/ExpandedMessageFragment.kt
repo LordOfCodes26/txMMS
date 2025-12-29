@@ -116,6 +116,10 @@ class ExpandedMessageFragment : Fragment() {
                     updateSendButtonAvailability()
                 }
             })
+            
+            // Request focus and show keyboard
+            requestFocus()
+            activity.showKeyboard(this)
         }
 
         // Setup send button in toolbar header
