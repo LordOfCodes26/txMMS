@@ -1,189 +1,242 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <com.goodwy.commons.views.MyAppBarLayout
-        android:id="@+id/expandedMessageAppbar"
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/topDetailsLargeExpanded"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        tools:layout_behavior="com.google.android.material.appbar.AppBarLayout$ScrollingViewBehavior">
+        android:paddingBottom="4dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
 
-        <com.google.android.material.appbar.CollapsingToolbarLayout
-            android:id="@+id/collapsing_toolbar_expanded"
-            android:layout_width="match_parent"
+        <ImageView
+            android:id="@+id/expandedMinimizeButton"
+            android:layout_width="@dimen/medium_icon_size"
+            android:layout_height="@dimen/medium_icon_size"
+            android:layout_marginStart="4dp"
+            android:background="?selectableItemBackgroundBorderless"
+            android:contentDescription="@string/minimize_message"
+            android:padding="@dimen/smaller_margin"
+            android:src="@drawable/ic_chevron_down_vector"
+            android:translationZ="4dp"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent" />
+
+        <com.goodwy.commons.views.MyTextView
+            android:id="@+id/expandedThreadCharacterCounter"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            app:layout_scrollFlags="noScroll">
+            android:background="@drawable/thread_background"
+            android:gravity="center"
+            android:paddingStart="@dimen/small_margin"
+            android:paddingEnd="@dimen/small_margin"
+            android:text="160/1"
+            android:textSize="@dimen/small_text_size"
+            android:visibility="gone"
+            android:layout_marginEnd="8dp"
+            android:translationZ="4dp"
+            app:layout_constraintBottom_toTopOf="@+id/expandedThreadSendMessageWrapper"
+            app:layout_constraintEnd_toEndOf="@+id/expandedThreadSendMessageWrapper"
+            app:layout_constraintStart_toStartOf="@+id/expandedThreadSendMessageWrapper"
+            tools:ignore="HardcodedText"
+            tools:visibility="visible" />
 
-            <androidx.constraintlayout.widget.ConstraintLayout
-                android:layout_width="match_parent"
-                android:layout_height="?attr/actionBarSize"
-                app:layout_collapseMode="pin">
+        <LinearLayout
+            android:id="@+id/expandedThreadSendMessageWrapper"
+            android:layout_width="@dimen/medium_icon_size"
+            android:layout_height="@dimen/medium_icon_size"
+            android:orientation="horizontal"
+            android:layout_marginEnd="16dp"
+            android:background="?selectableItemBackgroundBorderless"
+            android:translationZ="4dp"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" >
 
-                <com.google.android.material.appbar.MaterialToolbar
-                    android:id="@+id/expandedMessageToolbar"
-                    android:layout_width="0dp"
-                    android:layout_height="0dp"
-                    app:navigationIcon="@drawable/ic_chevron_down_vector"
-                    app:layout_constraintTop_toTopOf="parent"
-                    app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent" />
+            <ImageView
+                android:id="@+id/expandedThreadSendMessage"
+                android:layout_width="@dimen/medium_icon_size"
+                android:layout_height="@dimen/medium_icon_size"
+                android:alpha="0.9"
+                android:background="@drawable/thread_background"
+                android:clickable="false"
+                android:contentDescription="@string/ok"
+                android:src="@drawable/ic_send_vector"
+                android:padding="@dimen/smaller_margin"
+                android:backgroundTint="?attr/colorPrimary" />
 
-                <com.goodwy.commons.views.MyTextView
-                    android:id="@+id/expandedThreadCharacterCounter"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:background="@drawable/thread_background"
-                    android:gravity="center"
-                    android:paddingStart="@dimen/small_margin"
-                    android:paddingEnd="@dimen/small_margin"
-                    android:text="160/1"
-                    android:textSize="@dimen/small_text_size"
-                    android:visibility="gone"
-                    android:layout_marginEnd="8dp"
-                    app:layout_constraintBottom_toTopOf="@+id/expandedThreadSendMessageWrapper"
-                    app:layout_constraintEnd_toEndOf="@+id/expandedThreadSendMessageWrapper"
-                    app:layout_constraintStart_toStartOf="@+id/expandedThreadSendMessageWrapper"
-                    tools:ignore="HardcodedText"
-                    tools:visibility="visible" />
+            <douglasspgyn.com.github.circularcountdown.CircularCountdown
+                android:id="@+id/expandedThreadSendMessageCountdown"
+                android:layout_width="@dimen/medium_icon_size"
+                android:layout_height="@dimen/medium_icon_size"
+                android:visibility="gone"
+                app:countdownBackgroundColor="?attr/colorControlNormal"
+                app:countdownForegroundColor="?attr/colorPrimary"
+                app:countdownTextColor="?attr/colorPrimary"
+                app:countdownTextSize="24sp" />
+        </LinearLayout>
 
-                <LinearLayout
-                    android:id="@+id/expandedThreadSendMessageWrapper"
-                    android:layout_width="@dimen/medium_icon_size"
-                    android:layout_height="@dimen/medium_icon_size"
-                    android:orientation="horizontal"
-                    android:layout_marginEnd="16dp"
-                    android:background="?selectableItemBackgroundBorderless"
-                    app:layout_constraintTop_toTopOf="parent"
-                    app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent" >
+        <ImageView
+            android:id="@+id/sender_photo_large_expanded"
+            android:layout_width="@dimen/normal_icon_size"
+            android:layout_height="@dimen/normal_icon_size"
+            android:layout_marginTop="8dp"
+            android:contentDescription="@string/conversation_details"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            android:src="@drawable/ic_person" />
 
-                    <ImageView
-                        android:id="@+id/expandedThreadSendMessage"
-                        android:layout_width="@dimen/medium_icon_size"
-                        android:layout_height="@dimen/medium_icon_size"
-                        android:alpha="0.9"
-                        android:background="@drawable/thread_background"
-                        android:clickable="false"
-                        android:contentDescription="@string/ok"
-                        android:src="@drawable/ic_send_vector"
-                        android:padding="@dimen/smaller_margin"
-                        android:backgroundTint="?attr/colorPrimary" />
+        <com.goodwy.commons.views.MyTextView
+            android:id="@+id/sender_name_large_expanded"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/ripple_all_corners"
+            android:layout_marginTop="4dp"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:maxLines="2"
+            android:gravity="center"
+            android:textSize="@dimen/big_text_size"
+            app:layout_goneMarginTop="16dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/sender_photo_large_expanded"
+            tools:text="Name"/>
 
-                    <douglasspgyn.com.github.circularcountdown.CircularCountdown
-                        android:id="@+id/expandedThreadSendMessageCountdown"
-                        android:layout_width="@dimen/medium_icon_size"
-                        android:layout_height="@dimen/medium_icon_size"
-                        android:visibility="gone"
-                        app:countdownBackgroundColor="?attr/colorControlNormal"
-                        app:countdownForegroundColor="?attr/colorPrimary"
-                        app:countdownTextColor="?attr/colorPrimary"
-                        app:countdownTextSize="24sp" />
-                </LinearLayout>
+        <com.goodwy.commons.views.MyTextView
+            android:id="@+id/sender_number_large_expanded"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/ripple_all_corners"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:maxLines="1"
+            android:alpha="0.8"
+            android:gravity="center"
+            android:textSize="@dimen/smaller_text_size"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/sender_name_large_expanded"
+            tools:text="+12345678"/>
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
-            </androidx.constraintlayout.widget.ConstraintLayout>
+    <FrameLayout
+        android:id="@+id/topDetailsCompactExpanded"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        tools:visibility="gone">
 
-            <androidx.constraintlayout.widget.ConstraintLayout
-                android:id="@+id/topDetailsLargeExpanded"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:paddingBottom="4dp"
-                android:translationZ="4dp">
+        <include layout="@layout/top_view" />
 
-                <ImageView
-                    android:id="@+id/sender_photo_large_expanded"
-                    android:layout_width="@dimen/normal_icon_size"
-                    android:layout_height="@dimen/normal_icon_size"
-                    android:layout_marginTop="8dp"
-                    android:contentDescription="@string/conversation_details"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="parent"
-                    android:src="@drawable/ic_person" />
+        <ImageView
+            android:id="@+id/expandedMinimizeButtonCompact"
+            android:layout_width="@dimen/medium_icon_size"
+            android:layout_height="@dimen/medium_icon_size"
+            android:layout_gravity="start|center_vertical"
+            android:layout_marginStart="4dp"
+            android:background="?selectableItemBackgroundBorderless"
+            android:contentDescription="@string/minimize_message"
+            android:padding="@dimen/smaller_margin"
+            android:src="@drawable/ic_chevron_down_vector" />
 
-                <com.goodwy.commons.views.MyTextView
-                    android:id="@+id/sender_name_large_expanded"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:background="@drawable/ripple_all_corners"
-                    android:layout_marginTop="4dp"
-                    android:paddingStart="12dp"
-                    android:paddingEnd="12dp"
-                    android:maxLines="2"
-                    android:gravity="center"
-                    android:textSize="@dimen/big_text_size"
-                    app:layout_goneMarginTop="16dp"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toBottomOf="@+id/sender_photo_large_expanded"
-                    tools:text="Name"/>
+        <com.goodwy.commons.views.MyTextView
+            android:id="@+id/expandedThreadCharacterCounterCompact"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/thread_background"
+            android:gravity="center"
+            android:paddingStart="@dimen/small_margin"
+            android:paddingEnd="@dimen/small_margin"
+            android:text="160/1"
+            android:textSize="@dimen/small_text_size"
+            android:visibility="gone"
+            android:layout_gravity="end|top"
+            android:layout_marginEnd="24dp"
+            android:layout_marginTop="4dp"
+            tools:ignore="HardcodedText"
+            tools:visibility="visible" />
 
-                <com.goodwy.commons.views.MyTextView
-                    android:id="@+id/sender_number_large_expanded"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:background="@drawable/ripple_all_corners"
-                    android:paddingStart="12dp"
-                    android:paddingEnd="12dp"
-                    android:maxLines="1"
-                    android:alpha="0.8"
-                    android:gravity="center"
-                    android:textSize="@dimen/smaller_text_size"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toBottomOf="@+id/sender_name_large_expanded"
-                    tools:text="+12345678"/>
-            </androidx.constraintlayout.widget.ConstraintLayout>
+        <LinearLayout
+            android:id="@+id/expandedThreadSendMessageWrapperCompact"
+            android:layout_width="@dimen/medium_icon_size"
+            android:layout_height="@dimen/medium_icon_size"
+            android:orientation="horizontal"
+            android:layout_gravity="end|center_vertical"
+            android:layout_marginEnd="16dp"
+            android:background="?selectableItemBackgroundBorderless" >
 
-            <include
-                android:id="@+id/topDetailsCompactExpanded"
-                layout="@layout/top_view"
-                android:layout_width="match_parent"
-                android:layout_height="?attr/actionBarSize"
-                tools:visibility="gone" />
-        </com.google.android.material.appbar.CollapsingToolbarLayout>
-    </com.goodwy.commons.views.MyAppBarLayout>
+            <ImageView
+                android:id="@+id/expandedThreadSendMessageCompact"
+                android:layout_width="@dimen/medium_icon_size"
+                android:layout_height="@dimen/medium_icon_size"
+                android:alpha="0.9"
+                android:background="@drawable/thread_background"
+                android:clickable="false"
+                android:contentDescription="@string/ok"
+                android:src="@drawable/ic_send_vector"
+                android:padding="@dimen/smaller_margin"
+                android:backgroundTint="?attr/colorPrimary" />
+
+            <douglasspgyn.com.github.circularcountdown.CircularCountdown
+                android:id="@+id/expandedThreadSendMessageCountdownCompact"
+                android:layout_width="@dimen/medium_icon_size"
+                android:layout_height="@dimen/medium_icon_size"
+                android:visibility="gone"
+                app:countdownBackgroundColor="?attr/colorControlNormal"
+                app:countdownForegroundColor="?attr/colorPrimary"
+                app:countdownTextColor="?attr/colorPrimary"
+                app:countdownTextSize="24sp" />
+        </LinearLayout>
+    </FrameLayout>
+
+    <androidx.constraintlayout.widget.Barrier
+        android:id="@+id/threadDetailsBarrier"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:barrierDirection="bottom"
+        app:constraint_referenced_ids="topDetailsLargeExpanded,topDetailsCompactExpanded" />
 
     <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/expanded_message_content"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+        android:layout_height="0dp"
+        android:paddingStart="@dimen/normal_margin"
+        android:paddingEnd="@dimen/normal_margin"
+        android:paddingTop="@dimen/normal_margin"
+        android:paddingBottom="@dimen/normal_margin"
+        app:layout_constraintTop_toBottomOf="@+id/threadDetailsBarrier"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
 
-        <androidx.constraintlayout.widget.ConstraintLayout
-            android:id="@+id/expanded_message_content"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
+        <com.goodwy.commons.views.MyEditText
+            android:id="@+id/expandedThreadTypeMessage"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:background="@android:color/transparent"
+            android:gravity="top|start"
+            android:hint="@string/type_a_message"
+            android:inputType="textCapSentences|textMultiLine"
             android:paddingStart="@dimen/normal_margin"
-            android:paddingEnd="@dimen/normal_margin"
             android:paddingTop="@dimen/normal_margin"
+            android:paddingEnd="@dimen/normal_margin"
             android:paddingBottom="@dimen/normal_margin"
+            android:scrollbars="vertical"
+            android:fadeScrollbars="false"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent">
-
-            <com.goodwy.commons.views.MyEditText
-                android:id="@+id/expandedThreadTypeMessage"
-                android:layout_width="0dp"
-                android:layout_height="0dp"
-                android:background="@android:color/transparent"
-                android:gravity="top|start"
-                android:hint="@string/type_a_message"
-                android:inputType="textCapSentences|textMultiLine"
-                android:paddingStart="@dimen/normal_margin"
-                android:paddingTop="@dimen/normal_margin"
-                android:paddingEnd="@dimen/normal_margin"
-                android:paddingBottom="@dimen/normal_margin"
-                android:scrollbars="vertical"
-                android:fadeScrollbars="false"
-                app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent" />
-        </androidx.constraintlayout.widget.ConstraintLayout>
+            app:layout_constraintEnd_toEndOf="parent" />
     </androidx.constraintlayout.widget.ConstraintLayout>
-</androidx.coordinatorlayout.widget.CoordinatorLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>
 
