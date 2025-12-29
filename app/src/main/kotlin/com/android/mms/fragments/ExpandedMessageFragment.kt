@@ -121,13 +121,26 @@ class ExpandedMessageFragment : Fragment() {
 
         // Setup character counters
         val shouldShowCounter = messageText.isNotEmpty() && activity.config.showCharacterCounter
+        
+        // Calculate initial character count
+        val initialMessageString = if (activity.config.useSimpleCharacters) {
+            messageText.normalizeString()
+        } else {
+            messageText
+        }
+        val initialMessageLength = SmsMessage.calculateLength(initialMessageString, false)
+        @SuppressLint("SetTextI18n")
+        val initialCounterText = "${initialMessageLength[2]}/${initialMessageLength[0]}"
+        
         binding.expandedThreadCharacterCounter.apply {
+            text = initialCounterText
             beVisibleIf(shouldShowCounter)
             backgroundTintList = activity.getProperBackgroundColor().getColorStateList()
         }
         binding.topDetailsCompactExpanded.findViewById<com.goodwy.commons.views.MyTextView>(
             com.android.mms.R.id.expandedThreadCharacterCounterCompact
         )?.apply {
+            text = initialCounterText
             beVisibleIf(shouldShowCounter)
             backgroundTintList = activity.getProperBackgroundColor().getColorStateList()
         }
