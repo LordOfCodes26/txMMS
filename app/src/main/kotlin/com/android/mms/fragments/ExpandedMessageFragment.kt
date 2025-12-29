@@ -1,7 +1,9 @@
 package com.android.mms.fragments
 
 import android.annotation.SuppressLint
+import android.media.AudioManager
 import android.os.Bundle
+import android.telephony.SmsMessage
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.LayoutInflater
@@ -11,10 +13,13 @@ import androidx.core.content.res.ResourcesCompat
 import androidx.fragment.app.Fragment
 import com.android.mms.R
 import com.android.mms.databinding.FragmentExpandedMessageBinding
+import com.android.mms.extensions.config
 import com.android.mms.extensions.getTextSizeMessage
 import com.goodwy.commons.extensions.*
 import com.goodwy.commons.helpers.NavigationIcon
 import com.goodwy.commons.helpers.SimpleContactsHelper
+import douglasspgyn.com.github.circularcountdown.CircularCountdown
+import douglasspgyn.com.github.circularcountdown.listener.CircularListener
 
 class ExpandedMessageFragment : Fragment() {
     private var _binding: FragmentExpandedMessageBinding? = null
@@ -24,6 +29,7 @@ class ExpandedMessageFragment : Fragment() {
     private var onMessageTextChanged: ((String) -> Unit)? = null
     private var onSendMessage: (() -> Unit)? = null
     private var onMinimize: (() -> Unit)? = null
+    private var isCountdownActive = false
 
     companion object {
         private const val ARG_MESSAGE_TEXT = "message_text"
@@ -100,6 +106,12 @@ class ExpandedMessageFragment : Fragment() {
         // Setup thread title (same as ThreadActivity)
         setupThreadTitle()
 
+        // Setup character counter
+        binding.expandedThreadCharacterCounter.apply {
+            beVisibleIf(messageText.isNotEmpty() && activity.config.showCharacterCounter)
+            backgroundTintList = activity.getProperBackgroundColor().getColorStateList()
+        }
+        
         // Setup text editor
         binding.expandedThreadTypeMessage.apply {
             setText(messageText)
@@ -114,6 +126,19 @@ class ExpandedMessageFragment : Fragment() {
                 override fun afterTextChanged(s: Editable?) {
                     onMessageTextChanged?.invoke(s?.toString() ?: "")
                     updateSendButtonAvailability()
+                    
+                    // Update character counter
+                    val messageString = if (activity.config.useSimpleCharacters) {
+                        s?.toString()?.normalizeString() ?: ""
+                    } else {
+                        s?.toString() ?: ""
+                    }
+                    val messageLength = SmsMessage.calculateLength(messageString, false)
+                    @SuppressLint("SetTextI18n")
+                    binding.expandedThreadCharacterCounter.text = "${messageLength[2]}/${messageLength[0]}"
+                    binding.expandedThreadCharacterCounter.beVisibleIf(
+                        s?.isNotEmpty() == true && activity.config.showCharacterCounter
+                    )
                 }
             })
             
@@ -122,12 +147,28 @@ class ExpandedMessageFragment : Fragment() {
             activity.showKeyboard(this)
         }
 
-        // Setup send button in toolbar header
+        // Setup send button wrapper
         binding.expandedThreadSendMessage.apply {
             backgroundTintList = properPrimaryColor.getColorStateList()
             applyColorFilter(properPrimaryColor.getContrastColor())
+        }
+        
+        // Initialize countdown view (hidden by default)
+        binding.expandedThreadSendMessageCountdown.beGone()
+        
+        // Setup send button click handler
+        binding.expandedThreadSendMessageWrapper.apply {
+            isClickable = false
             setOnClickListener {
-                onSendMessage?.invoke()
+                if (activity.config.messageSendDelay > 0 && !isCountdownActive) {
+                    startSendMessageCountdown()
+                } else {
+                    onSendMessage?.invoke()
+                    if (activity.config.soundOnOutGoingMessages) {
+                        val audioManager = activity.getSystemService(android.content.Context.AUDIO_SERVICE) as AudioManager
+                        audioManager.playSoundEffect(AudioManager.FX_KEYPRESS_SPACEBAR)
+                    }
+                }
             }
         }
 
@@ -276,15 +317,93 @@ class ExpandedMessageFragment : Fragment() {
 
     private fun updateSendButtonAvailability() {
         val hasText = binding.expandedThreadTypeMessage.text?.isNotEmpty() == true
-        binding.expandedThreadSendMessage.apply {
+        binding.expandedThreadSendMessageWrapper.apply {
             isEnabled = hasText
             isClickable = hasText
             alpha = if (hasText) 1f else 0.4f
         }
     }
+    
+    private fun startSendMessageCountdown() {
+        if (isCountdownActive) return
+        
+        val activity = requireActivity()
+        val delaySeconds = activity.config.messageSendDelay
+        if (delaySeconds <= 0) {
+            onSendMessage?.invoke()
+            return
+        }
+
+        isCountdownActive = true
+        binding.apply {
+            // Hide the send button and show countdown
+            expandedThreadSendMessage.beGone()
+            expandedThreadSendMessageCountdown.beVisible()
+            
+            // Add click listener to cancel countdown
+            expandedThreadSendMessageCountdown.setOnClickListener {
+                if (isCountdownActive) {
+                    isCountdownActive = false
+                    hideCountdown()
+                    activity.toast(R.string.sending_cancelled)
+                }
+            }
+            
+            try {
+                // Create and start countdown using the library's API
+                expandedThreadSendMessageCountdown.create(0, delaySeconds, CircularCountdown.TYPE_SECOND)
+                    .listener(object : CircularListener {
+                        override fun onTick(progress: Int) {
+                            // Called during countdown
+                        }
+                        
+                        override fun onFinish(newCycle: Boolean, cycleCount: Int) {
+                            // Countdown finished, send message
+                            isCountdownActive = false
+                            hideCountdown()
+                            onSendMessage?.invoke()
+                            if (activity.config.soundOnOutGoingMessages) {
+                                val audioManager = activity.getSystemService(android.content.Context.AUDIO_SERVICE) as AudioManager
+                                audioManager.playSoundEffect(AudioManager.FX_KEYPRESS_SPACEBAR)
+                            }
+                        }
+                    })
+                    .start()
+            } catch (e: Exception) {
+                // If API methods don't match, fallback to immediate send
+                isCountdownActive = false
+                hideCountdown()
+                onSendMessage?.invoke()
+            }
+        }
+    }
+
+    private fun hideCountdown() {
+        binding.apply {
+            try {
+                // Stop the countdown if it's running
+                expandedThreadSendMessageCountdown.stop()
+            } catch (e: Exception) {
+                // Ignore if stop method doesn't exist or countdown is not running
+            }
+            // Remove click listener
+            expandedThreadSendMessageCountdown.setOnClickListener(null)
+            expandedThreadSendMessageCountdown.beGone()
+            expandedThreadSendMessage.beVisible()
+        }
+    }
 
     override fun onDestroyView() {
         super.onDestroyView()
+        // Clean up countdown if active
+        if (isCountdownActive) {
+            isCountdownActive = false
+            try {
+                _binding?.expandedThreadSendMessageCountdown?.stop()
+            } catch (e: Exception) {
+                // Ignore
+            }
+        }
         _binding = null
     }
 }

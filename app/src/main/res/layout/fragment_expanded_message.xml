@@ -32,22 +32,57 @@
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintEnd_toEndOf="parent" />
 
-                <ImageView
-                    android:id="@+id/expandedThreadSendMessage"
+                <com.goodwy.commons.views.MyTextView
+                    android:id="@+id/expandedThreadCharacterCounter"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/thread_background"
+                    android:gravity="center"
+                    android:paddingStart="@dimen/small_margin"
+                    android:paddingEnd="@dimen/small_margin"
+                    android:text="160/1"
+                    android:textSize="@dimen/small_text_size"
+                    android:visibility="gone"
+                    android:layout_marginEnd="8dp"
+                    app:layout_constraintBottom_toTopOf="@+id/expandedThreadSendMessageWrapper"
+                    app:layout_constraintEnd_toEndOf="@+id/expandedThreadSendMessageWrapper"
+                    app:layout_constraintStart_toStartOf="@+id/expandedThreadSendMessageWrapper"
+                    tools:ignore="HardcodedText"
+                    tools:visibility="visible" />
+
+                <LinearLayout
+                    android:id="@+id/expandedThreadSendMessageWrapper"
                     android:layout_width="@dimen/medium_icon_size"
                     android:layout_height="@dimen/medium_icon_size"
+                    android:orientation="horizontal"
                     android:layout_marginEnd="16dp"
-                    android:alpha="0.9"
-                    android:background="@drawable/thread_background"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:contentDescription="@string/ok"
-                    android:src="@drawable/ic_send_vector"
-                    android:padding="@dimen/smaller_margin"
-                    android:backgroundTint="?attr/colorPrimary"
+                    android:background="?selectableItemBackgroundBorderless"
                     app:layout_constraintTop_toTopOf="parent"
                     app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent" />
+                    app:layout_constraintEnd_toEndOf="parent" >
+
+                    <ImageView
+                        android:id="@+id/expandedThreadSendMessage"
+                        android:layout_width="@dimen/medium_icon_size"
+                        android:layout_height="@dimen/medium_icon_size"
+                        android:alpha="0.9"
+                        android:background="@drawable/thread_background"
+                        android:clickable="false"
+                        android:contentDescription="@string/ok"
+                        android:src="@drawable/ic_send_vector"
+                        android:padding="@dimen/smaller_margin"
+                        android:backgroundTint="?attr/colorPrimary" />
+
+                    <douglasspgyn.com.github.circularcountdown.CircularCountdown
+                        android:id="@+id/expandedThreadSendMessageCountdown"
+                        android:layout_width="@dimen/medium_icon_size"
+                        android:layout_height="@dimen/medium_icon_size"
+                        android:visibility="gone"
+                        app:countdownBackgroundColor="?attr/colorControlNormal"
+                        app:countdownForegroundColor="?attr/colorPrimary"
+                        app:countdownTextColor="?attr/colorPrimary"
+                        app:countdownTextSize="24sp" />
+                </LinearLayout>
 
             </androidx.constraintlayout.widget.ConstraintLayout>
 
