@@ -17,12 +17,39 @@
             android:layout_height="wrap_content"
             app:layout_scrollFlags="noScroll">
 
-            <com.google.android.material.appbar.MaterialToolbar
-                android:id="@+id/expandedMessageToolbar"
+            <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="match_parent"
                 android:layout_height="?attr/actionBarSize"
-                app:layout_collapseMode="pin"
-                app:navigationIcon="@drawable/ic_chevron_down_vector" />
+                app:layout_collapseMode="pin">
+
+                <com.google.android.material.appbar.MaterialToolbar
+                    android:id="@+id/expandedMessageToolbar"
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    app:navigationIcon="@drawable/ic_chevron_down_vector"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent" />
+
+                <ImageView
+                    android:id="@+id/expandedThreadSendMessage"
+                    android:layout_width="@dimen/medium_icon_size"
+                    android:layout_height="@dimen/medium_icon_size"
+                    android:layout_marginEnd="16dp"
+                    android:alpha="0.9"
+                    android:background="@drawable/thread_background"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:contentDescription="@string/ok"
+                    android:src="@drawable/ic_send_vector"
+                    android:padding="@dimen/smaller_margin"
+                    android:backgroundTint="?attr/colorPrimary"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent" />
+
+            </androidx.constraintlayout.widget.ConstraintLayout>
 
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:id="@+id/topDetailsLargeExpanded"
@@ -118,32 +145,9 @@
                 android:scrollbars="vertical"
                 android:fadeScrollbars="false"
                 app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintBottom_toTopOf="@+id/expandedThreadSendMessageWrapper"
+                app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent" />
-
-            <LinearLayout
-                android:id="@+id/expandedThreadSendMessageWrapper"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:layout_marginTop="@dimen/normal_margin"
-                android:layout_marginEnd="@dimen/normal_margin"
-                android:background="?selectableItemBackgroundBorderless"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toEndOf="parent">
-
-                <ImageView
-                    android:id="@+id/expandedThreadSendMessage"
-                    android:layout_width="@dimen/medium_icon_size"
-                    android:layout_height="@dimen/medium_icon_size"
-                    android:alpha="0.9"
-                    android:background="@drawable/thread_background"
-                    android:clickable="false"
-                    android:contentDescription="@string/ok"
-                    android:src="@drawable/ic_send_vector"
-                    android:padding="@dimen/smaller_margin" />
-            </LinearLayout>
         </androidx.constraintlayout.widget.ConstraintLayout>
     </androidx.constraintlayout.widget.ConstraintLayout>
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

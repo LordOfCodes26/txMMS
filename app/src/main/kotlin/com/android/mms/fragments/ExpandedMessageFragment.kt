@@ -113,11 +113,12 @@ class ExpandedMessageFragment : Fragment() {
                 override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
                 override fun afterTextChanged(s: Editable?) {
                     onMessageTextChanged?.invoke(s?.toString() ?: "")
+                    updateSendButtonAvailability()
                 }
             })
         }
 
-        // Setup send button
+        // Setup send button in toolbar header
         binding.expandedThreadSendMessage.apply {
             backgroundTintList = properPrimaryColor.getColorStateList()
             applyColorFilter(properPrimaryColor.getContrastColor())
@@ -271,7 +272,7 @@ class ExpandedMessageFragment : Fragment() {
 
     private fun updateSendButtonAvailability() {
         val hasText = binding.expandedThreadTypeMessage.text?.isNotEmpty() == true
-        binding.expandedThreadSendMessageWrapper.apply {
+        binding.expandedThreadSendMessage.apply {
             isEnabled = hasText
             isClickable = hasText
             alpha = if (hasText) 1f else 0.4f
