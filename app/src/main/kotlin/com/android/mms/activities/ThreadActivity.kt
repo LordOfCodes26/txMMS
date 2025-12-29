@@ -33,6 +33,8 @@ import android.view.View
 import android.view.WindowManager
 import android.view.animation.OvershootInterpolator
 import android.view.inputmethod.EditorInfo
+import android.os.Handler
+import android.os.Looper
 import android.widget.LinearLayout
 import android.widget.LinearLayout.LayoutParams
 import android.widget.RelativeLayout
@@ -115,6 +117,7 @@ class ThreadActivity : SimpleActivity() {
     private var isAttachmentPickerVisible = false
     private var isSpeechToTextAvailable = false
     private var isCountdownActive = false
+    private var expandedMessageFragment: com.android.mms.fragments.ExpandedMessageFragment? = null
 
     private val binding by viewBinding(ActivityThreadBinding::inflate)
 
@@ -800,6 +803,15 @@ class ThreadActivity : SimpleActivity() {
             
             // Initialize countdown view (hidden by default)
             threadSendMessageCountdown.beGone()
+            
+            // Setup expand icon
+            binding.messageHolder.threadExpandMessage.apply {
+                applyColorFilter(textColor)
+                setOnClickListener {
+                    showExpandedMessageFragment()
+                }
+            }
+            
             threadTypeMessage.onTextChangeListener {
                 messageToResend = null
                 checkSendMessageAvailability()
@@ -812,6 +824,14 @@ class ThreadActivity : SimpleActivity() {
                 @SuppressLint("SetTextI18n")
                 threadCharacterCounter.text = "${messageLength[2]}/${messageLength[0]}"
                 threadCharacterCounter.beVisibleIf(threadTypeMessage.value.isNotEmpty() && config.showCharacterCounter)
+                
+                // Check line count and show/hide expand icon
+                updateExpandIconVisibility()
+            }
+            
+            // Also check on layout changes (when text wraps)
+            threadTypeMessage.onGlobalLayout {
+                updateExpandIconVisibility()
             }
 
             if (config.sendOnEnter) {
@@ -2422,6 +2442,103 @@ class ThreadActivity : SimpleActivity() {
                 if (threadTitle.isEmpty() && namePhoto != null) threadTitle = namePhoto.name
                 SimpleContactsHelper(this).loadContactImage(threadUri, senderPhoto, threadTitle, placeholder)
             }
+        }
+    }
+
+    private fun updateExpandIconVisibility() {
+        val lineCount = binding.messageHolder.threadTypeMessage.lineCount
+        binding.messageHolder.threadExpandMessage.beVisibleIf(lineCount > 2)
+    }
+
+    private fun showExpandedMessageFragment() {
+        val currentText = binding.messageHolder.threadTypeMessage.text?.toString() ?: ""
+        expandedMessageFragment = com.android.mms.fragments.ExpandedMessageFragment.newInstance(currentText)
+        
+        expandedMessageFragment?.setOnMessageTextChangedListener { text ->
+            binding.messageHolder.threadTypeMessage.setText(text)
+        }
+        
+        expandedMessageFragment?.setOnSendMessageListener {
+            val text = expandedMessageFragment?.getMessageText() ?: ""
+            binding.messageHolder.threadTypeMessage.setText(text)
+            hideExpandedMessageFragment()
+            sendMessage()
+        }
+        
+        expandedMessageFragment?.setOnMinimizeListener {
+            val text = expandedMessageFragment?.getMessageText() ?: ""
+            binding.messageHolder.threadTypeMessage.setText(text)
+            hideExpandedMessageFragment()
+        }
+        
+        // Update fragment thread title after fragment is created
+        expandedMessageFragment?.let { fragment ->
+            // Set up lifecycle observer BEFORE committing transaction to ensure it catches the lifecycle events
+            val observer = object : androidx.lifecycle.DefaultLifecycleObserver {
+                override fun onResume(owner: androidx.lifecycle.LifecycleOwner) {
+                    // Update when fragment resumes (view is guaranteed to be created by then)
+                    updateFragmentThreadTitle(fragment)
+                    fragment.lifecycle.removeObserver(this)
+                }
+            }
+            fragment.lifecycle.addObserver(observer)
+            
+            // Hide the main content
+            findViewById<View>(R.id.thread_coordinator)?.beGone()
+            
+            supportFragmentManager.beginTransaction()
+                .replace(R.id.fragment_container, fragment)
+                .addToBackStack(null)
+                .commit()
+            
+            // Also try immediate update if view is already available (for faster execution)
+            // Use postDelayed to give the fragment time to create its view
+            fragment.view?.post {
+                updateFragmentThreadTitle(fragment)
+            } ?: run {
+                // If view is null, post with a small delay
+                Handler(android.os.Looper.getMainLooper()).postDelayed({
+                    fragment.view?.post {
+                        updateFragmentThreadTitle(fragment)
+                    }
+                }, 100)
+            }
+        }
+    }
+    
+    private fun updateFragmentThreadTitle(fragment: com.android.mms.fragments.ExpandedMessageFragment) {
+        if (fragment.view == null) return
+        
+        val title = conversation?.title
+        val threadTitle = if (!title.isNullOrEmpty()) title else participants.getThreadTitle()
+        val threadSubtitle = participants.getThreadSubtitle()
+        fragment.updateThreadTitle(
+            threadTitle = threadTitle,
+            threadSubtitle = threadSubtitle,
+            threadTopStyle = config.threadTopStyle,
+            showContactThumbnails = config.showContactThumbnails,
+            conversationPhotoUri = conversation?.photoUri,
+            conversationTitle = conversation?.title,
+            conversationPhoneNumber = conversation?.phoneNumber,
+            isCompany = conversation?.isCompany ?: false,
+            participantsCount = participants.size
+        )
+    }
+
+    private fun hideExpandedMessageFragment() {
+        expandedMessageFragment?.let {
+            supportFragmentManager.popBackStack()
+            findViewById<View>(R.id.thread_coordinator)?.beVisible()
+            expandedMessageFragment = null
+        }
+    }
+    
+    override fun onBackPressedCompat(): Boolean {
+        return if (expandedMessageFragment != null) {
+            hideExpandedMessageFragment()
+            true
+        } else {
+            false
         }
     }
 }

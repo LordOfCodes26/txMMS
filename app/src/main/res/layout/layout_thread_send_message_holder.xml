@@ -93,13 +93,26 @@
     <LinearLayout
         android:id="@+id/threadAddAttachmentHolder"
         android:layout_width="@dimen/medium_icon_size"
-        android:layout_height="@dimen/medium_icon_size"
-        android:orientation="horizontal"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
         android:layout_marginStart="@dimen/normal_margin"
         android:background="?selectableItemBackgroundBorderless"
         app:layout_constraintTop_toTopOf="@+id/thread_type_message_holder"
         app:layout_constraintBottom_toBottomOf="@+id/thread_type_message_holder"
         app:layout_constraintStart_toStartOf="parent" >
+
+        <ImageView
+            android:id="@+id/threadExpandMessage"
+            android:layout_width="@dimen/small_icon_size"
+            android:layout_height="@dimen/small_icon_size"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginBottom="@dimen/tiny_margin"
+            android:background="?selectableItemBackgroundBorderless"
+            android:contentDescription="@string/expand_message"
+            android:padding="@dimen/tiny_margin"
+            android:src="@drawable/ic_expand_down"
+            android:visibility="gone"
+            tools:visibility="visible" />
 
         <ImageView
             android:id="@+id/threadAddAttachment"
