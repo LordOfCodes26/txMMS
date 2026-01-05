@@ -11,6 +11,7 @@
     <string name="start_conversation">Start a conversation</string>
     <string name="reply">Reply</string>
     <string name="show_character_counter">Show a character counter at writing messages</string>
+    <string name="show_phone_number">Show phone number</string>
     <string name="message_send_delay">Message send delay</string>
     <string name="no_delay">No delay</string>
     <string name="delay_3s">3s</string>

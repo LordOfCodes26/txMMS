@@ -112,6 +112,7 @@ class SettingsActivity : SimpleActivity() {
         setupUseSpeechToText()
         setupFontSize()
         setupChangeDateTimeFormat()
+        setupShowPhoneNumber()
         setupUseEnglish()
 
         setupUseSwipeToAction()
@@ -522,6 +523,17 @@ class SettingsActivity : SimpleActivity() {
         val cal = Calendar.getInstance(Locale.ENGLISH).timeInMillis
         val formatDate = cal.formatDate(this@SettingsActivity)
         binding.settingsChangeDateTimeFormat.text = formatDate
+    }
+
+    private fun setupShowPhoneNumber() = binding.apply {
+        settingsShowPhoneNumber.isChecked = config.showPhoneNumber
+        settingsShowPhoneNumber.setOnCheckedChangeListener { isChecked ->
+            config.showPhoneNumber = isChecked
+            config.needRestart = true
+        }
+        settingsShowPhoneNumberHolder.setOnClickListener {
+            settingsShowPhoneNumber.toggle()
+        }
     }
 
     private fun setupFontSize() = binding.apply {

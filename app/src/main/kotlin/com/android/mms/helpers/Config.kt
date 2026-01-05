@@ -215,4 +215,8 @@ class Config(context: Context) : BaseConfig(context) {
     var swipeRipple: Boolean
         get() = prefs.getBoolean(SWIPE_RIPPLE, false)
         set(swipeRipple) = prefs.edit { putBoolean(SWIPE_RIPPLE, swipeRipple) }
+
+    var showPhoneNumber: Boolean
+        get() = prefs.getBoolean(SHOW_PHONE_NUMBER, true)
+        set(showPhoneNumber) = prefs.edit { putBoolean(SHOW_PHONE_NUMBER, showPhoneNumber) }
 }

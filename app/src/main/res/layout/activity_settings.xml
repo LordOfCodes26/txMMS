@@ -391,6 +391,17 @@
                         </RelativeLayout>
 
                         <RelativeLayout
+                            android:id="@+id/settings_show_phone_number_holder"
+                            style="@style/SettingsHolderSwitchStyle">
+
+                            <com.goodwy.commons.views.MyLiquidSwitch
+                                android:id="@+id/settings_show_phone_number"
+                                style="@style/SettingsSwitchStyle"
+                                android:text="@string/show_phone_number"
+                                app:switchPadding="@dimen/bigger_margin" />
+                        </RelativeLayout>
+
+                        <RelativeLayout
                             android:id="@+id/settings_use_english_holder"
                             style="@style/SettingsHolderSwitchStyle">
 

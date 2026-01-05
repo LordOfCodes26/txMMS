@@ -20,6 +20,7 @@ import com.goodwy.commons.extensions.convertToBitmap
 import com.goodwy.commons.extensions.getLetterBackgroundColors
 import com.goodwy.commons.extensions.toast
 import com.android.mms.R
+import com.android.mms.helpers.Config
 import kotlin.math.abs
 
 fun ArrayList<SimpleContact>.getThreadTitle(): String {
@@ -30,8 +31,21 @@ fun ArrayList<SimpleContact>.getAddresses(): List<String> {
     return flatMap { it.phoneNumbers }.map { it.normalizedNumber }
 }
 
-fun ArrayList<SimpleContact>.getThreadSubtitle(): String {
-    return TextUtils.join(", ", map { it.phoneNumbers.first().normalizedNumber }.toTypedArray())
+fun ArrayList<SimpleContact>.getThreadSubtitle(context: Context? = null): String {
+    val config = context?.let { Config.newInstance(it) }
+    val showPhoneNumber = config?.showPhoneNumber ?: true
+    
+    return TextUtils.join(", ", map { contact ->
+        val phoneNumber = contact.phoneNumbers.first().normalizedNumber
+        // If showPhoneNumber is off, only show phone number if contact doesn't have a name (name == phone number)
+        // If showPhoneNumber is on, always show phone number
+        // If phone number is not defined in contact address, always show phone number
+        if (!showPhoneNumber && contact.name != phoneNumber && contact.name.isNotEmpty()) {
+            "" // Don't show phone number if contact has a name and setting is off
+        } else {
+            phoneNumber
+        }
+    }.filter { it.isNotEmpty() }.toTypedArray())
 }
 
 fun SimpleContact.toPerson(context: Context? = null): Person {

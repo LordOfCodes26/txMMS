@@ -986,7 +986,7 @@ class ThreadActivity : SimpleActivity() {
         val textColor = getProperTextColor()
         val title = conversation?.title
         val threadTitle = if (!title.isNullOrEmpty()) title else participants.getThreadTitle()
-        val threadSubtitle = participants.getThreadSubtitle()
+        val threadSubtitle = participants.getThreadSubtitle(this@ThreadActivity)
         when (config.threadTopStyle) {
             THREAD_TOP_COMPACT -> topDetailsCompact.apply {
                 senderPhoto.beVisibleIf(config.showContactThumbnails)
@@ -994,7 +994,7 @@ class ThreadActivity : SimpleActivity() {
                     senderName.text = threadTitle
                     senderName.setTextColor(textColor)
                 }
-                senderNumber.beGoneIf(threadTitle == threadSubtitle || participants.size > 1)
+                senderNumber.beGoneIf(threadSubtitle.isEmpty() || threadTitle == threadSubtitle || participants.size > 1)
                 senderNumber.text = threadSubtitle
                 senderNumber.setTextColor(textColor)
                 arrayOf(
@@ -1016,7 +1016,7 @@ class ThreadActivity : SimpleActivity() {
                     senderNameLarge.text = threadTitle
                     senderNameLarge.setTextColor(textColor)
                 }
-                senderNumberLarge.beGoneIf(threadTitle == threadSubtitle || participants.size > 1)
+                senderNumberLarge.beGoneIf(threadSubtitle.isEmpty() || threadTitle == threadSubtitle || participants.size > 1)
                 senderNumberLarge.text = threadSubtitle
                 senderNumberLarge.setTextColor(textColor)
                 arrayOf(
@@ -2511,7 +2511,7 @@ class ThreadActivity : SimpleActivity() {
         
         val title = conversation?.title
         val threadTitle = if (!title.isNullOrEmpty()) title else participants.getThreadTitle()
-        val threadSubtitle = participants.getThreadSubtitle()
+        val threadSubtitle = participants.getThreadSubtitle(this@ThreadActivity)
         fragment.updateThreadTitle(
             threadTitle = threadTitle,
             threadSubtitle = threadSubtitle,
