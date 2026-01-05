@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name_g">Right Messages</string>
-    <string name="chat_title_style_g">Chat title style</string>
-    <string name="unread_at_top_g">Unread always at the top</string>
-    <string name="show_sim_selection_dialog">Show SIM card selection dialog when sending</string>
-    <string name="delete_after_copy">알림에서 번호를 복사한 후 메시지 삭제</string>
-    <string name="sound_on_out_going_messages">메시지를 보낼 때 소리가 납니다.</string>
-    <string name="delivered">배달됨</string>
+    <string name="chat_title_style_g">대화제목형식</string>
+    <string name="unread_at_top_g">읽지 못한 통보문 우에 현시</string>
+    <string name="show_sim_selection_dialog">보내기전 SIM카드 확인</string>
+    <string name="delete_after_copy">알림에서 번호를 복사한후 통보문 삭제</string>
+    <string name="sound_on_out_going_messages">통보문을 보낼때 소리가 납니다.</string>
+    <string name="delivered">전송됨</string>
     <string name="failed">실패한</string>
-    <string name="pending">보류 중</string>
-    <string name="message_type">메시지 유형</string>
+    <string name="pending">보류중</string>
+    <string name="message_type">통보문 류형</string>
 </resources>

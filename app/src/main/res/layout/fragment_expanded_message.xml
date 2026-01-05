@@ -22,7 +22,7 @@
             android:background="?selectableItemBackgroundBorderless"
             android:contentDescription="@string/minimize_message"
             android:padding="@dimen/smaller_margin"
-            android:src="@drawable/ic_chevron_down_vector"
+            android:src="@drawable/ic_fullscreen_exit"
             android:translationZ="4dp"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"

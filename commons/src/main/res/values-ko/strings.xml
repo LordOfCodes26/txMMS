@@ -373,6 +373,7 @@
     <string name="settings">설정</string>
     <string name="customize_colors">형태 및 색상 설정</string>
     <string name="customize_widget_colors">보조도구 색상 설정</string>
+    <string name="customize_notifications">알림 설정</string>
     <string name="use_english_language">영어로 언어 전환</string>
     <string name="show_hidden_items">숨김 항목 보이기</string>
     <string name="font_size">서체 크기</string>
@@ -673,6 +674,7 @@
     </plurals>
     <string name="must_make_default_dialer">전화번호 차단기능을 사용하려면 이 응용프로그람을 기본 전화응용프로그람으로 설정해야 합니다.</string>
     <string name="thumbnails">미리보기화상</string>
+    <string name="list_view">목록</string>
     <string name="exclude_folder">등록부 제외하기</string>
     <string name="files_tab">화일</string>
     <string name="recent_files_tab">최근 화일</string>

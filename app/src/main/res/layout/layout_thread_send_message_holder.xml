@@ -110,7 +110,7 @@
             android:background="?selectableItemBackgroundBorderless"
             android:contentDescription="@string/expand_message"
             android:padding="@dimen/tiny_margin"
-            android:src="@drawable/ic_expand_down"
+            android:src="@drawable/ic_fullscreen"
             android:visibility="gone"
             tools:visibility="visible" />
 
