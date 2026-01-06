@@ -1,15 +1,29 @@
 package com.android.mms.activities
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.content.res.ColorStateList
 import android.content.res.Configuration
 import android.graphics.drawable.LayerDrawable
+import android.media.AudioManager
 import android.net.Uri
 import android.os.Bundle
+import android.provider.ContactsContract
+import android.provider.DocumentsContract
+import android.provider.MediaStore
 import android.speech.RecognizerIntent
+import android.telephony.SmsManager
+import android.telephony.SmsMessage
+import android.telephony.SubscriptionInfo
+import android.util.TypedValue
+import android.view.KeyEvent
+import android.view.View
 import android.view.WindowManager
+import android.view.animation.OvershootInterpolator
+import android.view.inputmethod.EditorInfo
 import android.widget.Toast
 import androidx.core.content.res.ResourcesCompat
+import androidx.documentfile.provider.DocumentFile
 import androidx.recyclerview.widget.RecyclerView
 import com.google.gson.Gson
 import com.reddit.indicatorfastscroll.FastScrollItemIndicator
@@ -20,10 +34,13 @@ import com.android.mms.R
 import com.android.mms.adapters.ContactsAdapter
 import com.android.mms.databinding.ActivityNewConversationBinding
 import com.android.mms.databinding.ItemSuggestedContactBinding
-import com.android.mms.extensions.getSuggestedContacts
-import com.android.mms.extensions.getThreadId
+import com.android.mms.extensions.*
 import com.android.mms.helpers.*
 import com.android.mms.messaging.isShortCodeWithLetters
+import com.android.mms.messaging.sendMessageCompat
+import com.android.mms.models.Attachment
+import com.android.mms.models.SIMCard
+import com.android.mms.helpers.MessageHolderHelper
 import java.net.URLDecoder
 import java.util.Locale
 import java.util.Objects
@@ -32,8 +49,15 @@ class NewConversationActivity : SimpleActivity() {
     private var allContacts = ArrayList<SimpleContact>()
     private var privateContacts = ArrayList<SimpleContact>()
     private var isSpeechToTextAvailable = false
+    private var isAttachmentPickerVisible = false
+    private var messageHolderHelper: MessageHolderHelper? = null
 
     private val binding by viewBinding(ActivityNewConversationBinding::inflate)
+    
+    companion object {
+        private const val PICK_SAVE_FILE_INTENT = 1008
+        private const val PICK_SAVE_DIR_INTENT = 1009
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -41,7 +65,7 @@ class NewConversationActivity : SimpleActivity() {
         title = getString(R.string.new_conversation)
         updateTextColors(binding.newConversationHolder)
 
-        setupEdgeToEdge(padBottomImeAndSystem = listOf(binding.contactsList))
+        setupEdgeToEdge(padBottomImeAndSystem = listOf(binding.contactsList, binding.messageHolder.root))
 //        setupMaterialScrollListener(
 //            scrollingView = binding.contactsList,
 //            topAppBar = binding.newConversationAppbar
@@ -76,19 +100,67 @@ class NewConversationActivity : SimpleActivity() {
                 hideKeyboard()
             }
         })
+        
+        setupMessageHolder()
+    }
+    
+    private fun setupMessageHolder() {
+        isSpeechToTextAvailable = isSpeechToTextAvailable()
+        
+        messageHolderHelper = MessageHolderHelper(
+            activity = this,
+            binding = binding.messageHolder,
+            onSendMessage = { text, subscriptionId, attachments ->
+                sendMessageAndNavigate(text, subscriptionId, attachments)
+            },
+            onSpeechToText = { speechToText() },
+            onExpandMessage = null
+        )
+        
+        messageHolderHelper?.setup(isSpeechToTextAvailable)
+        
+        binding.messageHolder.apply {
+            threadAddAttachmentHolder.setOnClickListener {
+                if (attachmentPickerHolder.isVisible()) {
+                    isAttachmentPickerVisible = false
+                    messageHolderHelper?.hideAttachmentPicker()
+                } else {
+                    isAttachmentPickerVisible = true
+                    messageHolderHelper?.showAttachmentPicker()
+                }
+            }
+            
+            messageHolderHelper?.setupAttachmentPicker(
+                onChoosePhoto = { launchGetContentIntent(arrayOf("image/*", "video/*"), MessageHolderHelper.PICK_PHOTO_INTENT) },
+                onChooseVideo = { launchGetContentIntent(arrayOf("video/*"), MessageHolderHelper.PICK_VIDEO_INTENT) },
+                onTakePhoto = { launchCapturePhotoIntent() },
+                onRecordVideo = { launchCaptureVideoIntent() },
+                onRecordAudio = { launchCaptureAudioIntent() },
+                onPickFile = { launchGetContentIntent(arrayOf("*/*"), MessageHolderHelper.PICK_DOCUMENT_INTENT) },
+                onPickContact = { launchPickContactIntent() },
+                onScheduleMessage = null
+            )
+            
+            messageHolderHelper?.hideAttachmentPicker()
+        }
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, resultData: Intent?) {
         super.onActivityResult(requestCode, resultCode, resultData)
-        if (requestCode == REQUEST_CODE_SPEECH_INPUT && resultCode == RESULT_OK) {
-            if (resultData != null) {
-                val res: java.util.ArrayList<String> =
-                    resultData.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS) as java.util.ArrayList<String>
-
-                val speechToText =  Objects.requireNonNull(res)[0]
-                if (speechToText.isNotEmpty()) {
-                    binding.newConversationAddress.setText(speechToText)
-                }
+        if (resultCode != RESULT_OK) return
+        
+        if (requestCode == REQUEST_CODE_SPEECH_INPUT && resultData != null) {
+            val res: java.util.ArrayList<String> =
+                resultData.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS) as java.util.ArrayList<String>
+            val speechToText = Objects.requireNonNull(res)[0]
+            if (speechToText.isNotEmpty()) {
+                messageHolderHelper?.setMessageText(speechToText)
+            }
+        } else {
+            messageHolderHelper?.handleActivityResult(requestCode, resultCode, resultData)
+            
+            if (requestCode == MessageHolderHelper.PICK_CONTACT_INTENT && resultData?.data != null) {
+                addContactAttachment(resultData.data!!)
             }
         }
     }
@@ -142,25 +214,26 @@ class NewConversationActivity : SimpleActivity() {
                 }
             }
             
-            // Add current text if not empty - allow direct number input
-            if (currentText.isNotEmpty()) {
+            // If currentText is not empty and no chips, treat it as a number
+            if (currentText.isNotEmpty() && chips.isEmpty()) {
                 // Validate short codes with letters
                 if (isShortCodeWithLetters(currentText)) {
                     toast(R.string.invalid_short_code, length = Toast.LENGTH_LONG)
                     return@setOnConfirmListener
                 }
-                allNumbers.add(currentText)
+                // Treat as number if it looks like one (contains digits)
+                if (currentText.any { it.isDigit() }) {
+                    allNumbers.add(currentText)
+                    binding.newConversationAddress.addChip(currentText)
+                    binding.newConversationAddress.clearText()
+                }
             }
             
-            if (allNumbers.isEmpty()) {
-                // No numbers entered at all
-                return@setOnConfirmListener
+            // Focus on message input if recipients are selected
+            if (allNumbers.isNotEmpty()) {
+                binding.messageHolder.threadTypeMessage.requestFocus()
+                showKeyboard(binding.messageHolder.threadTypeMessage)
             }
-            
-            // Launch with all numbers
-            val numbersString = allNumbers.joinToString(";")
-            val displayName = if (allNumbers.size == 1) allNumbers[0] else "${allNumbers.size} recipients"
-            launchThreadActivity(numbersString, displayName)
         }
 
         binding.noContactsPlaceholder2.setOnClickListener {
@@ -342,6 +415,110 @@ class NewConversationActivity : SimpleActivity() {
         }
     }
 
+    
+    private fun sendMessageAndNavigate(text: String, subscriptionId: Int?, attachments: List<Attachment>) {
+        hideKeyboard()
+        
+        val chips = binding.newConversationAddress.allChips
+        val allNumbers = mutableListOf<String>()
+        chips.forEach { chip ->
+            if (chip.isNotEmpty()) {
+                allNumbers.add(chip)
+            }
+        }
+        
+        if (allNumbers.isEmpty()) {
+            toast(R.string.empty_destination_address, length = Toast.LENGTH_SHORT)
+            return
+        }
+        
+        // Get subscription ID for the numbers if not provided
+        val finalSubscriptionId = subscriptionId ?: messageHolderHelper?.getSubscriptionIdForNumbers(allNumbers)
+        
+        // Process message text (remove diacritics if needed)
+        val processedText = removeDiacriticsIfNeeded(text)
+        
+        // Send message
+        try {
+            sendMessageCompat(
+                text = processedText,
+                addresses = allNumbers,
+                subId = finalSubscriptionId,
+                attachments = attachments,
+                messageId = null
+            )
+            
+            // Clear message and attachments
+            messageHolderHelper?.clearMessage()
+            
+            // Navigate to ThreadActivity after sending
+            val numbersString = allNumbers.joinToString(";")
+            val displayName = if (allNumbers.size == 1) allNumbers[0] else "${allNumbers.size} recipients"
+            launchThreadActivity(numbersString, displayName, body = processedText)
+        } catch (e: Exception) {
+            showErrorToast(e)
+        }
+    }
+
+    
+    private fun addContactAttachment(contactUri: Uri) {
+        // Contact attachment functionality can be added later if needed
+        toast(com.goodwy.commons.R.string.unknown_error_occurred)
+    }
+    
+    private fun launchCapturePhotoIntent() {
+        val imageFile = java.io.File.createTempFile("attachment_", ".jpg", getAttachmentsDir())
+        val capturedImageUri = getMyFileUri(imageFile)
+        messageHolderHelper?.setCapturedImageUri(capturedImageUri)
+        val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE).apply {
+            putExtra(MediaStore.EXTRA_OUTPUT, capturedImageUri)
+        }
+        launchActivityForResult(intent, MessageHolderHelper.CAPTURE_PHOTO_INTENT)
+    }
+    
+    private fun launchCaptureVideoIntent() {
+        val intent = Intent(MediaStore.ACTION_VIDEO_CAPTURE)
+        launchActivityForResult(intent, MessageHolderHelper.CAPTURE_VIDEO_INTENT)
+    }
+    
+    private fun launchCaptureAudioIntent() {
+        val intent = Intent(MediaStore.Audio.Media.RECORD_SOUND_ACTION)
+        launchActivityForResult(intent, MessageHolderHelper.CAPTURE_AUDIO_INTENT)
+    }
+    
+    private fun launchGetContentIntent(mimeTypes: Array<String>, requestCode: Int) {
+        Intent(Intent.ACTION_GET_CONTENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = "*/*"
+            putExtra(Intent.EXTRA_MIME_TYPES, mimeTypes)
+            launchActivityForResult(this, requestCode)
+        }
+    }
+    
+    private fun launchPickContactIntent() {
+        Intent(Intent.ACTION_PICK).apply {
+            type = ContactsContract.Contacts.CONTENT_TYPE
+            launchActivityForResult(this, MessageHolderHelper.PICK_CONTACT_INTENT)
+        }
+    }
+    
+    private fun launchActivityForResult(intent: Intent, requestCode: Int) {
+        hideKeyboard()
+        try {
+            startActivityForResult(intent, requestCode)
+        } catch (e: Exception) {
+            showErrorToast(e)
+        }
+    }
+    
+    private fun getAttachmentsDir(): java.io.File {
+        return java.io.File(cacheDir, "attachments").apply {
+            if (!exists()) {
+                mkdirs()
+            }
+        }
+    }
+
     private fun launchThreadActivity(phoneNumber: String, name: String, body: String = "", photoUri: String = "") {
         hideKeyboard()
 //        val text = intent.getStringExtra(Intent.EXTRA_TEXT) ?: intent.getStringExtra("sms_body") ?: ""
@@ -366,6 +543,7 @@ class NewConversationActivity : SimpleActivity() {
             }
 
             startActivity(this)
+            finish()
         }
     }
 }

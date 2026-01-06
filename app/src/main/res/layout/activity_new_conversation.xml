@@ -109,6 +109,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_below="@+id/suggestions_scrollview"
+            android:layout_above="@+id/message_holder"
             android:clipToPadding="false"
             android:layoutAnimation="@anim/layout_animation"
             android:overScrollMode="ifContentScrolls"
@@ -133,6 +134,13 @@
             android:layout_alignBottom="@+id/contactsLetterFastscroller"
             android:layout_marginEnd="@dimen/activity_margin"
             android:layout_toStartOf="@+id/contactsLetterFastscroller" />
+
+        <include
+            android:id="@+id/message_holder"
+            layout="@layout/layout_thread_send_message_holder"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true" />
     </RelativeLayout>
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
 </eightbitlab.com.blurview.BlurTarget>
