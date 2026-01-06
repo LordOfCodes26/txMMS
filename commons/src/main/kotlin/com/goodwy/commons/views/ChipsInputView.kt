@@ -28,12 +28,10 @@ class ChipsInputView @JvmOverloads constructor(
     private val editText: MyEditText
     private val clearButton: ImageView
     private val speechToTextButton: ImageView
-    private val confirmButton: ImageView
 
     private val chips = mutableListOf<String>()
     private var onTextChangedListener: ((String) -> Unit)? = null
     private var onChipsChangedListener: ((List<String>) -> Unit)? = null
-    private var onConfirmListener: (() -> Unit)? = null
 
     var hint: String
         get() = editText.hint?.toString() ?: ""
@@ -55,7 +53,6 @@ class ChipsInputView @JvmOverloads constructor(
         editText = rootView.findViewById(R.id.chips_edit_text)
         clearButton = rootView.findViewById(R.id.chips_clear_button)
         speechToTextButton = rootView.findViewById(R.id.chips_speech_to_text_button)
-        confirmButton = rootView.findViewById(R.id.chips_confirm_button)
 
         setupEditText()
         setupButtons()
@@ -104,10 +101,6 @@ class ChipsInputView @JvmOverloads constructor(
 
         speechToTextButton.setOnClickListener {
             // This will be handled by the activity
-        }
-
-        confirmButton.setOnClickListener {
-            onConfirmListener?.invoke()
         }
     }
 
@@ -173,10 +166,6 @@ class ChipsInputView @JvmOverloads constructor(
         onChipsChangedListener = listener
     }
 
-    fun setOnConfirmListener(listener: () -> Unit) {
-        onConfirmListener = listener
-    }
-
     fun setSpeechToTextButtonVisible(visible: Boolean) {
         speechToTextButton.visibility = if (visible) View.VISIBLE else View.GONE
     }
@@ -202,7 +191,6 @@ class ChipsInputView @JvmOverloads constructor(
 
         clearButton.imageTintList = ColorStateList.valueOf(textColor.adjustAlpha(0.4f))
         speechToTextButton.imageTintList = ColorStateList.valueOf(textColor.adjustAlpha(0.4f))
-        confirmButton.imageTintList = ColorStateList.valueOf(accentColor)
     }
 
     private fun createChipView(text: String) {
@@ -233,13 +221,10 @@ class ChipsInputView @JvmOverloads constructor(
         val hasText = text.isNotEmpty()
         clearButton.visibility = if (hasText) View.VISIBLE else View.GONE
         speechToTextButton.visibility = if (!hasText) View.VISIBLE else View.GONE
-        // Show confirm button if there's any text or chips (allow direct number input)
-        confirmButton.visibility = if (hasText || chips.isNotEmpty()) View.VISIBLE else View.GONE
     }
 
     fun getEditText(): MyEditText = editText
     fun getClearButton(): ImageView = clearButton
     fun getSpeechToTextButton(): ImageView = speechToTextButton
-    fun getConfirmButton(): ImageView = confirmButton
 }
 

@@ -200,41 +200,6 @@ class NewConversationActivity : SimpleActivity() {
 
         binding.newConversationAddress.setSpeechToTextButtonVisible(isSpeechToTextAvailable)
         binding.newConversationAddress.setSpeechToTextButtonClickListener { speechToText() }
-        
-        binding.newConversationAddress.setOnConfirmListener {
-            val chips = binding.newConversationAddress.allChips
-            val currentText = binding.newConversationAddress.currentText.trim()
-            
-            val allNumbers = mutableListOf<String>()
-            
-            // Add chips (these are already validated when added)
-            chips.forEach { chip ->
-                if (chip.isNotEmpty()) {
-                    allNumbers.add(chip)
-                }
-            }
-            
-            // If currentText is not empty and no chips, treat it as a number
-            if (currentText.isNotEmpty() && chips.isEmpty()) {
-                // Validate short codes with letters
-                if (isShortCodeWithLetters(currentText)) {
-                    toast(R.string.invalid_short_code, length = Toast.LENGTH_LONG)
-                    return@setOnConfirmListener
-                }
-                // Treat as number if it looks like one (contains digits)
-                if (currentText.any { it.isDigit() }) {
-                    allNumbers.add(currentText)
-                    binding.newConversationAddress.addChip(currentText)
-                    binding.newConversationAddress.clearText()
-                }
-            }
-            
-            // Focus on message input if recipients are selected
-            if (allNumbers.isNotEmpty()) {
-                binding.messageHolder.threadTypeMessage.requestFocus()
-                showKeyboard(binding.messageHolder.threadTypeMessage)
-            }
-        }
 
         binding.noContactsPlaceholder2.setOnClickListener {
             handlePermission(PERMISSION_READ_CONTACTS) {
@@ -424,6 +389,27 @@ class NewConversationActivity : SimpleActivity() {
         chips.forEach { chip ->
             if (chip.isNotEmpty()) {
                 allNumbers.add(chip)
+            }
+        }
+        
+        // Also check for text input that hasn't been added as a chip
+        val currentText = binding.newConversationAddress.currentText.trim()
+        if (currentText.isNotEmpty()) {
+            // Split by comma or semicolon to handle multiple numbers
+            val textNumbers = currentText.split(",", ";")
+            textNumbers.forEach { numberText ->
+                val trimmedNumber = numberText.trim()
+                if (trimmedNumber.isNotEmpty()) {
+                    // Normalize the phone number
+                    val normalizedNumber = trimmedNumber.normalizePhoneNumber()
+                    // Add if not already in the list (avoid duplicates)
+                    if (normalizedNumber.isNotEmpty() && !allNumbers.contains(normalizedNumber)) {
+                        allNumbers.add(normalizedNumber)
+                    } else if (normalizedNumber.isEmpty() && !allNumbers.contains(trimmedNumber)) {
+                        // If normalization failed, use the original trimmed number
+                        allNumbers.add(trimmedNumber)
+                    }
+                }
             }
         }
         
