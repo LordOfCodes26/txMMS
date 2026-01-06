@@ -9,7 +9,6 @@ import android.os.Bundle
 import android.speech.RecognizerIntent
 import android.view.WindowManager
 import android.widget.Toast
-import android.widget.RelativeLayout
 import androidx.core.content.res.ResourcesCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.google.gson.Gson
@@ -49,7 +48,8 @@ class NewConversationActivity : SimpleActivity() {
 //        )
 
         window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE)
-        binding.newConversationAddress.requestFocus()
+        binding.newConversationAddress.requestEditTextFocus()
+        binding.newConversationAddress.hint = getString(R.string.add_contact_or_number)
 
         // READ_CONTACTS permission is not mandatory, but without it we won't be able to show any suggestions during typing
         handlePermission(PERMISSION_READ_CONTACTS) {
@@ -99,20 +99,19 @@ class NewConversationActivity : SimpleActivity() {
         }
 
         fetchContacts()
-        if (isDynamicTheme()) {
-            (binding.newConversationAddress.layoutParams as RelativeLayout.LayoutParams).apply {
-                topMargin = 12
-            }
-        }
 
         isSpeechToTextAvailable = isSpeechToTextAvailable()
 
         val useSurfaceColor = isDynamicTheme() && !isSystemInDarkMode()
         val surfaceColor = if (useSurfaceColor) getProperBackgroundColor() else getSurfaceColor()
-        binding.newConversationAddress.setBackgroundResource(com.goodwy.commons.R.drawable.search_bg)
-        binding.newConversationAddress.backgroundTintList = ColorStateList.valueOf(surfaceColor)
+        val properTextColor = getProperTextColor()
+        val properAccentColor = getProperAccentColor()
+        
+        binding.newConversationAddress.setColors(properTextColor, properAccentColor, surfaceColor)
+        binding.newConversationAddress.getEditText().setBackgroundResource(com.goodwy.commons.R.drawable.search_bg)
+        binding.newConversationAddress.getEditText().backgroundTintList = ColorStateList.valueOf(surfaceColor)
 
-        binding.newConversationAddress.onTextChangeListener { searchString ->
+        binding.newConversationAddress.setOnTextChangedListener { searchString ->
             val filteredContacts = ArrayList<SimpleContact>()
             allContacts.forEach { contact ->
                 if (contact.phoneNumbers.any { it.normalizedNumber.contains(searchString, true) } ||
@@ -125,27 +124,43 @@ class NewConversationActivity : SimpleActivity() {
 
             filteredContacts.sortWith(compareBy { !it.name.startsWith(searchString, true) })
             setupAdapter(filteredContacts)
-
-            binding.newConversationConfirm.beVisibleIf(searchString.length > 2)
-            binding.newConversationAddressClear.beVisibleIf(searchString.isNotEmpty())
-            binding.newConversationAddressSpeechToText.beVisibleIf(isSpeechToTextAvailable && !searchString.isNotEmpty())
         }
 
-        val properTextColor = getProperTextColor()
-        binding.newConversationAddressSpeechToText.beVisibleIf(isSpeechToTextAvailable)
-        binding.newConversationAddressSpeechToText.applyColorFilter(properTextColor)
-        binding.newConversationAddressSpeechToText.setOnClickListener { speechToText() }
-        binding.newConversationAddressClear.applyColorFilter(properTextColor)
-        binding.newConversationAddressClear.setOnClickListener { binding.newConversationAddress.setText("") }
-        binding.newConversationConfirm.applyColorFilter(properTextColor)
-        binding.newConversationConfirm.setOnClickListener {
-            val number = binding.newConversationAddress.value
-            if (isShortCodeWithLetters(number)) {
-                binding.newConversationAddress.setText("")
-                toast(R.string.invalid_short_code, length = Toast.LENGTH_LONG)
-                return@setOnClickListener
+        binding.newConversationAddress.setSpeechToTextButtonVisible(isSpeechToTextAvailable)
+        binding.newConversationAddress.setSpeechToTextButtonClickListener { speechToText() }
+        
+        binding.newConversationAddress.setOnConfirmListener {
+            val chips = binding.newConversationAddress.allChips
+            val currentText = binding.newConversationAddress.currentText.trim()
+            
+            val allNumbers = mutableListOf<String>()
+            
+            // Add chips (these are already validated when added)
+            chips.forEach { chip ->
+                if (chip.isNotEmpty()) {
+                    allNumbers.add(chip)
+                }
             }
-            launchThreadActivity(number, number)
+            
+            // Add current text if not empty - allow direct number input
+            if (currentText.isNotEmpty()) {
+                // Validate short codes with letters
+                if (isShortCodeWithLetters(currentText)) {
+                    toast(R.string.invalid_short_code, length = Toast.LENGTH_LONG)
+                    return@setOnConfirmListener
+                }
+                allNumbers.add(currentText)
+            }
+            
+            if (allNumbers.isEmpty()) {
+                // No numbers entered at all
+                return@setOnConfirmListener
+            }
+            
+            // Launch with all numbers
+            val numbersString = allNumbers.joinToString(";")
+            val displayName = if (allNumbers.size == 1) allNumbers[0] else "${allNumbers.size} recipients"
+            launchThreadActivity(numbersString, displayName)
         }
 
         binding.noContactsPlaceholder2.setOnClickListener {
@@ -156,7 +171,6 @@ class NewConversationActivity : SimpleActivity() {
             }
         }
 
-        val properAccentColor = getProperAccentColor()
         binding.contactsLetterFastscroller.textColor = properTextColor.getColorStateList()
         binding.contactsLetterFastscroller.pressedTextColor = properAccentColor
         binding.contactsLetterFastscrollerThumb.setupWithFastScroller(binding.contactsLetterFastscroller)
@@ -222,7 +236,9 @@ class NewConversationActivity : SimpleActivity() {
                 hideKeyboard()
                 val contact = it as SimpleContact
                 maybeShowNumberPickerDialog(contact.phoneNumbers) { number ->
-                    launchThreadActivity(number.normalizedNumber, contact.name, photoUri = contact.photoUri)
+                    // Add as chip instead of launching immediately
+                    binding.newConversationAddress.addChip(number.normalizedNumber)
+                    binding.newConversationAddress.clearText()
                 }
             }.apply {
                 binding.contactsList.adapter = this
@@ -272,10 +288,9 @@ class NewConversationActivity : SimpleActivity() {
                                     }
                                     binding.suggestionsHolder.addView(root)
                                     root.setOnClickListener {
-                                        launchThreadActivity(
-                                            contact.phoneNumbers.first().normalizedNumber,
-                                            contact.name
-                                        )
+                                        // Add as chip instead of launching immediately
+                                        binding.newConversationAddress.addChip(contact.phoneNumbers.first().normalizedNumber)
+                                        binding.newConversationAddress.clearText()
                                     }
                                 }
                             }
