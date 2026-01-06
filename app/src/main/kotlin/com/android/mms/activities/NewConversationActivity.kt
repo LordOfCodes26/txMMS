@@ -438,6 +438,10 @@ class NewConversationActivity : SimpleActivity() {
         // Process message text (remove diacritics if needed)
         val processedText = removeDiacriticsIfNeeded(text)
         
+        // Get thread ID before sending to delete draft
+        val numbersSet = allNumbers.toSet()
+        val threadId = getThreadId(numbersSet)
+        
         // Send message
         try {
             sendMessageCompat(
@@ -451,10 +455,15 @@ class NewConversationActivity : SimpleActivity() {
             // Clear message and attachments
             messageHolderHelper?.clearMessage()
             
-            // Navigate to ThreadActivity after sending
+            // Delete any draft for this thread to prevent it from showing in ThreadActivity
+            ensureBackgroundThread {
+                deleteSmsDraft(threadId)
+            }
+            
+            // Navigate to ThreadActivity after sending (don't pass body to avoid showing sent message)
             val numbersString = allNumbers.joinToString(";")
             val displayName = if (allNumbers.size == 1) allNumbers[0] else "${allNumbers.size} recipients"
-            launchThreadActivity(numbersString, displayName, body = processedText)
+            launchThreadActivity(numbersString, displayName, body = "")
         } catch (e: Exception) {
             showErrorToast(e)
         }
