@@ -28,6 +28,7 @@ class ManageQuickTextsAdapter(
     override fun prepareActionMode(menu: Menu) {
         menu.apply {
             findItem(R.id.cab_copy_text).isVisible = isOneItemSelected()
+            findItem(R.id.cab_edit).isVisible = isOneItemSelected()
         }
     }
 
@@ -38,6 +39,7 @@ class ManageQuickTextsAdapter(
 
         when (id) {
             R.id.cab_copy_text -> copyTextToClipboard()
+            R.id.cab_edit -> editQuickText()
             R.id.cab_delete -> deleteSelection()
         }
     }
@@ -107,6 +109,12 @@ class ManageQuickTextsAdapter(
                         }
                     }
 
+                    R.id.cab_edit -> {
+                        executeItemMenuOperation(quickTextId) {
+                            editQuickText()
+                        }
+                    }
+
                     R.id.cab_delete -> {
                         executeItemMenuOperation(quickTextId) {
                             deleteSelection()
@@ -128,6 +136,12 @@ class ManageQuickTextsAdapter(
     private fun copyTextToClipboard() {
         val selectedText = getSelectedItems().firstOrNull() ?: return
         activity.copyToClipboard(selectedText)
+        finishActMode()
+    }
+
+    private fun editQuickText() {
+        val selectedText = getSelectedItems().firstOrNull() ?: return
+        itemClick(selectedText)
         finishActMode()
     }
 
