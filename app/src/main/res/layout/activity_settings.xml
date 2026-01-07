@@ -336,6 +336,35 @@
                         </RelativeLayout>
 
                         <RelativeLayout
+                            android:id="@+id/settingsManageQuickTextsHolder"
+                            style="@style/SettingsHolderStyle">
+
+                            <com.goodwy.commons.views.MyTextView
+                                android:id="@+id/settingsManageQuickTexts"
+                                style="@style/SettingsTextLabelStyle"
+                                android:layout_centerVertical="true"
+                                android:layout_alignParentStart="true"
+                                android:layout_toStartOf="@+id/settingsManageQuickTextsCount"
+                                android:layout_marginEnd="12dp"
+                                android:text="@string/manage_quick_texts"/>
+
+                            <com.goodwy.commons.views.MyTextView
+                                android:id="@+id/settingsManageQuickTextsCount"
+                                style="@style/SettingsTextValueStyle"
+                                android:layout_centerVertical="true"
+                                android:layout_toStartOf="@+id/settingsManageQuickTextsChevron"
+                                android:layout_marginEnd="@dimen/tiny_margin"
+                                tools:text="0"/>
+
+                            <ImageView
+                                android:id="@+id/settingsManageQuickTextsChevron"
+                                style="@style/SettingsChevronStyle"
+                                android:layout_alignParentEnd="true"
+                                android:layout_centerVertical="true"
+                                android:contentDescription="@string/manage_quick_texts"/>
+                        </RelativeLayout>
+
+                        <RelativeLayout
                             android:id="@+id/settingsUseSpeechToTextHolder"
                             style="@style/SettingsHolderSwitchStyle">
 

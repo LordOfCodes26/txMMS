@@ -85,6 +85,18 @@ class Config(context: Context) : BaseConfig(context) {
         blockedKeywords = blockedKeywords.minus(keyword)
     }
 
+    var quickTexts: Set<String>
+        get() = prefs.getStringSet(QUICK_TEXTS, HashSet<String>())!!
+        set(quickTexts) = prefs.edit { putStringSet(QUICK_TEXTS, quickTexts) }
+
+    fun addQuickText(text: String) {
+        quickTexts = quickTexts.plus(text)
+    }
+
+    fun removeQuickText(text: String) {
+        quickTexts = quickTexts.minus(text)
+    }
+
     var exportSms: Boolean
         get() = prefs.getBoolean(EXPORT_SMS, true)
         set(exportSms) = prefs.edit { putBoolean(EXPORT_SMS, exportSms) }
@@ -138,6 +150,12 @@ class Config(context: Context) : BaseConfig(context) {
         get() = prefs.getString(LAST_BLOCKED_KEYWORD_EXPORT_PATH, "")!!
         set(lastBlockedNumbersExportPath) = prefs.edit {
             putString(LAST_BLOCKED_KEYWORD_EXPORT_PATH, lastBlockedNumbersExportPath)
+        }
+
+    var lastQuickTextExportPath: String
+        get() = prefs.getString(LAST_QUICK_TEXT_EXPORT_PATH, "")!!
+        set(lastQuickTextExportPath) = prefs.edit {
+            putString(LAST_QUICK_TEXT_EXPORT_PATH, lastQuickTextExportPath)
         }
 
     var keepConversationsArchived: Boolean

@@ -18,14 +18,14 @@ import com.goodwy.commons.extensions.toast
 import com.goodwy.commons.extensions.value
 import com.goodwy.commons.helpers.ensureBackgroundThread
 import com.android.mms.R
-import com.android.mms.databinding.DialogExportBlockedKeywordsBinding
+import com.android.mms.databinding.DialogExportQuickTextsBinding
 import com.android.mms.extensions.config
-import com.android.mms.helpers.BLOCKED_KEYWORDS_EXPORT_EXTENSION
+import com.android.mms.helpers.QUICK_TEXTS_EXPORT_EXTENSION
 import eightbitlab.com.blurview.BlurTarget
 import eightbitlab.com.blurview.BlurView
 import java.io.File
 
-class ExportBlockedKeywordsDialog(
+class ExportQuickTextsDialog(
     val activity: BaseSimpleActivity,
     val path: String,
     val hidePath: Boolean,
@@ -37,7 +37,7 @@ class ExportBlockedKeywordsDialog(
 
     init {
         val view =
-            DialogExportBlockedKeywordsBinding.inflate(activity.layoutInflater, null, false).apply {
+            DialogExportQuickTextsBinding.inflate(activity.layoutInflater, null, false).apply {
                 // Setup BlurView
                 val blurView = root.findViewById<eightbitlab.com.blurview.BlurView>(com.android.mms.R.id.blurView)
                 val decorView = activity.window.decorView
@@ -49,16 +49,16 @@ class ExportBlockedKeywordsDialog(
                     ?.setBlurRadius(8f)
                     ?.setBlurAutoUpdate(true)
                 
-                exportBlockedKeywordsFolder.text = activity.humanizePath(realPath)
-                exportBlockedKeywordsFilename.setText("${activity.getString(R.string.blocked_keywords)}_${getCurrentFormattedDateTime()}")
+                exportQuickTextsFolder.text = activity.humanizePath(realPath)
+                exportQuickTextsFilename.setText("${activity.getString(R.string.quick_texts)}_${getCurrentFormattedDateTime()}")
 
                 if (hidePath) {
-                    exportBlockedKeywordsFolderLabel.beGone()
-                    exportBlockedKeywordsFolder.beGone()
+                    exportQuickTextsFolderLabel.beGone()
+                    exportQuickTextsFolder.beGone()
                 } else {
-                    exportBlockedKeywordsFolder.setOnClickListener {
+                    exportQuickTextsFolder.setOnClickListener {
                         FilePickerDialog(activity, realPath, false, showFAB = true, blurTarget = blurTarget) {
-                            exportBlockedKeywordsFolder.text = activity.humanizePath(it)
+                            exportQuickTextsFolder.text = activity.humanizePath(it)
                             realPath = it
                         }
                     }
@@ -69,7 +69,7 @@ class ExportBlockedKeywordsDialog(
         val titleTextView = view.root.findViewById<com.goodwy.commons.views.MyTextView>(com.goodwy.commons.R.id.dialog_title)
         titleTextView?.apply {
             visibility = android.view.View.VISIBLE
-            setText(R.string.export_blocked_keywords)
+            setText(R.string.export_quick_texts)
         }
 
         // Setup custom buttons inside BlurView
@@ -86,19 +86,19 @@ class ExportBlockedKeywordsDialog(
             text = activity.resources.getString(com.goodwy.commons.R.string.ok)
             setTextColor(primaryColor)
             setOnClickListener {
-                val filename = view.exportBlockedKeywordsFilename.value
+                val filename = view.exportQuickTextsFilename.value
                 when {
                     filename.isEmpty() -> activity.toast(com.goodwy.commons.R.string.empty_name)
                     filename.isAValidFilename() -> {
                         val file =
-                            File(realPath, "$filename$BLOCKED_KEYWORDS_EXPORT_EXTENSION")
+                            File(realPath, "$filename$QUICK_TEXTS_EXPORT_EXTENSION")
                         if (!hidePath && file.exists()) {
                             activity.toast(com.goodwy.commons.R.string.name_taken)
                             return@setOnClickListener
                         }
 
                         ensureBackgroundThread {
-                            config.lastBlockedKeywordExportPath =
+                            config.lastQuickTextExportPath =
                                 file.absolutePath.getParentPath()
                             callback(file)
                         }
@@ -127,8 +127,9 @@ class ExportBlockedKeywordsDialog(
                     titleId = 0
                 ) { dialog ->
                     alertDialog = dialog
-                    dialog.showKeyboard(view.exportBlockedKeywordsFilename)
+                    dialog.showKeyboard(view.exportQuickTextsFilename)
                 }
             }
     }
 }
+

@@ -109,6 +109,7 @@ class SettingsActivity : SimpleActivity() {
 
         setupManageBlockedNumbers()
         setupManageBlockedKeywords()
+        setupManageQuickTexts()
         setupUseSpeechToText()
         setupFontSize()
         setupChangeDateTimeFormat()
@@ -219,6 +220,7 @@ class SettingsActivity : SimpleActivity() {
                 settingsCustomizeColorsChevron,
                 settingsManageBlockedNumbersChevron,
                 settingsManageBlockedKeywordsChevron,
+                settingsManageQuickTextsChevron,
                 settingsCustomizeNotificationsChevron,
                 settingsImportMessagesChevron,
                 settingsExportMessagesChevron,
@@ -490,6 +492,16 @@ class SettingsActivity : SimpleActivity() {
         settingsManageBlockedKeywordsCount.text = config.blockedKeywords.size.toString()
         settingsManageBlockedKeywordsHolder.setOnClickListener {
             Intent(this@SettingsActivity, ManageBlockedKeywordsActivity::class.java).apply {
+                startActivity(this)
+            }
+        }
+    }
+
+    private fun setupManageQuickTexts() = binding.apply {
+        @SuppressLint("SetTextI18n")
+        settingsManageQuickTextsCount.text = config.quickTexts.size.toString()
+        settingsManageQuickTextsHolder.setOnClickListener {
+            Intent(this@SettingsActivity, ManageQuickTextsActivity::class.java).apply {
                 startActivity(this)
             }
         }

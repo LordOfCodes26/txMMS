@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item
+        android:id="@+id/add_quick_text"
+        android:icon="@drawable/ic_plus_vector"
+        android:title="@string/add_a_quick_text"
+        app:showAsAction="ifRoom" />
+    <item
+        android:id="@+id/import_quick_texts"
+        android:title="@string/import_quick_texts"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/export_quick_texts"
+        android:title="@string/export_quick_texts"
+        app:showAsAction="never" />
+</menu>
+
