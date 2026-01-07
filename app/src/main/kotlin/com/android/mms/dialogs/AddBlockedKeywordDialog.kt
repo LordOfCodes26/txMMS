@@ -40,6 +40,8 @@ class AddBlockedKeywordDialog(val activity: BaseSimpleActivity, private val orig
 
         buttonsContainer?.visibility = android.view.View.VISIBLE
 
+        var alertDialog: AlertDialog? = null
+
         positiveButton?.apply {
             visibility = android.view.View.VISIBLE
             text = activity.resources.getString(com.goodwy.commons.R.string.ok)
@@ -55,10 +57,9 @@ class AddBlockedKeywordDialog(val activity: BaseSimpleActivity, private val orig
                 }
 
                 callback()
+                alertDialog?.dismiss()
             }
         }
-
-        var alertDialog: AlertDialog? = null
 
         negativeButton?.apply {
             visibility = android.view.View.VISIBLE
