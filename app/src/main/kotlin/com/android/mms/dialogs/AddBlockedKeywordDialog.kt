@@ -58,19 +58,22 @@ class AddBlockedKeywordDialog(val activity: BaseSimpleActivity, private val orig
             }
         }
 
+        var alertDialog: AlertDialog? = null
+
         negativeButton?.apply {
             visibility = android.view.View.VISIBLE
             text = activity.resources.getString(com.goodwy.commons.R.string.cancel)
             setTextColor(primaryColor)
             setOnClickListener {
-                // Dialog will be dismissed by setupDialogStuff
+                alertDialog?.dismiss()
             }
         }
 
         activity.getAlertDialogBuilder()
             .apply {
-                activity.setupDialogStuff(binding.root, this, titleId = 0) { alertDialog ->
-                    alertDialog.showKeyboard(binding.addBlockedKeywordEdittext)
+                activity.setupDialogStuff(binding.root, this, titleId = 0) { dialog ->
+                    alertDialog = dialog
+                    dialog.showKeyboard(binding.addBlockedKeywordEdittext)
                 }
             }
     }
