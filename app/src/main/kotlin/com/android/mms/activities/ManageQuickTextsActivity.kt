@@ -191,7 +191,7 @@ class ManageQuickTextsActivity : SimpleActivity(), RefreshRecyclerViewListener {
 
     private fun updateQuickTexts() {
         ensureBackgroundThread {
-            val quickTexts = config.quickTexts.sorted().toArrayList()
+            val quickTexts = config.quickTexts.toArrayList()
             runOnUiThread {
                 ManageQuickTextsAdapter(
                     activity = this,

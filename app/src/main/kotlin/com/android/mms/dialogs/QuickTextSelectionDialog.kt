@@ -18,7 +18,7 @@ class QuickTextSelectionDialog(
 
     init {
         val view = DialogQuickTextSelectionBinding.inflate(activity.layoutInflater, null, false)
-        val quickTexts = activity.config.quickTexts.sorted()
+        val quickTexts = activity.config.quickTexts.toList()
 
         // Setup BlurView
         val blurView = view.blurView

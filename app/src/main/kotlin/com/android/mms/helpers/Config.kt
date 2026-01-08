@@ -86,15 +86,70 @@ class Config(context: Context) : BaseConfig(context) {
     }
 
     var quickTexts: Set<String>
-        get() = prefs.getStringSet(QUICK_TEXTS, HashSet<String>())!!
-        set(quickTexts) = prefs.edit { putStringSet(QUICK_TEXTS, quickTexts) }
+        get() {
+            return try {
+                // Try to read new format first (stored as ordered string)
+                val orderedString = prefs.getString("${QUICK_TEXTS}_ordered", null)
+                if (!orderedString.isNullOrEmpty()) {
+                    // New format: delimited string preserves order
+                    val list = orderedString.split("\u0001").filter { it.isNotEmpty() }
+                    return LinkedHashSet(list)
+                }
+                // Backward compatibility: migrate from old Set format
+                val set = prefs.getStringSet(QUICK_TEXTS, null)
+                if (set != null && set.isNotEmpty()) {
+                    val migrated = LinkedHashSet(set)
+                    // Save in new format
+                    prefs.edit {
+                        putString("${QUICK_TEXTS}_ordered", migrated.joinToString("\u0001"))
+                    }
+                    return migrated
+                }
+                LinkedHashSet()
+            } catch (e: Exception) {
+                // If cache is corrupted or in wrong format, clear it
+                clearQuickTextsCache()
+                LinkedHashSet()
+            }
+        }
+        set(quickTexts) {
+            // Store as ordered string to preserve insertion order
+            // Convert to list to preserve order (LinkedHashSet preserves order, regular Set doesn't)
+            val orderedList = if (quickTexts is LinkedHashSet) {
+                quickTexts.toList()
+            } else {
+                // If it's a regular Set, convert to LinkedHashSet first to preserve any order
+                LinkedHashSet(quickTexts).toList()
+            }
+            prefs.edit {
+                putString("${QUICK_TEXTS}_ordered", orderedList.joinToString("\u0001"))
+                // Also keep old format for backward compatibility during transition
+                putStringSet(QUICK_TEXTS, quickTexts)
+            }
+        }
 
     fun addQuickText(text: String) {
-        quickTexts = quickTexts.plus(text)
+        // Get current list preserving order
+        val current = quickTexts.toMutableList()
+        // Remove if exists to avoid duplicates, then add to end
+        current.remove(text)
+        current.add(text)
+        // Save as LinkedHashSet to preserve order
+        quickTexts = LinkedHashSet(current)
     }
 
     fun removeQuickText(text: String) {
-        quickTexts = quickTexts.minus(text)
+        val current = quickTexts.toMutableList()
+        current.remove(text)
+        quickTexts = LinkedHashSet(current)
+    }
+    
+    fun clearQuickTextsCache() {
+        // Clear both old and new format cache
+        prefs.edit {
+            remove(QUICK_TEXTS)
+            remove("${QUICK_TEXTS}_ordered")
+        }
     }
 
     var exportSms: Boolean
