@@ -1,0 +1,16 @@
+[
+  {"prefix": "01", "location": "111"},
+  {"prefix": "02", "location": "222"},
+  {"prefix": "03", "location": "333"},
+  {"prefix": "04", "location": "444"},
+  {"prefix": "05", "location": "555"},
+  {"prefix": "06", "location": "666"},
+  {"prefix": "07", "location": "777"},
+  {"prefix": "08", "location": "888"},
+  {"prefix": "09", "location": "999"},
+  {"prefix": "10", "location": "101"},
+  {"prefix": "11", "location": "102"},
+  {"prefix": "12", "location": "103"},
+  {"prefix": "13", "location": "104"}
+]
+

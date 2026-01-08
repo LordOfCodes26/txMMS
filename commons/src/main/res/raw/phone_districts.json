@@ -1,0 +1,20 @@
+[
+  {"prefix": "01", "districtCode": "756", "districtName": "111"},
+  {"prefix": "01", "districtCode": "713", "districtName": "111"},
+  {"prefix": "01", "districtCode": "714", "districtName": "111"},
+  {"prefix": "01", "districtCode": "715", "districtName": "1111"},
+  {"prefix": "01", "districtCode": "716", "districtName": "1111"},
+  {"prefix": "01", "districtCode": "717", "districtName": "111"},
+  {"prefix": "01", "districtCode": "718", "districtName": "111"},
+  {"prefix": "01", "districtCode": "719", "districtName": "1111"},
+  {"prefix": "02", "districtCode": "712", "districtName": "111"},
+  {"prefix": "02", "districtCode": "713", "districtName": "111"},
+  {"prefix": "02", "districtCode": "714", "districtName": "111"},
+  {"prefix": "02", "districtCode": "715", "districtName": "111"},
+  {"prefix": "02", "districtCode": "716", "districtName": "1111"},
+  {"prefix": "03", "districtCode": "712", "districtName": "1111"},
+  {"prefix": "03", "districtCode": "713", "districtName": "111"},
+  {"prefix": "03", "districtCode": "714", "districtName": "111"},
+  {"prefix": "03", "districtCode": "715", "districtName": "111"}
+]
+

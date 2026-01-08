@@ -1,0 +1,59 @@
+[
+  {
+    "prefix": "01",
+    "prefixLength": 2,
+    "districtCodePattern": "4XX",
+    "formatTemplate": "{PREFIX}-{DISTRICT}-{NUMBER4}",
+    "districtCodeLength": 3,
+    "description": "Area format starting with 4: 01-4XX-XXXX"
+  },
+  {
+    "prefix": "01",
+    "prefixLength": 2,
+    "districtCodePattern": "5XX",
+    "formatTemplate": "{PREFIX}-{DISTRICT}-{NUMBER4}",
+    "districtCodeLength": 3,
+    "description": "Area format starting with 5: 01-5XX-XXXX"
+  },
+  {
+    "prefix": "01",
+    "prefixLength": 2,
+    "districtCodePattern": "7XX",
+    "formatTemplate": "{PREFIX}-{DISTRICT}-{NUMBER4}",
+    "districtCodeLength": 3,
+    "description": "District format starting with 7: 01-7XX-XXXX"
+  },
+  {
+    "prefix": "02",
+    "prefixLength": 2,
+    "districtCodePattern": "7XX",
+    "formatTemplate": "{PREFIX}-{DISTRICT}-{NUMBER4}",
+    "districtCodeLength": 3,
+    "description": "District format starting with 7: 02-7XX-XXXX"
+  },
+  {
+    "prefix": "13",
+    "prefixLength": 2,
+    "districtCodePattern": "09",
+    "formatTemplate": "1309-{NUMBER1}-{NUMBER4}",
+    "districtCodeLength": 2,
+    "description": "Special format for prefix 13: 1309-X-XXXX"
+  },
+  {
+    "prefix": "021",
+    "prefixLength": 3,
+    "districtCodePattern": "XX",
+    "formatTemplate": "{PREFIX}-{DISTRICT}-{NUMBER4}",
+    "districtCodeLength": 2,
+    "description": "Format for 3-digit prefix: 021-XX-XXXX"
+  },
+  {
+    "prefix": "0219",
+    "prefixLength": 4,
+    "districtCodePattern": "X",
+    "formatTemplate": "{PREFIX}-{DISTRICT}-{NUMBER4}",
+    "districtCodeLength": 1,
+    "description": "Format for 4-digit prefix: 0219-X-XXXX"
+  }
+]
+
