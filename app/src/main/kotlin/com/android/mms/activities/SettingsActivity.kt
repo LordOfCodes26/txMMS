@@ -2,7 +2,9 @@ package com.android.mms.activities
 
 import android.annotation.SuppressLint
 import android.content.Intent
+import android.media.RingtoneManager
 import android.os.Bundle
+import android.provider.Settings
 import android.view.Menu
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.content.res.AppCompatResources
@@ -125,6 +127,7 @@ class SettingsActivity : SimpleActivity() {
         setupDeleteConfirmation()
 
         setupCustomizeNotifications()
+        setupNotificationSound()
         setupLockScreenVisibility()
         setupCopyNumberAndDelete()
         setupNotifyTurnsOnScreen()
@@ -222,6 +225,7 @@ class SettingsActivity : SimpleActivity() {
                 settingsManageBlockedKeywordsChevron,
                 settingsManageQuickTextsChevron,
                 settingsCustomizeNotificationsChevron,
+                settingsNotificationSoundChevron,
                 settingsImportMessagesChevron,
                 settingsExportMessagesChevron,
                 settingsTipJarChevron,
@@ -276,6 +280,24 @@ class SettingsActivity : SimpleActivity() {
 
         settingsCustomizeNotificationsHolder.setOnClickListener {
             launchCustomizeNotificationsIntent()
+        }
+    }
+
+    private fun setupNotificationSound() = binding.apply {
+        settingsNotificationSoundChevron.applyColorFilter(getProperTextColor())
+        settingsNotificationSoundHolder.setOnClickListener {
+            try {
+                val intent = Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
+                    putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_NOTIFICATION)
+                    putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE, getString(R.string.notification_sound))
+                    putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
+                    putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, true)
+                    putExtra(RingtoneManager.EXTRA_RINGTONE_DEFAULT_URI, RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))
+                }
+                startActivity(intent)
+            } catch (e: Exception) {
+                showErrorToast(e)
+            }
         }
     }
 

@@ -600,6 +600,28 @@
                         </RelativeLayout>
 
                         <RelativeLayout
+                            android:id="@+id/settings_notification_sound_holder"
+                            style="@style/SettingsHolderSwitchStyle">
+
+                            <com.goodwy.commons.views.MyTextView
+                                android:id="@+id/settings_notification_sound_label"
+                                style="@style/SettingsTextLabelStyle"
+                                android:layout_alignParentStart="true"
+                                android:layout_centerVertical="true"
+                                android:layout_toStartOf="@+id/settings_notification_sound_chevron"
+                                android:text="@string/notification_sound"
+                                tools:ignore="TooManyViews" />
+
+                            <ImageView
+                                android:id="@+id/settings_notification_sound_chevron"
+                                style="@style/SettingsChevronStyle"
+                                android:layout_alignParentEnd="true"
+                                android:layout_centerVertical="true"
+                                android:contentDescription="@string/notification_sound"/>
+
+                        </RelativeLayout>
+
+                        <RelativeLayout
                             android:id="@+id/settings_lock_screen_visibility_holder"
                             style="@style/SettingsHolderSwitchStyle">
 
