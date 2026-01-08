@@ -803,7 +803,14 @@ class ThreadActivity : SimpleActivity() {
             onRecordAudio = { launchCaptureAudioIntent() },
             onPickFile = { launchGetContentIntent(arrayOf("*/*"), MessageHolderHelper.PICK_DOCUMENT_INTENT) },
             onPickContact = { launchPickContactIntent() },
-            onScheduleMessage = { launchScheduleSendDialog() }
+            onScheduleMessage = { launchScheduleSendDialog() },
+            onPickQuickText = {
+                val blurTarget = findViewById<eightbitlab.com.blurview.BlurTarget>(R.id.mainBlurTarget)
+                    ?: throw IllegalStateException("mainBlurTarget not found")
+                com.android.mms.dialogs.QuickTextSelectionDialog(this, blurTarget) { selectedText ->
+                    messageHolderHelper?.insertText(selectedText)
+                }
+            }
         )
         
         messageHolderHelper?.hideAttachmentPicker()

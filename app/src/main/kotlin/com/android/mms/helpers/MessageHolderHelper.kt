@@ -145,7 +145,8 @@ class MessageHolderHelper(
         onRecordAudio: () -> Unit,
         onPickFile: () -> Unit,
         onPickContact: () -> Unit,
-        onScheduleMessage: (() -> Unit)? = null
+        onScheduleMessage: (() -> Unit)? = null,
+        onPickQuickText: () -> Unit
     ) {
         binding.attachmentPicker.apply {
             val buttonColors = arrayOf(
@@ -160,7 +161,10 @@ class MessageHolderHelper(
                 else if (activity.isLightTheme() || activity.isGrayTheme()) com.goodwy.commons.R.color.theme_dark_background_color
                 else com.goodwy.commons.R.color.white,
                 com.goodwy.commons.R.color.ic_contacts,
-                com.goodwy.commons.R.color.ic_messages
+                com.goodwy.commons.R.color.ic_messages,
+                if (activity.isDynamicTheme()) com.goodwy.commons.R.color.you_neutral_text_color
+                else if (activity.isLightTheme() || activity.isGrayTheme()) com.goodwy.commons.R.color.theme_dark_background_color
+                else com.goodwy.commons.R.color.white
             ).map { ResourcesCompat.getColor(activity.resources, it, activity.theme) }
 
             arrayOf(
@@ -171,12 +175,13 @@ class MessageHolderHelper(
                 recordAudioIcon,
                 pickFileIcon,
                 pickContactIcon,
-                scheduleMessageIcon
+                scheduleMessageIcon,
+                pickQuickTextIcon
             ).forEachIndexed { index, icon ->
                 val iconColor = buttonColors[index]
                 icon.background.applyColorFilter(iconColor)
-                if (index != 0 && index != 2 && index != 5) icon.applyColorFilter(iconColor.getContrastColor())
-                if (index == 5) icon.applyColorFilter(ResourcesCompat.getColor(activity.resources, com.goodwy.commons.R.color.ic_messages, activity.theme))
+                if (index != 0 && index != 2 && index != 5 && index != 8) icon.applyColorFilter(iconColor.getContrastColor())
+                if (index == 5 || index == 8) icon.applyColorFilter(ResourcesCompat.getColor(activity.resources, com.goodwy.commons.R.color.ic_messages, activity.theme))
             }
 
             val textColor = activity.getProperTextColor()
@@ -188,7 +193,8 @@ class MessageHolderHelper(
                 recordAudioText,
                 pickFileText,
                 pickContactText,
-                scheduleMessageText
+                scheduleMessageText,
+                pickQuickTextText
             ).forEach { it.setTextColor(textColor) }
 
             choosePhoto.setOnClickListener { onChoosePhoto() }
@@ -201,6 +207,7 @@ class MessageHolderHelper(
             scheduleMessage.setOnClickListener {
                 onScheduleMessage?.invoke() ?: activity.toast(com.goodwy.commons.R.string.unknown_error_occurred)
             }
+            pickQuickText.setOnClickListener { onPickQuickText() }
         }
     }
 
@@ -334,6 +341,17 @@ class MessageHolderHelper(
 
     fun setMessageText(text: String) {
         binding.threadTypeMessage.setText(text)
+    }
+
+    fun insertText(text: String) {
+        val editText = binding.threadTypeMessage
+        val start = editText.selectionStart
+        val end = editText.selectionEnd
+        val currentText = editText.text.toString()
+        val newText = currentText.substring(0, start) + text + currentText.substring(end)
+        editText.setText(newText)
+        editText.setSelection(start + text.length)
+        checkSendMessageAvailability()
     }
 
     fun clearMessage() {

@@ -9,7 +9,7 @@
         android:id="@+id/choose_wrapper"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        app:constraint_referenced_ids="choose_photo,choose_video,take_photo,record_video,record_audio,pick_file,pick_contact,schedule_message"
+        app:constraint_referenced_ids="choose_photo,choose_video,take_photo,record_video,record_audio,pick_file,pick_contact,schedule_message,pick_quick_text"
         app:flow_verticalGap="@dimen/small_margin"
         app:flow_wrapMode="aligned"
         app:layout_constraintEnd_toEndOf="parent"
@@ -282,6 +282,41 @@
             android:ellipsize="end"
             android:maxLines="1"
             android:text="@string/schedule_message"
+            android:textAlignment="center"
+            android:textColor="@color/default_text_color"
+            android:textSize="@dimen/small_text_size"
+            android:visibility="gone" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/pick_quick_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="?selectableItemBackgroundBorderless"
+        android:orientation="vertical"
+        android:contentDescription="@string/quick_texts">
+
+        <androidx.appcompat.widget.AppCompatImageView
+            android:id="@+id/pick_quick_text_icon"
+            android:layout_width="40dp"
+            android:layout_height="30dp"
+            android:layout_gravity="center"
+            android:background="@drawable/attach_button_background"
+            android:backgroundTint="@color/white"
+            android:padding="@dimen/small_margin"
+            android:contentDescription="@string/quick_texts"
+            android:src="@drawable/ic_document_vector"
+            app:tint="@color/ic_messages" />
+
+        <androidx.appcompat.widget.AppCompatTextView
+            android:id="@+id/pick_quick_text_text"
+            android:layout_width="@dimen/attach_text_width"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_marginTop="@dimen/small_margin"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="@string/quick_texts"
             android:textAlignment="center"
             android:textColor="@color/default_text_color"
             android:textSize="@dimen/small_text_size"
