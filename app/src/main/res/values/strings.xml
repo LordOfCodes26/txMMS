@@ -108,6 +108,12 @@
     <string name="quick_text">Quick text</string>
     <string name="export_quick_texts">Export quick texts</string>
     <string name="import_quick_texts">Import quick texts</string>
+    <string-array name="default_quick_texts">
+        <item>How are you</item>
+        <item>Sorry, I am busy now</item>
+        <item>Nice to meet you</item>
+        <item>It\'s my pleasure</item>
+    </string-array>
     <string name="lock_screen_visibility">Lock screen notification visibility</string>
     <string name="sender_and_message">Sender and message</string>
     <string name="sender_only">Sender only</string>

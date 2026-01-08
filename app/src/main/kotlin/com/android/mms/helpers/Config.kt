@@ -4,6 +4,7 @@ import android.content.Context
 import com.goodwy.commons.helpers.BaseConfig
 import com.android.mms.extensions.getDefaultKeyboardHeight
 import com.android.mms.models.Conversation
+import com.android.mms.R
 import androidx.core.content.edit
 
 class Config(context: Context) : BaseConfig(context) {
@@ -149,6 +150,16 @@ class Config(context: Context) : BaseConfig(context) {
         prefs.edit {
             remove(QUICK_TEXTS)
             remove("${QUICK_TEXTS}_ordered")
+        }
+    }
+
+    fun initializeDefaultQuickTexts() {
+        // Only initialize if quick texts are empty (first launch)
+        if (quickTexts.isEmpty()) {
+            val defaultTexts = context.resources.getStringArray(R.array.default_quick_texts)
+            defaultTexts.forEach { text ->
+                addQuickText(text)
+            }
         }
     }
 

@@ -71,7 +71,11 @@ class MainActivity : SimpleActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
+        val isFirstLaunch = baseConfig.appRunCount == 0
         appLaunched(BuildConfig.APPLICATION_ID)
+        if (isFirstLaunch) {
+            config.initializeDefaultQuickTexts()
+        }
         setupOptionsMenu()
         refreshMenuItems()
 
