@@ -6,6 +6,8 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Point
 import android.icu.text.BreakIterator
+import android.os.Handler
+import android.os.Looper
 import android.os.StatFs
 import android.provider.MediaStore
 import android.telephony.PhoneNumberUtils
@@ -13,7 +15,9 @@ import android.text.*
 import android.text.style.ForegroundColorSpan
 import android.widget.TextView
 import com.bumptech.glide.signature.ObjectKey
+import com.goodwy.commons.databases.PhoneNumberDatabase
 import com.goodwy.commons.helpers.*
+import com.goodwy.commons.models.PhoneNumberFormat
 import org.joda.time.DateTime
 import org.joda.time.Years
 import org.joda.time.format.DateTimeFormat
@@ -150,7 +154,7 @@ fun String.getImageResolution(context: Context): Point? {
     if (context.isRestrictedSAFOnlyRoot(this)) {
         BitmapFactory.decodeStream(context.contentResolver.openInputStream(context.getAndroidSAFUri(this)), null, options)
     } else {
-    BitmapFactory.decodeFile(this, options)
+        BitmapFactory.decodeFile(this, options)
     }
 
     val width = options.outWidth
@@ -346,9 +350,14 @@ fun String.isEmoji(): Boolean {
 fun String.normalizePhoneNumber(): String = PhoneNumberUtils.normalizeNumber(this)
 
 fun String.formatPhoneNumber(minimumLength: Int = 4): String {
-    val country = Locale.getDefault().country
-    return if (this.length >= minimumLength) {
-        PhoneNumberUtils.formatNumber(this, country)?.toString() ?: this
+    val normalizedNumber = this.normalizePhoneNumber()
+    return if (normalizedNumber.length >= minimumLength) {
+        com.goodwy.commons.helpers.PhoneNumberFormatManager.formatPhoneNumber(
+            this,
+            normalizedNumber,
+            null,
+            minimumLength
+        )
     } else {
         this
     }
@@ -1075,4 +1084,302 @@ fun String.getNameColor(): Int {
 //This converts the string to RTL and left-aligns it if there is at least one RTL-language character in the string, and returns to LTR otherwise.
 fun formatterUnicodeWrap(text: String): String {
     return BidiFormatter.getInstance().unicodeWrap(text)
+}
+
+// Phone number format and location extensions
+
+/**
+ * Extracts prefix and district from phone number using format matching and returns location from database (synchronous)
+ * Uses the same format matching logic as formatting to accurately extract prefix and district code
+ *
+ * Process:
+ * 1. Matches phone number to a format definition (from phone_number_formats.json)
+ * 2. Extracts exact prefix and district code based on the matched format
+ * 3. Looks up city using the extracted prefix
+ * 4. Looks up district using the extracted prefix + district code
+ * 5. Falls back to trial-and-error method if no format matches
+ *
+ * Note: This should only be called from a background thread
+ * @param context Context to access database
+ * @return Location string (format: "City" or "City - District") if prefix found, null otherwise
+ */
+fun String.getLocationByPrefix(context: Context): String? {
+    val normalizedNumber = this.normalizePhoneNumber()
+
+    if (normalizedNumber.length < 2) {
+        return null
+    }
+
+    return try {
+        val db = PhoneNumberDatabase.getInstance(context)
+        val formatDao = db.PhoneNumberFormatDao()
+
+        val allFormats = formatDao.getAllFormats()
+        val sortedFormats = allFormats.sortedByDescending { it.prefixLength }
+
+        var matchedPrefix: String? = null
+        var matchedDistrictCode: String? = null
+
+        for (format in sortedFormats) {
+            if (normalizedNumber.length < format.prefixLength + format.districtCodeLength) {
+                continue
+            }
+
+            val prefix = normalizedNumber.substring(0, format.prefixLength)
+
+            if (format.prefix != "all" && prefix != format.prefix) {
+                continue
+            }
+
+            val districtCode = normalizedNumber.substring(format.prefixLength, format.prefixLength + format.districtCodeLength)
+
+            if (PhoneNumberFormatHelper.matchesPattern(districtCode, format.districtCodePattern)) {
+                matchedPrefix = prefix
+                matchedDistrictCode = districtCode
+                break
+            }
+        }
+
+        if (matchedPrefix != null) {
+            val cityLocation = db.PhonePrefixLocationDao().getLocationStringByPrefix(matchedPrefix)
+
+            if (cityLocation != null) {
+                val districtName = if (matchedDistrictCode != null) {
+                    db.PhoneDistrictDao().getDistrictNameByPrefixAndCode(matchedPrefix, matchedDistrictCode)
+                } else {
+                    null
+                }
+
+                if (districtName != null) {
+                    "$cityLocation - $districtName"
+                } else {
+                    cityLocation
+                }
+            } else {
+                null
+            }
+        } else {
+            for (prefixLength in 4 downTo 2) {
+                if (normalizedNumber.length < prefixLength) {
+                    continue
+                }
+
+                val prefix = normalizedNumber.substring(0, prefixLength)
+                val cityLocation = db.PhonePrefixLocationDao().getLocationStringByPrefix(prefix)
+
+                if (cityLocation != null) {
+                    var districtName: String? = null
+                    for (districtLength in 3 downTo 1) {
+                        if (normalizedNumber.length >= prefixLength + districtLength) {
+                            val districtCode = normalizedNumber.substring(prefixLength, prefixLength + districtLength)
+                            districtName = db.PhoneDistrictDao().getDistrictNameByPrefixAndCode(prefix, districtCode)
+                            if (districtName != null) {
+                                break
+                            }
+                        }
+                    }
+
+                    return if (districtName != null) {
+                        "$cityLocation - $districtName"
+                    } else {
+                        cityLocation
+                    }
+                }
+            }
+            null
+        }
+    } catch (e: Exception) {
+        null
+    }
+}
+
+/**
+ * Extracts prefix and district from phone number using format matching and returns location from database (asynchronous)
+ * Uses the same format matching logic as formatting to accurately extract prefix and district code
+ *
+ * @param context Context to access database
+ * @param callback Callback function that receives the location string (format: "City" or "City - District") or null
+ */
+fun String.getLocationByPrefixAsync(context: Context, callback: (String?) -> Unit) {
+    val normalizedNumber = this.normalizePhoneNumber()
+
+    if (normalizedNumber.length < 2) {
+        callback(null)
+        return
+    }
+
+    ensureBackgroundThread {
+        try {
+            val db = PhoneNumberDatabase.getInstance(context)
+            val formatDao = db.PhoneNumberFormatDao()
+
+            val allFormats = formatDao.getAllFormats()
+            val sortedFormats = allFormats.sortedByDescending { it.prefixLength }
+
+            var matchedPrefix: String? = null
+            var matchedDistrictCode: String? = null
+
+            for (format in sortedFormats) {
+                if (normalizedNumber.length < format.prefixLength + format.districtCodeLength) {
+                    continue
+                }
+
+                val prefix = normalizedNumber.substring(0, format.prefixLength)
+
+                if (format.prefix != "all" && prefix != format.prefix) {
+                    continue
+                }
+
+                val districtCode = normalizedNumber.substring(format.prefixLength, format.prefixLength + format.districtCodeLength)
+
+                if (PhoneNumberFormatHelper.matchesPattern(districtCode, format.districtCodePattern)) {
+                    matchedPrefix = prefix
+                    matchedDistrictCode = districtCode
+                    break
+                }
+            }
+
+            var result: String? = null
+
+            if (matchedPrefix != null) {
+                val cityLocation = db.PhonePrefixLocationDao().getLocationStringByPrefix(matchedPrefix)
+
+                if (cityLocation != null) {
+                    val districtName = if (matchedDistrictCode != null) {
+                        db.PhoneDistrictDao().getDistrictNameByPrefixAndCode(matchedPrefix, matchedDistrictCode)
+                    } else {
+                        null
+                    }
+
+                    result = if (districtName != null) {
+                        "$cityLocation - $districtName"
+                    } else {
+                        cityLocation
+                    }
+                }
+            } else {
+                for (prefixLength in 4 downTo 2) {
+                    if (normalizedNumber.length < prefixLength) {
+                        continue
+                    }
+
+                    val prefix = normalizedNumber.substring(0, prefixLength)
+                    val cityLocation = db.PhonePrefixLocationDao().getLocationStringByPrefix(prefix)
+
+                    if (cityLocation != null) {
+                        var districtName: String? = null
+                        for (districtLength in 3 downTo 1) {
+                            if (normalizedNumber.length >= prefixLength + districtLength) {
+                                val districtCode = normalizedNumber.substring(prefixLength, prefixLength + districtLength)
+                                districtName = db.PhoneDistrictDao().getDistrictNameByPrefixAndCode(prefix, districtCode)
+                                if (districtName != null) {
+                                    break
+                                }
+                            }
+                        }
+
+                        result = if (districtName != null) {
+                            "$cityLocation - $districtName"
+                        } else {
+                            cityLocation
+                        }
+                        break
+                    }
+                }
+            }
+
+            Handler(Looper.getMainLooper()).post {
+                callback(result)
+            }
+        } catch (e: Exception) {
+            Handler(Looper.getMainLooper()).post {
+                callback(null)
+            }
+        }
+    }
+}
+
+/**
+ * Formats phone number using formats defined in database (JSON file)
+ * Formats are loaded from phone_number_formats table and matched dynamically
+ * Supports variable prefix lengths (2, 3, or 4 digits)
+ * Note: This should only be called from a background thread
+ *
+ * @param context Context to access database
+ * @return Formatted phone number or original if no format matches
+ */
+fun String.formatPhoneNumberWithDistrict(context: Context): String {
+    val normalizedNumber = this.normalizePhoneNumber()
+
+    if (normalizedNumber.length < 2) {
+        return this
+    }
+
+    return try {
+        val db = PhoneNumberDatabase.getInstance(context)
+        val formatDao = db.PhoneNumberFormatDao()
+
+        val allFormats = formatDao.getAllFormats()
+        val sortedFormats = allFormats.sortedByDescending { it.prefixLength }
+
+        // Calculate maximum expected length from all formats
+        // Format typically needs: prefix + district + 4 digits for NUMBER4
+        val maxExpectedLength = sortedFormats.maxOfOrNull {
+            it.prefixLength + it.districtCodeLength + 4
+        } ?: Int.MAX_VALUE
+
+        // If number is significantly longer than any format expects, return normalized number
+        // Allow some buffer (e.g., 2 extra digits) before considering it overflow
+        if (normalizedNumber.length > maxExpectedLength + 2) {
+            normalizedNumber
+        } else {
+            var matchedFormat: PhoneNumberFormat? = null
+            var matchedPrefix: String? = null
+            var matchedDistrictCode: String? = null
+
+            for (format in sortedFormats) {
+                // Check if number is long enough for this format
+                // Need at least prefix + district code
+                val minRequiredLength = format.prefixLength + format.districtCodeLength
+                if (normalizedNumber.length < minRequiredLength) {
+                    continue
+                }
+
+                val prefix = normalizedNumber.substring(0, format.prefixLength)
+
+                if (format.prefix != "all" && prefix != format.prefix) {
+                    continue
+                }
+
+                val districtCode = normalizedNumber.substring(format.prefixLength, format.prefixLength + format.districtCodeLength)
+
+                if (PhoneNumberFormatHelper.matchesPattern(districtCode, format.districtCodePattern)) {
+                    matchedFormat = format
+                    matchedPrefix = prefix
+                    matchedDistrictCode = districtCode
+                    break
+                }
+            }
+
+            if (matchedFormat != null && matchedPrefix != null && matchedDistrictCode != null) {
+                val numberStart = matchedFormat.prefixLength + matchedFormat.districtCodeLength
+                val numberPart = if (normalizedNumber.length > numberStart) {
+                    normalizedNumber.substring(numberStart)
+                } else {
+                    ""
+                }
+
+                PhoneNumberFormatHelper.formatNumber(
+                    matchedFormat.formatTemplate,
+                    matchedPrefix,
+                    matchedDistrictCode,
+                    numberPart
+                )
+            } else {
+                this
+            }
+        }
+    } catch (e: Exception) {
+        this
+    }
 }

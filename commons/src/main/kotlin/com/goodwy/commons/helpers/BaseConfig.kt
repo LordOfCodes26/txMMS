@@ -556,7 +556,7 @@ open class BaseConfig(val context: Context) {
         set(showPhoneNumbers) = prefs.edit { putBoolean(SHOW_PHONE_NUMBERS, showPhoneNumbers) }
 
     var formatPhoneNumbers: Boolean
-        get() = prefs.getBoolean(FORMAT_PHONE_NUMBERS, false)
+        get() = prefs.getBoolean(FORMAT_PHONE_NUMBERS, true)
         set(formatPhoneNumbers) = prefs.edit { putBoolean(FORMAT_PHONE_NUMBERS, formatPhoneNumbers) }
 
     var showOnlyContactsWithNumbers: Boolean

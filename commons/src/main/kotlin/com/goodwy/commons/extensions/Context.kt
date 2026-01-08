@@ -46,6 +46,7 @@ import android.provider.OpenableColumns
 import android.provider.Settings
 import android.telecom.TelecomManager
 import android.telephony.PhoneNumberUtils
+import android.telephony.SubscriptionManager
 import android.text.TextUtils
 import android.util.TypedValue
 import android.view.View
@@ -1019,6 +1020,8 @@ fun Context.getTextSizeSmall() = when (baseConfig.fontSize) {
 }
 
 val Context.telecomManager: TelecomManager get() = getSystemService(Context.TELECOM_SERVICE) as TelecomManager
+
+val Context.subscriptionManager: SubscriptionManager get() = getSystemService(Context.TELEPHONY_SUBSCRIPTION_SERVICE) as SubscriptionManager
 val Context.windowManager: WindowManager get() = getSystemService(Context.WINDOW_SERVICE) as WindowManager
 val Context.notificationManager: NotificationManager get() = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 val Context.shortcutManager: ShortcutManager get() = getSystemService(ShortcutManager::class.java) as ShortcutManager

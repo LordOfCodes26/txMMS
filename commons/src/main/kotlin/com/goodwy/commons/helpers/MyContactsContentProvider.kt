@@ -12,7 +12,7 @@ import com.goodwy.commons.models.contacts.*
 import androidx.core.net.toUri
 import com.goodwy.commons.extensions.getStringValueOrNull
 
-// used for sharing privately stored contacts in Simple Contacts with Simple Dialer, Simple SMS Messenger and Simple Calendar Pro
+// used for sharing system contacts in Simple Contacts with Simple Dialer, Simple SMS Messenger and Simple Calendar Pro
 class MyContactsContentProvider {
     companion object {
         private const val AUTHORITY = "com.goodwy.commons.contactsprovider"

@@ -48,6 +48,25 @@ data class Contact(
     var anniversaries =
         events.filter { it.type == ContactsContract.CommonDataKinds.Event.TYPE_ANNIVERSARY }.map { it.value }.toMutableList() as ArrayList<String>
 
+    // Single name property - getter combines all name parts, setter stores in firstName
+    var fullName: String
+        get() {
+            // If only firstName has content, return it directly
+            if (firstName.isNotEmpty() && middleName.isEmpty() && surname.isEmpty() && prefix.isEmpty() && suffix.isEmpty()) {
+                return firstName
+            }
+            // Otherwise return the formatted full name
+            return getNameToDisplay()
+        }
+        set(value) {
+            // Store the single name in firstName, clear other name fields
+            firstName = value.trim()
+            prefix = ""
+            middleName = ""
+            surname = ""
+            suffix = ""
+        }
+
     companion object {
         var sorting = 0
         var startWithSurname = false
@@ -110,9 +129,9 @@ data class Contact(
 
     // Fast versions of methods without normaliseString()
     private fun getCompareStringForFirstNameFast(): String {
-        val firstNameOrNickname = if (showNicknameInsteadNames && nickname.isNotBlank()) nickname else firstName
-        return if (firstNameOrNickname.isEmpty() && isNameEmpty()) getFallbackCompareStringFast()
-        else firstNameOrNickname.lowercase()
+        // Use only firstName - nickname removed
+        return if (firstName.isEmpty() && isNameEmpty()) getFallbackCompareStringFast()
+        else firstName.lowercase()
     }
 
     private fun getCompareStringForMiddleNameFast(): String {
@@ -163,8 +182,8 @@ data class Contact(
     }
 
     private fun getCompareStringForFirstName(): String {
-        val firstNameOrNickname = if (showNicknameInsteadNames && nickname.isNotBlank()) nickname else firstName
-        return if (firstNameOrNickname.isEmpty() && isNameEmpty()) getFallbackCompareString() else firstNameOrNickname.normalizeString()
+        // Use only firstName - nickname removed
+        return if (firstName.isEmpty() && isNameEmpty()) getFallbackCompareString() else firstName.normalizeString()
     }
 
     private fun getCompareStringForMiddleName(): String {
@@ -180,8 +199,8 @@ data class Contact(
     }
 
     private fun isNameEmpty(): Boolean {
-        val firstNameOrNickname = if (showNicknameInsteadNames && nickname.isNotBlank()) nickname else firstName
-        return firstNameOrNickname.isEmpty() && middleName.isEmpty() && surname.isEmpty()
+        // Use only firstName - prefix, middleName, surname, suffix, nickname removed
+        return firstName.isEmpty()
     }
 
     private fun getFallbackCompareString(): String {
@@ -271,13 +290,10 @@ data class Contact(
 
     fun getBubbleText(): String {
         return try {
-            val firstName = if (showNicknameInsteadNames && nickname.isNotBlank()) nickname else firstName
+            // Use only firstName - prefix, middleName, surname, suffix, nickname removed
             var name = when {
                 isABusinessContact() -> getFullCompany()
-                sorting and SORT_BY_SURNAME != 0 && surname.isNotEmpty() -> surname
-                sorting and SORT_BY_MIDDLE_NAME != 0 && middleName.isNotEmpty() -> middleName
                 sorting and SORT_BY_FIRST_NAME != 0 && firstName.isNotEmpty() -> firstName
-                startWithSurname -> surname
                 else -> firstName
             }
 
@@ -299,27 +315,13 @@ data class Contact(
     }
 
     fun getNameToDisplay(): String {
-        val firstName = if (showNicknameInsteadNames && nickname.isNotBlank()) nickname else firstName
-        val firstMiddle = "$firstName $middleName".trim()
-        val firstPart = if (startWithSurname) {
-            if (surname.isNotEmpty() && firstMiddle.isNotEmpty()) {
-                "$surname,"
-            } else {
-                surname
-            }
-        } else {
-            firstMiddle
-        }
-        val lastPart = if (startWithSurname) firstMiddle else surname
-        val suffixComma = if (suffix.isEmpty()) "" else ", $suffix"
-        val fullName = "$prefix $firstPart $lastPart$suffixComma".trim()
+        // Use only firstName - prefix, middleName, surname, suffix, nickname removed
         val organization = getFullCompany()
         val email = emails.firstOrNull()?.value?.trim()
         val phoneNumber = phoneNumbers.firstOrNull()?.value
 
         return when {
-            fullName.isNotBlank() -> fullName
-            nickname.isNotBlank() -> nickname
+            firstName.isNotBlank() -> firstName
             organization.isNotBlank() -> organization
             !email.isNullOrBlank() -> email
             !phoneNumber.isNullOrBlank() -> phoneNumber
@@ -465,13 +467,9 @@ data class Contact(
     }
 
     fun getContactToText(context: Context): String {
-        val name = arrayOf(prefix, firstName, middleName, surname, suffix)
-            .filter { it.isNotEmpty() }
-            .joinToString(separator = " ")
-        val formattedName = FormattedName(name).value
+        // Use only firstName - prefix, middleName, surname, suffix, nickname removed
+        val formattedName = FormattedName(firstName).value
         var contactToText = if (formattedName.isNotEmpty()) formattedName + "\n" else ""
-
-        if (nickname.isNotEmpty()) contactToText = contactToText + nickname + "\n"
 
         if (phoneNumbers.isNotEmpty()) phoneNumbers.forEach {
             contactToText = contactToText + context.getPhoneNumberTypeText(it.type, it.label) + " " + it.value + "\n"

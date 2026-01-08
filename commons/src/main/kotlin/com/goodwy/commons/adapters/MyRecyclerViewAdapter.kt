@@ -98,11 +98,11 @@ abstract class MyRecyclerViewAdapter(
                 activity.menuInflater.inflate(getActionMenuId(), menu)
 
 //                val cabBackgroundColor = if (activity.isDynamicTheme()) {
-//                    resources.getColor(R.color.you_contextual_status_bar_color, activity.theme)
+//                    resources.getColor(R.color.you_background_color, activity.theme)
 //                } else {
 //                    activity.getColoredMaterialStatusBarColor()
 //                }
-                val cabBackgroundColor = activity.getColoredMaterialStatusBarColor()
+                val cabBackgroundColor = activity.getSurfaceColor()
                 val cabContrastColor = cabBackgroundColor.getContrastColor()
                 val actModeBar = actMode!!.customView?.parent as? View
                 actModeBar?.setBackgroundColor(cabBackgroundColor)
@@ -111,7 +111,7 @@ abstract class MyRecyclerViewAdapter(
                 activity.updateMenuItemColors(menu, baseColor = cabBackgroundColor, forceWhiteIcons = false)
                 onActionModeCreated()
 
-                //if (activity.isDynamicTheme()) {
+                if (activity.isDynamicTheme()) {
                     actBarTextView?.onGlobalLayout {
                         val backArrow = activity.findViewById<ImageView>(androidx.appcompat.R.id.action_mode_close_button)
                         backArrow?.setImageDrawable(resources.getDrawable(R.drawable.ic_chevron_left_vector, activity.theme))
@@ -127,7 +127,7 @@ abstract class MyRecyclerViewAdapter(
                             }
                         }
                     }
-                //}
+                }
                 return true
             }
 

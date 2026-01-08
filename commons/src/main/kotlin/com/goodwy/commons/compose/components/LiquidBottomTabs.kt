@@ -24,9 +24,11 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -191,7 +193,7 @@ fun LiquidBottomTabs(
 
         CompositionLocalProvider(
             LocalLiquidBottomTabScale provides {
-                lerp(1f, 1.1f, dampedDragAnimation.pressProgress)
+                lerp(1f, 1.05f, dampedDragAnimation.pressProgress)
             }
         ) {
             Row(
@@ -273,12 +275,30 @@ fun LiquidBottomTabs(
                     },
                     onDrawSurface = {
                         val progress = dampedDragAnimation.pressProgress
+                        val borderWidth = with(density) {
+                            lerp(1f.dp.toPx(), 2f.dp.toPx(), progress)
+                        }
+                        val borderColor = if (isLightTheme) {
+                            Color.Black.copy(alpha = lerp(0.1f, 0.5f, progress))
+                        } else {
+                            Color.White.copy(alpha = lerp(0.1f, 0.5f, progress))
+                        }
+                        
+                        // Draw background rectangles
                         drawRect(
                             if (isLightTheme) Color.Black.copy(0.1f)
                             else Color.White.copy(0.1f),
                             alpha = 1f - progress
                         )
                         drawRect(Color.Black.copy(alpha = 0.03f * progress))
+                        
+                        // Draw capsule border (perfect capsule when corner radius = half height)
+                        val cornerRadius = size.height / 2f
+                        drawRoundRect(
+                            color = borderColor,
+                            cornerRadius = CornerRadius(cornerRadius, cornerRadius),
+                            style = Stroke(width = borderWidth)
+                        )
                     }
                 )
                 .height(48f.dp)

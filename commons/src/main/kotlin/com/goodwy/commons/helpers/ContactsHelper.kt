@@ -38,7 +38,7 @@ class ContactsHelper(val context: Context) {
         gettingDuplicates: Boolean = false,
         ignoredContactSources: HashSet<String> = HashSet(),
         showOnlyContactsWithNumbers: Boolean = context.baseConfig.showOnlyContactsWithNumbers,
-        loadExtendedFields: Boolean = true, // Set to false for list views to skip addresses, events, notes, websites, relations, IMs
+        loadExtendedFields: Boolean = true, // Set to false for list views to skip addresses, events, notes, websites, relations
         callback: (ArrayList<Contact>) -> Unit
     ) {
         ensureBackgroundThread {
@@ -75,10 +75,12 @@ class ContactsHelper(val context: Context) {
 
             if (context.baseConfig.mergeDuplicateContacts && ignoredContactSources.isEmpty() && !getAll) {
                 // Optimize duplicate merging: filter and group in single pass
+                // Optimize: Use HashSet for O(1) lookup instead of O(n) contains
+                val displaySourcesSet = displayContactSources.toHashSet()
                 val contactsToMerge = ArrayList<Contact>()
                 val contactsToAdd = ArrayList<Contact>()
                 for (contact in tempContacts) {
-                    if (displayContactSources.contains(contact.source)) {
+                    if (displaySourcesSet.contains(contact.source)) {
                         contactsToMerge.add(contact)
                     } else {
                         contactsToAdd.add(contact)
@@ -97,9 +99,12 @@ class ContactsHelper(val context: Context) {
                     if (group.size == 1) {
                         resultContacts.add(group.first())
                     } else {
-                        // Sort once and find best match
-                        group.sortByDescending { it.getStringToCompare().length }
-                        val bestMatch = group.firstOrNull { it.phoneNumbers.isNotEmpty() } ?: group.first()
+                        // Optimize: Use maxByOrNull instead of sort + firstOrNull
+                        val bestMatch = group.maxByOrNull { contact ->
+                            val compareLength = contact.getStringToCompare().length
+                            // Prefer contacts with phone numbers
+                            if (contact.phoneNumbers.isNotEmpty()) compareLength + 1000 else compareLength
+                        } ?: group.first()
                         resultContacts.add(bestMatch)
                     }
                 }
@@ -162,6 +167,21 @@ class ContactsHelper(val context: Context) {
         }
     }
 
+    // Helper function to check if account is SIM card or phone storage
+    private fun isSimOrPhoneStorage(accountName: String, accountType: String): Boolean {
+        val nameLower = accountName.lowercase(Locale.getDefault())
+        val typeLower = accountType.lowercase(Locale.getDefault())
+        
+        // Phone storage: empty account name/type or "phone" account
+        val isPhoneStorage = (accountName.isEmpty() && accountType.isEmpty()) ||
+            (nameLower == "phone" && accountType.isEmpty())
+        
+        // SIM card: account type contains "sim" or "icc"
+        val isSimCard = typeLower.contains("sim") || typeLower.contains("icc")
+        
+        return isPhoneStorage || isSimCard
+    }
+
     @SuppressLint("UseKtx")
     private fun getDeviceContacts(contacts: SparseArray<Contact>, ignoredContactSources: HashSet<String>?, gettingDuplicates: Boolean, loadExtendedFields: Boolean = true) {
         if (!context.hasPermission(PERMISSION_READ_CONTACTS)) {
@@ -181,17 +201,23 @@ class ContactsHelper(val context: Context) {
                 val accountName = cursor.getStringValue(RawContacts.ACCOUNT_NAME) ?: ""
                 val accountType = cursor.getStringValue(RawContacts.ACCOUNT_TYPE) ?: ""
 
-                // Only load system contacts (empty account name/type or "Phone" account)
-                val isSystemContact = (accountName.isEmpty() && accountType.isEmpty()) ||
-                    (accountName.lowercase(Locale.getDefault()) == "phone" && accountType.isEmpty())
-                
-                if (!isSystemContact || ignoredSources.contains("$accountName:$accountType")) {
+                // Load phone storage and SIM card contacts
+                if (!isSimOrPhoneStorage(accountName, accountType)) {
+                    return@queryCursor
+                }
+                // Optimize: Cache account identifier to avoid repeated string concatenation
+                val accountIdentifier = if (accountName.isEmpty() && accountType.isEmpty()) {
+                    ":"
+                } else {
+                    "$accountName:$accountType"
+                }
+                if (ignoredSources.contains(accountIdentifier)) {
                     return@queryCursor
                 }
 
                 val id = cursor.getIntValue(Data.RAW_CONTACT_ID)
                 var prefix = ""
-                var firstName = ""
+                var name = ""
                 var middleName = ""
                 var surname = ""
                 var suffix = ""
@@ -199,10 +225,24 @@ class ContactsHelper(val context: Context) {
                 // ignore names at Organization type contacts
                 if (mimetype == CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE) {
                     prefix = cursor.getStringValue(CommonDataKinds.StructuredName.PREFIX) ?: ""
-                    firstName = cursor.getStringValue(CommonDataKinds.StructuredName.GIVEN_NAME) ?: ""
+                    val givenName = cursor.getStringValue(CommonDataKinds.StructuredName.GIVEN_NAME) ?: ""
                     middleName = cursor.getStringValue(CommonDataKinds.StructuredName.MIDDLE_NAME) ?: ""
-                    surname = cursor.getStringValue(CommonDataKinds.StructuredName.FAMILY_NAME) ?: ""
+                    val familyName = cursor.getStringValue(CommonDataKinds.StructuredName.FAMILY_NAME) ?: ""
                     suffix = cursor.getStringValue(CommonDataKinds.StructuredName.SUFFIX) ?: ""
+                    
+                    // Optimize: Combine name parts without creating intermediate list
+                    val nameBuilder = StringBuilder()
+                    if (prefix.isNotEmpty()) nameBuilder.append(prefix).append(" ")
+                    if (givenName.isNotEmpty()) nameBuilder.append(givenName).append(" ")
+                    if (middleName.isNotEmpty()) nameBuilder.append(middleName).append(" ")
+                    if (familyName.isNotEmpty()) nameBuilder.append(familyName).append(" ")
+                    if (suffix.isNotEmpty()) nameBuilder.append(suffix).append(" ")
+                    name = nameBuilder.trim().toString()
+                    // Clear other name fields since we're using single name
+                    prefix = ""
+                    middleName = ""
+                    surname = ""
+                    suffix = ""
                 }
 
                 var photoUri = ""
@@ -231,7 +271,7 @@ class ContactsHelper(val context: Context) {
                 val relations = ArrayList<ContactRelation>()
                 val ims = ArrayList<IM>()
                 val contact = Contact(
-                    id, prefix, firstName, middleName, surname, suffix, nickname,
+                    id, prefix, name, middleName, surname, suffix, nickname,
                     photoUri, numbers, emails, addresses, events, accountName,
                     starred, contactId, thumbnailUri, null, notes, groups, organization,
                     websites, relations, ims, mimetype, ringtone
@@ -265,12 +305,15 @@ class ContactsHelper(val context: Context) {
             contacts[key]?.let { it.phoneNumbers = phoneNumbers.valueAt(i) }
         }
 
-        applySparseArrayToContacts(getNicknames()) { contact, nickname -> contact.nickname = nickname }
+        // Nickname removed - always set to empty
+        val contactsSize = contacts.size
+        for (i in 0 until contactsSize) {
+            contacts.valueAt(i).nickname = ""
+        }
         
         // Only load extended fields if requested (skip for list views to improve performance)
         if (loadExtendedFields) {
             applySparseArrayToContacts(getAddresses()) { contact, addresses -> contact.addresses = addresses }
-            applySparseArrayToContacts(getIMs()) { contact, ims -> contact.IMs = ims }
             applySparseArrayToContacts(getEvents()) { contact, events -> contact.events = events }
             applySparseArrayToContacts(getNotes()) { contact, note -> contact.notes = note }
             applySparseArrayToContacts(getWebsites()) { contact, websites -> contact.websites = websites }
@@ -403,35 +446,6 @@ class ContactsHelper(val context: Context) {
         }
 
         return addresses
-    }
-
-    private fun getIMs(contactId: Int? = null): SparseArray<ArrayList<IM>> {
-        val IMs = SparseArray<ArrayList<IM>>()
-        val uri = Data.CONTENT_URI
-        val projection = arrayOf(
-            Data.RAW_CONTACT_ID,
-            CommonDataKinds.Im.DATA,
-            CommonDataKinds.Im.PROTOCOL,
-            CommonDataKinds.Im.CUSTOM_PROTOCOL
-        )
-
-        val selection = getSourcesSelection(true, contactId != null)
-        val selectionArgs = getSourcesSelectionArgs(CommonDataKinds.Im.CONTENT_ITEM_TYPE, contactId)
-
-        context.queryCursor(uri, projection, selection, selectionArgs, showErrors = true) { cursor ->
-            val id = cursor.getIntValue(Data.RAW_CONTACT_ID)
-            val IM = cursor.getStringValue(CommonDataKinds.Im.DATA) ?: return@queryCursor
-            val type = cursor.getIntValue(CommonDataKinds.Im.PROTOCOL)
-            val label = cursor.getStringValue(CommonDataKinds.Im.CUSTOM_PROTOCOL) ?: ""
-
-            if (IMs[id] == null) {
-                IMs.put(id, ArrayList())
-            }
-
-            IMs[id]!!.add(IM(IM, type, label))
-        }
-
-        return IMs
     }
 
     private fun getEvents(contactId: Int? = null): SparseArray<ArrayList<Event>> {
@@ -732,7 +746,7 @@ class ContactsHelper(val context: Context) {
         return groups
     }
 
-    private fun getQuestionMarks() = ("?," * displayContactSources.filter { it.isNotEmpty() }.size).trimEnd(',')
+    private fun getQuestionMarksForSources() = ("?," * displayContactSources.filter { it.isNotEmpty() }.size).trimEnd(',')
 
     private fun getSourcesSelection(addMimeType: Boolean = false, addContactId: Boolean = false, useRawContactId: Boolean = true): String {
         val strings = ArrayList<String>()
@@ -748,7 +762,7 @@ class ContactsHelper(val context: Context) {
             if (displayContactSources.contains("")) {
                 accountnameString.append("(")
             }
-            accountnameString.append("${RawContacts.ACCOUNT_NAME} IN (${getQuestionMarks()})")
+            accountnameString.append("${RawContacts.ACCOUNT_NAME} IN (${getQuestionMarksForSources()})")
             if (displayContactSources.contains("")) {
                 accountnameString.append(" OR ${RawContacts.ACCOUNT_NAME} IS NULL)")
             }
@@ -805,12 +819,14 @@ class ContactsHelper(val context: Context) {
         val selection = "${Groups.AUTO_ADD} = ? AND ${Groups.FAVORITES} = ?"
         val selectionArgs = arrayOf("0", "0")
 
+        // Optimize: Use HashSet for O(1) lookup instead of O(n) map.contains
+        val seenTitles = HashSet<String>()
         context.queryCursor(uri, projection, selection, selectionArgs, showErrors = true) { cursor ->
             val id = cursor.getLongValue(Groups._ID)
             val title = cursor.getStringValue(Groups.TITLE) ?: return@queryCursor
 
             val systemId = cursor.getStringValue(Groups.SYSTEM_ID)
-            if (groups.map { it.title }.contains(title) && systemId != null) {
+            if (!seenTitles.add(title) && systemId != null) {
                 return@queryCursor
             }
 
@@ -924,7 +940,7 @@ class ContactsHelper(val context: Context) {
                 val id = cursor.getIntValue(Data.RAW_CONTACT_ID)
 
                 var prefix = ""
-                var firstName = ""
+                var name = ""
                 var middleName = ""
                 var surname = ""
                 var suffix = ""
@@ -939,13 +955,27 @@ class ContactsHelper(val context: Context) {
                 // ignore names at Organization type contacts
                 if (mimetype == CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE) {
                     prefix = cursor.getStringValue(CommonDataKinds.StructuredName.PREFIX) ?: ""
-                    firstName = cursor.getStringValue(CommonDataKinds.StructuredName.GIVEN_NAME) ?: ""
+                    val givenName = cursor.getStringValue(CommonDataKinds.StructuredName.GIVEN_NAME) ?: ""
                     middleName = cursor.getStringValue(CommonDataKinds.StructuredName.MIDDLE_NAME) ?: ""
-                    surname = cursor.getStringValue(CommonDataKinds.StructuredName.FAMILY_NAME) ?: ""
+                    val familyName = cursor.getStringValue(CommonDataKinds.StructuredName.FAMILY_NAME) ?: ""
                     suffix = cursor.getStringValue(CommonDataKinds.StructuredName.SUFFIX) ?: ""
+                    
+                    // Optimize: Combine name parts without creating intermediate list
+                    val nameBuilder = StringBuilder()
+                    if (prefix.isNotEmpty()) nameBuilder.append(prefix).append(" ")
+                    if (givenName.isNotEmpty()) nameBuilder.append(givenName).append(" ")
+                    if (middleName.isNotEmpty()) nameBuilder.append(middleName).append(" ")
+                    if (familyName.isNotEmpty()) nameBuilder.append(familyName).append(" ")
+                    if (suffix.isNotEmpty()) nameBuilder.append(suffix).append(" ")
+                    name = nameBuilder.trim().toString()
+                    // Clear other name fields since we're using single name
+                    prefix = ""
+                    middleName = ""
+                    surname = ""
+                    suffix = ""
                 }
 
-                val nickname = getNicknames(id)[id] ?: ""
+                val nickname = "" // Nickname removed
                 val photoUri = cursor.getStringValueOrNull(CommonDataKinds.Phone.PHOTO_URI) ?: ""
                 val number = getPhoneNumbers(id)[id] ?: ArrayList()
                 val emails = getEmails(id)[id] ?: ArrayList()
@@ -961,9 +991,9 @@ class ContactsHelper(val context: Context) {
                 val organization = getOrganizations(id)[id] ?: Organization("", "")
                 val websites = getWebsites(id)[id] ?: ArrayList()
                 val relations = getRelations(id)[id] ?: ArrayList<ContactRelation>()
-                val ims = getIMs(id)[id] ?: ArrayList()
+                val ims = ArrayList<IM>() // IMs removed - always empty
                 return Contact(
-                    id, prefix, firstName, middleName, surname, suffix, nickname,
+                    id, prefix, name, middleName, surname, suffix, nickname,
                     photoUri, number, emails, addresses, events, accountName, starred,
                     contactId, thumbnailUri, null, notes, groups, organization,
                     websites, relations, ims, mimetype, ringtone
@@ -1025,21 +1055,6 @@ class ContactsHelper(val context: Context) {
             for (account in accounts) {
                 add("${account.name}|${account.type}")
             }
-        }
-        
-        // Helper function to check if account is SIM card or phone storage
-        fun isSimOrPhoneStorage(accountName: String, accountType: String): Boolean {
-            val nameLower = accountName.lowercase(Locale.getDefault())
-            val typeLower = accountType.lowercase(Locale.getDefault())
-            
-            // Phone storage: empty account name/type or "phone" account
-            val isPhoneStorage = (accountName.isEmpty() && accountType.isEmpty()) ||
-                (nameLower == "phone" && accountType.isEmpty())
-            
-            // SIM card: account type contains "sim" or "icc"
-            val isSimCard = typeLower.contains("sim") || typeLower.contains("icc")
-            
-            return isPhoneStorage || isSimCard
         }
         
         for (account in accounts) {
@@ -1111,7 +1126,15 @@ class ContactsHelper(val context: Context) {
         }
     }
 
-    private fun getContactSourceType(accountName: String) = getDeviceContactSources().firstOrNull { it.name == accountName }?.type ?: ""
+    // Cache contact sources map for O(1) lookup instead of O(n) firstOrNull
+    private var cachedContactSourcesMap: Map<String, String>? = null
+    
+    fun getContactSourceType(accountName: String): String {
+        if (cachedContactSourcesMap == null) {
+            cachedContactSourcesMap = getDeviceContactSources().associateBy({ it.name }, { it.type })
+        }
+        return cachedContactSourcesMap?.get(accountName) ?: ""
+    }
 
     private fun getContactProjection() = arrayOf(
         Data.MIMETYPE,
@@ -1166,27 +1189,22 @@ class ContactsHelper(val context: Context) {
                 val selection = "${Data.RAW_CONTACT_ID} = ? AND ${Data.MIMETYPE} = ?"
                 val selectionArgs = arrayOf(contact.id.toString(), contact.mimetype)
                 withSelection(selection, selectionArgs)
-                withValue(CommonDataKinds.StructuredName.PREFIX, contact.prefix)
-                withValue(CommonDataKinds.StructuredName.GIVEN_NAME, contact.firstName)
-                withValue(CommonDataKinds.StructuredName.MIDDLE_NAME, contact.middleName)
-                withValue(CommonDataKinds.StructuredName.FAMILY_NAME, contact.surname)
-                withValue(CommonDataKinds.StructuredName.SUFFIX, contact.suffix)
+                // Use single name field - store in GIVEN_NAME, clear other name fields
+                withValue(CommonDataKinds.StructuredName.PREFIX, "")
+                withValue(CommonDataKinds.StructuredName.GIVEN_NAME, contact.firstName) // firstName property stores the single name
+                withValue(CommonDataKinds.StructuredName.MIDDLE_NAME, "")
+                withValue(CommonDataKinds.StructuredName.FAMILY_NAME, "")
+                withValue(CommonDataKinds.StructuredName.SUFFIX, "")
                 operations.add(build())
             }
 
             // delete nickname
+
+            // Nickname removed - always delete any existing nickname
             ContentProviderOperation.newDelete(Data.CONTENT_URI).apply {
                 val selection = "${Data.RAW_CONTACT_ID} = ? AND ${Data.MIMETYPE} = ? "
                 val selectionArgs = arrayOf(contact.id.toString(), CommonDataKinds.Nickname.CONTENT_ITEM_TYPE)
                 withSelection(selection, selectionArgs)
-                operations.add(build())
-            }
-
-            // add nickname
-            ContentProviderOperation.newInsert(Data.CONTENT_URI).apply {
-                withValue(Data.RAW_CONTACT_ID, contact.id)
-                withValue(Data.MIMETYPE, CommonDataKinds.Nickname.CONTENT_ITEM_TYPE)
-                withValue(CommonDataKinds.Nickname.NAME, contact.nickname)
                 operations.add(build())
             }
 
@@ -1255,26 +1273,6 @@ class ContactsHelper(val context: Context) {
                     withValue(CommonDataKinds.StructuredPostal.NEIGHBORHOOD, it.neighborhood)
                     withValue(CommonDataKinds.StructuredPostal.TYPE, it.type)
                     withValue(CommonDataKinds.StructuredPostal.LABEL, it.label)
-                    operations.add(build())
-                }
-            }
-
-            // delete IMs
-            ContentProviderOperation.newDelete(Data.CONTENT_URI).apply {
-                val selection = "${Data.RAW_CONTACT_ID} = ? AND ${Data.MIMETYPE} = ? "
-                val selectionArgs = arrayOf(contact.id.toString(), CommonDataKinds.Im.CONTENT_ITEM_TYPE)
-                withSelection(selection, selectionArgs)
-                operations.add(build())
-            }
-
-            // add IMs
-            contact.IMs.forEach {
-                ContentProviderOperation.newInsert(Data.CONTENT_URI).apply {
-                    withValue(Data.RAW_CONTACT_ID, contact.id)
-                    withValue(Data.MIMETYPE, CommonDataKinds.Im.CONTENT_ITEM_TYPE)
-                    withValue(CommonDataKinds.Im.DATA, it.value)
-                    withValue(CommonDataKinds.Im.PROTOCOL, it.type)
-                    withValue(CommonDataKinds.Im.CUSTOM_PROTOCOL, it.label)
                     operations.add(build())
                 }
             }
@@ -1513,25 +1511,20 @@ class ContactsHelper(val context: Context) {
                 operations.add(build())
             }
 
-            // names
+            // names - use single name field
             ContentProviderOperation.newInsert(Data.CONTENT_URI).apply {
                 withValueBackReference(Data.RAW_CONTACT_ID, 0)
                 withValue(Data.MIMETYPE, CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE)
-                withValue(CommonDataKinds.StructuredName.PREFIX, contact.prefix)
+                // Store single name in GIVEN_NAME, clear other name fields
+                withValue(CommonDataKinds.StructuredName.PREFIX, "")
                 withValue(CommonDataKinds.StructuredName.GIVEN_NAME, contact.firstName)
-                withValue(CommonDataKinds.StructuredName.MIDDLE_NAME, contact.middleName)
-                withValue(CommonDataKinds.StructuredName.FAMILY_NAME, contact.surname)
-                withValue(CommonDataKinds.StructuredName.SUFFIX, contact.suffix)
+                withValue(CommonDataKinds.StructuredName.MIDDLE_NAME, "")
+                withValue(CommonDataKinds.StructuredName.FAMILY_NAME, "")
+                withValue(CommonDataKinds.StructuredName.SUFFIX, "")
                 operations.add(build())
             }
 
-            // nickname
-            ContentProviderOperation.newInsert(Data.CONTENT_URI).apply {
-                withValueBackReference(Data.RAW_CONTACT_ID, 0)
-                withValue(Data.MIMETYPE, CommonDataKinds.Nickname.CONTENT_ITEM_TYPE)
-                withValue(CommonDataKinds.Nickname.NAME, contact.nickname)
-                operations.add(build())
-            }
+            // Nickname removed - not inserting nickname
 
             // phone numbers
             contact.phoneNumbers.forEach {
@@ -1574,18 +1567,6 @@ class ContactsHelper(val context: Context) {
                     withValue(CommonDataKinds.StructuredPostal.NEIGHBORHOOD, it.neighborhood)
                     withValue(CommonDataKinds.StructuredPostal.TYPE, it.type)
                     withValue(CommonDataKinds.StructuredPostal.LABEL, it.label)
-                    operations.add(build())
-                }
-            }
-
-            // IMs
-            contact.IMs.forEach {
-                ContentProviderOperation.newInsert(Data.CONTENT_URI).apply {
-                    withValueBackReference(Data.RAW_CONTACT_ID, 0)
-                    withValue(Data.MIMETYPE, CommonDataKinds.Im.CONTENT_ITEM_TYPE)
-                    withValue(CommonDataKinds.Im.DATA, it.value)
-                    withValue(CommonDataKinds.Im.PROTOCOL, it.type)
-                    withValue(CommonDataKinds.Im.CUSTOM_PROTOCOL, it.label)
                     operations.add(build())
                 }
             }
@@ -1796,6 +1777,93 @@ class ContactsHelper(val context: Context) {
         }
     }
 
+    fun moveContacts(contacts: ArrayList<Contact>, destinationSource: String, callback: (success: Boolean, movedCount: Int) -> Unit) {
+        ensureBackgroundThread {
+            if (!context.hasPermission(PERMISSION_WRITE_CONTACTS)) {
+                callback(false, 0)
+                return@ensureBackgroundThread
+            }
+
+            var copiedCount = 0
+            var failedCount = 0
+
+            try {
+                contacts.forEach { contact ->
+                    // Get full contact data before copying
+                    val fullContact = getContactWithId(contact.id)
+                    if (fullContact == null) {
+                        failedCount++
+                        return@forEach
+                    }
+
+                    // Create a copy of the contact with the new source
+                    val newContact = fullContact.copy()
+                    newContact.source = destinationSource
+                    newContact.id = 0 // Reset ID for new contact
+                    newContact.contactId = 0
+
+                    // Insert contact to new location (copy, don't delete original)
+                    val insertSuccess = insertContact(newContact)
+                    
+                    if (insertSuccess) {
+                        copiedCount++
+                    } else {
+                        failedCount++
+                    }
+                }
+
+                callback(copiedCount > 0, copiedCount)
+            } catch (e: Exception) {
+                context.showErrorToast(e)
+                callback(false, copiedCount)
+            }
+        }
+    }
+
+    fun getAvailableMoveDestinations(contact: Contact): ArrayList<ContactSource> {
+        val destinations = ArrayList<ContactSource>()
+        val allSources = getDeviceContactSources()
+        val currentSourceType = getContactSourceType(contact.source)
+        val currentSourceName = contact.source
+        val isCurrentSim = currentSourceType.contains(".sim") || currentSourceType.contains("icc")
+        val isCurrentPhoneStorage = (currentSourceName.isEmpty() && currentSourceType.isEmpty()) ||
+            (currentSourceName.lowercase(Locale.getDefault()) == "phone" && currentSourceType.isEmpty())
+        
+        // Add phone storage as an option (if not already on phone storage)
+        if (!isCurrentPhoneStorage) {
+            destinations.add(ContactSource("", "", context.getString(R.string.phone_storage)))
+        }
+        
+        // Add SIM sources (excluding the current one)
+        allSources.forEach { source ->
+            val sourceType = source.type.lowercase(Locale.getDefault())
+            val isSim = sourceType.contains("sim") || sourceType.contains("icc")
+            
+            if (isSim) {
+                // Check if this is a different SIM than the current one
+                val isDifferentSim = if (isCurrentSim) {
+                    // Current contact is on SIM, check if this is a different SIM
+                    // Compare both name and type to identify different SIM cards
+                    val currentName = currentSourceName.lowercase(Locale.getDefault())
+                    val sourceName = source.name.lowercase(Locale.getDefault())
+                    val currentType = currentSourceType.lowercase(Locale.getDefault())
+                    val sourceTypeLower = sourceType
+                    // Different if names don't match OR types don't match (SIM1 vs SIM2, etc.)
+                    currentName != sourceName || currentType != sourceTypeLower
+                } else {
+                    // Current contact is not on SIM, so any SIM is valid
+                    true
+                }
+                
+                if (isDifferentSim) {
+                    destinations.add(source)
+                }
+            }
+        }
+        
+        return destinations
+    }
+
     fun deleteContacts(contacts: ArrayList<Contact>): Boolean {
         if (!context.hasPermission(PERMISSION_WRITE_CONTACTS)) {
             return false
@@ -1862,9 +1930,13 @@ class ContactsHelper(val context: Context) {
     ) {
         ensureBackgroundThread {
             val contacts = SparseArray<Contact>()
-            displayContactSources = context.getVisibleContactSources()
+            // For recents, always include all phone storage and SIM contacts regardless of filter
+            // Get all sources (phone storage and SIM) without applying the current filter
+            val allPhoneAndSimSources = context.getAllContactSources()
+            displayContactSources = allPhoneAndSimSources.map { it.name }.toMutableList() as ArrayList
 
-            getDeviceContactsForRecents(contacts)
+            // Pass empty ignored sources to load all phone storage and SIM contacts for recents
+            getDeviceContactsForRecents(contacts, HashSet())
 
             val contactsSize = contacts.size
             val tempContacts = ArrayList<Contact>(contactsSize)
@@ -1879,12 +1951,17 @@ class ContactsHelper(val context: Context) {
             }
 
             if (context.baseConfig.mergeDuplicateContacts) {
-                tempContacts.filter { displayContactSources.contains(it.source) }.groupBy { it.getNameToDisplay().lowercase() }.values.forEach { it ->
-                    if (it.size == 1) {
-                        resultContacts.add(it.first())
+                // Optimize: Use HashSet for O(1) lookup instead of O(n) contains
+                val displaySourcesSet = displayContactSources.toHashSet()
+                tempContacts.filter { displaySourcesSet.contains(it.source) }.groupBy { it.getNameToDisplay().lowercase() }.values.forEach { group ->
+                    if (group.size == 1) {
+                        resultContacts.add(group.first())
                     } else {
-                        val sorted = it.sortedByDescending { it.getStringToCompare().length }
-                        resultContacts.add(sorted.first())
+                        // Optimize: Use maxByOrNull instead of sorted + first
+                        val bestMatch = group.maxByOrNull { it.getStringToCompare().length }
+                        if (bestMatch != null) {
+                            resultContacts.add(bestMatch)
+                        }
                     }
                 }
             } else {
@@ -1912,12 +1989,12 @@ class ContactsHelper(val context: Context) {
         }
     }
 
-    private fun getDeviceContactsForRecents(contacts: SparseArray<Contact>) {
+    private fun getDeviceContactsForRecents(contacts: SparseArray<Contact>, ignoredSources: HashSet<String>? = null) {
         if (!context.hasPermission(PERMISSION_READ_CONTACTS)) {
             return
         }
 
-        val ignoredSources = context.baseConfig.ignoredContactSources
+        val ignoredSourcesToUse = ignoredSources ?: context.baseConfig.ignoredContactSources
         val uri = Data.CONTENT_URI
         val projection = getContactProjection()
 
@@ -1930,17 +2007,23 @@ class ContactsHelper(val context: Context) {
                 val accountName = cursor.getStringValue(RawContacts.ACCOUNT_NAME) ?: ""
                 val accountType = cursor.getStringValue(RawContacts.ACCOUNT_TYPE) ?: ""
 
-                // Only load system contacts (empty account name/type or "Phone" account)
-                val isSystemContact = (accountName.isEmpty() && accountType.isEmpty()) ||
-                    (accountName.lowercase(Locale.getDefault()) == "phone" && accountType.isEmpty())
-                
-                if (!isSystemContact || ignoredSources.contains("$accountName:$accountType")) {
+                // Load phone storage and SIM card contacts
+                if (!isSimOrPhoneStorage(accountName, accountType)) {
+                    return@queryCursor
+                }
+                // Optimize: Cache account identifier to avoid repeated string concatenation
+                val accountIdentifier = if (accountName.isEmpty() && accountType.isEmpty()) {
+                    ":"
+                } else {
+                    "$accountName:$accountType"
+                }
+                if (ignoredSourcesToUse.contains(accountIdentifier)) {
                     return@queryCursor
                 }
 
                 val id = cursor.getIntValue(Data.RAW_CONTACT_ID)
                 var prefix = ""
-                var firstName = ""
+                var name = ""
                 var middleName = ""
                 var surname = ""
                 var suffix = ""
@@ -1948,10 +2031,24 @@ class ContactsHelper(val context: Context) {
                 // ignore names at Organization type contacts
                 if (mimetype == CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE) {
                     prefix = cursor.getStringValue(CommonDataKinds.StructuredName.PREFIX) ?: ""
-                    firstName = cursor.getStringValue(CommonDataKinds.StructuredName.GIVEN_NAME) ?: ""
+                    val givenName = cursor.getStringValue(CommonDataKinds.StructuredName.GIVEN_NAME) ?: ""
                     middleName = cursor.getStringValue(CommonDataKinds.StructuredName.MIDDLE_NAME) ?: ""
-                    surname = cursor.getStringValue(CommonDataKinds.StructuredName.FAMILY_NAME) ?: ""
+                    val familyName = cursor.getStringValue(CommonDataKinds.StructuredName.FAMILY_NAME) ?: ""
                     suffix = cursor.getStringValue(CommonDataKinds.StructuredName.SUFFIX) ?: ""
+                    
+                    // Optimize: Combine name parts without creating intermediate list
+                    val nameBuilder = StringBuilder()
+                    if (prefix.isNotEmpty()) nameBuilder.append(prefix).append(" ")
+                    if (givenName.isNotEmpty()) nameBuilder.append(givenName).append(" ")
+                    if (middleName.isNotEmpty()) nameBuilder.append(middleName).append(" ")
+                    if (familyName.isNotEmpty()) nameBuilder.append(familyName).append(" ")
+                    if (suffix.isNotEmpty()) nameBuilder.append(suffix).append(" ")
+                    name = nameBuilder.trim().toString()
+                    // Clear other name fields since we're using single name
+                    prefix = ""
+                    middleName = ""
+                    surname = ""
+                    suffix = ""
                 }
 
                 var photoUri = ""
@@ -1978,7 +2075,7 @@ class ContactsHelper(val context: Context) {
                 val relations = ArrayList<ContactRelation>()
                 val ims = ArrayList<IM>()
                 val contact = Contact(
-                    id, prefix, firstName, middleName, surname, suffix, nickname,
+                    id, prefix, name, middleName, surname, suffix, nickname,
                     photoUri, numbers, emails, addresses, events, accountName,
                     starred, contactId, thumbnailUri, null, notes, groups, organization,
                     websites, relations, ims, mimetype, ringtone
@@ -2004,6 +2101,10 @@ class ContactsHelper(val context: Context) {
             contacts[key]?.let { it.phoneNumbers = phoneNumbers.valueAt(i) }
         }
 
-        applySparseArrayToContacts(getNicknames()) { contact, nickname -> contact.nickname = nickname }
+        // Nickname removed - always set to empty
+        val contactsSize = contacts.size
+        for (i in 0 until contactsSize) {
+            contacts.valueAt(i).nickname = ""
+        }
     }
 }

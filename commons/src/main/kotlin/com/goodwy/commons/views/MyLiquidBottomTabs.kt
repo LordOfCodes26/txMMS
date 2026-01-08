@@ -50,7 +50,7 @@ fun MyLiquidBottomTabs(
             backdrop = backdrop,
             tabsCount = tabs.size,
             backgroundColor = backdropColor,
-            modifier = Modifier.padding(horizontal = 20.dp, vertical = 20.dp)
+            modifier = Modifier.padding(horizontal = 30.dp, vertical = 30.dp)
         ) {
             tabs.forEachIndexed { index, (icon, label) ->
                 LiquidBottomTab({ selectedTabIndex.value = index }) {

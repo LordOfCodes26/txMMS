@@ -286,12 +286,21 @@ fun Context.getVisibleContactSources(): ArrayList<String> {
 
 fun Context.getAllContactSources(): ArrayList<ContactSource> {
     val allSources = ContactsHelper(this).getDeviceContactSources()
-    // Only return system contacts (empty account name/type or "Phone" account)
-    val systemSources = allSources.filter { source ->
-        (source.name.isEmpty() && source.type.isEmpty()) || 
-        (source.name.lowercase(Locale.getDefault()) == "phone" && source.type.isEmpty())
+    // Return phone storage and SIM card contacts
+    val phoneAndSimSources = allSources.filter { source ->
+        val nameLower = source.name.lowercase(Locale.getDefault())
+        val typeLower = source.type.lowercase(Locale.getDefault())
+        
+        // Phone storage: empty account name/type or "phone" account
+        val isPhoneStorage = (source.name.isEmpty() && source.type.isEmpty()) ||
+            (nameLower == "phone" && source.type.isEmpty())
+        
+        // SIM card: account type contains "sim" or "icc"
+        val isSimCard = typeLower.contains("sim") || typeLower.contains("icc")
+        
+        isPhoneStorage || isSimCard
     }
-    return systemSources.toMutableList() as ArrayList<ContactSource>
+    return phoneAndSimSources.toMutableList() as ArrayList<ContactSource>
 }
 
 fun Context.getSocialActions(id: Int): ArrayList<SocialAction> {
