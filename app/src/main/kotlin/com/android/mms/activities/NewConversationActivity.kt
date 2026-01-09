@@ -51,6 +51,10 @@ class NewConversationActivity : SimpleActivity() {
     private var isSpeechToTextAvailable = false
     private var isAttachmentPickerVisible = false
     private var messageHolderHelper: MessageHolderHelper? = null
+    // Map to store chip display text -> phone number mapping
+    private val chipDisplayToPhoneNumber = mutableMapOf<String, String>()
+    // Flag to prevent recursive calls when updating chips
+    private var isUpdatingChips = false
 
     private val binding by viewBinding(ActivityNewConversationBinding::inflate)
     
@@ -190,6 +194,43 @@ class NewConversationActivity : SimpleActivity() {
         binding.newConversationAddress.getEditText().setBackgroundResource(com.goodwy.commons.R.drawable.search_bg)
         binding.newConversationAddress.getEditText().backgroundTintList = ColorStateList.valueOf(surfaceColor)
 
+        // Listen for chip changes to handle typed phone numbers and contact names
+        binding.newConversationAddress.setOnChipsChangedListener { chips ->
+            if (isUpdatingChips) return@setOnChipsChangedListener
+            
+            chips.forEach { chipText ->
+                // If this chip is not in our mapping, check if it's a phone number or contact name
+                if (!chipDisplayToPhoneNumber.containsKey(chipText)) {
+                    // First check if it's a contact name (prioritize contact names over phone numbers)
+                    val contact = findContactByName(chipText)
+                    if (contact != null) {
+                        // Found a contact with this name, handle phone number selection
+                        handleContactNameChip(chipText, contact)
+                    } else {
+                        // Not a contact name, check if it's a phone number
+                        val normalizedNumber = chipText.normalizePhoneNumber()
+                        // Check if normalization produced a meaningful result (has digits and reasonable length)
+                        if (normalizedNumber.isNotEmpty() && normalizedNumber.length >= 3 && normalizedNumber.all { it.isDigit() }) {
+                            // Look up contact name for this phone number
+                            val displayText = getDisplayTextForPhoneNumber(normalizedNumber)
+                            if (displayText != normalizedNumber) {
+                                // Contact name found, update the chip
+                                isUpdatingChips = true
+                                binding.newConversationAddress.removeChip(chipText)
+                                binding.newConversationAddress.addChip(displayText)
+                                chipDisplayToPhoneNumber[displayText] = normalizedNumber
+                                isUpdatingChips = false
+                            } else {
+                                // No contact found, store the mapping (chipText -> normalizedNumber)
+                                // This handles both cases: chipText might be the original or already normalized
+                                chipDisplayToPhoneNumber[chipText] = normalizedNumber
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         binding.newConversationAddress.setOnTextChangedListener { searchString ->
             val filteredContacts = ArrayList<SimpleContact>()
             allContacts.forEach { contact ->
@@ -281,8 +322,10 @@ class NewConversationActivity : SimpleActivity() {
                 hideKeyboard()
                 val contact = it as SimpleContact
                 maybeShowNumberPickerDialog(contact.phoneNumbers) { number ->
-                    // Add as chip instead of launching immediately
-                    binding.newConversationAddress.addChip(number.normalizedNumber)
+                    // Add as chip with contact name if available, otherwise use phone number
+                    val displayText = getDisplayTextForPhoneNumber(number.normalizedNumber)
+                    binding.newConversationAddress.addChip(displayText)
+                    chipDisplayToPhoneNumber[displayText] = number.normalizedNumber
                     binding.newConversationAddress.clearText()
                 }
             }.apply {
@@ -333,8 +376,11 @@ class NewConversationActivity : SimpleActivity() {
                                     }
                                     binding.suggestionsHolder.addView(root)
                                     root.setOnClickListener {
-                                        // Add as chip instead of launching immediately
-                                        binding.newConversationAddress.addChip(contact.phoneNumbers.first().normalizedNumber)
+                                        // Add as chip with contact name
+                                        val phoneNumber = contact.phoneNumbers.first().normalizedNumber
+                                        val displayText = contact.name.ifEmpty { phoneNumber }
+                                        binding.newConversationAddress.addChip(displayText)
+                                        chipDisplayToPhoneNumber[displayText] = phoneNumber
                                         binding.newConversationAddress.clearText()
                                     }
                                 }
@@ -387,6 +433,123 @@ class NewConversationActivity : SimpleActivity() {
         }
     }
 
+    /**
+     * Gets the display text for a phone number.
+     * Returns contact name if found in contacts, otherwise returns the phone number.
+     */
+    private fun getDisplayTextForPhoneNumber(phoneNumber: String): String {
+        if (!hasPermission(PERMISSION_READ_CONTACTS)) {
+            return phoneNumber
+        }
+
+        // First check in allContacts
+        allContacts.forEach { contact ->
+            if (contact.phoneNumbers.any { it.normalizedNumber == phoneNumber }) {
+                return contact.name.ifEmpty { phoneNumber }
+            }
+        }
+
+        // Then check in privateContacts
+        privateContacts.forEach { contact ->
+            if (contact.phoneNumbers.any { it.normalizedNumber == phoneNumber }) {
+                return contact.name.ifEmpty { phoneNumber }
+            }
+        }
+
+        // If not found in loaded contacts, try using SimpleContactsHelper
+        val contactName = SimpleContactsHelper(this).getNameFromPhoneNumber(phoneNumber)
+        return if (contactName != phoneNumber) contactName else phoneNumber
+    }
+
+    /**
+     * Finds a contact by name (case-insensitive, prioritizes exact matches).
+     * Returns the first matching contact, or null if not found.
+     */
+    private fun findContactByName(name: String): SimpleContact? {
+        if (!hasPermission(PERMISSION_READ_CONTACTS)) {
+            return null
+        }
+
+        val searchName = name.trim().lowercase()
+        if (searchName.isEmpty()) {
+            return null
+        }
+
+        // First try exact match in allContacts
+        allContacts.forEach { contact ->
+            val contactName = contact.name.lowercase()
+            if (contactName == searchName) {
+                return contact
+            }
+        }
+
+        // Then try exact match in privateContacts
+        privateContacts.forEach { contact ->
+            val contactName = contact.name.lowercase()
+            if (contactName == searchName) {
+                return contact
+            }
+        }
+
+        // If no exact match, try partial matches (contact name contains search text)
+        allContacts.forEach { contact ->
+            val contactName = contact.name.lowercase()
+            if (contactName.contains(searchName)) {
+                return contact
+            }
+        }
+
+        // Try partial matches in privateContacts
+        privateContacts.forEach { contact ->
+            val contactName = contact.name.lowercase()
+            if (contactName.contains(searchName)) {
+                return contact
+            }
+        }
+
+        return null
+    }
+
+    /**
+     * Handles adding a chip when a contact name is typed.
+     * Shows number picker dialog if contact has multiple phone numbers.
+     */
+    private fun handleContactNameChip(chipText: String, contact: SimpleContact) {
+        if (contact.phoneNumbers.isEmpty()) {
+            // Contact has no phone numbers, remove the chip
+            isUpdatingChips = true
+            binding.newConversationAddress.removeChip(chipText)
+            isUpdatingChips = false
+            toast(com.goodwy.commons.R.string.no_phone_number_found, length = Toast.LENGTH_SHORT)
+            return
+        }
+
+        // Use the contact's actual name (not the typed text which might be partial)
+        val displayText = contact.name.ifEmpty { chipText }
+
+        if (contact.phoneNumbers.size == 1) {
+            // Single phone number, add chip directly
+            val phoneNumber = contact.phoneNumbers.first().normalizedNumber
+            isUpdatingChips = true
+            binding.newConversationAddress.removeChip(chipText)
+            binding.newConversationAddress.addChip(displayText)
+            chipDisplayToPhoneNumber[displayText] = phoneNumber
+            isUpdatingChips = false
+        } else {
+            // Multiple phone numbers, show picker dialog
+            isUpdatingChips = true
+            binding.newConversationAddress.removeChip(chipText)
+            isUpdatingChips = false
+            
+            maybeShowNumberPickerDialog(contact.phoneNumbers) { number ->
+                isUpdatingChips = true
+                binding.newConversationAddress.addChip(displayText)
+                chipDisplayToPhoneNumber[displayText] = number.normalizedNumber
+                isUpdatingChips = false
+            }
+        }
+    }
+
     
     private fun sendMessageAndNavigate(text: String, subscriptionId: Int?, attachments: List<Attachment>) {
         hideKeyboard()
@@ -395,7 +558,33 @@ class NewConversationActivity : SimpleActivity() {
         val allNumbers = mutableListOf<String>()
         chips.forEach { chip ->
             if (chip.isNotEmpty()) {
-                allNumbers.add(chip)
+                // Get phone number from mapping
+                val phoneNumber = chipDisplayToPhoneNumber[chip]
+                if (phoneNumber != null) {
+                    // Mapping exists, use the stored phone number
+                    if (phoneNumber.isNotEmpty() && !allNumbers.contains(phoneNumber)) {
+                        allNumbers.add(phoneNumber)
+                    }
+                } else {
+                    // No mapping found - this shouldn't happen for properly added chips,
+                    // but handle it as fallback: try to normalize the chip text
+                    val normalizedNumber = chip.normalizePhoneNumber()
+                    if (normalizedNumber.isNotEmpty() && normalizedNumber.length >= 3 && normalizedNumber.all { it.isDigit() }) {
+                        if (!allNumbers.contains(normalizedNumber)) {
+                            allNumbers.add(normalizedNumber)
+                        }
+                    } else {
+                        // Not a valid phone number, try to look up contact name
+                        val contact = findContactByName(chip)
+                        if (contact != null && contact.phoneNumbers.isNotEmpty()) {
+                            // Found contact, use first phone number
+                            val contactPhoneNumber = contact.phoneNumbers.first().normalizedNumber
+                            if (!allNumbers.contains(contactPhoneNumber)) {
+                                allNumbers.add(contactPhoneNumber)
+                            }
+                        }
+                    }
+                }
             }
         }
         
