@@ -1230,6 +1230,7 @@
                 <androidx.cardview.widget.CardView
                     android:id="@+id/settingsBackupsHolder"
                     style="@style/SettingsSectionHolder"
+                    android:layout_marginBottom="@dimen/secondary_fab_bottom_margin"
                     app:cardCornerRadius="@dimen/activity_margin"
                     app:cardElevation="0dp">
 
