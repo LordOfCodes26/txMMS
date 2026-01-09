@@ -1115,6 +1115,7 @@
                     android:id="@+id/settingsArchivedMessagesLabel"
                     style="@style/SettingsSectionLabelStyle"
                     android:text="@string/archived_conversations"
+                    android:visibility="gone"
                     tools:textColor="@color/primary"/>
 
                 <androidx.cardview.widget.CardView
@@ -1139,6 +1140,7 @@
                     android:id="@+id/settingsRecycleBinLabel"
                     style="@style/SettingsSectionLabelStyle"
                     android:text="@string/recycle_bin"
+                    android:visibility="gone"
                     tools:textColor="@color/primary"/>
 
                 <androidx.cardview.widget.CardView
@@ -1190,6 +1192,7 @@
                     android:id="@+id/settingsSecurityLabel"
                     style="@style/SettingsSectionLabelStyle"
                     android:text="@string/security"
+                    android:visibility="gone"
                     tools:textColor="@color/primary"/>
 
                 <androidx.cardview.widget.CardView

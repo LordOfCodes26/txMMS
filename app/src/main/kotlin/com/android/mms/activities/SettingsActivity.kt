@@ -102,6 +102,8 @@ class SettingsActivity : SimpleActivity() {
         setupTopAppBar(binding.settingsAppbar, NavigationIcon.Arrow)
 
         setupCustomizeColors()
+        // Hide "Customize colors" option
+        binding.settingsCustomizeColorsHolder.beGone()
         setupOverflowIcon()
         setupFloatingButtonStyle()
         setupUseColoredContacts()
@@ -157,11 +159,17 @@ class SettingsActivity : SimpleActivity() {
         setupChangeColourTopBarWhenScroll()
 
         setupKeepConversationsArchived()
+        // Hide "Keep conversation archived" option
+        binding.settingsKeepConversationsArchivedHolder.beGone()
 
         setupUseRecycleBin()
+        // Hide "Move items into the Recycle Bin instead of deleting" option
+        binding.settingsUseRecycleBinHolder.beGone()
         setupEmptyRecycleBin()
 
         setupAppPasswordProtection()
+        // Hide "Password protect the whole application" option
+        binding.settingsAppPasswordProtectionHolder.beGone()
 
         setupMessagesExport()
         setupMessagesImport()
