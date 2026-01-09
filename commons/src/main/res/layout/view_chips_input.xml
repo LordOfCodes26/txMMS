@@ -31,7 +31,7 @@
             android:background="@drawable/search_bg"
             android:gravity="center_vertical"
             android:hint=""
-            android:inputType="textCapWords|phone"
+            android:inputType="text"
             android:paddingStart="@dimen/normal_margin"
             android:paddingEnd="32dp"
             android:textSize="@dimen/bigger_text_size"
