@@ -2,8 +2,8 @@ package com.goodwy.commons.adapters
 
 import android.annotation.SuppressLint
 import android.view.*
+import android.view.ViewParent
 import android.widget.ImageView
-import android.widget.TextView
 import androidx.appcompat.app.ActionBar
 import androidx.appcompat.widget.ActionMenuView
 import androidx.recyclerview.widget.DiffUtil
@@ -18,6 +18,7 @@ import com.goodwy.commons.helpers.CONTACT_THUMBNAILS_SIZE_SMALL
 import com.goodwy.commons.interfaces.MyActionModeCallback
 import com.goodwy.commons.models.RecyclerSelectionPayload
 import com.goodwy.commons.views.BottomPaddingDecoration
+import com.goodwy.commons.views.CustomActionModeToolbar
 import com.goodwy.commons.views.MyDividerDecoration
 import com.goodwy.commons.views.MyRecyclerView
 import kotlin.math.max
@@ -45,7 +46,7 @@ abstract class MyRecyclerViewListAdapter<T>(
     protected var positionOffset = 0
     protected var actMode: ActionMode? = null
 
-    private var actBarTextView: TextView? = null
+    private var actBarToolbar: CustomActionModeToolbar? = null
     private var lastLongPressedItem = -1
 
     private var isDividersVisible = false
@@ -87,18 +88,59 @@ abstract class MyRecyclerViewListAdapter<T>(
 
                 isSelectable = true
                 actMode = actionMode
-                actBarTextView = layoutInflater.inflate(R.layout.actionbar_title, null) as TextView
-                actBarTextView!!.layoutParams = ActionBar.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.MATCH_PARENT)
-                actMode!!.customView = actBarTextView
-                actBarTextView!!.setOnClickListener {
+                
+                // Create custom action mode toolbar
+                actBarToolbar = CustomActionModeToolbar.create(
+                    context = activity,
+                    title = "",
+                    onTitleClick = {
+                        if (getSelectableItemCount() == selectedKeys.size) {
+                            finishActMode()
+                        } else {
+                            selectAll()
+                        }
+                    }
+                )
+                // Set layout params BEFORE setting as customView to ensure full width
+                val screenWidth = resources.displayMetrics.widthPixels
+                actBarToolbar!!.layoutParams = ViewGroup.LayoutParams(
+                    screenWidth,
+                    ViewGroup.LayoutParams.MATCH_PARENT
+                )
+                // Now set as custom view
+                actMode!!.customView = actBarToolbar
+
+                // Don't inflate menu into ActionMode's menu - only use CustomActionModeToolbar's menu
+                // activity.menuInflater.inflate(getActionMenuId(), menu) // Removed - using only custom toolbar menu
+                
+                // Inflate menu into CustomActionModeToolbar's menu (for popup menu)
+                actBarToolbar!!.inflateMenu(getActionMenuId())
+                
+                // Set up menu item click listener to forward to ActionMode callback
+                actBarToolbar!!.setOnMenuItemClickListener { item ->
+                    actionItemPressed(item.itemId)
+                    true
+                }
+                
+                // Set up navigation icon (close button) for the custom toolbar
+                val closeIcon = resources.getDrawable(R.drawable.ic_chevron_left_vector, activity.theme)
+                actBarToolbar!!.navigationIcon = closeIcon
+                actBarToolbar!!.setNavigationOnClickListener {
+                    finishActMode()
+                }
+                actBarToolbar!!.setNavigationContentDescription(android.R.string.cancel)
+                
+                // Set up select all button
+                val selectAllIcon = resources.getDrawable(R.drawable.ic_select_all_vector, activity.theme)
+                actBarToolbar!!.selectAllIcon = selectAllIcon
+                actBarToolbar!!.setOnSelectAllClickListener {
                     if (getSelectableItemCount() == selectedKeys.size) {
                         finishActMode()
                     } else {
                         selectAll()
                     }
                 }
-
-                activity.menuInflater.inflate(getActionMenuId(), menu)
+                actBarToolbar!!.isSelectAllVisible = true
 
 //                val cabBackgroundColor = if (activity.isDynamicTheme()) {
 //                    resources.getColor(R.color.you_contextual_status_bar_color, activity.theme)
@@ -111,32 +153,51 @@ abstract class MyRecyclerViewListAdapter<T>(
                 val actModeBar = actMode!!.customView?.parent as? View
                 actModeBar?.setBackgroundColor(cabBackgroundColor)
 
-                actBarTextView!!.setTextColor(cabContrastColor)
-                activity.updateMenuItemColors(menu, baseColor = cabBackgroundColor, forceWhiteIcons = false)
+                actBarToolbar!!.updateTextColorForBackground(cabBackgroundColor)
+                actBarToolbar!!.updateColorsForBackground(cabBackgroundColor)
+                // Don't update ActionMode menu colors - we're not using ActionMode's menu
+                // activity.updateMenuItemColors(menu, baseColor = cabBackgroundColor, forceWhiteIcons = false)
                 onActionModeCreated()
-
-                //if (activity.isDynamicTheme()) {
-                    actBarTextView?.onGlobalLayout {
-                        val backArrow = activity.findViewById<ImageView>(androidx.appcompat.R.id.action_mode_close_button)
-                        backArrow?.setImageDrawable(resources.getDrawable(R.drawable.ic_chevron_left_vector, activity.theme))
-                        backArrow?.applyColorFilter(cabContrastColor)
-
-                        val cabView = backArrow?.parent as? ViewGroup
-                        for (i in 0 until (cabView?.childCount ?: 0)) {
-                            val child = cabView?.getChildAt(i)
-                            if (child is ActionMenuView) {
-                                // Colouring the overflow icon (three dots)
-                                child.overflowIcon?.applyColorFilter(cabContrastColor)
-                                break
-                            }
+                
+                // Ensure full width and hide default close button
+                actBarToolbar?.onGlobalLayout {
+                    // Hide ActionMode's default close button
+                    val defaultCloseButton = activity.findViewById<View>(androidx.appcompat.R.id.action_mode_close_button)
+                    defaultCloseButton?.visibility = View.GONE
+                    
+                    // Find and modify all parent containers up to the root
+                    var currentParent: ViewParent? = actBarToolbar?.parent
+                    while (currentParent != null && currentParent is ViewGroup) {
+                        val parentView = currentParent as ViewGroup
+                        val params = parentView.layoutParams
+                        if (params != null) {
+                            params.width = ViewGroup.LayoutParams.MATCH_PARENT
+                            parentView.layoutParams = params
                         }
+                        // Remove padding from parent containers to match CustomToolbar behavior
+                        parentView.setPadding(0, parentView.paddingTop, 0, parentView.paddingBottom)
+                        currentParent = parentView.parent
                     }
-                //}
+                    
+                    // Force custom toolbar to full width
+                    val params = actBarToolbar?.layoutParams
+                    if (params != null) {
+                        params.width = ViewGroup.LayoutParams.MATCH_PARENT
+                        actBarToolbar?.layoutParams = params
+                    }
+                    actBarToolbar?.requestLayout()
+                }
+                
                 return true
             }
 
             override fun onPrepareActionMode(actionMode: ActionMode, menu: Menu): Boolean {
-                prepareActionMode(menu)
+                // Prepare the menu in CustomActionModeToolbar instead of ActionMode's menu
+                // We need to sync menu state, so we'll prepare it in the custom toolbar's menu
+                actBarToolbar?.menu?.let { customMenu ->
+                    prepareActionMode(customMenu)
+                    actBarToolbar?.invalidateMenu()
+                }
                 return true
             }
 
@@ -151,7 +212,7 @@ abstract class MyRecyclerViewListAdapter<T>(
 
                 updateTitle()
                 selectedKeys.clear()
-                actBarTextView?.text = ""
+                actBarToolbar?.title = ""
                 actMode = null
                 lastLongPressedItem = -1
                 onActionModeDestroyed()
@@ -181,9 +242,10 @@ abstract class MyRecyclerViewListAdapter<T>(
             updateTitle()
         }
 
-        if (selectedKeys.isEmpty()) {
-            finishActMode()
-        }
+        // Don't finish action mode when all items are deselected
+        // if (selectedKeys.isEmpty()) {
+        //     finishActMode()
+        // }
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int, payloads: MutableList<Any>) {
@@ -198,10 +260,10 @@ abstract class MyRecyclerViewListAdapter<T>(
     fun updateTitle() {
         val selectableItemCount = getSelectableItemCount()
         val selectedCount = min(selectedKeys.size, selectableItemCount)
-        val oldTitle = actBarTextView?.text
+        val oldTitle = actBarToolbar?.title
         val newTitle = "$selectedCount / $selectableItemCount"
         if (oldTitle != newTitle) {
-            actBarTextView?.text = newTitle
+            actBarToolbar?.title = newTitle
             actMode?.invalidate()
         }
     }

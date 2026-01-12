@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<eightbitlab.com.blurview.BlurView xmlns:android="http://schemas.android.com/apk/res/android"
+
+    android:id="@+id/blurView"
+    android:background="@drawable/popup_menu_rounded_bg"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content">
+
+    <LinearLayout
+        android:id="@+id/menu_container"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:minWidth="200dp"
+        android:orientation="vertical"
+        android:padding="@dimen/smaller_margin">
+
+    </LinearLayout>
+</eightbitlab.com.blurview.BlurView>
+

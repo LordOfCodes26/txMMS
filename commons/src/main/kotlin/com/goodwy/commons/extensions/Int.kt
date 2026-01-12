@@ -223,3 +223,42 @@ fun Int.dpToPx(context: Context): Int {
         context.resources.displayMetrics
     ).toInt()
 }
+
+/**
+ * Creates gradient colors similar to iOS 26 contacts background.
+ * Returns a pair of (topColor, bottomColor) where:
+ * - Top color is lighter and slightly desaturated
+ * - Bottom color is darker and more saturated
+ */
+fun Int.createGradientColors(): Pair<Int, Int> {
+    val hsv = FloatArray(3)
+    Color.colorToHSV(this, hsv)
+    
+    // Top color: lighter and slightly desaturated
+    val topHsv = hsv.clone()
+    topHsv[2] = (topHsv[2] * 1.15f).coerceAtMost(0.95f) // Increase brightness
+    topHsv[1] = (topHsv[1] * 0.7f).coerceIn(0f, 1f) // Reduce saturation
+    val topColor = Color.HSVToColor(topHsv)
+    
+    // Bottom color: slightly darker and more saturated
+    val bottomHsv = hsv.clone()
+    bottomHsv[2] = (bottomHsv[2] * 0.85f).coerceAtLeast(0.1f) // Decrease brightness
+    bottomHsv[1] = (bottomHsv[1] * 1.1f).coerceIn(0f, 1f) // Increase saturation slightly
+    val bottomColor = Color.HSVToColor(bottomHsv)
+    
+    return Pair(topColor, bottomColor)
+}
+
+/**
+ * Blends two colors together with the specified ratio.
+ * @param color2 The second color to blend with
+ * @param ratio The ratio of color1 (0.0 to 1.0). 0.0 means all color2, 1.0 means all color1.
+ * @return The blended color
+ */
+fun Int.blendColors(color2: Int, ratio: Float): Int {
+    val inverseRatio = 1f - ratio
+    val r = (Color.red(this) * ratio + Color.red(color2) * inverseRatio).toInt()
+    val g = (Color.green(this) * ratio + Color.green(color2) * inverseRatio).toInt()
+    val b = (Color.blue(this) * ratio + Color.blue(color2) * inverseRatio).toInt()
+    return Color.rgb(r, g, b)
+}

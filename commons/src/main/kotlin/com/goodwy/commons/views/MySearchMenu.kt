@@ -38,7 +38,12 @@ open class MySearchMenu(context: Context, attrs: AttributeSet) : MyAppBarLayout(
     val binding = MenuSearchBinding.inflate(LayoutInflater.from(context), this)
 
     override val toolbar: MaterialToolbar?
+        get() = null // CustomToolbar is used instead
+    
+    override val customToolbar: CustomToolbar?
         get() = binding.topToolbar
+    
+    override fun requireCustomToolbar(): CustomToolbar = customToolbar ?: error("CustomToolbar not found")
 
     fun setupMenu() {
         binding.topToolbarSearchIcon.setOnClickListener {

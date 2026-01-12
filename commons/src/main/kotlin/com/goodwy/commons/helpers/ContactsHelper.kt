@@ -1681,6 +1681,180 @@ class ContactsHelper(val context: Context) {
         }
     }
 
+    /**
+     * Inserts a contact into the system ContactsProvider that is hidden from the main contacts list
+     * but still appears in search results (Contacts app or Dialer).
+     * 
+     * @param contact The contact to insert
+     * @param hiddenAccountName Custom account name for hidden contacts (default: "Hidden Contacts")
+     * @param hiddenAccountType Custom account type for hidden contacts (default: "com.goodwy.contacts.hidden")
+     * @return true if the contact was successfully inserted, false otherwise
+     */
+    fun insertHiddenContact(
+        contact: Contact,
+        hiddenAccountName: String = "Hidden Contacts",
+        hiddenAccountType: String = "com.goodwy.contacts.hidden"
+    ): Boolean {
+        try {
+            val operations = ArrayList<ContentProviderOperation>()
+            
+            // Insert raw contact with custom account
+            ContentProviderOperation.newInsert(RawContacts.CONTENT_URI).apply {
+                withValue(RawContacts.ACCOUNT_NAME, hiddenAccountName)
+                withValue(RawContacts.ACCOUNT_TYPE, hiddenAccountType)
+                operations.add(build())
+            }
+
+            // names - use single name field
+            ContentProviderOperation.newInsert(Data.CONTENT_URI).apply {
+                withValueBackReference(Data.RAW_CONTACT_ID, 0)
+                withValue(Data.MIMETYPE, CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE)
+                withValue(CommonDataKinds.StructuredName.PREFIX, "")
+                withValue(CommonDataKinds.StructuredName.GIVEN_NAME, contact.firstName)
+                withValue(CommonDataKinds.StructuredName.MIDDLE_NAME, "")
+                withValue(CommonDataKinds.StructuredName.FAMILY_NAME, "")
+                withValue(CommonDataKinds.StructuredName.SUFFIX, "")
+                operations.add(build())
+            }
+
+            // phone numbers
+            contact.phoneNumbers.forEach {
+                ContentProviderOperation.newInsert(Data.CONTENT_URI).apply {
+                    withValueBackReference(Data.RAW_CONTACT_ID, 0)
+                    withValue(Data.MIMETYPE, CommonDataKinds.Phone.CONTENT_ITEM_TYPE)
+                    withValue(CommonDataKinds.Phone.NUMBER, it.value)
+                    withValue(CommonDataKinds.Phone.NORMALIZED_NUMBER, it.normalizedNumber)
+                    withValue(CommonDataKinds.Phone.TYPE, it.type)
+                    withValue(CommonDataKinds.Phone.LABEL, it.label)
+                    withValue(CommonDataKinds.Phone.IS_PRIMARY, it.isPrimary)
+                    operations.add(build())
+                }
+            }
+
+            // emails
+            contact.emails.forEach {
+                ContentProviderOperation.newInsert(Data.CONTENT_URI).apply {
+                    withValueBackReference(Data.RAW_CONTACT_ID, 0)
+                    withValue(Data.MIMETYPE, CommonDataKinds.Email.CONTENT_ITEM_TYPE)
+                    withValue(CommonDataKinds.Email.DATA, it.value)
+                    withValue(CommonDataKinds.Email.TYPE, it.type)
+                    withValue(CommonDataKinds.Email.LABEL, it.label)
+                    operations.add(build())
+                }
+            }
+
+            // addresses
+            contact.addresses.forEach {
+                ContentProviderOperation.newInsert(Data.CONTENT_URI).apply {
+                    withValueBackReference(Data.RAW_CONTACT_ID, 0)
+                    withValue(Data.MIMETYPE, CommonDataKinds.StructuredPostal.CONTENT_ITEM_TYPE)
+                    withValue(CommonDataKinds.StructuredPostal.FORMATTED_ADDRESS, it.value)
+                    withValue(CommonDataKinds.StructuredPostal.COUNTRY, it.country)
+                    withValue(CommonDataKinds.StructuredPostal.REGION, it.region)
+                    withValue(CommonDataKinds.StructuredPostal.CITY, it.city)
+                    withValue(CommonDataKinds.StructuredPostal.POSTCODE, it.postcode)
+                    withValue(CommonDataKinds.StructuredPostal.POBOX, it.pobox)
+                    withValue(CommonDataKinds.StructuredPostal.STREET, it.street)
+                    withValue(CommonDataKinds.StructuredPostal.NEIGHBORHOOD, it.neighborhood)
+                    withValue(CommonDataKinds.StructuredPostal.TYPE, it.type)
+                    withValue(CommonDataKinds.StructuredPostal.LABEL, it.label)
+                    operations.add(build())
+                }
+            }
+
+            // events
+            contact.events.forEach {
+                ContentProviderOperation.newInsert(Data.CONTENT_URI).apply {
+                    withValueBackReference(Data.RAW_CONTACT_ID, 0)
+                    withValue(Data.MIMETYPE, CommonDataKinds.Event.CONTENT_ITEM_TYPE)
+                    withValue(CommonDataKinds.Event.START_DATE, it.value)
+                    withValue(CommonDataKinds.Event.TYPE, it.type)
+                    withValue(CommonDataKinds.Event.LABEL, it.label)
+                    operations.add(build())
+                }
+            }
+
+            // notes
+            ContentProviderOperation.newInsert(Data.CONTENT_URI).apply {
+                withValueBackReference(Data.RAW_CONTACT_ID, 0)
+                withValue(Data.MIMETYPE, CommonDataKinds.Note.CONTENT_ITEM_TYPE)
+                withValue(CommonDataKinds.Note.NOTE, contact.notes)
+                operations.add(build())
+            }
+
+            // organization
+            if (contact.organization.isNotEmpty()) {
+                ContentProviderOperation.newInsert(Data.CONTENT_URI).apply {
+                    withValueBackReference(Data.RAW_CONTACT_ID, 0)
+                    withValue(Data.MIMETYPE, CommonDataKinds.Organization.CONTENT_ITEM_TYPE)
+                    withValue(CommonDataKinds.Organization.COMPANY, contact.organization.company)
+                    withValue(CommonDataKinds.Organization.TYPE, DEFAULT_ORGANIZATION_TYPE)
+                    withValue(CommonDataKinds.Organization.TITLE, contact.organization.jobPosition)
+                    operations.add(build())
+                }
+            }
+
+            // websites
+            contact.websites.forEach {
+                ContentProviderOperation.newInsert(Data.CONTENT_URI).apply {
+                    withValueBackReference(Data.RAW_CONTACT_ID, 0)
+                    withValue(Data.MIMETYPE, CommonDataKinds.Website.CONTENT_ITEM_TYPE)
+                    withValue(CommonDataKinds.Website.URL, it)
+                    withValue(CommonDataKinds.Website.TYPE, DEFAULT_WEBSITE_TYPE)
+                    operations.add(build())
+                }
+            }
+
+            // relations
+            contact.relations.forEach {
+                ContentProviderOperation.newInsert(Data.CONTENT_URI).apply {
+                    withValueBackReference(Data.RAW_CONTACT_ID, 0)
+                    withValue(Data.MIMETYPE, CommonDataKinds.Relation.CONTENT_ITEM_TYPE)
+                    val (type, label) = getRelationAndroidTypeLabelFromEditTypeLabel(it.type, it.label)
+                    withValue(CommonDataKinds.Relation.NAME, it.name)
+                    withValue(CommonDataKinds.Relation.TYPE, type)
+                    withValue(CommonDataKinds.Relation.LABEL, label)
+                    operations.add(build())
+                }
+            }
+
+            // groups (skip groups for hidden contacts to avoid visibility issues)
+            // contact.groups.forEach { ... }
+
+            // photo
+            var fullSizePhotoData: ByteArray? = null
+            if (contact.photoUri.isNotEmpty()) {
+                val photoUri = contact.photoUri.toUri()
+                fullSizePhotoData = context.contentResolver.openInputStream(photoUri)?.readBytes()
+            }
+
+            val results = context.contentResolver.applyBatch(AUTHORITY, operations)
+            val rawId = ContentUris.parseId(results[0].uri!!)
+            
+            // fullsize photo
+            if (contact.photoUri.isNotEmpty() && fullSizePhotoData != null) {
+                addFullSizePhoto(rawId, fullSizePhotoData)
+            }
+
+            // Get the contact ID and set it as hidden (IN_VISIBLE_GROUP = 0)
+            val userId = getRealContactId(rawId)
+            if (userId != 0) {
+                val uri = Uri.withAppendedPath(Contacts.CONTENT_URI, userId.toString())
+                val contentValues = ContentValues(3)
+                contentValues.put(Contacts.STARRED, contact.starred)
+                contentValues.put(Contacts.CUSTOM_RINGTONE, contact.ringtone)
+                // Set IN_VISIBLE_GROUP to 0 to hide from main list but keep searchable
+                contentValues.put(Contacts.IN_VISIBLE_GROUP, 0)
+                context.contentResolver.update(uri, contentValues, null, null)
+            }
+
+            return true
+        } catch (e: Exception) {
+            context.showErrorToast(e)
+            return false
+        }
+    }
+
     private fun addFullSizePhoto(contactId: Long, fullSizePhotoData: ByteArray) {
         val baseUri = ContentUris.withAppendedId(RawContacts.CONTENT_URI, contactId)
         val displayPhotoUri = Uri.withAppendedPath(baseUri, RawContacts.DisplayPhoto.CONTENT_DIRECTORY)

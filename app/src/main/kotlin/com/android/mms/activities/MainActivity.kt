@@ -187,7 +187,7 @@ class MainActivity : SimpleActivity() {
 
     private fun setupOptionsMenu() {
         binding.apply {
-            mainMenu.requireToolbar().inflateMenu(R.menu.menu_main)
+            mainMenu.requireCustomToolbar().inflateMenu(R.menu.menu_main)
 //            mainMenu.toggleHideOnScroll(config.hideTopBarWhenScroll)
 
             if (isSearchAlwaysShow) {
@@ -217,17 +217,22 @@ class MainActivity : SimpleActivity() {
                     mainMenu.clearSearch()
                 }
             } else {
-                setupSearch(mainMenu.requireToolbar().menu)
+                setupCustomToolbarSearch()
             }
 
-            mainMenu.requireToolbar().setOnMenuItemClickListener { menuItem ->
+            mainMenu.requireCustomToolbar().setOnMenuItemClickListener { menuItem ->
                 when (menuItem.itemId) {
                     R.id.select_conversations -> {
                         // Ensure search UI is closed/collapsed before entering selection ActionMode
                         if (binding.mainMenu.isSearchOpen) {
                             binding.mainMenu.closeSearch()
                         }
-                        mSearchMenuItem?.collapseActionView()
+                        // Collapse CustomToolbar search if expanded
+                        val customToolbar = binding.mainMenu.requireCustomToolbar()
+                        if (customToolbar.isSearchExpanded) {
+                            customToolbar.collapseSearch()
+                            isSearchOpen = false
+                        }
                         getOrCreateConversationsAdapter().startActMode()
                     }
                     R.id.show_recycle_bin -> launchRecycleBin()
@@ -241,6 +246,33 @@ class MainActivity : SimpleActivity() {
             }
 
             mainMenu.clearSearch()
+        }
+    }
+
+    private fun setupCustomToolbarSearch() {
+        val customToolbar = binding.mainMenu.requireCustomToolbar()
+        
+        // Set up search text change listener
+        customToolbar.setOnSearchTextChangedListener { text ->
+            // Update isSearchOpen based on whether search is expanded
+            isSearchOpen = customToolbar.isSearchExpanded
+            searchQuery = text
+            if (text.isNotEmpty()) {
+                if (binding.searchHolder.alpha < 1f) {
+                    binding.searchHolder.fadeIn()
+                }
+            } else {
+                fadeOutSearch()
+            }
+            searchTextChanged(text)
+        }
+        
+        // Set up search back button listener to collapse search
+        customToolbar.setOnSearchBackClickListener {
+            if (isSearchOpen) {
+                fadeOutSearch()
+            }
+            isSearchOpen = false
         }
     }
 
@@ -304,7 +336,7 @@ class MainActivity : SimpleActivity() {
                 mSearchView?.let { searchView ->
                     searchView.post {
                         // Get the parent toolbar width for smooth slide-in
-                        val toolbar = binding.mainMenu.requireToolbar()
+                        val toolbar = binding.mainMenu.requireCustomToolbar()
                         val slideDistance = toolbar.width.toFloat()
 
                         // Start from right side
@@ -333,7 +365,7 @@ class MainActivity : SimpleActivity() {
 
                 // Animate search bar disappearance with smooth translation (slide out to right)
                 mSearchView?.let { searchView ->
-                    val toolbar = binding.mainMenu.requireToolbar()
+                    val toolbar = binding.mainMenu.requireCustomToolbar()
                     val slideDistance = toolbar.width.toFloat()
 
                     searchView.animate()
@@ -356,7 +388,7 @@ class MainActivity : SimpleActivity() {
     }
 
     private fun refreshMenuItems() {
-        binding.mainMenu.requireToolbar().menu.apply {
+        binding.mainMenu.requireCustomToolbar().menu.apply {
             findItem(R.id.show_recycle_bin).isVisible = config.useRecycleBin
             findItem(R.id.show_archived).isVisible = config.isArchiveAvailable
             findItem(R.id.about).isVisible = false
@@ -368,7 +400,7 @@ class MainActivity : SimpleActivity() {
 
     private fun showBlockedNumbers() {
         config.showBlockedNumbers = !config.showBlockedNumbers
-        binding.mainMenu.requireToolbar().menu.findItem(R.id.show_blocked_numbers).title =
+        binding.mainMenu.requireCustomToolbar().menu.findItem(R.id.show_blocked_numbers).title =
             if (config.showBlockedNumbers) getString(com.goodwy.strings.R.string.hide_blocked_numbers)
             else getString(com.goodwy.strings.R.string.show_blocked_numbers)
 //        runOnUiThread {

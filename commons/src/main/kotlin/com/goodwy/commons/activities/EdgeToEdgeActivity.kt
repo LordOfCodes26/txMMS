@@ -237,21 +237,44 @@ abstract class EdgeToEdgeActivity : AppCompatActivity() {
 
         window.setSystemBarsAppearance(colorBackground)
         topAppBar.setBackgroundColor(colorBackground)
-        topAppBar.toolbar?.setTitleTextColor(titleColor)
-        topAppBar.toolbar?.navigationIcon?.applyColorFilter(itemColor)
-        topAppBar.toolbar?.collapseIcon =
-            resources.getColoredDrawableWithColor(this, R.drawable.ic_chevron_left_vector, itemColor)
-        val overflowIconRes =
-            if (useOverflowIcon) getOverflowIcon(baseConfig.overflowIcon) else getOverflowIcon(OVERFLOW_ICON_VERTICAL)
-        topAppBar.toolbar?.overflowIcon =
-            resources.getColoredDrawableWithColor(this, overflowIconRes, itemColor)
+        
+        // Handle MaterialToolbar
+        topAppBar.toolbar?.let { toolbar ->
+            toolbar.setTitleTextColor(titleColor)
+            toolbar.navigationIcon?.applyColorFilter(itemColor)
+            toolbar.collapseIcon =
+                resources.getColoredDrawableWithColor(this, R.drawable.ic_chevron_left_vector, itemColor)
+            val overflowIconRes =
+                if (useOverflowIcon) getOverflowIcon(baseConfig.overflowIcon) else getOverflowIcon(OVERFLOW_ICON_VERTICAL)
+            toolbar.overflowIcon =
+                resources.getColoredDrawableWithColor(this, overflowIconRes, itemColor)
 
-        val menu = topAppBar.toolbar?.menu ?: return
-        for (i in 0 until menu.size) {
-            try {
-                menu[i].icon?.setTint(itemColor)
-            } catch (_: Exception) {
+            val menu = toolbar.menu
+            for (i in 0 until menu.size) {
+                try {
+                    menu[i].icon?.setTint(itemColor)
+                } catch (_: Exception) {
+                }
             }
+        }
+        
+        // Handle CustomToolbar
+        topAppBar.customToolbar?.let { toolbar ->
+            toolbar.setTitleTextColor(titleColor)
+            toolbar.navigationIcon?.applyColorFilter(itemColor)
+            val overflowIconRes =
+                if (useOverflowIcon) getOverflowIcon(baseConfig.overflowIcon) else getOverflowIcon(OVERFLOW_ICON_VERTICAL)
+            toolbar.overflowIcon =
+                resources.getColoredDrawableWithColor(this, overflowIconRes, itemColor)
+
+            val menu = toolbar.menu
+            for (i in 0 until menu.size) {
+                try {
+                    menu[i].icon?.setTint(itemColor)
+                } catch (_: Exception) {
+                }
+            }
+            toolbar.invalidateMenu()
         }
     }
 

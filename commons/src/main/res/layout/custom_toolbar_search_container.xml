@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/searchContainer"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical|end"
+    android:visibility="gone">
+
+    <ImageButton
+        android:id="@+id/searchBackButton"
+        android:layout_width="@dimen/medium_icon_size"
+        android:layout_height="@dimen/medium_icon_size"
+        android:layout_marginEnd="@dimen/smaller_margin"
+        android:scaleType="centerInside"
+        android:padding="@dimen/smaller_margin"
+        android:src="@drawable/ic_chevron_left_vector"
+        android:contentDescription="@string/back"
+        android:background="@null"
+        android:visibility="gone"
+        tools:visibility="visible" />
+
+    <com.goodwy.commons.views.MyEditText
+        android:id="@+id/searchEditText"
+        android:layout_width="wrap_content"
+        android:layout_height="33dp"
+        android:layout_marginEnd="@dimen/smaller_margin"
+        android:hint="@string/search"
+        android:maxLines="1"
+        android:gravity="start|center_vertical"
+        android:background="@drawable/search_bg"
+        android:paddingStart="@dimen/normal_margin"
+        android:paddingEnd="@dimen/normal_margin"
+        android:textSize="@dimen/big_text_size"
+        android:drawableStart="@drawable/ic_search_vector"
+        android:drawableEnd="@drawable/ic_clear_round"
+        android:drawablePadding="@dimen/smaller_margin"
+        tools:text="Search text" />
+
+</LinearLayout>

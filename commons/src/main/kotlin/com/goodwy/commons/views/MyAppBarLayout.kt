@@ -15,6 +15,7 @@ open class MyAppBarLayout @JvmOverloads constructor(
     defStyleAttr: Int = 0
 ) : AppBarLayout(context, attrs, defStyleAttr) {
     private var cachedToolbar: MaterialToolbar? = null
+    private var cachedCustomToolbar: CustomToolbar? = null
 
     init {
         elevation = 0f
@@ -32,10 +33,32 @@ open class MyAppBarLayout @JvmOverloads constructor(
 
     open val toolbar: MaterialToolbar?
         get() {
+            // First check for CustomToolbar
+            if (cachedCustomToolbar != null) {
+                return null // CustomToolbar doesn't extend MaterialToolbar
+            }
+            
             for (i in 0 until childCount) {
                 val child = getChildAt(i)
                 if (child is MaterialToolbar) {
                     return child.also { cachedToolbar = it }
+                }
+            }
+
+            return null
+        }
+    
+    open val customToolbar: CustomToolbar?
+        get() {
+            // First check for MaterialToolbar
+            if (cachedToolbar != null) {
+                return null // MaterialToolbar doesn't extend CustomToolbar
+            }
+            
+            for (i in 0 until childCount) {
+                val child = getChildAt(i)
+                if (child is CustomToolbar) {
+                    return child.also { cachedCustomToolbar = it }
                 }
             }
 
@@ -50,13 +73,18 @@ open class MyAppBarLayout @JvmOverloads constructor(
     override fun onViewAdded(child: View) {
         super.onViewAdded(child)
         cachedToolbar = null
+        cachedCustomToolbar = null
     }
 
     override fun onViewRemoved(child: View) {
         super.onViewRemoved(child)
         cachedToolbar = null
+        cachedCustomToolbar = null
     }
 
     fun requireToolbar(): MaterialToolbar =
         toolbar ?: error("MyAppBarLayout requires a Toolbar/MaterialToolbar child")
+    
+    open fun requireCustomToolbar(): CustomToolbar =
+        customToolbar ?: error("MyAppBarLayout requires a CustomToolbar child")
 }

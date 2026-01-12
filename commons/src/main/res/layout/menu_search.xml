@@ -11,14 +11,13 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="@dimen/smaller_margin">
 
-        <com.google.android.material.appbar.MaterialToolbar
+        <com.goodwy.commons.views.CustomToolbar
             android:id="@+id/topToolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
             android:layout_alignParentTop="true"
             android:layout_alignParentEnd="true"
-            android:layout_marginEnd="@dimen/small_margin"
-            app:titleTextAppearance="@style/AppTheme.ActionBar.TitleTextStyle" />
+            android:layout_marginEnd="@dimen/small_margin" />
 
         <RelativeLayout
             android:id="@+id/topToolbarSearchHolder"

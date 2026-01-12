@@ -10,6 +10,7 @@
     <dimen name="bigger_margin">20dp</dimen>
     <dimen name="big_margin">24dp</dimen>
     <dimen name="section_margin">32dp</dimen>
+    <dimen name="filter_section_margin">48dp</dimen>
     <dimen name="label_start_margin">72dp</dimen>
     <dimen name="settings_label_start_margin">20dp</dimen>
     <dimen name="min_radio_checkbox_height">44dp</dimen>

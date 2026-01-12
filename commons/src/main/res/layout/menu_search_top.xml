@@ -50,14 +50,13 @@
                 android:singleLine="true"
                 android:textSize="@dimen/big_text_size" />
 
-            <com.google.android.material.appbar.MaterialToolbar
+            <com.goodwy.commons.views.CustomToolbar
                 android:id="@+id/topToolbar"
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
                 android:layout_alignParentEnd="true"
                 android:layout_marginEnd="@dimen/small_margin"
-                android:background="@android:color/transparent"
-                app:titleTextAppearance="@style/AppTheme.ActionBar.TitleTextStyle" />
+                android:background="@android:color/transparent" />
 
             <ImageView
                 android:id="@+id/topToolbarSearchClear"

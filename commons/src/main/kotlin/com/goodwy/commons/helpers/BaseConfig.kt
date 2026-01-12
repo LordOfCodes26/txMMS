@@ -87,16 +87,36 @@ open class BaseConfig(val context: Context) {
         set(OTGPath) = prefs.edit { putString(OTG_REAL_PATH, OTGPath) }
 
     var sdCardPath: String
-        get() = prefs.getString(SD_CARD_PATH, getDefaultSDCardPath())!!
+        get() {
+            // Avoid prefs.contains() to prevent StrictMode violations on SDK 34+
+            // Use getString() with a sentinel value to check if key exists
+            // If key doesn't exist, getString returns the sentinel, so we return the default path
+            // If key exists (even if empty), getString returns the stored value
+            val sentinel = "__SENTINEL_NOT_SET__"
+            val value = prefs.getString(SD_CARD_PATH, sentinel)
+            return if (value == sentinel) {
+                context.getSDCardPath()
+            } else {
+                value ?: ""
+            }
+        }
         set(sdCardPath) = prefs.edit { putString(SD_CARD_PATH, sdCardPath) }
 
-    private fun getDefaultSDCardPath() = if (prefs.contains(SD_CARD_PATH)) "" else context.getSDCardPath()
-
     var internalStoragePath: String
-        get() = prefs.getString(INTERNAL_STORAGE_PATH, getDefaultInternalPath())!!
+        get() {
+            // Avoid prefs.contains() to prevent StrictMode violations on SDK 34+
+            // Use getString() with a sentinel value to check if key exists
+            // If key doesn't exist, getString returns the sentinel, so we return the default path
+            // If key exists (even if empty), getString returns the stored value
+            val sentinel = "__SENTINEL_NOT_SET__"
+            val value = prefs.getString(INTERNAL_STORAGE_PATH, sentinel)
+            return if (value == sentinel) {
+                getInternalStoragePath()
+            } else {
+                value ?: ""
+            }
+        }
         set(internalStoragePath) = prefs.edit { putString(INTERNAL_STORAGE_PATH, internalStoragePath) }
-
-    private fun getDefaultInternalPath() = if (prefs.contains(INTERNAL_STORAGE_PATH)) "" else getInternalStoragePath()
 
     var textColor: Int
         get() = prefs.getInt(TEXT_COLOR, ContextCompat.getColor(context, R.color.default_text_color))
@@ -265,11 +285,11 @@ open class BaseConfig(val context: Context) {
         set(useDividers) = prefs.edit { putBoolean(USE_DIVIDERS, useDividers) }
 
     var useColoredContacts: Boolean
-        get() = prefs.getBoolean(USE_COLORED_CONTACTS, false)
+        get() = prefs.getBoolean(USE_COLORED_CONTACTS, true)
         set(useColoredContacts) = prefs.edit { putBoolean(USE_COLORED_CONTACTS, useColoredContacts) }
 
     var contactColorList: Int
-        get() = prefs.getInt(CONTACT_COLOR_LIST, LBC_ANDROID)
+        get() = prefs.getInt(CONTACT_COLOR_LIST, LBC_IOS)
         set(contactsColorList) = prefs.edit { putInt(CONTACT_COLOR_LIST, contactsColorList) }
 
     var isGlobalThemeEnabled: Boolean
@@ -321,7 +341,14 @@ open class BaseConfig(val context: Context) {
         prefs.edit { remove(SORT_FOLDER_PREFIX + path.lowercase(Locale.getDefault())) }
     }
 
-    fun hasCustomSorting(path: String) = prefs.contains(SORT_FOLDER_PREFIX + path.lowercase(Locale.getDefault()))
+    // Avoid prefs.contains() to prevent StrictMode violations on SDK 34+
+    // Check if custom sorting exists by comparing with default sorting value
+    fun hasCustomSorting(path: String): Boolean {
+        val key = SORT_FOLDER_PREFIX + path.lowercase(Locale.getDefault())
+        val sentinel = Int.MIN_VALUE // Unlikely to be a real sorting value
+        val value = prefs.getInt(key, sentinel)
+        return value != sentinel
+    }
 
     var hadThankYouInstalled: Boolean
         get() = prefs.getBoolean(HAD_THANK_YOU_INSTALLED, false)
