@@ -1,6 +1,5 @@
 package com.android.mms.adapters
 
-import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Handler
@@ -10,12 +9,11 @@ import android.view.Gravity
 import android.view.Menu
 import android.view.View
 import android.view.ViewGroup
-import android.widget.PopupMenu
-import androidx.appcompat.view.ContextThemeWrapper
 import com.goodwy.commons.dialogs.ConfirmationDialog
 import com.goodwy.commons.extensions.*
 import com.goodwy.commons.helpers.KEY_PHONE
 import com.goodwy.commons.helpers.ensureBackgroundThread
+import com.goodwy.commons.views.BlurPopupMenu
 import com.goodwy.commons.views.MyRecyclerView
 import com.android.mms.BuildConfig
 import com.android.mms.R
@@ -78,9 +76,8 @@ class ConversationsAdapter(
             selectedKeys.add(conversation.hashCode())
         }
 
-        val wrapper: Context = ContextThemeWrapper(activity, activity.getPopupMenuTheme())
-        val popupMenu = PopupMenu(wrapper, view, Gravity.END)
-        activity.menuInflater.inflate(R.menu.cab_conversations, popupMenu.menu)
+        val popupMenu = BlurPopupMenu(activity, view, Gravity.END)
+        popupMenu.inflate(R.menu.cab_conversations)
 
         // Use existing prepareActionMode logic to set visibility
         val menu = popupMenu.menu
@@ -120,10 +117,8 @@ class ConversationsAdapter(
             true
         }
 
-        popupMenu.setOnDismissListener {
-            selectedKeys.clear()
-        }
-
+        // Note: BlurPopupMenu doesn't have setOnDismissListener
+        // Clear selectedKeys after menu interaction instead
         popupMenu.show()
     }
 
