@@ -15,6 +15,7 @@ import com.bumptech.glide.Glide
 import com.qtalk.recyclerviewfastscroller.RecyclerViewFastScroller
 import com.goodwy.commons.adapters.MyRecyclerViewListAdapter
 import com.goodwy.commons.extensions.applyColorFilter
+import com.goodwy.commons.models.RecyclerSelectionPayload
 import com.goodwy.commons.extensions.beGone
 import com.goodwy.commons.extensions.beGoneIf
 import com.goodwy.commons.extensions.beInvisible
@@ -163,6 +164,18 @@ abstract class BaseConversationsAdapter(
             setupView(itemView, conversation)
         }
         bindViewHolder(holder)
+    }
+
+    override fun onBindViewHolder(holder: ViewHolder, position: Int, payloads: MutableList<Any>) {
+        val payload = payloads.firstOrNull()
+        if (payload is RecyclerSelectionPayload) {
+            // Update both itemView and swipeView selection state
+            holder.itemView.isSelected = payload.selected
+            val binding = ItemConversationBinding.bind(holder.itemView)
+            binding.swipeView.isSelected = payload.selected
+        } else {
+            super.onBindViewHolder(holder, position, payloads)
+        }
     }
 
     override fun getItemId(position: Int) = getItem(position).threadId

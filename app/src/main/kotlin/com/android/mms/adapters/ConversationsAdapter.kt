@@ -168,6 +168,12 @@ class ConversationsAdapter(
     }
 
     override fun actionItemPressed(id: Int) {
+        // Allow select_all to work even when no items are selected
+        if (id == R.id.cab_select_all) {
+            selectAll()
+            return
+        }
+
         if (selectedKeys.isEmpty()) {
             return
         }
@@ -188,7 +194,6 @@ class ConversationsAdapter(
             R.id.cab_mark_as_unread -> markAsUnread()
             R.id.cab_pin_conversation -> pinConversation(true)
             R.id.cab_unpin_conversation -> pinConversation(false)
-            R.id.cab_select_all -> selectAll()
         }
     }
 
