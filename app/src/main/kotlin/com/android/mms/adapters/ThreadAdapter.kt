@@ -15,7 +15,7 @@ import android.text.util.Linkify
 import android.util.TypedValue
 import android.view.*
 import android.widget.LinearLayout
-import android.widget.PopupMenu
+import com.goodwy.commons.views.BlurPopupMenu
 import android.widget.RelativeLayout
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.constraintlayout.widget.ConstraintSet
@@ -411,8 +411,7 @@ class ThreadAdapter(
     }
 
     private fun showLinkPopupMenu(context: Context, url: String, view: View) {
-        val wrapper: Context = ContextThemeWrapper(activity, activity.getPopupMenuTheme())
-        val popupMenu = PopupMenu(wrapper, view, Gravity.START)
+        val popupMenu = BlurPopupMenu(activity, view, Gravity.START)
         val text = url.toUri().schemeSpecificPart
         val (title, icon) = getActionTitleAndIcon(url)
 
@@ -443,24 +442,7 @@ class ThreadAdapter(
             }
             true
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            popupMenu.setForceShowIcon(true)
-        }
         popupMenu.show()
-        // icon coloring
-        popupMenu.menu.apply {
-            for (index in 0 until this.size) {
-                val item = this[index]
-
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    item.icon!!.colorFilter = BlendModeColorFilter(
-                        textColor, BlendMode.SRC_IN
-                    )
-                } else {
-                    item.icon!!.setColorFilter(textColor, PorterDuff.Mode.SRC_IN)
-                }
-            }
-        }
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -559,11 +541,18 @@ class ThreadAdapter(
     }
 
     private fun showPopupMenu(message: Message, view: View) {
-        val wrapper: Context = ContextThemeWrapper(activity, activity.getPopupMenuTheme())
-        val popupMenu = PopupMenu(wrapper, view, Gravity.END)
+        val popupMenu = BlurPopupMenu(activity, view, Gravity.END)
         val text = message.body
         val numbersList = text.getListNumbersFromText()
-        popupMenu.menu.add(1, 1, 1, com.goodwy.commons.R.string.delete).setIcon(com.goodwy.commons.R.drawable.ic_delete_outline)
+        val colorRed = resources.getColor(R.color.red_call, activity.theme)
+        
+        val deleteItem = popupMenu.menu.add(1, 1, 1, com.goodwy.commons.R.string.delete).setIcon(com.goodwy.commons.R.drawable.ic_delete_outline)
+        // Set red color for delete item title
+        val coloredText = SpannableString(deleteItem.title).apply {
+            setSpan(ForegroundColorSpan(colorRed), 0, length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+        }
+        deleteItem.title = coloredText
+        
         popupMenu.menu.add(1, 2, 2, com.goodwy.strings.R.string.search_the_web).setIcon(R.drawable.ic_internet)
         popupMenu.menu.add(1, 3, 3, com.goodwy.commons.R.string.share).setIcon(com.goodwy.commons.R.drawable.ic_ios_share)
         popupMenu.menu.add(1, 4, 4, com.goodwy.commons.R.string.properties).setIcon(com.goodwy.commons.R.drawable.ic_info_vector)
@@ -624,45 +613,11 @@ class ThreadAdapter(
             }
             true
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            popupMenu.setForceShowIcon(true)
-        }
         popupMenu.show()
-        // icon coloring
-        popupMenu.menu.apply {
-            for (index in 0 until this.size) {
-                val item = this[index]
-
-                if (index == 0) {
-                    val colorRed = resources.getColor(R.color.red_call, activity.theme)
-                    val coloredText = SpannableString(item.title).apply {
-                        setSpan(ForegroundColorSpan(colorRed), 0, length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-                    }
-                    item.title = coloredText
-
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                        item.icon!!.colorFilter = BlendModeColorFilter(
-                            colorRed, BlendMode.SRC_IN
-                        )
-                    } else {
-                        item.icon!!.setColorFilter(colorRed, PorterDuff.Mode.SRC_IN)
-                    }
-                } else {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                        item.icon!!.colorFilter = BlendModeColorFilter(
-                            textColor, BlendMode.SRC_IN
-                        )
-                    } else {
-                        item.icon!!.setColorFilter(textColor, PorterDuff.Mode.SRC_IN)
-                    }
-                }
-            }
-        }
     }
 
     private fun showPopupMenuCopyNumbers(numbersList: List<String>, view: View) {
-        val wrapper: Context = ContextThemeWrapper(activity, activity.getPopupMenuTheme())
-        val popupMenu = PopupMenu(wrapper, view, Gravity.END)
+        val popupMenu = BlurPopupMenu(activity, view, Gravity.END)
         if (numbersList.isNotEmpty()) {
             numbersList.apply {
                 val size = numbersList.size
@@ -677,23 +632,7 @@ class ThreadAdapter(
             if (numbersList.isNotEmpty()) activity.copyToClipboard(numbersList[item.itemId])
             true
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            popupMenu.setForceShowIcon(true)
-        }
         popupMenu.show()
-        popupMenu.menu.apply {
-            for (index in 0 until this.size) {
-                val item = this[index]
-
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    item.icon!!.colorFilter = BlendModeColorFilter(
-                        textColor, BlendMode.SRC_IN
-                    )
-                } else {
-                    item.icon!!.setColorFilter(textColor, PorterDuff.Mode.SRC_IN)
-                }
-            }
-        }
     }
 
     private fun setupReceivedMessageView(messageBinding: ItemMessageBinding, message: Message) {
