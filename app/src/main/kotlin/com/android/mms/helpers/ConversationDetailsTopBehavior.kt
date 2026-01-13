@@ -10,6 +10,7 @@ import com.android.mms.R
 import com.android.mms.databinding.ActivityConversationDetailsBinding
 import com.google.android.material.appbar.AppBarLayout
 import com.google.android.material.appbar.CollapsingToolbarLayout
+import eightbitlab.com.blurview.BlurTarget
 
 class ConversationDetailsTopBehavior(
     context: Context?,
@@ -21,14 +22,38 @@ class ConversationDetailsTopBehavior(
         return height
     }
 
-    override fun View.provideAppbar(): AppBarLayout {
-        binding = ActivityConversationDetailsBinding.bind(this)
-        return  binding.conversationDetailsAppbar
+    private fun View.findRootBlurTarget(): View {
+        var rootView: View = this
+        while (rootView.parent != null && rootView.parent is View) {
+            rootView = rootView.parent as View
+            // The binding expects the BlurTarget root (mainBlurTarget), not the CoordinatorLayout
+            if (rootView.id == R.id.mainBlurTarget || rootView is BlurTarget) {
+                break
+            }
+        }
+        return rootView
     }
-    override fun View.provideCollapsingToolbar(): CollapsingToolbarLayout = binding.collapsingToolbar
+
+    private fun View.ensureBindingInitialized() {
+        if (!::binding.isInitialized) {
+            val rootView = findRootBlurTarget()
+            binding = ActivityConversationDetailsBinding.bind(rootView)
+        }
+    }
+
+    override fun View.provideAppbar(): AppBarLayout {
+        ensureBindingInitialized()
+        return binding.conversationDetailsAppbar
+    }
+    
+    override fun View.provideCollapsingToolbar(): CollapsingToolbarLayout {
+        ensureBindingInitialized()
+        return binding.collapsingToolbar
+    }
     override fun canUpdateHeight(progress: Float): Boolean = progress >= GONE_VIEW_THRESHOLD
 
     override fun View.setUpViews(): List<RuledView> {
+        ensureBindingInitialized()
         val height = height
         return listOf(
             RuledView(
