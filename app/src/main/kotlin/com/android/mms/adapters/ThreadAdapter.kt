@@ -356,19 +356,23 @@ class ThreadAdapter(
         val selectedMessages = getSelectedItems().filterIsInstance<Message>()
         if (selectedMessages.isEmpty()) return
 
-        val isSingle = selectedMessages.size == 1
         val mergedBody = selectedMessages
             .mapNotNull { it.body.takeIf(String::isNotBlank) }
             .joinToString(separator = "\n")
 
-        // Keep old behavior for single-selection attachment forwarding.
-        val attachment = if (isSingle) selectedMessages.first().attachment?.attachments?.firstOrNull() else null
+        val allAttachments = selectedMessages.flatMap { it.attachment?.attachments.orEmpty() }
+        
         Intent(activity, NewConversationActivity::class.java).apply {
             action = Intent.ACTION_SEND
             putExtra(Intent.EXTRA_TEXT, mergedBody)
 
-            if (attachment != null) {
-                putExtra(Intent.EXTRA_STREAM, attachment.getUri())
+            // Handle single attachment
+            if (allAttachments.size == 1) {
+                putExtra(Intent.EXTRA_STREAM, allAttachments.first().getUri())
+            } else if (allAttachments.size > 1) {
+                // Handle multiple attachments
+                action = Intent.ACTION_SEND_MULTIPLE
+                putParcelableArrayListExtra(Intent.EXTRA_STREAM, ArrayList(allAttachments.map { it.getUri() }))
             }
 
             activity.startActivity(this)
@@ -586,13 +590,16 @@ class ThreadAdapter(
                 }
 
                 5 -> {
-                    val attachment = message.attachment?.attachments?.firstOrNull()
+                    val attachments = message.attachment?.attachments.orEmpty()
                     Intent(activity, NewConversationActivity::class.java).apply {
                         action = Intent.ACTION_SEND
                         putExtra(Intent.EXTRA_TEXT, message.body)
 
-                        if (attachment != null) {
-                            putExtra(Intent.EXTRA_STREAM, attachment.getUri())
+                        if (attachments.size == 1) {
+                            putExtra(Intent.EXTRA_STREAM, attachments.first().getUri())
+                        } else if (attachments.size > 1) {
+                            action = Intent.ACTION_SEND_MULTIPLE
+                            putParcelableArrayListExtra(Intent.EXTRA_STREAM, ArrayList(attachments.map { it.getUri() }))
                         }
 
                         activity.startActivity(this)

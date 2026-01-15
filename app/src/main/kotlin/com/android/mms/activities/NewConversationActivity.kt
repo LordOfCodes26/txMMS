@@ -154,6 +154,9 @@ class NewConversationActivity : SimpleActivity() {
             
             messageHolderHelper?.hideAttachmentPicker()
         }
+        
+        // Handle forwarded messages from Intent.ACTION_SEND or Intent.ACTION_SEND_MULTIPLE
+        handleForwardedMessage()
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, resultData: Intent?) {
@@ -710,6 +713,33 @@ class NewConversationActivity : SimpleActivity() {
         }
     }
 
+    private fun handleForwardedMessage() {
+        if (intent.action == Intent.ACTION_SEND || intent.action == Intent.ACTION_SEND_MULTIPLE) {
+            // Handle text
+            val text = intent.getStringExtra(Intent.EXTRA_TEXT)
+            if (!text.isNullOrBlank()) {
+                messageHolderHelper?.setMessageText(text)
+                binding.messageHolder.threadTypeMessage.requestFocus()
+            }
+            
+            // Handle single attachment
+            if (intent.action == Intent.ACTION_SEND && intent.extras?.containsKey(Intent.EXTRA_STREAM) == true) {
+                val uri = intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)
+                uri?.let {
+                    messageHolderHelper?.addAttachment(it)
+                }
+            }
+            
+            // Handle multiple attachments
+            if (intent.action == Intent.ACTION_SEND_MULTIPLE && intent.extras?.containsKey(Intent.EXTRA_STREAM) == true) {
+                val uris = intent.getParcelableArrayListExtra<Uri>(Intent.EXTRA_STREAM)
+                uris?.forEach { uri ->
+                    messageHolderHelper?.addAttachment(uri)
+                }
+            }
+        }
+    }
+    
     private fun launchThreadActivity(phoneNumber: String, name: String, body: String = "", photoUri: String = "") {
         hideKeyboard()
 //        val text = intent.getStringExtra(Intent.EXTRA_TEXT) ?: intent.getStringExtra("sms_body") ?: ""
