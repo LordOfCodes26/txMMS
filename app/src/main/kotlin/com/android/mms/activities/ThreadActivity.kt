@@ -175,18 +175,35 @@ class ThreadActivity : SimpleActivity() {
         else binding.topDetailsLarge.beGone()
 
         val topBarColor = getColoredMaterialStatusBarColor()
+        // Disable navigation click in setupTopAppBar since we handle it manually for CustomToolbar
         setupTopAppBar(
             topAppBar = binding.threadAppbar,
-            navigationIcon = NavigationIcon.Arrow,
+            navigationIcon = NavigationIcon.None, // Don't let setupTopAppBar handle navigation
             topBarColor = topBarColor,
-            appBarLayout = binding.threadAppbar
+            appBarLayout = binding.threadAppbar,
+            navigationClick = false // We'll handle navigation click manually
         )
-        setupToolbar(
-            toolbar = binding.threadToolbar,
-            toolbarNavigationIcon = NavigationIcon.Arrow,
-        )
-        updateToolbarColors(binding.threadToolbar, topBarColor, useOverflowIcon = false)
-        binding.threadToolbar.setBackgroundColor(topBarColor)
+        // Setup CustomToolbar navigation icon and colors
+        val customToolbar = binding.threadToolbar
+        val contrastColor = topBarColor.getContrastColor()
+        // Set navigation click listener - handle back press and finish if not handled
+        val navigationClickListener = View.OnClickListener {
+            hideKeyboard()
+            if (!onBackPressedCompat()) {
+                // onBackPressedCompat returned false, so finish the activity
+                finish()
+            }
+        }
+        customToolbar.setNavigationOnClickListener(navigationClickListener)
+        val navigationIconDrawable = resources.getColoredDrawableWithColor(this, com.goodwy.commons.R.drawable.ic_chevron_left_vector, contrastColor)
+        customToolbar.navigationIcon = navigationIconDrawable
+        // Ensure click listener is set after icon
+        customToolbar.setNavigationOnClickListener(navigationClickListener)
+        customToolbar.setNavigationContentDescription(com.goodwy.commons.R.string.back)
+        customToolbar.setBackgroundColor(topBarColor)
+        // Update menu button color
+        val overflowIconRes = getOverflowIcon(baseConfig.overflowIcon)
+        customToolbar.overflowIcon = resources.getColoredDrawableWithColor(this, overflowIconRes, contrastColor)
 
         isActivityVisible = true
 
@@ -260,32 +277,34 @@ class ThreadActivity : SimpleActivity() {
         val firstPhoneNumber = participants.firstOrNull()?.phoneNumbers?.firstOrNull()?.value
         val archiveAvailable = config.isArchiveAvailable
         binding.threadToolbar.menu.apply {
-            findItem(R.id.delete).isVisible = threadItems.isNotEmpty()
-            findItem(R.id.select_messages).isVisible = threadItems.isNotEmpty()
-            findItem(R.id.restore).isVisible = threadItems.isNotEmpty() && isRecycleBin
-            findItem(R.id.archive).isVisible =
+            findItem(R.id.delete)?.isVisible = threadItems.isNotEmpty()
+            findItem(R.id.select_messages)?.isVisible = threadItems.isNotEmpty()
+            findItem(R.id.restore)?.isVisible = threadItems.isNotEmpty() && isRecycleBin
+            findItem(R.id.archive)?.isVisible =
                 threadItems.isNotEmpty() && conversation?.isArchived == false && !isRecycleBin && archiveAvailable
-            findItem(R.id.unarchive).isVisible =
+            findItem(R.id.unarchive)?.isVisible =
                 threadItems.isNotEmpty() && conversation?.isArchived == true && !isRecycleBin && archiveAvailable
-            findItem(R.id.rename_conversation).isVisible = participants.size > 1 && conversation != null && !isRecycleBin
-            findItem(R.id.conversation_details).isVisible = conversation != null && !isRecycleBin
-            findItem(R.id.block_number).isVisible = !isRecycleBin
-            findItem(R.id.dial_number).isVisible = participants.size == 1 && !isSpecialNumber() && !isRecycleBin
-            findItem(R.id.manage_people).isVisible = !isSpecialNumber() && !isRecycleBin
-            findItem(R.id.mark_as_unread).isVisible = threadItems.isNotEmpty() && !isRecycleBin
+            findItem(R.id.rename_conversation)?.isVisible = participants.size > 1 && conversation != null && !isRecycleBin
+            findItem(R.id.conversation_details)?.isVisible = conversation != null && !isRecycleBin
+            findItem(R.id.block_number)?.isVisible = !isRecycleBin
+            findItem(R.id.dial_number)?.isVisible = participants.size == 1 && !isSpecialNumber() && !isRecycleBin
+            findItem(R.id.manage_people)?.isVisible = !isSpecialNumber() && !isRecycleBin
+            findItem(R.id.mark_as_unread)?.isVisible = threadItems.isNotEmpty() && !isRecycleBin
 
             // allow saving number in cases when we don't have it stored yet and it is a casual readable number
-            findItem(R.id.add_number_to_contact).isVisible =
+            findItem(R.id.add_number_to_contact)?.isVisible =
                 participants.size == 1 && participants.first().name == firstPhoneNumber && firstPhoneNumber.any {
                     it.isDigit()
                 } && !isRecycleBin
             val unblockText = if (participants.size == 1) com.goodwy.strings.R.string.unblock_number else com.goodwy.strings.R.string.unblock_numbers
             val blockText = if (participants.size == 1) com.goodwy.commons.R.string.block_number else com.goodwy.commons.R.string.block_numbers
-            findItem(R.id.block_number).title = if (isBlockNumbers()) getString(unblockText) else getString(blockText)
+            findItem(R.id.block_number)?.title = if (isBlockNumbers()) getString(unblockText) else getString(blockText)
         }
     }
 
     private fun setupOptionsMenu() {
+        // Explicitly inflate menu to ensure it's ready (XML inflation happens asynchronously)
+        binding.threadToolbar.inflateMenu(R.menu.menu_thread)
         binding.threadToolbar.setOnMenuItemClickListener { menuItem ->
             if (participants.isEmpty()) {
                 return@setOnMenuItemClickListener true

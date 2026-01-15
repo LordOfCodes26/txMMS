@@ -25,13 +25,11 @@
                 android:layout_height="wrap_content"
                 app:layout_scrollFlags="noScroll">
 
-                <com.google.android.material.appbar.MaterialToolbar
+                <com.goodwy.commons.views.CustomToolbar
                     android:id="@+id/thread_toolbar"
                     android:layout_width="match_parent"
                     android:layout_height="?attr/actionBarSize"
-                    app:layout_collapseMode="pin"
-                    app:menu="@menu/menu_thread"
-                    app:navigationIcon="@drawable/ic_chevron_left_vector" />
+                    app:layout_collapseMode="pin" />
 
                 <androidx.constraintlayout.widget.ConstraintLayout
                     android:id="@+id/topDetailsLarge"
