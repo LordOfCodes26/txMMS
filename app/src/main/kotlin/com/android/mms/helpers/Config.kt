@@ -153,13 +153,19 @@ class Config(context: Context) : BaseConfig(context) {
         }
     }
 
+    var quickTextsDefaultsInitialized: Boolean
+        get() = prefs.getBoolean(QUICK_TEXTS_DEFAULTS_INITIALIZED, false)
+        set(initialized) = prefs.edit { putBoolean(QUICK_TEXTS_DEFAULTS_INITIALIZED, initialized) }
+
     fun initializeDefaultQuickTexts() {
-        // Only initialize if quick texts are empty (first launch)
-        if (quickTexts.isEmpty()) {
+        // Only initialize if quick texts are empty AND defaults haven't been initialized yet
+        // This ensures defaults are shown on first launch, but not re-added if user deletes them
+        if (quickTexts.isEmpty() && !quickTextsDefaultsInitialized) {
             val defaultTexts = context.resources.getStringArray(R.array.default_quick_texts)
             defaultTexts.forEach { text ->
                 addQuickText(text)
             }
+            quickTextsDefaultsInitialized = true
         }
     }
 

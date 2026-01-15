@@ -73,7 +73,10 @@ class MainActivity : SimpleActivity() {
         setContentView(binding.root)
         val isFirstLaunch = baseConfig.appRunCount == 0
         appLaunched(BuildConfig.APPLICATION_ID)
-        if (isFirstLaunch) {
+        // Initialize default quick texts if they haven't been initialized yet
+        // The function internally checks if quick texts are empty to prevent re-initialization
+        // if user deletes all quick texts later
+        if (!config.quickTextsDefaultsInitialized) {
             config.initializeDefaultQuickTexts()
         }
         setupOptionsMenu()
