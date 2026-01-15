@@ -641,7 +641,6 @@ class SettingsActivity : SimpleActivity() {
         settingsActionOnMessageClick.text = getActionOnMessageClickText()
         settingsActionOnMessageClickHolder.setOnClickListener {
             val items = arrayListOf(
-                RadioItem(ACTION_COPY_CODE, getString(com.goodwy.strings.R.string.copy_code), icon = com.goodwy.commons.R.drawable.ic_copy_vector),
                 RadioItem(ACTION_COPY_MESSAGE, getString(com.goodwy.commons.R.string.copy_to_clipboard), icon = com.goodwy.commons.R.drawable.ic_copy_vector),
                 RadioItem(ACTION_SELECT_TEXT, getString(com.goodwy.commons.R.string.select_text), icon = R.drawable.ic_text_select),
                 RadioItem(ACTION_NOTHING, getString(com.google.android.material.R.string.exposed_dropdown_menu_content_description), icon = R.drawable.ic_menu_open),
