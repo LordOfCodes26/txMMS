@@ -635,6 +635,19 @@ class NewConversationActivity : SimpleActivity() {
         if (currentText.isNotEmpty()) {
             // Split by comma or semicolon to handle multiple numbers
             val textNumbers = currentText.split(",", ";")
+            // Validate each part before processing
+            textNumbers.forEach { numberText ->
+                val trimmedNumber = numberText.trim()
+                if (trimmedNumber.isNotEmpty()) {
+                    // Validate using isValidForChip before processing
+                    if (!isValidForChip(trimmedNumber)) {
+                        toast(R.string.invalid_contact_or_number, length = Toast.LENGTH_SHORT)
+                        return
+                    }
+                }
+            }
+            
+            // If validation passed, process the numbers
             textNumbers.forEach { numberText ->
                 val trimmedNumber = numberText.trim()
                 if (trimmedNumber.isNotEmpty()) {
