@@ -196,12 +196,21 @@ class NewConversationActivity : SimpleActivity() {
         binding.newConversationAddress.setColors(properTextColor, properAccentColor, surfaceColor)
         binding.newConversationAddress.getEditText().setBackgroundResource(com.goodwy.commons.R.drawable.search_bg)
         binding.newConversationAddress.getEditText().backgroundTintList = ColorStateList.valueOf(surfaceColor)
-
         // Listen for chip changes to handle typed phone numbers and contact names
         binding.newConversationAddress.setOnChipsChangedListener { chips ->
             if (isUpdatingChips) return@setOnChipsChangedListener
             
             chips.forEach { chipText ->
+                // Validate chip before processing (for both Enter key and comma/semicolon)
+                if (!isValidForChip(chipText)) {
+                    // Invalid chip, remove it and show error
+                    isUpdatingChips = true
+                    binding.newConversationAddress.removeChip(chipText)
+                    isUpdatingChips = false
+                    toast(R.string.invalid_contact_or_number, length = Toast.LENGTH_SHORT)
+                    return@forEach // Continue with other chips
+                }
+                
                 // If this chip is not in our mapping, check if it's a phone number or contact name
                 if (!chipDisplayToPhoneNumber.containsKey(chipText)) {
                     // First check if it's a contact name (prioritize contact names over phone numbers)
@@ -511,6 +520,36 @@ class NewConversationActivity : SimpleActivity() {
         }
 
         return null
+    }
+
+    /**
+     * Validates if text can be added as a chip.
+     * Returns true if:
+     * - Text contains only numbers and phone formatting characters (+, -, spaces, parentheses), OR
+     * - Text contains non-numbers but matches a contact
+     * Returns false if:
+     * - Text contains non-numbers AND doesn't match any contact
+     */
+    private fun isValidForChip(text: String): Boolean {
+        val trimmed = text.trim()
+        if (trimmed.isEmpty()) {
+            return false
+        }
+
+        // Check if the original text contains only digits and common phone formatting characters
+        // Phone formatting characters: +, -, spaces, parentheses, #, *
+        val phoneFormatChars = setOf('+', '-', ' ', '(', ')', '#', '*')
+        val containsOnlyNumbersAndFormatting = trimmed.all { it.isDigit() || phoneFormatChars.contains(it) }
+        
+        // If it contains only numbers and formatting, it's valid (will be normalized to digits)
+        if (containsOnlyNumbersAndFormatting) {
+            return true
+        }
+
+        // If it contains non-numeric characters (letters, etc.), check if it matches a contact
+        // This prevents invalid text like "abc123" from being added unless it's a contact name
+        val contact = findContactByName(trimmed)
+        return contact != null
     }
 
     /**
