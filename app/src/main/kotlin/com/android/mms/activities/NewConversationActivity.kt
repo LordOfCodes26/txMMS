@@ -51,6 +51,7 @@ class NewConversationActivity : SimpleActivity() {
     private var isSpeechToTextAvailable = false
     private var isAttachmentPickerVisible = false
     private var messageHolderHelper: MessageHolderHelper? = null
+    private var expandedMessageFragment: com.android.mms.fragments.ExpandedMessageFragment? = null
     // Map to store chip display text -> phone number mapping
     private val chipDisplayToPhoneNumber = mutableMapOf<String, String>()
     // Flag to prevent recursive calls when updating chips
@@ -118,7 +119,7 @@ class NewConversationActivity : SimpleActivity() {
                 sendMessageAndNavigate(text, subscriptionId, attachments)
             },
             onSpeechToText = { speechToText() },
-            onExpandMessage = null
+            onExpandMessage = { showExpandedMessageFragment() }
         )
         
         messageHolderHelper?.setup(isSpeechToTextAvailable)
@@ -829,6 +830,97 @@ class NewConversationActivity : SimpleActivity() {
 
             startActivity(this)
             finish()
+        }
+    }
+    
+    private fun showExpandedMessageFragment() {
+        val currentText = binding.messageHolder.threadTypeMessage.text?.toString() ?: ""
+        expandedMessageFragment = com.android.mms.fragments.ExpandedMessageFragment.newInstance(currentText)
+        
+        expandedMessageFragment?.setOnMessageTextChangedListener { text ->
+            binding.messageHolder.threadTypeMessage.setText(text)
+        }
+        
+        expandedMessageFragment?.setOnSendMessageListener {
+            val text = expandedMessageFragment?.getMessageText() ?: ""
+            binding.messageHolder.threadTypeMessage.setText(text)
+            hideExpandedMessageFragment()
+            // Get the message text and attachments, then send
+            val messageText = binding.messageHolder.threadTypeMessage.text?.toString() ?: ""
+            val attachments = messageHolderHelper?.buildMessageAttachments() ?: emptyList()
+            val subscriptionId = messageHolderHelper?.getSubscriptionIdForNumbers(emptyList())
+            sendMessageAndNavigate(messageText, subscriptionId, attachments)
+        }
+        
+        expandedMessageFragment?.setOnMinimizeListener {
+            val text = expandedMessageFragment?.getMessageText() ?: ""
+            binding.messageHolder.threadTypeMessage.setText(text)
+            hideExpandedMessageFragment()
+        }
+        
+        expandedMessageFragment?.let { fragment ->
+            // Hide the main content
+            findViewById<View>(R.id.new_conversation_coordinator)?.beGone()
+            
+            supportFragmentManager.beginTransaction()
+                .replace(R.id.fragment_container, fragment)
+                .addToBackStack(null)
+                .commit()
+            
+            // Update fragment title for new conversation
+            fragment.view?.post {
+                updateFragmentTitle(fragment)
+            } ?: run {
+                // If view is null, post with a small delay
+                android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                    fragment.view?.post {
+                        updateFragmentTitle(fragment)
+                    }
+                }, 100)
+            }
+        }
+    }
+    
+    private fun updateFragmentTitle(fragment: com.android.mms.fragments.ExpandedMessageFragment) {
+        if (fragment.view == null) return
+        
+        // For new conversation, we don't have a thread title yet
+        // Get recipient names from chips if available
+        val chips = binding.newConversationAddress.allChips
+        val recipientNames = chips.filter { it.isNotEmpty() }
+        val threadTitle = if (recipientNames.isNotEmpty()) {
+            recipientNames.joinToString(", ")
+        } else {
+            getString(R.string.new_conversation)
+        }
+        
+        fragment.updateThreadTitle(
+            threadTitle = threadTitle,
+            threadSubtitle = "",
+            threadTopStyle = config.threadTopStyle,
+            showContactThumbnails = config.showContactThumbnails,
+            conversationPhotoUri = "",
+            conversationTitle = null,
+            conversationPhoneNumber = null,
+            isCompany = false,
+            participantsCount = recipientNames.size
+        )
+    }
+    
+    private fun hideExpandedMessageFragment() {
+        expandedMessageFragment?.let {
+            supportFragmentManager.popBackStack()
+            findViewById<View>(R.id.new_conversation_coordinator)?.beVisible()
+            expandedMessageFragment = null
+        }
+    }
+    
+    override fun onBackPressedCompat(): Boolean {
+        return if (expandedMessageFragment != null) {
+            hideExpandedMessageFragment()
+            true
+        } else {
+            false
         }
     }
 }
