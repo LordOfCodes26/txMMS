@@ -56,6 +56,8 @@ class NewConversationActivity : SimpleActivity() {
     private val chipDisplayToPhoneNumber = mutableMapOf<String, String>()
     // Flag to prevent recursive calls when updating chips
     private var isUpdatingChips = false
+    private val availableSIMCards = ArrayList<SIMCard>()
+    private var currentSIMCardIndex = 0
 
     private val binding by viewBinding(ActivityNewConversationBinding::inflate)
     
@@ -107,6 +109,11 @@ class NewConversationActivity : SimpleActivity() {
         })
         
         setupMessageHolder()
+        handlePermission(PERMISSION_READ_PHONE_STATE) {
+            if (it) {
+                setupSIMSelector()
+            }
+        }
     }
     
     private fun setupMessageHolder() {
@@ -240,6 +247,13 @@ class NewConversationActivity : SimpleActivity() {
                             }
                         }
                     }
+                }
+            }
+            
+            // Update SIM selector when chips change
+            handlePermission(PERMISSION_READ_PHONE_STATE) {
+                if (it) {
+                    setupSIMSelector()
                 }
             }
         }
@@ -683,7 +697,10 @@ class NewConversationActivity : SimpleActivity() {
         }
         
         // Get subscription ID for the numbers if not provided
-        val finalSubscriptionId = subscriptionId ?: messageHolderHelper?.getSubscriptionIdForNumbers(allNumbers)
+        val finalSubscriptionId = subscriptionId 
+            ?: availableSIMCards.getOrNull(currentSIMCardIndex)?.subscriptionId
+            ?: messageHolderHelper?.getSubscriptionIdForNumbers(allNumbers)
+            ?: SmsManager.getDefaultSmsSubscriptionId()
         
         // Process message text (remove diacritics if needed)
         val processedText = removeDiacriticsIfNeeded(text)
@@ -915,6 +932,127 @@ class NewConversationActivity : SimpleActivity() {
         }
     }
     
+    @SuppressLint("MissingPermission")
+    private fun setupSIMSelector() {
+        val textColor = getProperTextColor()
+        val availableSIMs = subscriptionManagerCompat().activeSubscriptionInfoList ?: return
+        if (availableSIMs.size > 1) {
+            availableSIMCards.clear()
+            availableSIMs.forEachIndexed { index, subscriptionInfo ->
+                var label = subscriptionInfo.displayName?.toString() ?: ""
+                if (subscriptionInfo.number?.isNotEmpty() == true) {
+                    label += " (${subscriptionInfo.number})"
+                }
+                val SIMCard = SIMCard(index + 1, subscriptionInfo.subscriptionId, label)
+                availableSIMCards.add(SIMCard)
+            }
+
+            val numbers = ArrayList<String>()
+            // Get phone numbers from chips
+            binding.newConversationAddress.allChips.forEach { chip ->
+                if (chip.isNotEmpty()) {
+                    val phoneNumber = chipDisplayToPhoneNumber[chip]
+                    if (phoneNumber != null && phoneNumber.isNotEmpty() && !numbers.contains(phoneNumber)) {
+                        numbers.add(phoneNumber)
+                    } else {
+                        // Try to normalize the chip text as fallback
+                        val normalizedNumber = chip.normalizePhoneNumber()
+                        if (normalizedNumber.isNotEmpty() && normalizedNumber.length >= 3 && normalizedNumber.all { it.isDigit() }) {
+                            if (!numbers.contains(normalizedNumber)) {
+                                numbers.add(normalizedNumber)
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Determine SIM index - use numbers if available, otherwise use default
+            currentSIMCardIndex = if (numbers.isNotEmpty()) {
+                getProperSimIndex(availableSIMs, numbers)
+            } else {
+                // No numbers yet, use default SMS subscription or first SIM
+                val defaultSmsSubscriptionId = SmsManager.getDefaultSmsSubscriptionId()
+                val systemPreferredSimIdx = if (defaultSmsSubscriptionId >= 0) {
+                    availableSIMs.indexOfFirstOrNull { it.subscriptionId == defaultSmsSubscriptionId }
+                } else {
+                    null
+                }
+                systemPreferredSimIdx ?: 0
+            }
+
+            binding.messageHolder.threadSelectSimIcon.background.applyColorFilter(
+                resources.getColor(com.goodwy.commons.R.color.activated_item_foreground, theme)
+            )
+            binding.messageHolder.threadSelectSimIcon.applyColorFilter(getProperTextColor())
+            binding.messageHolder.threadSelectSimIconHolder.beVisibleIf(!config.showSimSelectionDialog)
+            binding.messageHolder.threadSelectSimNumber.beVisible()
+            val simLabel =
+                if (availableSIMCards.size > currentSIMCardIndex) availableSIMCards[currentSIMCardIndex].label else "SIM Card"
+            binding.messageHolder.threadSelectSimIconHolder.contentDescription = simLabel
+
+            if (availableSIMCards.isNotEmpty()) {
+                binding.messageHolder.threadSelectSimIconHolder.setOnClickListener {
+                    currentSIMCardIndex = (currentSIMCardIndex + 1) % availableSIMCards.size
+                    val currentSIMCard = availableSIMCards[currentSIMCardIndex]
+                    @SuppressLint("SetTextI18n")
+                    binding.messageHolder.threadSelectSimNumber.text = currentSIMCard.id.toString()
+                    val simColor = if (!config.colorSimIcons) textColor
+                    else {
+                        val simId = currentSIMCard.id
+                        if (simId in 1..4) config.simIconsColors[simId] else config.simIconsColors[0]
+                    }
+                    binding.messageHolder.threadSelectSimIcon.applyColorFilter(simColor)
+                    val currentSubscriptionId = currentSIMCard.subscriptionId
+                    // Only save preference if we have phone numbers
+                    if (numbers.isNotEmpty()) {
+                        numbers.forEach {
+                            config.saveUseSIMIdAtNumber(it, currentSubscriptionId)
+                        }
+                    }
+                    it.performHapticFeedback()
+                    binding.messageHolder.threadSelectSimIconHolder.contentDescription = currentSIMCard.label
+                    toast(currentSIMCard.label)
+                }
+            }
+
+            binding.messageHolder.threadSelectSimNumber.setTextColor(textColor.getContrastColor())
+            try {
+                @SuppressLint("SetTextI18n")
+                binding.messageHolder.threadSelectSimNumber.text = (availableSIMCards[currentSIMCardIndex].id).toString()
+                val simColor =
+                    if (!config.colorSimIcons) textColor
+                    else {
+                        val simId = availableSIMCards[currentSIMCardIndex].id
+                        if (simId in 1..4) config.simIconsColors[simId] else config.simIconsColors[0]
+                    }
+                binding.messageHolder.threadSelectSimIcon.applyColorFilter(simColor)
+            } catch (e: Exception) {
+                showErrorToast(e)
+            }
+        } else {
+            binding.messageHolder.threadSelectSimIconHolder.beGone()
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun getProperSimIndex(
+        availableSIMs: MutableList<SubscriptionInfo>,
+        numbers: List<String>,
+    ): Int {
+        val userPreferredSimId = config.getUseSIMIdAtNumber(numbers.first())
+        val userPreferredSimIdx =
+            availableSIMs.indexOfFirstOrNull { it.subscriptionId == userPreferredSimId }
+
+        val defaultSmsSubscriptionId = SmsManager.getDefaultSmsSubscriptionId()
+        val systemPreferredSimIdx = if (defaultSmsSubscriptionId >= 0) {
+            availableSIMs.indexOfFirstOrNull { it.subscriptionId == defaultSmsSubscriptionId }
+        } else {
+            null
+        }
+
+        return userPreferredSimIdx ?: systemPreferredSimIdx ?: 0
+    }
+
     override fun onBackPressedCompat(): Boolean {
         return if (expandedMessageFragment != null) {
             hideExpandedMessageFragment()
