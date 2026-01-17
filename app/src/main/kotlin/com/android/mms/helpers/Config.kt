@@ -203,7 +203,7 @@ class Config(context: Context) : BaseConfig(context) {
         set(lastRecycleBinCheck) = prefs.edit { putLong(LAST_RECYCLE_BIN_CHECK, lastRecycleBinCheck) }
 
     var isArchiveAvailable: Boolean
-        get() = prefs.getBoolean(IS_ARCHIVE_AVAILABLE, true)
+        get() = prefs.getBoolean(IS_ARCHIVE_AVAILABLE, false)
         set(isArchiveAvailable) = prefs.edit { putBoolean(IS_ARCHIVE_AVAILABLE, isArchiveAvailable) }
 
     var customNotifications: Set<String>
