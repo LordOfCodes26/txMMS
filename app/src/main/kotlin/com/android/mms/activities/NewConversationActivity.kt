@@ -244,6 +244,18 @@ class NewConversationActivity : SimpleActivity() {
         }
 
         binding.newConversationAddress.setOnTextChangedListener { searchString ->
+            // Hide/show suggestions based on text input
+            if (searchString.isNotEmpty()) {
+                binding.suggestionsLabel.beGone()
+                binding.suggestionsScrollview.beGone()
+            } else {
+                // Show suggestions only if they exist (check if suggestionsHolder has children)
+                if (binding.suggestionsHolder.childCount > 0) {
+                    binding.suggestionsLabel.beVisible()
+                    binding.suggestionsScrollview.beVisible()
+                }
+            }
+            
             val filteredContacts = ArrayList<SimpleContact>()
             allContacts.forEach { contact ->
                 if (contact.phoneNumbers.any { it.normalizedNumber.contains(searchString, true) } ||
