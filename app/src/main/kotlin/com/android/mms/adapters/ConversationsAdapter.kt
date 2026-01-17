@@ -112,8 +112,16 @@ class ConversationsAdapter(
         }
 
         popupMenu.setOnMenuItemClickListener { item ->
+            val requiresConfirmation = item.itemId == R.id.cab_block_number || 
+                                      item.itemId == R.id.cab_unblock_number ||
+                                      item.itemId == R.id.cab_delete ||
+                                      item.itemId == R.id.cab_archive
             actionItemPressed(item.itemId)
-            selectedKeys.clear()
+            // Only clear selectedKeys for actions that don't require confirmation
+            // For confirmation dialogs, selectedKeys will be cleared after the action completes
+            if (!requiresConfirmation) {
+                selectedKeys.clear()
+            }
             true
         }
 
@@ -193,7 +201,13 @@ class ConversationsAdapter(
     }
 
     private fun askConfirmBlock() {
-        val numbers = getSelectedItems().distinctBy { it.phoneNumber }.map { it.phoneNumber }
+        // Capture selected items before showing dialog, as selectedKeys may be cleared
+        val selectedItems = getSelectedItems()
+        if (selectedItems.isEmpty()) {
+            return
+        }
+        
+        val numbers = selectedItems.distinctBy { it.phoneNumber }.map { it.phoneNumber }
         val numbersString = TextUtils.join(", ", numbers)
         val isBlockNumbers = numbers.any { activity.isNumberBlocked(it, activity.getBlockedNumbers()) }
         val baseString = if (isBlockNumbers) com.goodwy.strings.R.string.unblock_confirmation else com.goodwy.commons.R.string.block_confirmation
@@ -202,16 +216,14 @@ class ConversationsAdapter(
         val blurTarget = activity.findViewById<eightbitlab.com.blurview.BlurTarget>(com.android.mms.R.id.mainBlurTarget)
             ?: throw IllegalStateException("mainBlurTarget not found")
         ConfirmationDialog(activity, question, blurTarget = blurTarget) {
-            blockNumbers(isBlockNumbers)
+            blockNumbers(isBlockNumbers, selectedItems)
         }
     }
 
-    private fun blockNumbers(unblock: Boolean) {
-        if (selectedKeys.isEmpty()) {
+    private fun blockNumbers(unblock: Boolean, numbersToBlock: List<Conversation> = getSelectedItems()) {
+        if (numbersToBlock.isEmpty()) {
             return
         }
-
-        val numbersToBlock = getSelectedItems()
         if (unblock) {
             ensureBackgroundThread {
                 numbersToBlock.map { it.phoneNumber }.forEach { number ->
@@ -263,7 +275,13 @@ class ConversationsAdapter(
     }
 
     private fun askConfirmDelete() {
-        val itemsCnt = selectedKeys.size
+        // Capture selected items before showing dialog, as selectedKeys may be cleared
+        val selectedItems = getSelectedItems()
+        if (selectedItems.isEmpty()) {
+            return
+        }
+        
+        val itemsCnt = selectedItems.size
         val items = resources.getQuantityString(R.plurals.delete_conversations, itemsCnt, itemsCnt)
 
         val baseString = if (activity.config.useRecycleBin) {
@@ -277,13 +295,19 @@ class ConversationsAdapter(
             ?: throw IllegalStateException("mainBlurTarget not found")
         ConfirmationDialog(activity, question, blurTarget = blurTarget) {
             ensureBackgroundThread {
-                deleteConversations()
+                deleteConversations(selectedItems)
             }
         }
     }
 
     private fun askConfirmArchive() {
-        val itemsCnt = selectedKeys.size
+        // Capture selected items before showing dialog, as selectedKeys may be cleared
+        val selectedItems = getSelectedItems()
+        if (selectedItems.isEmpty()) {
+            return
+        }
+        
+        val itemsCnt = selectedItems.size
         val items = resources.getQuantityString(R.plurals.delete_conversations, itemsCnt, itemsCnt)
 
         val baseString = R.string.archive_confirmation
@@ -293,18 +317,17 @@ class ConversationsAdapter(
             ?: throw IllegalStateException("mainBlurTarget not found")
         ConfirmationDialog(activity, question, blurTarget = blurTarget) {
             ensureBackgroundThread {
-                archiveConversations()
+                archiveConversations(selectedItems)
             }
         }
     }
 
-    private fun archiveConversations() {
-        if (selectedKeys.isEmpty()) {
+    private fun archiveConversations(conversationsToArchive: List<Conversation> = getSelectedItems()) {
+        if (conversationsToArchive.isEmpty()) {
             return
         }
 
-        val conversationsToRemove =
-            currentList.filter { selectedKeys.contains(it.hashCode()) } as ArrayList<Conversation>
+        val conversationsToRemove = conversationsToArchive as ArrayList<Conversation>
         conversationsToRemove.forEach {
             activity.updateConversationArchivedStatus(it.threadId, true)
             activity.notificationManager.cancel(it.threadId.hashCode())
@@ -316,8 +339,9 @@ class ConversationsAdapter(
             currentList.toMutableList()
         }
 
+        val selectedHashCodes = conversationsToArchive.map { it.hashCode() }.toSet()
         activity.runOnUiThread {
-            if (newList.none { selectedKeys.contains(it.hashCode()) }) {
+            if (newList.none { selectedHashCodes.contains(it.hashCode()) }) {
                 refreshConversations()
                 finishActMode()
             } else {
@@ -329,13 +353,12 @@ class ConversationsAdapter(
         }
     }
 
-    private fun deleteConversations() {
-        if (selectedKeys.isEmpty()) {
+    private fun deleteConversations(conversationsToDelete: List<Conversation> = getSelectedItems()) {
+        if (conversationsToDelete.isEmpty()) {
             return
         }
 
-        val conversationsToRemove =
-            currentList.filter { selectedKeys.contains(it.hashCode()) } as ArrayList<Conversation>
+        val conversationsToRemove = conversationsToDelete as ArrayList<Conversation>
         if (activity.config.useRecycleBin) {
             conversationsToRemove.forEach {
                 deleteMessages(it, true)
@@ -354,8 +377,9 @@ class ConversationsAdapter(
             currentList.toMutableList()
         }
 
+        val selectedHashCodes = conversationsToDelete.map { it.hashCode() }.toSet()
         activity.runOnUiThread {
-            if (newList.none { selectedKeys.contains(it.hashCode()) }) {
+            if (newList.none { selectedHashCodes.contains(it.hashCode()) }) {
                 refreshConversations()
                 finishActMode()
             } else {
