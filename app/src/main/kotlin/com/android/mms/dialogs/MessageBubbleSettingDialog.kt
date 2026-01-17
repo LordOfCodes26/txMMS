@@ -165,19 +165,23 @@ class MessageBubbleSettingDialog(
 
     private fun setupBubbleInvertColor() {
         binding.bubbleInvertColor.isChecked = config.bubbleInvertColor
+        binding.bubbleInvertColor.setOnCheckedChangeListener { isChecked ->
+            config.bubbleInvertColor = isChecked
+            setupColors()
+        }
         binding.bubbleInvertColorHolder.setOnClickListener {
             binding.bubbleInvertColor.toggle()
-            config.bubbleInvertColor = binding.bubbleInvertColor.isChecked
-            setupColors()
         }
     }
 
     private fun setupBubbleUseContactColor() {
         binding.bubbleUseContactColor.isChecked = config.bubbleInContactColor
+        binding.bubbleUseContactColor.setOnCheckedChangeListener { isChecked ->
+            config.bubbleInContactColor = isChecked
+            setupColors()
+        }
         binding.bubbleUseContactColorHolder.setOnClickListener {
             binding.bubbleUseContactColor.toggle()
-            config.bubbleInContactColor = binding.bubbleUseContactColor.isChecked
-            setupColors()
         }
     }
 

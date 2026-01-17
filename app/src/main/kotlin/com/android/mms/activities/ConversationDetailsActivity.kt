@@ -161,9 +161,8 @@ class ConversationDetailsActivity : SimpleActivity() {
             customNotificationsButtonHolder.isEnabled = false
         }
 
-        customNotificationsWrapper.setOnClickListener {
-            customNotifications.toggle()
-            if (customNotifications.isChecked) {
+        customNotifications.setOnCheckedChangeListener { isChecked ->
+            if (isChecked) {
                 customNotificationsButtonHolder.alpha = 1f
                 customNotificationsButtonHolder.isEnabled = true
                 config.addCustomNotificationsByThreadId(threadId)
@@ -174,6 +173,10 @@ class ConversationDetailsActivity : SimpleActivity() {
                 config.removeCustomNotificationsByThreadId(threadId)
                 removeNotificationChannel()
             }
+        }
+
+        customNotificationsWrapper.setOnClickListener {
+            customNotifications.toggle()
         }
 
         customNotificationsButtonHolder.setOnClickListener {

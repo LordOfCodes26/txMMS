@@ -383,7 +383,7 @@
                         android:textSize="@dimen/bigger_text_size"
                         android:textAlignment="viewStart" />
 
-                    <com.goodwy.commons.views.MyMaterialSwitch
+                    <com.goodwy.commons.views.MyLiquidSwitch
                         android:id="@+id/custom_notifications"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
