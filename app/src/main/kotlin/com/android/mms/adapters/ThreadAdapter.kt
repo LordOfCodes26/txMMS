@@ -470,12 +470,16 @@ class ThreadAdapter(
                 }
 
                 setOnClickListener {
+                    // If in selection mode, only handle selection/unselection
+                    if (actModeCallback.isSelectable) {
+                        holder.viewClicked(message)
+                        return@setOnClickListener
+                    }
+                    
                     if (message.isScheduled) {
                         holder.viewClicked(message)
                     } else {
-                        val selectedItem = getSelectedItems().firstOrNull()
-                        if (selectedItem != null) holder.viewClicked(message)
-                        else when (context.config.actionOnMessageClickSetting) {
+                        when (context.config.actionOnMessageClickSetting) {
                             ACTION_COPY_CODE -> {
                                 val numbersList = message.body.getListNumbersFromText()
                                 if (numbersList.isNotEmpty()) {
