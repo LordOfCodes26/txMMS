@@ -157,6 +157,8 @@ class SettingsActivity : SimpleActivity() {
         setupUnreadIndicatorPosition()
         setupHideTopBarWhenScroll()
         setupChangeColourTopBarWhenScroll()
+        // Hide "Change top bar colour when scrolling" option
+        binding.settingsChangeColourTopBarHolder.beGone()
 
         setupKeepConversationsArchived()
         // Hide "Keep conversation archived" option
