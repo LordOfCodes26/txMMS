@@ -7,7 +7,7 @@
         android:id="@+id/dial_number"
         android:icon="@drawable/ic_phone_vector"
         android:title="@string/dial_number"
-        app:showAsAction="always" />
+        android:showAsAction="always" />
     <item
         android:id="@+id/conversation_details"
         android:icon="@drawable/ic_info_vector"

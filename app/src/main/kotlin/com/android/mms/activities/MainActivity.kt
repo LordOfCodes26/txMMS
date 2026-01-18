@@ -179,8 +179,10 @@ class MainActivity : SimpleActivity() {
     }
 
     override fun onBackPressedCompat(): Boolean {
-        return if (binding.mainMenu.isSearchOpen) {
-            binding.mainMenu.closeSearch()
+        val customToolbar = binding.mainMenu.requireCustomToolbar()
+        return if (customToolbar.isSearchExpanded) {
+            customToolbar.collapseSearch()
+            isSearchOpen = false
             true
         } else {
             appLockManager.lock()
@@ -226,11 +228,16 @@ class MainActivity : SimpleActivity() {
 
             mainMenu.requireCustomToolbar().setOnMenuItemClickListener { menuItem ->
                 when (menuItem.itemId) {
-                    R.id.select_conversations -> {
-                        // Ensure search UI is closed/collapsed before entering selection ActionMode
-                        if (binding.mainMenu.isSearchOpen) {
-                            binding.mainMenu.closeSearch()
+                    R.id.search -> {
+                        // Expand search when search menu item is clicked
+                        val customToolbar = binding.mainMenu.requireCustomToolbar()
+                        if (!customToolbar.isSearchExpanded) {
+                            customToolbar.expandSearch()
+                            isSearchOpen = true
                         }
+                        return@setOnMenuItemClickListener true
+                    }
+                    R.id.select_conversations -> {
                         // Collapse CustomToolbar search if expanded
                         val customToolbar = binding.mainMenu.requireCustomToolbar()
                         if (customToolbar.isSearchExpanded) {
@@ -256,10 +263,13 @@ class MainActivity : SimpleActivity() {
     private fun setupCustomToolbarSearch() {
         val customToolbar = binding.mainMenu.requireCustomToolbar()
         
+        // Set up search expand listener to sync isSearchOpen
+        customToolbar.setOnSearchExpandListener {
+            isSearchOpen = true
+        }
+        
         // Set up search text change listener
         customToolbar.setOnSearchTextChangedListener { text ->
-            // Update isSearchOpen based on whether search is expanded
-            isSearchOpen = customToolbar.isSearchExpanded
             searchQuery = text
             if (text.isNotEmpty()) {
                 if (binding.searchHolder.alpha < 1f) {
@@ -273,9 +283,7 @@ class MainActivity : SimpleActivity() {
         
         // Set up search back button listener to collapse search
         customToolbar.setOnSearchBackClickListener {
-            if (isSearchOpen) {
-                fadeOutSearch()
-            }
+            fadeOutSearch()
             isSearchOpen = false
         }
     }
@@ -447,6 +455,8 @@ class MainActivity : SimpleActivity() {
         val backgroundColor = if (useSurfaceColor) getSurfaceColor() else getProperBackgroundColor()
         val statusBarColor = if (config.changeColourTopBar) getRequiredStatusBarColor(useSurfaceColor) else backgroundColor
         binding.mainMenu.updateColors(statusBarColor, scrollingView?.computeVerticalScrollOffset() ?: 0)
+        // Update search colors when menu colors are updated
+        binding.mainMenu.requireCustomToolbar().updateSearchColors()
     }
 
     private fun loadMessages() {
@@ -767,7 +777,8 @@ class MainActivity : SimpleActivity() {
     }
 
     private fun searchTextChanged(text: String, forceUpdate: Boolean = false) {
-        if (isSearchAlwaysShow && !binding.mainMenu.isSearchOpen && !forceUpdate) {
+        val customToolbar = binding.mainMenu.requireCustomToolbar()
+        if (isSearchAlwaysShow && !customToolbar.isSearchExpanded && !forceUpdate) {
             return
         }
 
