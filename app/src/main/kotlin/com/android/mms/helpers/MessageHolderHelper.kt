@@ -280,6 +280,10 @@ class MessageHolderHelper(
         val delaySeconds = activity.config.messageSendDelay
         if (delaySeconds <= 0) {
             sendMessage()
+            if (activity.config.soundOnOutGoingMessages) {
+                val audioManager = activity.getSystemService(AudioManager::class.java)
+                audioManager.playSoundEffect(AudioManager.FX_KEYPRESS_SPACEBAR)
+            }
             return
         }
 
@@ -315,6 +319,10 @@ class MessageHolderHelper(
                 isCountdownActive = false
                 hideCountdown()
                 sendMessage()
+                if (activity.config.soundOnOutGoingMessages) {
+                    val audioManager = activity.getSystemService(AudioManager::class.java)
+                    audioManager.playSoundEffect(AudioManager.FX_KEYPRESS_SPACEBAR)
+                }
             }
         }
     }

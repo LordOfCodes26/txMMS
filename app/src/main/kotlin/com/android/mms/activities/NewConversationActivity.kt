@@ -719,6 +719,12 @@ class NewConversationActivity : SimpleActivity() {
                 messageId = null
             )
             
+            // Play sound if enabled
+            if (config.soundOnOutGoingMessages) {
+                val audioManager = getSystemService(AudioManager::class.java)
+                audioManager.playSoundEffect(AudioManager.FX_KEYPRESS_SPACEBAR)
+            }
+            
             // Clear message and attachments
             messageHolderHelper?.clearMessage()
             
