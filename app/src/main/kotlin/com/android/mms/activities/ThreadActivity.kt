@@ -205,7 +205,7 @@ class ThreadActivity : SimpleActivity() {
         val overflowIconRes = getOverflowIcon(baseConfig.overflowIcon)
         customToolbar.overflowIcon = resources.getColoredDrawableWithColor(this, overflowIconRes, contrastColor)
         // Hide search icon as it's not needed in ThreadActivity
-        customToolbar.setSearchIconVisible(false)
+        // customToolbar.setSearchIconVisible(false)
 
         isActivityVisible = true
 

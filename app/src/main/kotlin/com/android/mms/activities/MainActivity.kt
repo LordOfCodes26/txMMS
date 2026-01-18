@@ -194,19 +194,20 @@ class MainActivity : SimpleActivity() {
 //            mainMenu.toggleHideOnScroll(config.hideTopBarWhenScroll)
 
             if (isSearchAlwaysShow) {
-                if (baseConfig.useSpeechToText) {
-                    isSpeechToTextAvailable = isSpeechToTextAvailable()
-                    mainMenu.showSpeechToText = isSpeechToTextAvailable
-                }
-                mainMenu.setupMenu()
-
-                mainMenu.onSpeechToTextClickListener = {
-                    speechToText()
-                }
-
-                mainMenu.onSearchClosedListener = {
-                    fadeOutSearch()
-                }
+                // commented by jim 260117
+//                if (baseConfig.useSpeechToText) {
+//                    isSpeechToTextAvailable = isSpeechToTextAvailable()
+//                    mainMenu.showSpeechToText = isSpeechToTextAvailable
+//                }
+//                mainMenu.setupMenu()
+//
+//                mainMenu.onSpeechToTextClickListener = {
+//                    speechToText()
+//                }
+//
+//                mainMenu.onSearchClosedListener = {
+//                    fadeOutSearch()
+//                }
 
                 mainMenu.onSearchTextChangedListener = { text ->
                     if (text.isNotEmpty()) {

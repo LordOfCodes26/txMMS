@@ -7,35 +7,31 @@
         android:id="@+id/search"
         android:icon="@drawable/ic_search_vector"
         android:title="@string/search"
-        android:visible="false"
-        app:actionViewClass="androidx.appcompat.widget.SearchView"
-        app:showAsAction="collapseActionView|always"/>
+        android:showAsAction="collapseActionView|always"/>
     <item
         android:id="@+id/select_conversations"
         android:title="@string/select_conversations"
-        app:showAsAction="never" />
+        android:showAsAction="never" />
     <item
         android:id="@+id/show_recycle_bin"
-        android:showAsAction="never"
         android:title="@string/show_the_recycle_bin"
         app:showAsAction="never" />
     <item
         android:id="@+id/show_archived"
         android:showAsAction="never"
-        android:title="@string/show_archived_conversations"
-        app:showAsAction="never" />
+        android:title="@string/show_archived_conversations" />
     <item
         android:id="@+id/show_blocked_numbers"
         android:title="@string/show_blocked_numbers"
-        app:showAsAction="never" />
+        android:showAsAction="never" />
     <item
         android:id="@+id/settings"
         android:icon="@drawable/ic_more_horiz"
         android:title="@string/settings"
-        app:showAsAction="never" />
+        android:showAsAction="never" />
     <item
         android:id="@+id/about"
         android:icon="@drawable/ic_info_vector"
         android:title="@string/about"
-        app:showAsAction="never" />
+        android:showAsAction="never" />
 </menu>
