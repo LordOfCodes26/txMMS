@@ -327,7 +327,43 @@ class NewConversationActivity : SimpleActivity() {
                 allContacts = it
 
                 if (privateContacts.isNotEmpty()) {
-                    allContacts.addAll(privateContacts)
+                    // Deduplicate contacts before adding privateContacts
+                    // Contacts from different sources may have different rawId but same phone numbers
+                    val existingPhoneNumbers = HashSet<String>()
+                    val existingContactNamesWithoutPhone = HashSet<String>()
+                    allContacts.forEach { contact ->
+                        contact.phoneNumbers.forEach { phoneNumber ->
+                            existingPhoneNumbers.add(phoneNumber.normalizedNumber)
+                        }
+                        // Track names only for contacts without phone numbers (for fallback deduplication)
+                        if (contact.name.isNotEmpty() && contact.phoneNumbers.isEmpty()) {
+                            existingContactNamesWithoutPhone.add(contact.name.lowercase().trim())
+                        }
+                    }
+                    
+                    // Only add private contacts that don't already exist (by phone number, or by name if no phone)
+                    privateContacts.forEach { privateContact ->
+                        val hasMatchingPhoneNumber = privateContact.phoneNumbers.isNotEmpty() && 
+                            privateContact.phoneNumbers.any { phoneNumber ->
+                                existingPhoneNumbers.contains(phoneNumber.normalizedNumber)
+                            }
+                        // Only check name if contact has no phone numbers (to avoid false positives)
+                        val hasMatchingName = privateContact.phoneNumbers.isEmpty() && 
+                            privateContact.name.isNotEmpty() && 
+                            existingContactNamesWithoutPhone.contains(privateContact.name.lowercase().trim())
+                        
+                        // Skip if duplicate by phone number or (if no phone) by name
+                        if (!hasMatchingPhoneNumber && !hasMatchingName) {
+                            allContacts.add(privateContact)
+                            // Add its phone numbers and name to the sets for future checks
+                            privateContact.phoneNumbers.forEach { phoneNumber ->
+                                existingPhoneNumbers.add(phoneNumber.normalizedNumber)
+                            }
+                            if (privateContact.name.isNotEmpty() && privateContact.phoneNumbers.isEmpty()) {
+                                existingContactNamesWithoutPhone.add(privateContact.name.lowercase().trim())
+                            }
+                        }
+                    }
                     allContacts.sort()
                 }
 
