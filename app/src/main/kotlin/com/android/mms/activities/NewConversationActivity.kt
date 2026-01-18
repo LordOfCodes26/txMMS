@@ -29,6 +29,7 @@ import com.google.gson.Gson
 import com.reddit.indicatorfastscroll.FastScrollItemIndicator
 import com.goodwy.commons.extensions.*
 import com.goodwy.commons.helpers.*
+import com.goodwy.commons.models.PhoneNumber
 import com.goodwy.commons.models.SimpleContact
 import com.android.mms.R
 import com.android.mms.adapters.ContactsAdapter
@@ -231,10 +232,12 @@ class NewConversationActivity : SimpleActivity() {
                         val normalizedNumber = chipText.normalizePhoneNumber()
                         // Check if normalization produced a meaningful result (has digits and reasonable length)
                         if (normalizedNumber.isNotEmpty() && normalizedNumber.length >= 3 && normalizedNumber.all { it.isDigit() }) {
-                            // Look up contact name for this phone number
-                            val displayText = getDisplayTextForPhoneNumber(normalizedNumber)
-                            if (displayText != normalizedNumber) {
-                                // Contact name found, update the chip
+                            // Look up contact and phone number object for this phone number
+                            val contactAndPhoneNumber = findContactAndPhoneNumberByNormalizedNumber(normalizedNumber)
+                            if (contactAndPhoneNumber != null) {
+                                val (contact, phoneNumber) = contactAndPhoneNumber
+                                // Contact found, update the chip with name and type if needed
+                                val displayText = getDisplayTextForPhoneNumberWithType(phoneNumber, contact)
                                 isUpdatingChips = true
                                 binding.newConversationAddress.removeChip(chipText)
                                 binding.newConversationAddress.addChip(displayText)
@@ -361,8 +364,8 @@ class NewConversationActivity : SimpleActivity() {
                 hideKeyboard()
                 val contact = it as SimpleContact
                 maybeShowNumberPickerDialog(contact.phoneNumbers) { number ->
-                    // Add as chip with contact name if available, otherwise use phone number
-                    val displayText = getDisplayTextForPhoneNumber(number.normalizedNumber)
+                    // Add as chip with contact name and phone type if multiple numbers exist
+                    val displayText = getDisplayTextForPhoneNumberWithType(number, contact)
                     // Set mapping BEFORE adding chip to prevent listener from re-triggering dialog
                     chipDisplayToPhoneNumber[displayText] = number.normalizedNumber
                     isUpdatingChips = true
@@ -418,15 +421,17 @@ class NewConversationActivity : SimpleActivity() {
                                     }
                                     binding.suggestionsHolder.addView(root)
                                     root.setOnClickListener {
-                                        // Add as chip with contact name
-                                        val phoneNumber = contact.phoneNumbers.first().normalizedNumber
-                                        val displayText = contact.name.ifEmpty { phoneNumber }
-                                        // Set mapping BEFORE adding chip to prevent listener from processing
-                                        chipDisplayToPhoneNumber[displayText] = phoneNumber
-                                        isUpdatingChips = true
-                                        binding.newConversationAddress.addChip(displayText)
-                                        isUpdatingChips = false
-                                        binding.newConversationAddress.clearText()
+                                        // Handle multiple phone numbers by showing picker dialog
+                                        maybeShowNumberPickerDialog(contact.phoneNumbers) { number ->
+                                            // Add as chip with contact name and phone type if multiple numbers exist
+                                            val displayText = getDisplayTextForPhoneNumberWithType(number, contact)
+                                            // Set mapping BEFORE adding chip to prevent listener from processing
+                                            chipDisplayToPhoneNumber[displayText] = number.normalizedNumber
+                                            isUpdatingChips = true
+                                            binding.newConversationAddress.addChip(displayText)
+                                            isUpdatingChips = false
+                                            binding.newConversationAddress.clearText()
+                                        }
                                     }
                                 }
                             }
@@ -504,6 +509,100 @@ class NewConversationActivity : SimpleActivity() {
         // If not found in loaded contacts, try using SimpleContactsHelper
         val contactName = SimpleContactsHelper(this).getNameFromPhoneNumber(phoneNumber)
         return if (contactName != phoneNumber) contactName else phoneNumber
+    }
+
+    /**
+     * Gets the display text for a phone number with type information.
+     * This allows multiple phone numbers from the same contact to be added as separate chips.
+     * Format: "Contact Name (Phone Type)" if contact has multiple numbers, otherwise just "Contact Name".
+     * If multiple numbers have the same type, includes the phone number value to make them unique.
+     */
+    private fun getDisplayTextForPhoneNumberWithType(phoneNumber: PhoneNumber, contact: SimpleContact? = null): String {
+        val contactToUse = contact ?: findContactByPhoneNumber(phoneNumber.normalizedNumber)
+        
+        if (contactToUse == null) {
+            // No contact found, return the phone number
+            return phoneNumber.normalizedNumber
+        }
+
+        val contactName = contactToUse.name.ifEmpty { phoneNumber.normalizedNumber }
+        
+        // If contact has multiple phone numbers, include the type to make chips unique
+        if (contactToUse.phoneNumbers.size > 1) {
+            val phoneType = getPhoneNumberTypeText(phoneNumber.type, phoneNumber.label)
+            
+            // Check if there are multiple phone numbers with the same type
+            val sameTypeCount = contactToUse.phoneNumbers.count { 
+                it.type == phoneNumber.type && it.label == phoneNumber.label 
+            }
+            
+            if (sameTypeCount > 1) {
+                // Multiple numbers with same type, include the phone number value to make it unique
+                return "$contactName ($phoneType: ${phoneNumber.value})"
+            } else {
+                // Unique type, just show the type
+                return "$contactName ($phoneType)"
+            }
+        }
+        
+        // Single phone number, just return the contact name
+        return contactName
+    }
+
+    /**
+     * Finds a contact by phone number.
+     * Returns the contact if found, or null otherwise.
+     */
+    private fun findContactByPhoneNumber(phoneNumber: String): SimpleContact? {
+        if (!hasPermission(PERMISSION_READ_CONTACTS)) {
+            return null
+        }
+
+        // First check in allContacts
+        allContacts.forEach { contact ->
+            if (contact.phoneNumbers.any { it.normalizedNumber == phoneNumber }) {
+                return contact
+            }
+        }
+
+        // Then check in privateContacts
+        privateContacts.forEach { contact ->
+            if (contact.phoneNumbers.any { it.normalizedNumber == phoneNumber }) {
+                return contact
+            }
+        }
+
+        return null
+    }
+
+    /**
+     * Finds a contact and the specific PhoneNumber object by normalized phone number.
+     * Returns a Pair of (SimpleContact, PhoneNumber) if found, or null otherwise.
+     */
+    private fun findContactAndPhoneNumberByNormalizedNumber(normalizedNumber: String): Pair<SimpleContact, PhoneNumber>? {
+        if (!hasPermission(PERMISSION_READ_CONTACTS)) {
+            return null
+        }
+
+        // First check in allContacts
+        allContacts.forEach { contact ->
+            contact.phoneNumbers.forEach { phoneNumber ->
+                if (phoneNumber.normalizedNumber == normalizedNumber) {
+                    return Pair(contact, phoneNumber)
+                }
+            }
+        }
+
+        // Then check in privateContacts
+        privateContacts.forEach { contact ->
+            contact.phoneNumbers.forEach { phoneNumber ->
+                if (phoneNumber.normalizedNumber == normalizedNumber) {
+                    return Pair(contact, phoneNumber)
+                }
+            }
+        }
+
+        return null
     }
 
     /**
@@ -599,16 +698,14 @@ class NewConversationActivity : SimpleActivity() {
             return
         }
 
-        // Use the contact's actual name (not the typed text which might be partial)
-        val displayText = contact.name.ifEmpty { chipText }
-
         if (contact.phoneNumbers.size == 1) {
             // Single phone number, add chip directly
-            val phoneNumber = contact.phoneNumbers.first().normalizedNumber
+            val phoneNumber = contact.phoneNumbers.first()
+            val displayText = getDisplayTextForPhoneNumberWithType(phoneNumber, contact)
             isUpdatingChips = true
             binding.newConversationAddress.removeChip(chipText)
             binding.newConversationAddress.addChip(displayText)
-            chipDisplayToPhoneNumber[displayText] = phoneNumber
+            chipDisplayToPhoneNumber[displayText] = phoneNumber.normalizedNumber
             isUpdatingChips = false
         } else {
             // Multiple phone numbers, show picker dialog
@@ -617,6 +714,7 @@ class NewConversationActivity : SimpleActivity() {
             isUpdatingChips = false
             
             maybeShowNumberPickerDialog(contact.phoneNumbers) { number ->
+                val displayText = getDisplayTextForPhoneNumberWithType(number, contact)
                 isUpdatingChips = true
                 binding.newConversationAddress.addChip(displayText)
                 chipDisplayToPhoneNumber[displayText] = number.normalizedNumber
