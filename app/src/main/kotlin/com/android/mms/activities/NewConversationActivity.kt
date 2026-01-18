@@ -363,8 +363,11 @@ class NewConversationActivity : SimpleActivity() {
                 maybeShowNumberPickerDialog(contact.phoneNumbers) { number ->
                     // Add as chip with contact name if available, otherwise use phone number
                     val displayText = getDisplayTextForPhoneNumber(number.normalizedNumber)
-                    binding.newConversationAddress.addChip(displayText)
+                    // Set mapping BEFORE adding chip to prevent listener from re-triggering dialog
                     chipDisplayToPhoneNumber[displayText] = number.normalizedNumber
+                    isUpdatingChips = true
+                    binding.newConversationAddress.addChip(displayText)
+                    isUpdatingChips = false
                     binding.newConversationAddress.clearText()
                 }
             }.apply {
@@ -418,8 +421,11 @@ class NewConversationActivity : SimpleActivity() {
                                         // Add as chip with contact name
                                         val phoneNumber = contact.phoneNumbers.first().normalizedNumber
                                         val displayText = contact.name.ifEmpty { phoneNumber }
-                                        binding.newConversationAddress.addChip(displayText)
+                                        // Set mapping BEFORE adding chip to prevent listener from processing
                                         chipDisplayToPhoneNumber[displayText] = phoneNumber
+                                        isUpdatingChips = true
+                                        binding.newConversationAddress.addChip(displayText)
+                                        isUpdatingChips = false
                                         binding.newConversationAddress.clearText()
                                     }
                                 }
