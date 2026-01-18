@@ -140,7 +140,8 @@
             layout="@layout/layout_thread_send_message_holder"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_alignParentBottom="true" />
+            android:layout_alignParentBottom="true"
+            android:layout_marginTop="@dimen/normal_margin" />
     </RelativeLayout>
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
 
