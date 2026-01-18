@@ -459,6 +459,96 @@ data class Contact(
 
     fun isPrivate() = source == SMT_PRIVATE
 
+    fun isFromSimCard(context: Context): Boolean {
+        if (source.isEmpty()) return false
+        val contactsHelper = ContactsHelper(context)
+        val accountType = contactsHelper.getContactSourceType(source)
+        val typeLower = accountType.lowercase(Locale.getDefault())
+        return typeLower.contains("sim") || typeLower.contains("icc")
+    }
+
+    /**
+     * Returns the SIM card index (1 or 2) if the contact is saved in a SIM card, or 0 if not from SIM.
+     * Returns 0 for phone storage contacts or if SIM index cannot be determined.
+     */
+    fun getSimCardIndex(context: Context): Int {
+        if (source.isEmpty()) return 0
+        if (!isFromSimCard(context)) return 0
+        
+        try {
+            val contactsHelper = ContactsHelper(context)
+            val accountType = contactsHelper.getContactSourceType(source)
+            val allSources = contactsHelper.getDeviceContactSources()
+            
+            // Filter only SIM card sources
+            val simSources = allSources.filter { source ->
+                val typeLower = source.type.lowercase(Locale.getDefault())
+                typeLower.contains("sim") || typeLower.contains("icc")
+            }
+            
+            if (simSources.isEmpty()) return 0
+            
+            // Match contact's source with SIM sources
+            val contactAccountType = accountType.lowercase(Locale.getDefault())
+            val contactSourceName = source.lowercase(Locale.getDefault())
+            
+            // First, try to extract SIM slot number from account name or type
+            // Some devices use "SIM 1", "SIM 2", "SIM1", "SIM2", "SIM Slot 1", etc.
+            val simSlotPattern = Regex("(?:sim|icc).*?(\\d+)", RegexOption.IGNORE_CASE)
+            val contactSlotMatch = simSlotPattern.find(contactSourceName + " " + contactAccountType)
+            if (contactSlotMatch != null) {
+                val slotNumber = contactSlotMatch.groupValues[1].toIntOrNull()
+                if (slotNumber != null && slotNumber in 1..2) {
+                    return slotNumber
+                }
+            }
+            
+            // Try to match by account name and type exactly
+            simSources.forEachIndexed { index, simSource ->
+                val simType = simSource.type.lowercase(Locale.getDefault())
+                val simName = simSource.name.lowercase(Locale.getDefault())
+                
+                // Exact match by name and type
+                if (contactSourceName == simName && contactAccountType == simType) {
+                    return index + 1 // SIM index is 1-based
+                }
+                
+                // Match by type and name (allowing empty names)
+                if ((contactAccountType == simType || 
+                     (contactAccountType.isNotEmpty() && simType.isNotEmpty() &&
+                      (contactAccountType.contains("sim") && simType.contains("sim") ||
+                       contactAccountType.contains("icc") && simType.contains("icc")))) &&
+                    (contactSourceName == simName || contactSourceName.isEmpty() || simName.isEmpty())) {
+                    return index + 1
+                }
+            }
+            
+            // Fallback: if we have SIM sources but couldn't match exactly, 
+            // try to match by type only and use position
+            if (simSources.size == 1) {
+                // Only one SIM, return 1
+                return 1
+            } else if (simSources.size >= 2) {
+                // Multiple SIMs - try to match by type pattern
+                val matchingByType = simSources.indexOfFirst { simSource ->
+                    val simType = simSource.type.lowercase(Locale.getDefault())
+                    (contactAccountType.isNotEmpty() && simType.isNotEmpty() &&
+                     ((contactAccountType.contains("sim") && simType.contains("sim")) ||
+                      (contactAccountType.contains("icc") && simType.contains("icc"))))
+                }
+                if (matchingByType >= 0) {
+                    return matchingByType + 1
+                }
+                // If still no match, return first SIM (1) as default
+                return 1
+            }
+        } catch (e: Exception) {
+            // Return 0 on any error
+        }
+        
+        return 0
+    }
+
     fun getSignatureKey() = photoUri.ifEmpty { hashCode() }
 
     fun getPrimaryNumber(): String? {

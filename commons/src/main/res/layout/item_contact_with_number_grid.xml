@@ -32,17 +32,31 @@
 
         <com.goodwy.commons.views.MyTextView
             android:id="@+id/item_contact_name"
-            android:layout_width="match_parent"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:ellipsize="end"
             android:gravity="center"
             android:maxLines="2"
             android:paddingTop="@dimen/medium_margin"
-            android:paddingHorizontal="@dimen/medium_margin"
-            app:layout_constraintEnd_toEndOf="parent"
+            android:paddingStart="@dimen/medium_margin"
+            android:paddingEnd="@dimen/small_margin"
+            app:layout_constraintEnd_toStartOf="@+id/item_contact_sim_image"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/item_contact_image"
             tools:text="John Doe" />
+
+        <ImageView
+            android:id="@+id/item_contact_sim_image"
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:layout_marginStart="@dimen/small_margin"
+            android:layout_marginEnd="@dimen/medium_margin"
+            android:src="@drawable/ic_sim_vector"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="@+id/item_contact_name"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@+id/item_contact_name"
+            app:layout_constraintTop_toTopOf="@+id/item_contact_name" />
 
         <TextView
             android:id="@+id/item_contact_number"

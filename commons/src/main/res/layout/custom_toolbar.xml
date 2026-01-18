@@ -38,7 +38,7 @@
             android:layout_alignParentStart="true"
             android:layout_centerVertical="true"
             android:layout_marginEnd="@dimen/normal_margin"
-            android:layout_toStartOf="@+id/menuButton" />
+            android:layout_toStartOf="@+id/actionButtonsContainer" />
 
         <TextView
             android:id="@+id/titleTextView"
@@ -48,7 +48,7 @@
             android:layout_centerVertical="true"
             android:layout_marginStart="@dimen/normal_margin"
             android:layout_marginEnd="@dimen/normal_margin"
-            android:layout_toStartOf="@+id/menuButton"
+            android:layout_toStartOf="@+id/actionButtonsContainer"
             android:ellipsize="end"
             android:gravity="start|center_vertical"
             android:maxLines="1"
@@ -56,22 +56,16 @@
             android:textSize="@dimen/actionbar_text_size"
             tools:text="Toolbar Title" />
 
-        <ImageView
-            android:id="@+id/searchIconButton"
-            android:layout_width="@dimen/medium_icon_size"
-            android:layout_height="@dimen/medium_icon_size"
+        <LinearLayout
+            android:id="@+id/actionButtonsContainer"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
             android:layout_toStartOf="@+id/menuButton"
+            android:layout_alignParentEnd="false"
             android:layout_centerVertical="true"
-            android:layout_marginEnd="@dimen/smaller_margin"
-            android:adjustViewBounds="true"
-            android:background="?android:selectableItemBackgroundBorderless"
-            android:clickable="true"
-            android:focusable="true"
-            android:scaleType="centerInside"
-            android:src="@drawable/ic_search_vector"
-            android:contentDescription="@string/search"
-            android:visibility="visible"
-            tools:visibility="visible" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical|end"
+            android:visibility="gone" />
 
         <ImageView
             android:id="@+id/menuButton"
@@ -81,6 +75,7 @@
             android:layout_centerVertical="true"
             android:layout_marginEnd="@dimen/medium_margin"
             android:adjustViewBounds="true"
+            android:padding="@dimen/small_margin"
             android:background="?android:selectableItemBackgroundBorderless"
             android:clickable="true"
             android:focusable="true"

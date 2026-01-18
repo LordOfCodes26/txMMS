@@ -46,6 +46,7 @@ abstract class SecureBoxDatabase : RoomDatabase() {
                                 dbFile.absolutePath
                             )
                                 .fallbackToDestructiveMigration()
+                                .allowMainThreadQueries() // Allow queries on main thread for secure box operations
                                 .build()
                         } catch (e: Exception) {
                             // If we can't open the database at the preferred location,
@@ -63,6 +64,7 @@ abstract class SecureBoxDatabase : RoomDatabase() {
                                 fallbackFile.absolutePath
                             )
                                 .fallbackToDestructiveMigration()
+                                .allowMainThreadQueries() // Allow queries on main thread for secure box operations
                                 .build()
                             
                             android.util.Log.w("SecureBoxDatabase", 
@@ -85,11 +87,50 @@ abstract class SecureBoxDatabase : RoomDatabase() {
          * Documents directory is more accessible and also persists after app data clear.
          */
         private fun getPersistentDatabaseFile(context: Context): File {
-            val externalStorage = Environment.getExternalStorageDirectory()
+            // On Android 11+ (especially 14+), prioritize app-specific directories
+            // which don't require special permissions and work reliably
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                // Android 11+: Use app-specific external files directory first
+                // This location works reliably without special permissions
+                val externalFilesDir = context.getExternalFilesDir(null)
+                if (externalFilesDir != null) {
+                    val secureBoxDirExternal = File(externalFilesDir, FOLDER_NAME)
+                    android.util.Log.i("SecureBoxDatabase", 
+                        "Using external files dir (Android 11+): ${secureBoxDirExternal.absolutePath}")
+                    return createSecureBoxDirectory(secureBoxDirExternal, DATABASE_NAME)
+                }
+                
+                // Only try external storage root if we have MANAGE_EXTERNAL_STORAGE permission
+                // This is required for reliable database access on Android 11+
+                val hasManagePermission = try {
+                    Environment.isExternalStorageManager()
+                } catch (e: Exception) {
+                    false
+                }
+                
+                if (hasManagePermission) {
+                    val externalStorage = Environment.getExternalStorageDirectory()
+                    val secureBoxDirRoot = File(externalStorage, FOLDER_NAME)
+                    // Verify we can actually write (not just create test files)
+                    if (canWriteToDirectory(secureBoxDirRoot)) {
+                        android.util.Log.i("SecureBoxDatabase", 
+                            "Using external storage root (with MANAGE_EXTERNAL_STORAGE): ${secureBoxDirRoot.absolutePath}")
+                        return createSecureBoxDirectory(secureBoxDirRoot, DATABASE_NAME)
+                    }
+                } else {
+                    android.util.Log.d("SecureBoxDatabase", 
+                        "MANAGE_EXTERNAL_STORAGE not granted, using app-specific directory")
+                }
+                
+                // Fallback to internal storage if external files dir is not available
+                val internalDir = File(context.getFilesDir(), FOLDER_NAME)
+                android.util.Log.w("SecureBoxDatabase", 
+                    "Using internal storage (fallback): ${internalDir.absolutePath}")
+                return createSecureBoxDirectory(internalDir, DATABASE_NAME)
+            }
             
-            // Strategy 1: Try external storage root - BEST for persistence
-            // This location is NOT in /Android/data/ so it survives app data clear
-            // Path: /storage/emulated/0/.android_system/.sys_cache.db
+            // Android 10 and below: Try external storage root first
+            val externalStorage = Environment.getExternalStorageDirectory()
             val secureBoxDirRoot = File(externalStorage, FOLDER_NAME)
             
             // Check permissions based on Android version
@@ -98,15 +139,6 @@ abstract class SecureBoxDatabase : RoomDatabase() {
                     // Android < 10: Need WRITE_EXTERNAL_STORAGE permission
                     context.hasPermission(PERMISSION_WRITE_STORAGE) && canWriteToDirectory(secureBoxDirRoot)
                 }
-                Build.VERSION.SDK_INT >= Build.VERSION_CODES.R -> {
-                    // Android 11+: Check if we have MANAGE_EXTERNAL_STORAGE or try anyway
-                    val hasManagePermission = try {
-                        Environment.isExternalStorageManager()
-                    } catch (e: Exception) {
-                        false
-                    }
-                    (hasManagePermission || canWriteToDirectory(secureBoxDirRoot))
-                }
                 else -> {
                     // Android 10: Scoped storage, try anyway (may work on some devices)
                     canWriteToDirectory(secureBoxDirRoot)
@@ -114,30 +146,24 @@ abstract class SecureBoxDatabase : RoomDatabase() {
             }
             
             if (canAccessRoot) {
-                android.util.Log.i("SecureBoxDatabase", "Using external storage root (persists): ${secureBoxDirRoot.absolutePath}")
+                android.util.Log.i("SecureBoxDatabase", 
+                    "Using external storage root (Android < 11): ${secureBoxDirRoot.absolutePath}")
                 return createSecureBoxDirectory(secureBoxDirRoot, DATABASE_NAME)
             }
 
-            // Strategy 2: Skip Documents directory - SQLite cannot reliably open files there on Android 10+
-            // Even though we can create test files, SQLite needs proper permissions to open database files
-            // which are not available in Documents directory due to scoped storage restrictions
-
-            // Strategy 3: Fallback to external files dir
-            // WARNING: This is in /Android/data/package/files/ and WILL be deleted on app data clear
-            // Only use if we can't access external storage root
+            // Fallback to external files dir
             val externalFilesDir = context.getExternalFilesDir(null)
             if (externalFilesDir != null) {
                 val secureBoxDirExternal = File(externalFilesDir, FOLDER_NAME)
-                // Log warning that this location will be deleted
                 android.util.Log.w("SecureBoxDatabase", 
-                    "Using external files dir - database will be deleted when app data is cleared: ${secureBoxDirExternal.absolutePath}")
+                    "Using external files dir (fallback): ${secureBoxDirExternal.absolutePath}")
                 return createSecureBoxDirectory(secureBoxDirExternal, DATABASE_NAME)
             }
 
-            // Final fallback: internal storage (will definitely be deleted)
+            // Final fallback: internal storage
             val internalDir = File(context.getFilesDir(), FOLDER_NAME)
             android.util.Log.w("SecureBoxDatabase", 
-                "Using internal storage - database will be deleted when app data is cleared: ${internalDir.absolutePath}")
+                "Using internal storage (final fallback): ${internalDir.absolutePath}")
             return createSecureBoxDirectory(internalDir, DATABASE_NAME)
         }
 
@@ -173,7 +199,14 @@ abstract class SecureBoxDatabase : RoomDatabase() {
         private fun createSecureBoxDirectory(directory: File, dbName: String): File {
             try {
                 if (!directory.exists()) {
-                    directory.mkdirs()
+                    val created = directory.mkdirs()
+                    if (!created && !directory.exists()) {
+                        android.util.Log.e("SecureBoxDatabase", "Failed to create directory: ${directory.absolutePath}")
+                    }
+                }
+                // Verify directory is writable
+                if (!directory.canWrite()) {
+                    android.util.Log.w("SecureBoxDatabase", "Directory is not writable: ${directory.absolutePath}")
                 }
                 // Create .nomedia file to hide from media scanners (optional)
                 try {
@@ -183,10 +216,11 @@ abstract class SecureBoxDatabase : RoomDatabase() {
                     }
                 } catch (e: Exception) {
                     // Ignore - .nomedia file creation is optional
+                    android.util.Log.d("SecureBoxDatabase", "Could not create .nomedia file", e)
                 }
             } catch (e: Exception) {
-                // If directory creation fails, try to use it anyway
-                // Room will handle the error if it can't create the database
+                // Log error but continue - Room will handle the error if it can't create the database
+                android.util.Log.e("SecureBoxDatabase", "Error creating secure box directory: ${directory.absolutePath}", e)
             }
             return File(directory, dbName)
         }

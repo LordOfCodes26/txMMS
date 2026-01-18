@@ -1,6 +1,8 @@
 package com.goodwy.commons.securebox
 
 import android.content.Context
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executors
 
 /**
  * Helper class for managing Secure Box operations.
@@ -107,12 +109,33 @@ class SecureBoxHelper(private val context: Context) {
             return cachedSecureBoxCallIds!!
         }
         
-        // Load from database and cache
+        // Load from database on background thread and cache
         return try {
-            val ids = database.SecureBoxCallDao().getAllSecureBoxCallIds().toSet()
-            cachedSecureBoxCallIds = ids
-            cacheTimestamp = now
-            ids
+            val latch = CountDownLatch(1)
+            var ids: Set<Int> = emptySet()
+            var exception: Exception? = null
+            
+            Executors.newSingleThreadExecutor().execute {
+                try {
+                    ids = database.SecureBoxCallDao().getAllSecureBoxCallIds().toSet()
+                    cachedSecureBoxCallIds = ids
+                    cacheTimestamp = now
+                } catch (e: Exception) {
+                    exception = e
+                } finally {
+                    latch.countDown()
+                }
+            }
+            
+            // Wait for the background thread to complete
+            latch.await()
+            
+            if (exception != null) {
+                android.util.Log.e("SecureBoxHelper", "Failed to get secure box call IDs", exception)
+                emptySet() // Return empty set on error to prevent crashes
+            } else {
+                ids
+            }
         } catch (e: Exception) {
             android.util.Log.e("SecureBoxHelper", "Failed to get secure box call IDs", e)
             emptySet() // Return empty set on error to prevent crashes
@@ -195,12 +218,33 @@ class SecureBoxHelper(private val context: Context) {
             return cachedSecureBoxContactIds!!
         }
         
-        // Load from database and cache
+        // Load from database on background thread and cache
         return try {
-            val ids = database.SecureBoxContactDao().getAllSecureBoxContactIds().toSet()
-            cachedSecureBoxContactIds = ids
-            cacheTimestamp = now
-            ids
+            val latch = CountDownLatch(1)
+            var ids: Set<Int> = emptySet()
+            var exception: Exception? = null
+            
+            Executors.newSingleThreadExecutor().execute {
+                try {
+                    ids = database.SecureBoxContactDao().getAllSecureBoxContactIds().toSet()
+                    cachedSecureBoxContactIds = ids
+                    cacheTimestamp = now
+                } catch (e: Exception) {
+                    exception = e
+                } finally {
+                    latch.countDown()
+                }
+            }
+            
+            // Wait for the background thread to complete
+            latch.await()
+            
+            if (exception != null) {
+                android.util.Log.e("SecureBoxHelper", "Failed to get secure box contact IDs", exception)
+                emptySet() // Return empty set on error to prevent crashes
+            } else {
+                ids
+            }
         } catch (e: Exception) {
             android.util.Log.e("SecureBoxHelper", "Failed to get secure box contact IDs", e)
             emptySet() // Return empty set on error to prevent crashes

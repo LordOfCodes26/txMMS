@@ -15,10 +15,10 @@ import android.view.View
 import android.view.ViewGroup
 import android.animation.ValueAnimator
 import android.graphics.PorterDuff
+import android.util.Log
 import android.view.animation.AccelerateInterpolator
 import android.view.animation.DecelerateInterpolator
 import android.view.inputmethod.InputMethodManager
-import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.PopupMenu
@@ -26,6 +26,8 @@ import android.widget.PopupWindow
 import android.widget.TextView
 import com.goodwy.commons.views.MyEditText
 import androidx.appcompat.view.menu.MenuBuilder
+import androidx.appcompat.view.menu.MenuItemImpl
+import java.lang.reflect.Method
 import androidx.core.animation.doOnEnd
 import androidx.core.content.ContextCompat
 import androidx.core.view.MenuCompat
@@ -35,11 +37,14 @@ import com.goodwy.commons.databinding.CustomToolbarSearchContainerBinding
 import com.goodwy.commons.databinding.PopupMenuBlurBinding
 import com.goodwy.commons.extensions.adjustAlpha
 import com.goodwy.commons.extensions.applyColorFilter
+import com.goodwy.commons.extensions.getColoredMaterialSearchBarColor
 import com.goodwy.commons.extensions.getProperBlurOverlayColor
 import com.goodwy.commons.extensions.getProperPrimaryColor
 import com.goodwy.commons.extensions.getProperTextColor
 import com.goodwy.commons.extensions.getProperTextCursorColor
+import com.goodwy.commons.extensions.isSystemInDarkMode
 import com.goodwy.commons.extensions.onTextChangeListener
+import android.graphics.drawable.GradientDrawable
 import eightbitlab.com.blurview.BlurTarget
 import eightbitlab.com.blurview.BlurView
 
@@ -62,6 +67,21 @@ class CustomToolbar @JvmOverloads constructor(
     private var onNavigationClickListener: OnClickListener? = null
     private var onSearchTextChangedListener: ((String) -> Unit)? = null
     private var onSearchBackClickListener: OnClickListener? = null
+    private var onSearchExpandListener: OnClickListener? = null
+    
+    // Cached values for performance
+    private var cachedTextColor: Int? = null
+    private var cachedPrimaryColor: Int? = null
+    private var cachedCursorColor: Int? = null
+    private var cachedIconSize: Int? = null
+    private var cachedMediumIconSize: Int? = null
+    private var cachedSmallerMargin: Int? = null
+    private var cachedNormalMargin: Int? = null
+    private var cachedBackgroundDrawable: Drawable? = null
+    
+    // Cached reflection method for showAsAction
+    private var showAsActionMethod: Method? = null
+    private var showAsActionField: java.lang.reflect.Field? = null
     
     var isSearchExpanded: Boolean = false
         private set
@@ -129,10 +149,6 @@ class CustomToolbar @JvmOverloads constructor(
         
         // Setup click listeners
         binding?.menuButton?.setOnClickListener { showMenuPopup() }
-        binding?.searchIconButton?.setOnClickListener { expandSearch() }
-        
-        // Apply initial colors
-        updateSearchIconButtonColor()
         
         // Read attributes from XML
         attrs?.let {
@@ -166,86 +182,178 @@ class CustomToolbar @JvmOverloads constructor(
     private fun setupSearchContainer() {
         if (searchBinding != null) return
         
+        val binding = this.binding ?: return
         // Find the included search container view by ID
-        val searchContainerView = binding?.root?.findViewById<ViewGroup>(R.id.searchContainer)
+        val searchContainerView = binding.root.findViewById<ViewGroup>(R.id.searchContainer) ?: return
         
-        if (searchContainerView != null) {
-            // Create binding for search container using bind()
-            searchBinding = CustomToolbarSearchContainerBinding.bind(searchContainerView)
-            
-            // Setup click listeners
-            searchBinding?.searchBackButton?.setOnClickListener {
-                collapseSearch()
-                onSearchBackClickListener?.onClick(it)
-            }
-            
-            // Setup search EditText
-            searchBinding?.searchEditText?.let { editText ->
-                val textColor = context.getProperTextColor()
-                val primaryColor = context.getProperPrimaryColor()
-                val cursorColor = context.getProperTextCursorColor()
-                editText.setColors(textColor, primaryColor, cursorColor)
-                
-                // Update icon colors
-                updateSearchIconColors(editText)
-                
-                // Setup text watcher
-                editText.onTextChangeListener { text ->
-                    onSearchTextChangedListener?.invoke(text)
-                    updateClearButton(editText, text.isNotEmpty())
-                }
-                
-                // Setup clear button click listener using OnTouchListener for drawableEnd
-                editText.setOnTouchListener { v, event ->
-                    val editText = v as? MyEditText ?: return@setOnTouchListener false
-                    
-                    // Only handle if there's a clear icon (drawableEnd)
-                    val drawables = editText.compoundDrawables
-                    val clearDrawable = drawables[2] // drawableEnd
-                    
-                    if (clearDrawable != null) {
-                        val x = event.x
-                        val y = event.y
-                        
-                        // Calculate the position of drawableEnd
-                        // drawableEnd is positioned at the end: width - paddingEnd - drawableWidth - drawablePadding
-                        val drawableWidth = clearDrawable.bounds.width()
-                        val drawableHeight = clearDrawable.bounds.height()
-                        val drawablePadding = editText.compoundDrawablePadding
-                        
-                        // Right edge: width - paddingEnd
-                        // Left edge: right - drawableWidth - drawablePadding
-                        val right = editText.width - editText.paddingEnd
-                        val left = right - drawableWidth - drawablePadding
-                        
-                        // Vertical center
-                        val top = (editText.height - drawableHeight) / 2
-                        val bottom = top + drawableHeight
-                        
-                        // Check if touch is within the drawable bounds
-                        if (event.action == android.view.MotionEvent.ACTION_UP && 
-                            x >= left && x <= right && y >= top && y <= bottom) {
-                            editText.setText("")
-                            editText.requestFocus()
-                            return@setOnTouchListener true
-                        }
-                    }
-                    false
-                }
-                
-                // Initially hide clear button
-                updateClearButton(editText, false)
-            }
-            
-            // Apply initial colors
-            updateSearchButtonColors()
+        // Create binding for search container using bind()
+        searchBinding = CustomToolbarSearchContainerBinding.bind(searchContainerView)
+        val search = searchBinding ?: return
+        
+        // Setup click listeners
+        search.searchBackButton.setOnClickListener {
+            collapseSearch()
+            onSearchBackClickListener?.onClick(it)
         }
+        
+        // Setup search EditText
+        val editText = search.searchEditText
+        val textColor = getTextColor()
+        val primaryColor = getPrimaryColor()
+        val cursorColor = getCursorColor()
+        editText.setColors(textColor, primaryColor, cursorColor)
+        
+        // Update icon colors
+        updateSearchIconColors(editText)
+        
+        // Setup text watcher
+        editText.onTextChangeListener { text ->
+            onSearchTextChangedListener?.invoke(text)
+            updateClearButton(editText, text.isNotEmpty())
+        }
+        
+        // Setup clear button click listener using OnTouchListener for drawableEnd
+        editText.setOnTouchListener { v, event ->
+            val editText = v as? MyEditText ?: return@setOnTouchListener false
+            
+            // Only handle if there's a clear icon (drawableEnd)
+            val drawables = editText.compoundDrawables
+            val clearDrawable = drawables[2] // drawableEnd
+            
+            if (clearDrawable != null && event.action == android.view.MotionEvent.ACTION_UP) {
+                val x = event.x
+                val y = event.y
+                
+                // Calculate the position of drawableEnd
+                val drawableWidth = clearDrawable.bounds.width()
+                val drawableHeight = clearDrawable.bounds.height()
+                val drawablePadding = editText.compoundDrawablePadding
+                
+                // Right edge: width - paddingEnd
+                // Left edge: right - drawableWidth - drawablePadding
+                val right = editText.width - editText.paddingEnd
+                val left = right - drawableWidth - drawablePadding
+                
+                // Vertical center
+                val top = (editText.height - drawableHeight) / 2
+                val bottom = top + drawableHeight
+                
+                // Check if touch is within the drawable bounds
+                if (x >= left && x <= right && y >= top && y <= bottom) {
+                    editText.setText("")
+                    editText.requestFocus()
+                    return@setOnTouchListener true
+                }
+            }
+            false
+        }
+        
+        // Initially hide clear button
+        updateClearButton(editText, false)
+        
+        // Apply initial colors
+        updateSearchButtonColors()
+        
+        // Apply search bar background color for dark mode
+        updateSearchBarBackground()
+    }
+    
+    private fun updateSearchBarBackground() {
+        val search = searchBinding ?: return
+        val editText = search.searchEditText
+        
+        // Update search bar background color for dark mode
+        val searchBarBackgroundColor = if (context.isSystemInDarkMode()) {
+            context.getColoredMaterialSearchBarColor()
+        } else {
+            // Use the original light color for light mode
+            ContextCompat.getColor(context, R.color.md_grey_100)
+        }
+        
+        // Create a rounded rectangle drawable for the search bar background
+        // Use 24dp corner radius (same as search_bg.xml)
+        val radiusValue = (24 * resources.displayMetrics.density + 0.5f)
+        val searchBarDrawable = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = radiusValue
+            setColor(searchBarBackgroundColor)
+        }
+        editText.background = searchBarDrawable
+    }
+    
+    // Cached color getters
+    private fun getTextColor(): Int {
+        if (cachedTextColor == null) {
+            cachedTextColor = context.getProperTextColor()
+        }
+        return cachedTextColor!!
+    }
+    
+    private fun getPrimaryColor(): Int {
+        if (cachedPrimaryColor == null) {
+            cachedPrimaryColor = context.getProperPrimaryColor()
+        }
+        return cachedPrimaryColor!!
+    }
+    
+    private fun getCursorColor(): Int {
+        if (cachedCursorColor == null) {
+            cachedCursorColor = context.getProperTextCursorColor()
+        }
+        return cachedCursorColor!!
+    }
+    
+    private fun getIconSize(): Int {
+        if (cachedIconSize == null) {
+            cachedIconSize = (18 * resources.displayMetrics.density + 0.5f).toInt()
+        }
+        return cachedIconSize!!
+    }
+    
+    private fun getMediumIconSize(): Int {
+        if (cachedMediumIconSize == null) {
+            cachedMediumIconSize = resources.getDimensionPixelSize(R.dimen.medium_icon_size)
+        }
+        return cachedMediumIconSize!!
+    }
+    
+    private fun getSmallerMargin(): Int {
+        if (cachedSmallerMargin == null) {
+            cachedSmallerMargin = resources.getDimensionPixelSize(R.dimen.smaller_margin)
+        }
+        return cachedSmallerMargin!!
+    }
+    
+    private fun getNormalMargin(): Int {
+        if (cachedNormalMargin == null) {
+            cachedNormalMargin = resources.getDimensionPixelSize(R.dimen.normal_margin)
+        }
+        return cachedNormalMargin!!
+    }
+    
+    private fun getBackgroundDrawable(): Drawable? {
+        if (cachedBackgroundDrawable == null) {
+            val typedValue = TypedValue()
+            context.theme.resolveAttribute(android.R.attr.selectableItemBackgroundBorderless, typedValue, true)
+            cachedBackgroundDrawable = ContextCompat.getDrawable(context, typedValue.resourceId)
+        }
+        return cachedBackgroundDrawable
+    }
+    
+    /**
+     * Get a fresh instance of the background drawable for action buttons.
+     * Each button needs its own instance for ripple effects to work properly.
+     */
+    private fun getActionButtonBackgroundDrawable(): Drawable? {
+        val typedValue = TypedValue()
+        context.theme.resolveAttribute(android.R.attr.selectableItemBackgroundBorderless, typedValue, true)
+        return ContextCompat.getDrawable(context, typedValue.resourceId)
     }
     
     private fun updateSearchIconColors(editText: MyEditText) {
-        val textColor = context.getProperTextColor()
+        val textColor = getTextColor()
         val iconColor = textColor.adjustAlpha(0.4f)
-        val iconSize = (18 * resources.displayMetrics.density + 0.5f).toInt()
+        val iconSize = getIconSize()
         
         val currentDrawables = editText.compoundDrawables
         val searchIcon = currentDrawables[0] ?: ContextCompat.getDrawable(context, R.drawable.ic_search_vector)
@@ -266,14 +374,14 @@ class CustomToolbar @JvmOverloads constructor(
         
         if (show) {
             // Show clear icon (drawableEnd)
-            val iconSize = (18 * resources.displayMetrics.density + 0.5f).toInt()
+            val iconSize = getIconSize()
             val clearIcon = ContextCompat.getDrawable(context, R.drawable.ic_clear_round)
             
             clearIcon?.let {
                 val drawable = it.mutate()
                 // Set bounds for the drawable - this determines its size
                 drawable.setBounds(0, 0, iconSize, iconSize)
-                val textColor = context.getProperTextColor()
+                val textColor = getTextColor()
                 val iconColor = textColor.adjustAlpha(0.4f)
                 drawable.setColorFilter(iconColor, PorterDuff.Mode.SRC_IN)
                 editText.setCompoundDrawables(searchIcon, null, drawable, null)
@@ -285,27 +393,15 @@ class CustomToolbar @JvmOverloads constructor(
     }
     
     private fun updateSearchButtonColors() {
-        searchBinding?.let { search ->
-            val textColor = context.getProperTextColor()
-            
-            // Update back button
-            search.searchBackButton.let { button ->
-                val backIcon = ContextCompat.getDrawable(context, R.drawable.ic_chevron_left_vector)
-                backIcon?.setColorFilter(textColor, PorterDuff.Mode.SRC_IN)
-                button.setImageDrawable(backIcon)
-            }
-            
-            // Clear button is now drawableEnd, handled in updateClearButton
-        }
-    }
-    
-    private fun updateSearchIconButtonColor() {
-        binding?.searchIconButton?.let { button ->
-            val textColor = context.getProperTextColor()
-            val searchIcon = ContextCompat.getDrawable(context, R.drawable.ic_search_vector)
-            searchIcon?.setColorFilter(textColor, PorterDuff.Mode.SRC_IN)
-            button.setImageDrawable(searchIcon)
-        }
+        val search = searchBinding ?: return
+        val textColor = getTextColor()
+        
+        // Update back button
+        val backIcon = ContextCompat.getDrawable(context, R.drawable.ic_chevron_left_vector)
+        backIcon?.setColorFilter(textColor, PorterDuff.Mode.SRC_IN)
+        search.searchBackButton.setImageDrawable(backIcon)
+        
+        // Clear button is now drawableEnd, handled in updateClearButton
     }
     
     fun setOnSearchTextChangedListener(listener: ((String) -> Unit)?) {
@@ -319,122 +415,113 @@ class CustomToolbar @JvmOverloads constructor(
         onSearchBackClickListener = listener
     }
     
+    fun setOnSearchExpandListener(listener: OnClickListener?) {
+        onSearchExpandListener = listener
+    }
+    
     fun expandSearch() {
         if (isSearchExpanded) return
         
         setupSearchContainer()
+        val binding = this.binding ?: return
+        val search = searchBinding ?: return
+        
         isSearchExpanded = true
         
-        // Hide title and search icon button (keep menu button visible)
-        binding?.titleTextView?.visibility = View.GONE
-        binding?.searchIconButton?.visibility = View.GONE
+        // Notify listener that search was expanded
+        onSearchExpandListener?.onClick(this)
+        
+        // Hide title and action buttons (keep menu button visible)
+        binding.titleTextView.visibility = View.GONE
+        val actionButtonsContainer = binding.root.findViewById<LinearLayout>(R.id.actionButtonsContainer)
+        actionButtonsContainer?.visibility = View.GONE
         
         // Show search container and back button
-        searchBinding?.root?.visibility = View.VISIBLE
-        searchBinding?.searchBackButton?.visibility = View.VISIBLE
+        search.root.visibility = View.VISIBLE
+        search.searchBackButton.visibility = View.VISIBLE
         
         // Ensure EditText is visible
-        searchBinding?.searchEditText?.visibility = View.VISIBLE
+        search.searchEditText.visibility = View.VISIBLE
         
         // Animate search field expansion
         post {
-            // Measure the actual available space by getting positions
-            val menuButton = binding?.menuButton
-            val searchContainer = searchBinding?.root
+            val search = searchBinding ?: return@post
+            val binding = this@CustomToolbar.binding ?: return@post
             
-            if (menuButton != null && searchContainer != null) {
-                // Get the location of menu button and search container
-                val menuButtonLocation = IntArray(2)
-                menuButton.getLocationOnScreen(menuButtonLocation)
+            // Measure the actual available space by getting positions
+            val actionButtonsContainer = binding.root.findViewById<LinearLayout>(R.id.actionButtonsContainer)
+            val menuButton = binding.menuButton
+            val searchContainer = search.root
+            
+            // Calculate the rightmost element (action buttons or menu button)
+            val rightmostElement = if (actionButtonsContainer != null && actionButtonsContainer.visibility == View.VISIBLE) {
+                actionButtonsContainer
+            } else {
+                menuButton
+            }
+            
+            val targetWidth = if (rightmostElement != null && searchContainer != null) {
+                // Get the location of rightmost element and search container
+                val rightmostLocation = IntArray(2)
+                rightmostElement.getLocationOnScreen(rightmostLocation)
                 
                 val searchContainerLocation = IntArray(2)
                 searchContainer.getLocationOnScreen(searchContainerLocation)
                 
-                // Calculate available width: distance from search container start to menu button start
+                // Calculate available width: distance from search container start to rightmost element start
                 // Account for the back button and its margin
-                val backButtonWidth = searchBinding?.searchBackButton?.width 
-                    ?: resources.getDimensionPixelSize(R.dimen.medium_icon_size)
-                val backButtonMargin = resources.getDimensionPixelSize(R.dimen.smaller_margin) * 2
-                val editTextMargin = resources.getDimensionPixelSize(R.dimen.smaller_margin) * 2
+                val backButtonWidth = search.searchBackButton.width.takeIf { it > 0 } ?: getMediumIconSize()
+                val backButtonMargin = getSmallerMargin() * 2
+                val editTextMargin = getSmallerMargin() * 2
                 
-                // Available width = distance to menu button - back button - margins
-                val distanceToMenuButton = menuButtonLocation[0] - searchContainerLocation[0]
-                val availableWidth = distanceToMenuButton - backButtonWidth - backButtonMargin - editTextMargin
-                
-                val targetWidth = availableWidth.coerceAtLeast(100) // Minimum 100dp width
-                
-                // Animate the EditText width directly (no RelativeLayout wrapper anymore)
-                val searchEditText = searchBinding?.searchEditText
-                
-                searchEditText?.apply {
-                    val layoutParams = this.layoutParams
-                    if (layoutParams != null) {
-                        // Set initial width to 0 for smooth expansion
-                        layoutParams.width = 0
-                        this.layoutParams = layoutParams
-                        requestLayout()
-                        
-                        // Animate the EditText width
-                        ValueAnimator.ofInt(0, targetWidth).apply {
-                            duration = 300
-                            interpolator = DecelerateInterpolator(1.5f)
-                            addUpdateListener { animator ->
-                                val params = searchEditText.layoutParams
-                                if (params != null) {
-                                    params.width = animator.animatedValue as Int
-                                    searchEditText.layoutParams = params
-                                }
-                                searchBinding?.root?.requestLayout()
-                            }
-                            start()
-                        }
-                    }
-                }
+                // Available width = distance to rightmost element - back button - margins
+                val distanceToRightmost = rightmostLocation[0] - searchContainerLocation[0]
+                (distanceToRightmost - backButtonWidth - backButtonMargin - editTextMargin).coerceAtLeast(100)
             } else {
                 // Fallback calculation if measurement fails
                 val toolbarWidth = width
-                val menuButtonWidth = binding?.menuButton?.width 
-                    ?: resources.getDimensionPixelSize(R.dimen.medium_icon_size)
-                val backButtonWidth = searchBinding?.searchBackButton?.width 
-                    ?: resources.getDimensionPixelSize(R.dimen.medium_icon_size)
-                val toolbarPadding = paddingStart + paddingEnd
-                val margins = resources.getDimensionPixelSize(R.dimen.normal_margin) + 
-                             resources.getDimensionPixelSize(R.dimen.smaller_margin) * 2
-                
-                val availableWidth = toolbarWidth - toolbarPadding - backButtonWidth - menuButtonWidth - margins
-                val targetWidth = availableWidth.coerceAtLeast(100)
-                
-                val searchEditText = searchBinding?.searchEditText
-                
-                searchEditText?.apply {
-                    val layoutParams = this.layoutParams
-                    if (layoutParams != null) {
-                        layoutParams.width = 0
-                        this.layoutParams = layoutParams
-                        requestLayout()
-                        
-                        ValueAnimator.ofInt(0, targetWidth).apply {
-                            duration = 300
-                            interpolator = DecelerateInterpolator(1.5f)
-                            addUpdateListener { animator ->
-                                val params = searchEditText.layoutParams
-                                if (params != null) {
-                                    params.width = animator.animatedValue as Int
-                                    searchEditText.layoutParams = params
-                                }
-                                searchBinding?.root?.requestLayout()
-                            }
-                            start()
-                        }
-                    }
+                val actionButtonsWidth = if (actionButtonsContainer != null && actionButtonsContainer.visibility == View.VISIBLE) {
+                    actionButtonsContainer.width
+                } else {
+                    0
                 }
+                val menuButtonWidth = menuButton.width.takeIf { it > 0 } ?: getMediumIconSize()
+                val backButtonWidth = search.searchBackButton.width.takeIf { it > 0 } ?: getMediumIconSize()
+                val toolbarPadding = paddingStart + paddingEnd
+                val margins = getNormalMargin() + getSmallerMargin() * 2
+                
+                (toolbarWidth - toolbarPadding - backButtonWidth - actionButtonsWidth - menuButtonWidth - margins).coerceAtLeast(100)
+            }
+            
+            // Animate the EditText width directly
+            val searchEditText = search.searchEditText
+            val layoutParams = searchEditText.layoutParams ?: return@post
+            
+            // Set initial width to 0 for smooth expansion
+            layoutParams.width = 0
+            searchEditText.layoutParams = layoutParams
+            searchEditText.requestLayout()
+            
+            // Animate the EditText width
+            ValueAnimator.ofInt(0, targetWidth).apply {
+                duration = 300
+                interpolator = DecelerateInterpolator(1.5f)
+                addUpdateListener { animator ->
+                    val params = searchEditText.layoutParams
+                    if (params != null) {
+                        params.width = animator.animatedValue as Int
+                        searchEditText.layoutParams = params
+                    }
+                    search.root.requestLayout()
+                }
+                start()
             }
             
             // Show keyboard after delay
             postDelayed({
-                searchBinding?.searchEditText?.requestFocus()
+                search.searchEditText.requestFocus()
                 val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-                imm.showSoftInput(searchBinding?.searchEditText, InputMethodManager.SHOW_IMPLICIT)
+                imm.showSoftInput(search.searchEditText, InputMethodManager.SHOW_IMPLICIT)
             }, 150)
         }
     }
@@ -443,46 +530,44 @@ class CustomToolbar @JvmOverloads constructor(
         if (!isSearchExpanded) return
         
         isSearchExpanded = false
+        val search = searchBinding ?: return
+        val binding = this.binding ?: return
         
         // Animate search field collapse
-        // Since we removed the RelativeLayout wrapper, animate the EditText directly
-        val searchEditText = searchBinding?.searchEditText
-        val currentWidth = searchEditText?.width ?: 0
+        val searchEditText = search.searchEditText
+        val currentWidth = searchEditText.width.takeIf { it > 0 } ?: 0
+        val layoutParams = searchEditText.layoutParams ?: return
         
-        searchEditText?.apply {
-            val layoutParams = this.layoutParams
-            if (layoutParams != null) {
-                ValueAnimator.ofInt(currentWidth, 0).apply {
-                    duration = 100
-                    interpolator = AccelerateInterpolator(1.2f)
-                    addUpdateListener { animator ->
-                        val params = searchEditText.layoutParams
-                        if (params != null) {
-                            params.width = animator.animatedValue as Int
-                            searchEditText.layoutParams = params
-                        }
-                        searchBinding?.root?.requestLayout()
-                    }
-                    doOnEnd {
-                        // Hide search container and back button
-                        searchBinding?.root?.visibility = View.GONE
-                        searchBinding?.searchBackButton?.visibility = View.GONE
-                        
-                        // Show title and search icon button (menu button was already visible)
-                        binding?.titleTextView?.visibility = 
-                            if (binding?.titleTextView?.text?.isNotEmpty() == true) View.VISIBLE else View.GONE
-                        binding?.searchIconButton?.visibility = View.VISIBLE
-                        
-                        // Clear search text
-                        searchBinding?.searchEditText?.setText("")
-                        
-                        // Hide keyboard
-                        val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-                        imm.hideSoftInputFromWindow(searchBinding?.searchEditText?.windowToken, 0)
-                    }
-                    start()
+        ValueAnimator.ofInt(currentWidth, 0).apply {
+            duration = 100
+            interpolator = AccelerateInterpolator(1.2f)
+            addUpdateListener { animator ->
+                val params = searchEditText.layoutParams
+                if (params != null) {
+                    params.width = animator.animatedValue as Int
+                    searchEditText.layoutParams = params
                 }
+                search.root.requestLayout()
             }
+            doOnEnd {
+                // Hide search container and back button
+                search.root.visibility = View.GONE
+                search.searchBackButton.visibility = View.GONE
+                
+                // Show title and action buttons (menu button was already visible)
+                binding.titleTextView.visibility = 
+                    if (binding.titleTextView.text?.isNotEmpty() == true) View.VISIBLE else View.GONE
+                // Restore action buttons visibility based on menu state
+                updateMenuDisplay()
+                
+                // Clear search text
+                search.searchEditText.setText("")
+                
+                // Hide keyboard
+                val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+                imm.hideSoftInputFromWindow(search.searchEditText.windowToken, 0)
+            }
+            start()
         }
     }
     
@@ -498,25 +583,28 @@ class CustomToolbar @JvmOverloads constructor(
     }
     
     fun updateSearchColors() {
-        searchBinding?.let { search ->
-            val textColor = context.getProperTextColor()
-            val primaryColor = context.getProperPrimaryColor()
-            val cursorColor = context.getProperTextCursorColor()
-            
-            search.searchEditText?.setColors(textColor, primaryColor, cursorColor)
-            
-            search.searchEditText?.let { editText ->
-                updateSearchIconColors(editText)
-                val hasText = editText.text?.isNotEmpty() == true
-                updateClearButton(editText, hasText)
-            }
-            
-            // Update button colors
-            updateSearchButtonColors()
-        }
+        // Invalidate cached colors to force recalculation
+        cachedTextColor = null
+        cachedPrimaryColor = null
+        cachedCursorColor = null
         
-        // Update search icon button color
-        updateSearchIconButtonColor()
+        val search = searchBinding ?: return
+        val textColor = getTextColor()
+        val primaryColor = getPrimaryColor()
+        val cursorColor = getCursorColor()
+        
+        search.searchEditText.setColors(textColor, primaryColor, cursorColor)
+        
+        // Update search bar background color for dark mode
+        updateSearchBarBackground()
+        
+        val editText = search.searchEditText
+        updateSearchIconColors(editText)
+        val hasText = editText.text?.isNotEmpty() == true
+        updateClearButton(editText, hasText)
+        
+        // Update button colors
+        updateSearchButtonColors()
     }
     
     fun setNavigationContentDescription(resId: Int) {
@@ -540,10 +628,6 @@ class CustomToolbar @JvmOverloads constructor(
         binding?.titleTextView?.setTextColor(colors)
     }
     
-    fun setSearchIconVisible(visible: Boolean) {
-        binding?.searchIconButton?.visibility = if (visible) View.VISIBLE else View.GONE
-    }
-    
     fun inflateMenu(resId: Int) {
         if (menuInflater == null) {
             menuInflater = MenuInflater(context)
@@ -554,6 +638,8 @@ class CustomToolbar @JvmOverloads constructor(
     
     fun setOnMenuItemClickListener(listener: MenuItem.OnMenuItemClickListener?) {
         onMenuItemClickListener = listener
+        // Update menu display to ensure action buttons have the correct listener
+        updateMenuDisplay()
     }
     
     fun invalidateMenu() {
@@ -561,22 +647,214 @@ class CustomToolbar @JvmOverloads constructor(
     }
     
     private fun updateMenuDisplay() {
-        val menu = _menu ?: return
+        // Prevent recursive calls
+        if (isUpdatingMenu) return
+        isUpdatingMenu = true
         
-        // Don't show menu items as icons - show all items in overflow menu only
-        val hasVisibleItems = (0 until menu.size())
-            .mapNotNull { menu.getItem(it) }
-            .any { it.isVisible }
+        try {
+            val menu = _menu ?: return
+            val binding = this.binding ?: return
+            val actionButtonsContainer = binding.root.findViewById<LinearLayout>(R.id.actionButtonsContainer)
+            
+            // Clear existing action buttons if container exists
+            actionButtonsContainer?.removeAllViews()
+            
+            // Separate menu items into action buttons and overflow items
+            val actionItems = mutableListOf<MenuItem>()
+            val overflowItems = mutableListOf<MenuItem>()
+            val menuSize = menu.size()
+            
+            for (i in 0 until menuSize) {
+                val item = menu.getItem(i) ?: continue
+                if (!item.isVisible) continue
+                
+                val showAsAction = getShowAsAction(item)
+                val hasIcon = item.icon != null
+                
+                // Show as action button ONLY if:
+                // 1. showAsAction is explicitly ALWAYS (2) or IF_ROOM (1), NOT NEVER (0)
+                // 2. Item has an icon
+                // Constants: SHOW_AS_ACTION_NEVER = 0, SHOW_AS_ACTION_IF_ROOM = 1, SHOW_AS_ACTION_ALWAYS = 2
+                val shouldShowAsAction = (showAsAction == MenuItem.SHOW_AS_ACTION_ALWAYS || 
+                                         showAsAction == MenuItem.SHOW_AS_ACTION_IF_ROOM) && 
+                                        showAsAction != MenuItem.SHOW_AS_ACTION_NEVER &&
+                                        hasIcon
+                
+                if (shouldShowAsAction) {
+                    actionItems.add(item)
+                } else {
+                    overflowItems.add(item)
+                }
+            }
+            
+            // Create action buttons for items that should be shown as actions
+            if (actionButtonsContainer != null) {
+                // Ensure container doesn't intercept touch events
+                actionButtonsContainer.isClickable = false
+                actionButtonsContainer.isFocusable = false
+                actionButtonsContainer.descendantFocusability = ViewGroup.FOCUS_BLOCK_DESCENDANTS
+                
+                actionItems.forEach { item ->
+                    val actionButton = createActionButton(item)
+                    actionButtonsContainer.addView(actionButton)
+                }
+                
+                // Show/hide action buttons container
+                actionButtonsContainer.visibility = if (actionItems.isNotEmpty()) View.VISIBLE else View.GONE
+            }
+            
+            // Show overflow menu button if there are overflow items
+            val hasOverflowItems = overflowItems.isNotEmpty()
+            binding.menuButton.visibility = if (hasOverflowItems) View.VISIBLE else View.GONE
+            
+            // Store overflow items for popup menu
+            this.overflowItems = overflowItems
+        } finally {
+            isUpdatingMenu = false
+        }
+    }
+    
+    /**
+     * Create an action button for a menu item with proper click handling
+     */
+    private fun createActionButton(item: MenuItem): ImageView {
+        val iconSize = getMediumIconSize()
+        val margin = getNormalMargin()
+        val textColor = getTextColor()
+        val padding = getSmallerMargin()
         
-        binding?.menuButton?.visibility = if (hasVisibleItems) View.VISIBLE else View.GONE
-        
-        // Keep menu button visible even when search is expanded
+        return ImageView(context).apply {
+            // Set layout params (same size as menu button)
+            layoutParams = LinearLayout.LayoutParams(iconSize, iconSize).apply {
+                marginEnd = margin
+            }
+            
+            // Set padding for the action button
+            setPadding(padding, padding, padding, padding)
+            
+            // Set clickable, focusable, and enabled properties FIRST
+            isClickable = true
+            isFocusable = true
+            isEnabled = true
+            
+            // Get a fresh instance of the background drawable for ripple effect
+            // Each view needs its own instance for ripple to work properly
+            background = getActionButtonBackgroundDrawable()
+            
+            // Set icon with proper color
+            item.icon?.let { icon ->
+                val iconDrawable = icon.mutate()
+                iconDrawable.setColorFilter(textColor, PorterDuff.Mode.SRC_IN)
+                setImageDrawable(iconDrawable)
+            }
+            
+            contentDescription = item.title
+            scaleType = ImageView.ScaleType.CENTER_INSIDE
+            adjustViewBounds = true
+            
+            // Store the menu item ID for click handling
+            tag = item.itemId
+            
+            // Set click listener directly using a lambda that captures itemId
+            // Always use the current listener from the toolbar instance
+            val capturedItemId = item.itemId
+            val capturedItem = item // Also capture the item itself as a fallback
+            
+            setOnClickListener { view ->
+                // Always get the current listener and menu from the toolbar instance
+                val currentListener = this@CustomToolbar.onMenuItemClickListener
+                val currentMenu = this@CustomToolbar._menu
+                
+                // Try to find the menu item from current menu first
+                val menuItem = currentMenu?.findItem(capturedItemId) ?: capturedItem
+                
+                // Ensure the listener exists and the item is visible
+                if (currentListener != null && menuItem != null && menuItem.isVisible) {
+                    // Call the menu item click listener
+                    currentListener.onMenuItemClick(menuItem)
+                } else {
+                    false
+                }
+            }
+        }
+    }
+    
+    
+    private var overflowItems: List<MenuItem> = emptyList()
+    private var isUpdatingMenu = false
+    
+    /**
+     * Get the showAsAction value from a MenuItem.
+     * MenuItemImpl (used by MenuBuilder) has getShowAsAction() method.
+     * The value may include flags like SHOW_AS_ACTION_WITH_TEXT, so we extract the base value.
+     * Uses cached reflection for better performance.
+     */
+    private fun getShowAsAction(item: MenuItem): Int {
+        return try {
+            var result: Int? = null
+            
+            // Try cached method first
+            if (showAsActionMethod == null && item is MenuItemImpl) {
+                try {
+                    showAsActionMethod = MenuItemImpl::class.java.getMethod("getShowAsAction")
+                } catch (e: Exception) {
+                    // Method doesn't exist
+                }
+            }
+            
+            // Approach 1: Try cached method
+            if (showAsActionMethod != null && item is MenuItemImpl) {
+                try {
+                    result = showAsActionMethod?.invoke(item) as? Int
+                } catch (e: Exception) {
+                    // Invocation failed
+                }
+            }
+            
+            // Approach 2: Try cached field
+            if (result == null) {
+                if (showAsActionField == null) {
+                    try {
+                        val field = item.javaClass.getDeclaredField("mShowAsAction")
+                        field.isAccessible = true
+                        showAsActionField = field
+                    } catch (e: Exception) {
+                        // Field doesn't exist
+                    }
+                }
+                
+                if (showAsActionField != null) {
+                    try {
+                        result = showAsActionField?.get(item) as? Int
+                    } catch (e: Exception) {
+                        // Field access failed
+                    }
+                }
+            }
+            
+            // Extract the base value from result (mask out flags like SHOW_AS_ACTION_WITH_TEXT)
+            // SHOW_AS_ACTION_NEVER = 0, SHOW_AS_ACTION_IF_ROOM = 1, SHOW_AS_ACTION_ALWAYS = 2
+            // The base value is in the lower 2 bits (0x03)
+            val baseValue = (result ?: MenuItem.SHOW_AS_ACTION_NEVER) and 0x03
+            
+            // Return the base value, ensuring it's one of the valid constants
+            when (baseValue) {
+                MenuItem.SHOW_AS_ACTION_NEVER,
+                MenuItem.SHOW_AS_ACTION_IF_ROOM,
+                MenuItem.SHOW_AS_ACTION_ALWAYS -> baseValue
+                else -> MenuItem.SHOW_AS_ACTION_NEVER
+            }
+        } catch (e: Exception) {
+            // If any exception occurs, default to NEVER
+            MenuItem.SHOW_AS_ACTION_NEVER
+        }
     }
     
     private fun showMenuPopup() {
         val menu = _menu ?: return
         val activity = context as? Activity ?: return
         val blurTarget = activity.findViewById<BlurTarget>(R.id.mainBlurTarget) ?: return
+        val binding = this.binding ?: return
         
         // Create custom popup window with blur
         val inflater = LayoutInflater.from(context)
@@ -596,11 +874,20 @@ class CustomToolbar @JvmOverloads constructor(
             .setBlurRadius(8f)
             .setBlurAutoUpdate(true)
         
-        // Create menu items
+        // Create menu items - only show overflow items (not action buttons)
         val menuContainer = popupBinding.menuContainer
-        val visibleItems = (0 until menu.size())
-            .mapNotNull { menu.getItem(it) }
-            .filter { it.isVisible }
+        val visibleItems = if (overflowItems.isNotEmpty()) {
+            overflowItems.filter { it.isVisible }
+        } else {
+            // Fallback: show all visible items if overflowItems is empty
+            val menuSize = menu.size()
+            buildList {
+                for (i in 0 until menuSize) {
+                    val item = menu.getItem(i) ?: continue
+                    if (item.isVisible) add(item)
+                }
+            }
+        }
         
         visibleItems.forEach { item ->
             val menuItemView = inflater.inflate(R.layout.item_popup_menu, menuContainer, false)
@@ -622,6 +909,24 @@ class CustomToolbar @JvmOverloads constructor(
             View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
         )
         
+        // Calculate position
+        val anchor = binding.menuButton
+        val location = IntArray(2)
+        anchor.getLocationOnScreen(location)
+        val rootView = activity.window.decorView.rootView
+        val rootLocation = IntArray(2)
+        rootView.getLocationOnScreen(rootLocation)
+        
+        // Add right margin (16dp converted to pixels)
+        val displayMetrics = resources.displayMetrics
+        val rightMargin = (16 * displayMetrics.density + 0.5f).toInt()
+        val screenWidth = displayMetrics.widthPixels
+        val popupWidth = popupBinding.root.measuredWidth
+        
+        // Calculate x position with right margin from screen edge
+        val x = screenWidth - popupWidth - rightMargin
+        val y = location[1] + anchor.height
+        
         // Create and show popup window
         popupWindow = PopupWindow(
             popupBinding.root,
@@ -634,24 +939,8 @@ class CustomToolbar @JvmOverloads constructor(
             isOutsideTouchable = true
             isFocusable = true
             
-            // Calculate position
-            val anchor = binding?.menuButton ?: this@CustomToolbar
-            val location = IntArray(2)
-            anchor.getLocationOnScreen(location)
-            val rootLocation = IntArray(2)
-            (context as? Activity)?.window?.decorView?.rootView?.getLocationOnScreen(rootLocation)
-            
-            // Add right margin (16dp converted to pixels)
-            val rightMargin = (16 * resources.displayMetrics.density + 0.5f).toInt()
-            val screenWidth = resources.displayMetrics.widthPixels
-            val popupWidth = popupBinding.root.measuredWidth
-            
-            // Calculate x position with right margin from screen edge
-            val x = screenWidth - popupWidth - rightMargin
-            val y = location[1] + anchor.height
-            
             showAtLocation(
-                (context as? Activity)?.window?.decorView?.rootView,
+                rootView,
                 Gravity.NO_GRAVITY,
                 x - rootLocation[0],
                 y - rootLocation[1]
@@ -663,15 +952,24 @@ class CustomToolbar @JvmOverloads constructor(
     
     override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {
         super.onLayout(changed, l, t, r, b)
-        // Update menu display when layout changes
-        if (_menu != null && _menu!!.size() > 0) {
-            post { updateMenuDisplay() }
-        }
+        // Don't update menu display on every layout change to prevent infinite loops
+        // Menu display is updated when menu is inflated or invalidated explicitly
     }
     
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
         popupWindow?.dismiss()
         popupWindow = null
+        // Clear cached values to prevent memory leaks
+        cachedTextColor = null
+        cachedPrimaryColor = null
+        cachedCursorColor = null
+        cachedIconSize = null
+        cachedMediumIconSize = null
+        cachedSmallerMargin = null
+        cachedNormalMargin = null
+        cachedBackgroundDrawable = null
+        showAsActionMethod = null
+        showAsActionField = null
     }
 }

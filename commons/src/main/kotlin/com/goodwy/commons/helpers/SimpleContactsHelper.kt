@@ -177,22 +177,6 @@ class SimpleContactsHelper(val context: Context) {
             Organization.CONTENT_ITEM_TYPE
         )
 
-        // Build a map of contactId -> displayName for fallback
-        val displayNameMap = HashMap<Long, String>()
-        try {
-            val contactsUri = Contacts.CONTENT_URI
-            val contactsProjection = arrayOf(Contacts._ID, Contacts.DISPLAY_NAME)
-            context.queryCursor(contactsUri, contactsProjection, null, null) { cursor ->
-                val id = cursor.getLongValue(Contacts._ID)
-                val displayName = cursor.getStringValue(Contacts.DISPLAY_NAME) ?: ""
-                if (displayName.isNotEmpty()) {
-                    displayNameMap[id] = displayName
-                }
-            }
-        } catch (e: Exception) {
-            // If we can't query DISPLAY_NAME, continue without it
-        }
-
         context.queryCursor(uri, projection, selection, selectionArgs) { cursor ->
             val accountName = cursor.getStringValue(RawContacts.ACCOUNT_NAME) ?: ""
             val accountType = cursor.getStringValue(RawContacts.ACCOUNT_TYPE) ?: ""
@@ -217,19 +201,11 @@ class SimpleContactsHelper(val context: Context) {
                 // Combine all name parts into a single name field
                 if (givenName.isNotEmpty() || middleName.isNotEmpty() || familyName.isNotEmpty()) {
                     val nameParts = listOf(prefix, givenName, middleName, familyName, suffix).filter { it.isNotEmpty() }
-                    var fullName = if (nameParts.isNotEmpty()) {
+                    val fullName = if (nameParts.isNotEmpty()) {
                         nameParts.joinToString(" ").trim()
                     } else {
                         ""
                     }
-                    
-                    // Use DISPLAY_NAME if available - it preserves the original format (e.g., "abc.def")
-                    // This fixes cases where structured name parts might lose formatting like dots
-                    val displayName = displayNameMap[contactId.toLong()]
-                    if (displayName != null && displayName.isNotEmpty()) {
-                        fullName = displayName
-                    }
-                    
                     val contact = SimpleContact(rawId, contactId, fullName, photoUri, ArrayList(), ArrayList(), ArrayList())
                     contacts.add(contact)
                 }

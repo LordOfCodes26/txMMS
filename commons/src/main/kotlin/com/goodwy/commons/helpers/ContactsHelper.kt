@@ -216,6 +216,10 @@ class ContactsHelper(val context: Context) {
                 }
 
                 val id = cursor.getIntValue(Data.RAW_CONTACT_ID)
+                
+                // Check if contact already exists (e.g., from Organization entry when processing StructuredName, or vice versa)
+                val existingContact = contacts.get(id)
+                
                 var prefix = ""
                 var name = ""
                 var middleName = ""
@@ -243,6 +247,18 @@ class ContactsHelper(val context: Context) {
                     middleName = ""
                     surname = ""
                     suffix = ""
+                    
+                    // If contact already exists (from Organization entry), update name but preserve organization
+                    if (existingContact != null) {
+                        existingContact.firstName = name
+                        return@queryCursor
+                    }
+                } else {
+                    // Processing Organization entry - if contact already exists (from StructuredName), skip
+                    // Organization will be loaded later via getOrganizations()
+                    if (existingContact != null) {
+                        return@queryCursor
+                    }
                 }
 
                 var photoUri = ""
@@ -291,7 +307,18 @@ class ContactsHelper(val context: Context) {
         }
 
         applySparseArrayToContacts(getEmails()) { contact, emails -> contact.emails = emails }
-        applySparseArrayToContacts(getOrganizations()) { contact, org -> contact.organization = org }
+        applySparseArrayToContacts(getOrganizations()) { contact, org -> 
+            contact.organization = org
+            // If contact has no name but has organization, set firstName to organization name
+            // This ensures getNameToDisplay() works correctly for business contacts
+            if (contact.firstName.isEmpty()) {
+                val fullOrganization = if (org.company.isEmpty()) "" else "${org.company}, "
+                val fullCompanyName = (fullOrganization + org.jobPosition).trim().trimEnd(',')
+                if (fullCompanyName.isNotEmpty()) {
+                    contact.firstName = fullCompanyName
+                }
+            }
+        }
 
         // no need to fetch some fields if we are only getting duplicates of the current contact
         if (gettingDuplicates) {
@@ -309,6 +336,23 @@ class ContactsHelper(val context: Context) {
         val contactsSize = contacts.size
         for (i in 0 until contactsSize) {
             contacts.valueAt(i).nickname = ""
+        }
+        
+        // Ensure all contacts have a name set - use fallback logic from getNameToDisplay()
+        for (i in 0 until contactsSize) {
+            val contact = contacts.valueAt(i)
+            if (contact.firstName.isEmpty()) {
+                // Try to set name from organization, email, or phone number
+                val organization = contact.getFullCompany()
+                val email = contact.emails.firstOrNull()?.value?.trim()
+                val phoneNumber = contact.phoneNumbers.firstOrNull()?.value
+                
+                when {
+                    organization.isNotEmpty() -> contact.firstName = organization
+                    !email.isNullOrEmpty() -> contact.firstName = email
+                    !phoneNumber.isNullOrEmpty() -> contact.firstName = phoneNumber
+                }
+            }
         }
         
         // Only load extended fields if requested (skip for list views to improve performance)
