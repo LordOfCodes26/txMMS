@@ -79,9 +79,8 @@ class CustomToolbar @JvmOverloads constructor(
     private var cachedNormalMargin: Int? = null
     private var cachedBackgroundDrawable: Drawable? = null
     
-    // Cached reflection method for showAsAction
-    private var showAsActionMethod: Method? = null
-    private var showAsActionField: java.lang.reflect.Field? = null
+    // Cached reflection method for requiresActionButton
+    private var requiresActionButtonMethod: Method? = null
     
     var isSearchExpanded: Boolean = false
         private set
@@ -668,19 +667,8 @@ class CustomToolbar @JvmOverloads constructor(
                 val item = menu.getItem(i) ?: continue
                 if (!item.isVisible) continue
                 
-                val showAsAction = getShowAsAction(item)
-                val hasIcon = item.icon != null
-                
-                // Show as action button ONLY if:
-                // 1. showAsAction is explicitly ALWAYS (2) or IF_ROOM (1), NOT NEVER (0)
-                // 2. Item has an icon
-                // Constants: SHOW_AS_ACTION_NEVER = 0, SHOW_AS_ACTION_IF_ROOM = 1, SHOW_AS_ACTION_ALWAYS = 2
-                val shouldShowAsAction = (showAsAction == MenuItem.SHOW_AS_ACTION_ALWAYS || 
-                                         showAsAction == MenuItem.SHOW_AS_ACTION_IF_ROOM) && 
-                                        showAsAction != MenuItem.SHOW_AS_ACTION_NEVER &&
-                                        hasIcon
-                
-                if (shouldShowAsAction) {
+                // Show as action button if requiresActionButton returns true and item has an icon
+                if (requiresActionButton(item) && item.icon != null) {
                     actionItems.add(item)
                 } else {
                     overflowItems.add(item)
@@ -784,69 +772,19 @@ class CustomToolbar @JvmOverloads constructor(
     private var isUpdatingMenu = false
     
     /**
-     * Get the showAsAction value from a MenuItem.
-     * MenuItemImpl (used by MenuBuilder) has getShowAsAction() method.
-     * The value may include flags like SHOW_AS_ACTION_WITH_TEXT, so we extract the base value.
-     * Uses cached reflection for better performance.
+     * Check if a MenuItem requires an action button.
+     * Uses MenuItemImpl.requiresActionButton() method via reflection.
      */
-    private fun getShowAsAction(item: MenuItem): Int {
-        return try {
-            var result: Int? = null
-            
-            // Try cached method first
-            if (showAsActionMethod == null && item is MenuItemImpl) {
-                try {
-                    showAsActionMethod = MenuItemImpl::class.java.getMethod("getShowAsAction")
-                } catch (e: Exception) {
-                    // Method doesn't exist
-                }
+    private fun requiresActionButton(item: MenuItem): Boolean {
+        if (item !is MenuItemImpl) return false
+        
+        try {
+            if (requiresActionButtonMethod == null) {
+                requiresActionButtonMethod = MenuItemImpl::class.java.getMethod("requiresActionButton")
             }
-            
-            // Approach 1: Try cached method
-            if (showAsActionMethod != null && item is MenuItemImpl) {
-                try {
-                    result = showAsActionMethod?.invoke(item) as? Int
-                } catch (e: Exception) {
-                    // Invocation failed
-                }
-            }
-            
-            // Approach 2: Try cached field
-            if (result == null) {
-                if (showAsActionField == null) {
-                    try {
-                        val field = item.javaClass.getDeclaredField("mShowAsAction")
-                        field.isAccessible = true
-                        showAsActionField = field
-                    } catch (e: Exception) {
-                        // Field doesn't exist
-                    }
-                }
-                
-                if (showAsActionField != null) {
-                    try {
-                        result = showAsActionField?.get(item) as? Int
-                    } catch (e: Exception) {
-                        // Field access failed
-                    }
-                }
-            }
-            
-            // Extract the base value from result (mask out flags like SHOW_AS_ACTION_WITH_TEXT)
-            // SHOW_AS_ACTION_NEVER = 0, SHOW_AS_ACTION_IF_ROOM = 1, SHOW_AS_ACTION_ALWAYS = 2
-            // The base value is in the lower 2 bits (0x03)
-            val baseValue = (result ?: MenuItem.SHOW_AS_ACTION_NEVER) and 0x03
-            
-            // Return the base value, ensuring it's one of the valid constants
-            when (baseValue) {
-                MenuItem.SHOW_AS_ACTION_NEVER,
-                MenuItem.SHOW_AS_ACTION_IF_ROOM,
-                MenuItem.SHOW_AS_ACTION_ALWAYS -> baseValue
-                else -> MenuItem.SHOW_AS_ACTION_NEVER
-            }
+            return requiresActionButtonMethod?.invoke(item) as? Boolean ?: false
         } catch (e: Exception) {
-            // If any exception occurs, default to NEVER
-            MenuItem.SHOW_AS_ACTION_NEVER
+            return false
         }
     }
     
@@ -969,7 +907,6 @@ class CustomToolbar @JvmOverloads constructor(
         cachedSmallerMargin = null
         cachedNormalMargin = null
         cachedBackgroundDrawable = null
-        showAsActionMethod = null
-        showAsActionField = null
+        requiresActionButtonMethod = null
     }
 }
