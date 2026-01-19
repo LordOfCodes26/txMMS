@@ -175,7 +175,7 @@ class ThreadActivity : SimpleActivity() {
         else binding.topDetailsLarge.beGone()
 
         val topBarColor = getColoredMaterialStatusBarColor()
-        // Disable navigation click in setupTopAppBar since we handle it manually for CustomToolbar
+        // Disable navigation click in setupTopAppBar since we handle it manually for MaterialToolbar
         setupTopAppBar(
             topAppBar = binding.threadAppbar,
             navigationIcon = NavigationIcon.None, // Don't let setupTopAppBar handle navigation
@@ -183,9 +183,10 @@ class ThreadActivity : SimpleActivity() {
             appBarLayout = binding.threadAppbar,
             navigationClick = false // We'll handle navigation click manually
         )
-        // Setup CustomToolbar navigation icon and colors
-        val customToolbar = binding.threadToolbar
+        // Setup MaterialToolbar navigation icon and colors
+        val toolbar = binding.threadToolbar
         val contrastColor = topBarColor.getContrastColor()
+        val itemColor = if (baseConfig.topAppBarColorIcon) getProperPrimaryColor() else contrastColor
         // Set navigation click listener - handle back press and finish if not handled
         val navigationClickListener = View.OnClickListener {
             hideKeyboard()
@@ -194,18 +195,18 @@ class ThreadActivity : SimpleActivity() {
                 finish()
             }
         }
-        customToolbar.setNavigationOnClickListener(navigationClickListener)
-        val navigationIconDrawable = resources.getColoredDrawableWithColor(this, com.goodwy.commons.R.drawable.ic_chevron_left_vector, contrastColor)
-        customToolbar.navigationIcon = navigationIconDrawable
+        toolbar.setNavigationOnClickListener(navigationClickListener)
+        val navigationIconDrawable = resources.getColoredDrawableWithColor(this, com.goodwy.commons.R.drawable.ic_chevron_left_vector, itemColor)
+        toolbar.navigationIcon = navigationIconDrawable
         // Ensure click listener is set after icon
-        customToolbar.setNavigationOnClickListener(navigationClickListener)
-        customToolbar.setNavigationContentDescription(com.goodwy.commons.R.string.back)
-        customToolbar.setBackgroundColor(topBarColor)
+        toolbar.setNavigationOnClickListener(navigationClickListener)
+        toolbar.setNavigationContentDescription(com.goodwy.commons.R.string.back)
+        toolbar.setBackgroundColor(topBarColor)
         // Update menu button color
         val overflowIconRes = getOverflowIcon(baseConfig.overflowIcon)
-        customToolbar.overflowIcon = resources.getColoredDrawableWithColor(this, overflowIconRes, contrastColor)
-        // Hide search icon as it's not needed in ThreadActivity
-        // customToolbar.setSearchIconVisible(false)
+        toolbar.overflowIcon = resources.getColoredDrawableWithColor(this, overflowIconRes, itemColor)
+        // Update menu item icon colors (including action buttons like dial_number)
+        updateMenuItemIconColors()
 
         isActivityVisible = true
 
@@ -301,6 +302,23 @@ class ThreadActivity : SimpleActivity() {
             val unblockText = if (participants.size == 1) com.goodwy.strings.R.string.unblock_number else com.goodwy.strings.R.string.unblock_numbers
             val blockText = if (participants.size == 1) com.goodwy.commons.R.string.block_number else com.goodwy.commons.R.string.block_numbers
             findItem(R.id.block_number)?.title = if (isBlockNumbers()) getString(unblockText) else getString(blockText)
+        }
+        // Update menu item icon colors after refreshing menu items
+        updateMenuItemIconColors()
+    }
+    
+    private fun updateMenuItemIconColors() {
+        val topBarColor = getColoredMaterialStatusBarColor()
+        val contrastColor = topBarColor.getContrastColor()
+        val itemColor = if (baseConfig.topAppBarColorIcon) getProperPrimaryColor() else contrastColor
+        
+        val toolbar = binding.threadToolbar
+        val menu = toolbar.menu
+        for (i in 0 until menu.size()) {
+            try {
+                menu.getItem(i)?.icon?.setTint(itemColor)
+            } catch (_: Exception) {
+            }
         }
     }
 
