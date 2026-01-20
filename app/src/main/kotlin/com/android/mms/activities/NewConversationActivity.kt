@@ -34,6 +34,7 @@ import com.goodwy.commons.models.PhoneNumber
 import com.goodwy.commons.models.SimpleContact
 import com.android.mms.R
 import com.android.mms.adapters.ContactsAdapter
+import com.android.mms.adapters.ContactPhonePair
 import com.android.mms.databinding.ActivityNewConversationBinding
 import com.android.mms.databinding.ItemSuggestedContactBinding
 import com.android.mms.extensions.*
@@ -277,10 +278,18 @@ class NewConversationActivity : SimpleActivity() {
             
             val filteredContacts = ArrayList<SimpleContact>()
             allContacts.forEach { contact ->
-                if (contact.phoneNumbers.any { it.normalizedNumber.contains(searchString, true) } ||
-                    contact.name.contains(searchString, true) ||
+                // Check if contact name matches
+                val nameMatches = contact.name.contains(searchString, true) ||
                     contact.name.contains(searchString.normalizeString(), true) ||
-                    contact.name.normalizeString().contains(searchString, true)) {
+                    contact.name.normalizeString().contains(searchString, true)
+                
+                // Check if any phone number matches
+                val phoneMatches = contact.phoneNumbers.any { 
+                    it.normalizedNumber.contains(searchString, true) ||
+                    it.value.contains(searchString, true)
+                }
+                
+                if (nameMatches || phoneMatches) {
                     filteredContacts.add(contact)
                 }
             }
@@ -376,7 +385,24 @@ class NewConversationActivity : SimpleActivity() {
     }
 
     private fun setupAdapter(contacts: ArrayList<SimpleContact>) {
-        val hasContacts = contacts.isNotEmpty()
+        // Expand contacts with multiple phone numbers into separate entries
+        val contactPhonePairs = ArrayList<ContactPhonePair>()
+        contacts.forEach { contact ->
+            if (contact.phoneNumbers.isEmpty()) {
+                // Contact with no phone numbers - skip it
+                return@forEach
+            } else if (contact.phoneNumbers.size == 1) {
+                // Single phone number - add as single entry
+                contactPhonePairs.add(ContactPhonePair(contact, contact.phoneNumbers.first()))
+            } else {
+                // Multiple phone numbers - add each as separate entry
+                contact.phoneNumbers.forEach { phoneNumber ->
+                    contactPhonePairs.add(ContactPhonePair(contact, phoneNumber))
+                }
+            }
+        }
+        
+        val hasContacts = contactPhonePairs.isNotEmpty()
         binding.contactsList.beVisibleIf(hasContacts)
         binding.noContactsPlaceholder.beVisibleIf(!hasContacts)
         binding.noContactsPlaceholder2.beVisibleIf(
@@ -397,19 +423,19 @@ class NewConversationActivity : SimpleActivity() {
 
         val currAdapter = binding.contactsList.adapter
         if (currAdapter == null) {
-            ContactsAdapter(this, contacts, binding.contactsList) {
+            ContactsAdapter(this, contactPhonePairs, binding.contactsList) {
                 hideKeyboard()
-                val contact = it as SimpleContact
-                maybeShowNumberPickerDialog(contact.phoneNumbers) { number ->
-                    // Add as chip with contact name and phone type if multiple numbers exist
-                    val displayText = getDisplayTextForPhoneNumberWithType(number, contact)
-                    // Set mapping BEFORE adding chip to prevent listener from re-triggering dialog
-                    chipDisplayToPhoneNumber[displayText] = number.normalizedNumber
-                    isUpdatingChips = true
-                    binding.newConversationAddress.addChip(displayText)
-                    isUpdatingChips = false
-                    binding.newConversationAddress.clearText()
-                }
+                val contactPhonePair = it as ContactPhonePair
+                val contact = contactPhonePair.contact
+                val phoneNumber = contactPhonePair.phoneNumber
+                // Directly add the phone number since each entry is already specific
+                val displayText = getDisplayTextForPhoneNumberWithType(phoneNumber, contact)
+                // Set mapping BEFORE adding chip to prevent listener from re-triggering
+                chipDisplayToPhoneNumber[displayText] = phoneNumber.normalizedNumber
+                isUpdatingChips = true
+                binding.newConversationAddress.addChip(displayText)
+                isUpdatingChips = false
+                binding.newConversationAddress.clearText()
             }.apply {
                 binding.contactsList.adapter = this
             }
@@ -418,10 +444,10 @@ class NewConversationActivity : SimpleActivity() {
                 binding.contactsList.scheduleLayoutAnimation()
             }
         } else {
-            (currAdapter as ContactsAdapter).updateContacts(contacts)
+            (currAdapter as ContactsAdapter).updateContacts(contactPhonePairs)
         }
 
-        setupLetterFastscroller(contacts)
+        setupLetterFastscroller(contactPhonePairs)
     }
 
     private fun fillSuggestedContacts(callback: (ArrayList<SimpleContact>) -> Unit) {
@@ -490,11 +516,11 @@ class NewConversationActivity : SimpleActivity() {
         }
     }
 
-    private fun setupLetterFastscroller(contacts: ArrayList<SimpleContact>) {
+    private fun setupLetterFastscroller(contactPhonePairs: ArrayList<ContactPhonePair>) {
         try {
             //Decrease the font size based on the number of letters in the letter scroller
-            val allNotEmpty = contacts.filter { it.name.isNotEmpty() }
-            val all = allNotEmpty.map { it.name.substring(0, 1) }
+            val allNotEmpty = contactPhonePairs.filter { it.contact.name.isNotEmpty() }
+            val all = allNotEmpty.map { it.contact.name.substring(0, 1) }
             val unique: Set<String> = HashSet(all)
             val sizeUnique = unique.size
             if (isHighScreenSize()) {
@@ -510,7 +536,7 @@ class NewConversationActivity : SimpleActivity() {
 
         binding.contactsLetterFastscroller.setupWithRecyclerView(binding.contactsList, { position ->
             try {
-                val name = contacts[position].name
+                val name = contactPhonePairs[position].contact.name
                 val emoji = name.take(2)
                 val character = if (emoji.isEmoji()) emoji else if (name.isNotEmpty()) name.substring(0, 1) else ""
                 FastScrollItemIndicator.Text(

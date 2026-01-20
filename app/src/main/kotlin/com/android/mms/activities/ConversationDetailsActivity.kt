@@ -19,6 +19,7 @@ import com.goodwy.commons.extensions.*
 import com.goodwy.commons.helpers.*
 import com.goodwy.commons.models.SimpleContact
 import com.android.mms.adapters.ContactsAdapter
+import com.android.mms.adapters.ContactPhonePair
 import com.android.mms.databinding.ActivityConversationDetailsBinding
 import com.android.mms.dialogs.RenameConversationDialog
 import com.android.mms.extensions.*
@@ -242,9 +243,19 @@ class ConversationDetailsActivity : SimpleActivity() {
 
     private fun setupParticipants() {
         binding.membersWrapper.beVisibleIf(participants.size > 1)
-        val adapter = ContactsAdapter(this, participants, binding.participantsRecyclerview) {
-            val contact = it as SimpleContact
-            val address = contact.phoneNumbers.first().normalizedNumber
+        // Convert participants to ContactPhonePair format
+        val contactPhonePairs = ArrayList<ContactPhonePair>()
+        participants.forEach { contact ->
+            if (contact.phoneNumbers.isNotEmpty()) {
+                // For participants, show each phone number as a separate entry
+                contact.phoneNumbers.forEach { phoneNumber ->
+                    contactPhonePairs.add(ContactPhonePair(contact, phoneNumber))
+                }
+            }
+        }
+        val adapter = ContactsAdapter(this, contactPhonePairs, binding.participantsRecyclerview) {
+            val contactPhonePair = it as ContactPhonePair
+            val address = contactPhonePair.phoneNumber.normalizedNumber
             getContactFromAddress(address) { simpleContact ->
                 if (simpleContact != null) {
                     runOnUiThread {

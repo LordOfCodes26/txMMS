@@ -11,11 +11,18 @@ import com.goodwy.commons.databinding.ItemContactWithNumberBinding
 import com.goodwy.commons.extensions.*
 import com.goodwy.commons.helpers.SimpleContactsHelper
 import com.goodwy.commons.models.SimpleContact
+import com.goodwy.commons.models.PhoneNumber
 import com.goodwy.commons.views.MyRecyclerView
 import com.android.mms.activities.SimpleActivity
 
+// Data class to represent a contact with a specific phone number
+data class ContactPhonePair(
+    val contact: SimpleContact,
+    val phoneNumber: PhoneNumber
+)
+
 class ContactsAdapter(
-    activity: SimpleActivity, var contacts: ArrayList<SimpleContact>, recyclerView: MyRecyclerView, itemClick: (Any) -> Unit
+    activity: SimpleActivity, var contactPhonePairs: ArrayList<ContactPhonePair>, recyclerView: MyRecyclerView, itemClick: (Any) -> Unit
 ) : MyRecyclerViewAdapter(activity, recyclerView, itemClick) {
     private var fontSize = activity.getTextSize()
 
@@ -25,13 +32,13 @@ class ContactsAdapter(
 
     override fun actionItemPressed(id: Int) {}
 
-    override fun getSelectableItemCount() = contacts.size
+    override fun getSelectableItemCount() = contactPhonePairs.size
 
     override fun getIsItemSelectable(position: Int) = true
 
-    override fun getItemSelectionKey(position: Int) = contacts.getOrNull(position)?.rawId
+    override fun getItemSelectionKey(position: Int) = contactPhonePairs.getOrNull(position)?.contact?.rawId
 
-    override fun getItemKeyPosition(key: Int) = contacts.indexOfFirst { it.rawId == key }
+    override fun getItemKeyPosition(key: Int) = contactPhonePairs.indexOfFirst { it.contact.rawId == key }
 
     override fun onActionModeCreated() {}
 
@@ -43,39 +50,44 @@ class ContactsAdapter(
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        val contact = contacts[position]
-        holder.bindView(contact, allowSingleClick = true, allowLongClick = false) { itemView, _ ->
-            setupView(itemView, contact)
+        val contactPhonePair = contactPhonePairs[position]
+        holder.bindView(contactPhonePair, allowSingleClick = true, allowLongClick = false) { itemView, _ ->
+            setupView(itemView, contactPhonePair)
         }
         bindViewHolder(holder)
     }
 
-    override fun getItemCount() = contacts.size
+    override fun getItemCount() = contactPhonePairs.size
 
-    fun updateContacts(newContacts: ArrayList<SimpleContact>) {
-        val oldHashCode = contacts.hashCode()
-        val newHashCode = newContacts.hashCode()
+    fun updateContacts(newContactPhonePairs: ArrayList<ContactPhonePair>) {
+        val oldHashCode = contactPhonePairs.hashCode()
+        val newHashCode = newContactPhonePairs.hashCode()
         if (newHashCode != oldHashCode) {
-            contacts = newContacts
+            contactPhonePairs = newContactPhonePairs
             notifyDataSetChanged()
         }
     }
 
-    private fun setupView(view: View, contact: SimpleContact) {
+    private fun setupView(view: View, contactPhonePair: ContactPhonePair) {
+        val contact = contactPhonePair.contact
+        val phoneNumber = contactPhonePair.phoneNumber
+        
         ItemContactWithNumberBinding.bind(view).apply {
             divider.apply {
-                beInvisibleIf(getLastItem() == contact || !baseConfig.useDividers)
+                beInvisibleIf(getLastItem() == contactPhonePair || !baseConfig.useDividers)
                 setBackgroundColor(textColor)
             }
 
+            // Display contact name
             itemContactName.apply {
                 text = contact.name
                 setTextColor(textColor)
                 setTextSize(TypedValue.COMPLEX_UNIT_PX, fontSize)
             }
 
+            // Display phone number
             itemContactNumber.apply {
-                text = TextUtils.join(", ", contact.phoneNumbers.map { it.value })
+                text = phoneNumber.value
                 setTextColor(textColor)
                 setTextSize(TypedValue.COMPLEX_UNIT_PX, fontSize * 0.8f)
             }
@@ -98,5 +110,5 @@ class ContactsAdapter(
         }
     }
 
-    private fun getLastItem() = contacts.last()
+    private fun getLastItem() = contactPhonePairs.last()
 }
