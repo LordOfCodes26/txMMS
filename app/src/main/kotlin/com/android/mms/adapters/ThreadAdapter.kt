@@ -14,6 +14,7 @@ import android.text.style.URLSpan
 import android.text.util.Linkify
 import android.util.TypedValue
 import android.view.*
+import android.view.ScaleGestureDetector
 import android.widget.LinearLayout
 import com.goodwy.commons.views.BlurPopupMenu
 import android.widget.RelativeLayout
@@ -131,10 +132,30 @@ class ThreadAdapter(
     private var fontSize = activity.getTextSize()
     private var fontSizeSmall = activity.getTextSizeSmall()
     private var fontSizeMessage = activity.getTextSizeMessage()
+    private var fontSizeMessageMultiplier = activity.config.fontSizeMessageMultiplier
+    private val minFontSizeMultiplier = 0.5f
+    private val maxFontSizeMultiplier = 3.0f
 
     @SuppressLint("MissingPermission")
     private val hasMultipleSIMCards = (activity.subscriptionManagerCompat().activeSubscriptionInfoList?.size ?: 0) > 1
     private val maxChatBubbleWidth = (activity.usableScreenSize.x * 0.8f).toInt()
+    
+    // Shared scale gesture detector for pinch-to-zoom
+    private val scaleGestureDetector = ScaleGestureDetector(activity, object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
+        override fun onScale(detector: ScaleGestureDetector): Boolean {
+            val scaleFactor = detector.scaleFactor
+            val newMultiplier = (fontSizeMessageMultiplier * scaleFactor).coerceIn(minFontSizeMultiplier, maxFontSizeMultiplier)
+            
+            if (kotlin.math.abs(newMultiplier - fontSizeMessageMultiplier) > 0.01f) {
+                fontSizeMessageMultiplier = newMultiplier
+                activity.config.fontSizeMessageMultiplier = fontSizeMessageMultiplier
+                
+                // Update all visible message bubbles
+                notifyItemRangeChanged(0, itemCount)
+            }
+            return true
+        }
+    })
 
     companion object {
         private const val MAX_MEDIA_HEIGHT_RATIO = 3
@@ -393,6 +414,8 @@ class ThreadAdapter(
         scrollPosition: Int = -1,
         smoothScroll: Boolean = false
     ) {
+        // Refresh font size multiplier from config in case it was changed
+        fontSizeMessageMultiplier = activity.config.fontSizeMessageMultiplier
         val latestMessages = newMessages.toMutableList()
         submitList(latestMessages) {
             if (scrollPosition != -1) {
@@ -463,7 +486,7 @@ class ThreadAdapter(
                 textAlignment = alignment
                 movementMethod = LinkMovementMethod.getInstance()
 
-                setTextSize(TypedValue.COMPLEX_UNIT_PX, fontSizeMessage)
+                setTextSize(TypedValue.COMPLEX_UNIT_PX, fontSizeMessage * fontSizeMessageMultiplier)
                 setOnLongClickListener {
                     holder.viewLongClicked()
                     true
@@ -675,6 +698,18 @@ class ThreadAdapter(
             val backgroundReceived = if (activity.config.bubbleInvertColor) primaryOrSenderColor else surfaceColor
 
             threadMessageBodyWrapper.apply {
+                // Setup pinch-to-zoom gesture detector for font size adjustment
+                // Only process multi-touch events (pinch gestures) to avoid interfering with clicks
+                setOnTouchListener { v, event ->
+                    // Only handle multi-touch events (pinch gesture with 2+ pointers)
+                    if (event.pointerCount >= 2) {
+                        scaleGestureDetector.onTouchEvent(event)
+                        if (scaleGestureDetector.isInProgress) {
+                            return@setOnTouchListener true
+                        }
+                    }
+                    false // Let other touch events (like clicks) still work
+                }
 
                 val isRtl = activity.isRTLLayout
                 val bubbleStyle = activity.config.bubbleStyle
@@ -705,7 +740,7 @@ class ThreadAdapter(
                     textAlignment = alignment
                     text = message.senderName
                     setTextColor(letterBackgroundColors[abs(message.senderName.hashCode()) % letterBackgroundColors.size].toInt())
-                    setTextSize(TypedValue.COMPLEX_UNIT_PX, fontSizeMessage * 0.9f)
+                    setTextSize(TypedValue.COMPLEX_UNIT_PX, fontSizeMessage * 0.9f * fontSizeMessageMultiplier)
                     setOnClickListener {
                         val contact = message.getSender()!!
                         activity.getContactFromAddress(contact.phoneNumbers.first().normalizedNumber) {
@@ -762,6 +797,19 @@ class ThreadAdapter(
             val contrastColor = primaryColor.getContrastColor()
 
             threadMessageBodyWrapper.apply {
+                // Setup pinch-to-zoom gesture detector for font size adjustment
+                // Only process multi-touch events (pinch gestures) to avoid interfering with clicks
+                setOnTouchListener { v, event ->
+                    // Only handle multi-touch events (pinch gesture with 2+ pointers)
+                    if (event.pointerCount >= 2) {
+                        scaleGestureDetector.onTouchEvent(event)
+                        if (scaleGestureDetector.isInProgress) {
+                            return@setOnTouchListener true
+                        }
+                    }
+                    false // Let other touch events (like clicks) still work
+                }
+                
                 updateLayoutParams<RelativeLayout.LayoutParams> {
                     removeRule(RelativeLayout.END_OF)
                     addRule(RelativeLayout.ALIGN_PARENT_END)

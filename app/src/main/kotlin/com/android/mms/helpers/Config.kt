@@ -277,6 +277,10 @@ class Config(context: Context) : BaseConfig(context) {
         get() = prefs.getInt(FONT_SIZE_MESSAGE, 1)
         set(fontSizeMessage) = prefs.edit { putInt(FONT_SIZE_MESSAGE, fontSizeMessage) }
 
+    var fontSizeMessageMultiplier: Float
+        get() = prefs.getFloat(FONT_SIZE_MESSAGE_MULTIPLIER, 1.0f)
+        set(fontSizeMessageMultiplier) = prefs.edit { putFloat(FONT_SIZE_MESSAGE_MULTIPLIER, fontSizeMessageMultiplier) }
+
     var soundOnOutGoingMessages: Boolean
         get() = prefs.getBoolean(SOUND_ON_OUT_GOING_MESSAGE, false)
         set(soundOnOutGoingMessages) = prefs.edit { putBoolean(SOUND_ON_OUT_GOING_MESSAGE, soundOnOutGoingMessages) }
