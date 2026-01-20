@@ -32,6 +32,7 @@ class ChipsInputView @JvmOverloads constructor(
     private val chips = mutableListOf<String>()
     private var onTextChangedListener: ((String) -> Unit)? = null
     private var onChipsChangedListener: ((List<String>) -> Unit)? = null
+    private var onChipAddedListener: ((String) -> Boolean)? = null
 
     var hint: String
         get() = editText.hint?.toString() ?: ""
@@ -117,6 +118,10 @@ class ChipsInputView @JvmOverloads constructor(
 
         chips.add(trimmed)
         createChipView(trimmed)
+        
+        // Call onChipAddedListener for validation
+        onChipAddedListener?.invoke(trimmed)
+        
         onChipsChangedListener?.invoke(chips.toList())
         updateButtonsVisibility(editText.text?.toString() ?: "")
         return true
@@ -164,6 +169,10 @@ class ChipsInputView @JvmOverloads constructor(
 
     fun setOnChipsChangedListener(listener: (List<String>) -> Unit) {
         onChipsChangedListener = listener
+    }
+
+    fun setOnChipAddedListener(listener: (String) -> Boolean) {
+        onChipAddedListener = listener
     }
 
     fun setSpeechToTextButtonVisible(visible: Boolean) {

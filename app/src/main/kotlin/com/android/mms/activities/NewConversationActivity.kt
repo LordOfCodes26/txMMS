@@ -207,21 +207,28 @@ class NewConversationActivity : SimpleActivity() {
         binding.newConversationAddress.setColors(properTextColor, properAccentColor, surfaceColor)
         binding.newConversationAddress.getEditText().setBackgroundResource(com.goodwy.commons.R.drawable.search_bg)
         binding.newConversationAddress.getEditText().backgroundTintList = ColorStateList.valueOf(surfaceColor)
+        
+        // Listen for chip addition to validate newly added chips
+        binding.newConversationAddress.setOnChipAddedListener { chipText ->
+            if (chipDisplayToPhoneNumber.containsKey(chipText)) {
+                return@setOnChipAddedListener true
+            }
+            // Validate the newly added chip
+            if (!isValidForChip(chipText)) {
+                isUpdatingChips = true
+                binding.newConversationAddress.removeChip(chipText)
+                isUpdatingChips = false
+                toast(R.string.invalid_contact_or_number, length = Toast.LENGTH_SHORT)
+                return@setOnChipAddedListener false
+            }
+            return@setOnChipAddedListener true
+        }
+        
         // Listen for chip changes to handle typed phone numbers and contact names
         binding.newConversationAddress.setOnChipsChangedListener { chips ->
             if (isUpdatingChips) return@setOnChipsChangedListener
             
             chips.forEach { chipText ->
-                // Validate chip before processing (for both Enter key and comma/semicolon)
-                if (!isValidForChip(chipText)) {
-                    // Invalid chip, remove it and show error
-                    isUpdatingChips = true
-                    binding.newConversationAddress.removeChip(chipText)
-                    isUpdatingChips = false
-                    toast(R.string.invalid_contact_or_number, length = Toast.LENGTH_SHORT)
-                    return@forEach // Continue with other chips
-                }
-                
                 // If this chip is not in our mapping, check if it's a phone number or contact name
                 if (!chipDisplayToPhoneNumber.containsKey(chipText)) {
                     // First check if it's a contact name (prioritize contact names over phone numbers)
@@ -764,9 +771,9 @@ class NewConversationActivity : SimpleActivity() {
             val phoneNumber = contact.phoneNumbers.first()
             val displayText = getDisplayTextForPhoneNumberWithType(phoneNumber, contact)
             isUpdatingChips = true
+            chipDisplayToPhoneNumber[displayText] = phoneNumber.normalizedNumber
             binding.newConversationAddress.removeChip(chipText)
             binding.newConversationAddress.addChip(displayText)
-            chipDisplayToPhoneNumber[displayText] = phoneNumber.normalizedNumber
             isUpdatingChips = false
         } else {
             // Multiple phone numbers, show picker dialog
@@ -777,8 +784,8 @@ class NewConversationActivity : SimpleActivity() {
             maybeShowNumberPickerDialog(contact.phoneNumbers) { number ->
                 val displayText = getDisplayTextForPhoneNumberWithType(number, contact)
                 isUpdatingChips = true
-                binding.newConversationAddress.addChip(displayText)
                 chipDisplayToPhoneNumber[displayText] = number.normalizedNumber
+                binding.newConversationAddress.addChip(displayText)
                 isUpdatingChips = false
             }
         }
