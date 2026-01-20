@@ -494,11 +494,12 @@ class NewConversationActivity : SimpleActivity() {
                                     }
                                     binding.suggestionsHolder.addView(root)
                                     root.setOnClickListener {
+                                        hideKeyboard()
                                         // Handle multiple phone numbers by showing picker dialog
                                         maybeShowNumberPickerDialog(contact.phoneNumbers) { number ->
-                                            // Add as chip with contact name and phone type if multiple numbers exist
-                                            val displayText = getDisplayTextForPhoneNumberWithType(number, contact)
-                                            // Set mapping BEFORE adding chip to prevent listener from processing
+                                            // Directly add the phone number since each entry is already specific
+                                            val displayText = getDisplayTextForPhoneNumberWithType(number)
+                                            // Set mapping BEFORE adding chip to prevent listener from re-triggering
                                             chipDisplayToPhoneNumber[displayText] = number.normalizedNumber
                                             isUpdatingChips = true
                                             binding.newConversationAddress.addChip(displayText)
@@ -602,20 +603,7 @@ class NewConversationActivity : SimpleActivity() {
         
         // If contact has multiple phone numbers, include the type to make chips unique
         if (contactToUse.phoneNumbers.size > 1) {
-            val phoneType = getPhoneNumberTypeText(phoneNumber.type, phoneNumber.label)
-            
-            // Check if there are multiple phone numbers with the same type
-            val sameTypeCount = contactToUse.phoneNumbers.count { 
-                it.type == phoneNumber.type && it.label == phoneNumber.label 
-            }
-            
-            if (sameTypeCount > 1) {
-                // Multiple numbers with same type, include the phone number value to make it unique
-                return "$contactName ($phoneType: ${phoneNumber.value})"
-            } else {
-                // Unique type, just show the type
-                return "$contactName ($phoneType)"
-            }
+            return "$contactName (${phoneNumber.value})"
         }
         
         // Single phone number, just return the contact name
