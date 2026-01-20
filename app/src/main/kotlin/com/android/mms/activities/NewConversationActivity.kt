@@ -15,6 +15,7 @@ import android.speech.RecognizerIntent
 import android.telephony.SmsManager
 import android.telephony.SmsMessage
 import android.telephony.SubscriptionInfo
+import android.text.TextUtils
 import android.util.TypedValue
 import android.view.KeyEvent
 import android.view.View
@@ -442,6 +443,16 @@ class NewConversationActivity : SimpleActivity() {
                             ItemSuggestedContactBinding.inflate(layoutInflater).apply {
                                 suggestedContactName.text = contact.name
                                 suggestedContactName.setTextColor(getProperTextColor())
+                                
+                                // Display phone numbers
+                                val phoneNumbersText = if (contact.phoneNumbers.isNotEmpty()) {
+                                    TextUtils.join(", ", contact.phoneNumbers.map { it.value })
+                                } else {
+                                    ""
+                                }
+                                suggestedContactNumber.text = phoneNumbersText
+                                suggestedContactNumber.setTextColor(getProperTextColor())
+                                suggestedContactNumber.beVisibleIf(phoneNumbersText.isNotEmpty())
 
                                 if (!isDestroyed) {
                                     if (contact.isABusinessContact() && contact.photoUri == "") {
