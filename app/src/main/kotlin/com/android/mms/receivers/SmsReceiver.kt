@@ -96,67 +96,71 @@ class SmsReceiver : BroadcastReceiver() {
             return
         }
 
+        val isNumberBlocked = context.isNumberBlocked(address)
         var photoUri = SimpleContactsHelper(context).getPhotoUriFromPhoneNumber(address)
         var bitmap = context.getNotificationBitmap(photoUri)
         Handler(Looper.getMainLooper()).post {
-            if (!context.isNumberBlocked(address)) {
-                val privateCursor = context.getMyContactsCursor(favoritesOnly = false, withPhoneNumbersOnly = true)
-                ensureBackgroundThread {
-                    SimpleContactsHelper(context).getAvailableContacts(false) {
-                        val privateContacts = MyContactsContentProvider.getSimpleContacts(context, privateCursor)
-                        val contacts = ArrayList(it + privateContacts)
+            val privateCursor = context.getMyContactsCursor(favoritesOnly = false, withPhoneNumbersOnly = true)
+            ensureBackgroundThread {
+                SimpleContactsHelper(context).getAvailableContacts(false) {
+                    val privateContacts = MyContactsContentProvider.getSimpleContacts(context, privateCursor)
+                    val contacts = ArrayList(it + privateContacts)
 
-                        val newMessageId = context.insertNewSMS(address, subject, body, date, read, threadId, type, subscriptionId)
+                    // Always store the message in the system database, regardless of blocking status
+                    val newMessageId = context.insertNewSMS(address, subject, body, date, read, threadId, type, subscriptionId)
 
-                        val conversation = context.getConversations(threadId).firstOrNull() ?: return@getAvailableContacts
-                        try {
-                            context.insertOrUpdateConversation(conversation)
-                        } catch (_: Exception) {
-                        }
+                    val conversation = context.getConversations(threadId).firstOrNull() ?: return@getAvailableContacts
+                    try {
+                        context.insertOrUpdateConversation(conversation)
+                    } catch (_: Exception) {
+                    }
 
-                        val senderName = context.getNameFromAddress(address, privateCursor)
-                        val participant = if (contacts.isNotEmpty()) {
-                            val contact = contacts.firstOrNull { it.doesHavePhoneNumber(address) } ?: contacts.firstOrNull { it.phoneNumbers.map { it.value }.any { it == address } }
-                            if (contact != null) {
-                                val phoneNumber = contact.phoneNumbers.firstOrNull { it.normalizedNumber == address } ?: PhoneNumber(address, 0, "", address)
-                                if (photoUri.isEmpty()) photoUri = contact.photoUri
-                                if (bitmap == null ) bitmap = context.getNotificationBitmap(photoUri)
-                                SimpleContact(0, 0, senderName, photoUri, arrayListOf(phoneNumber), ArrayList(), ArrayList(), contact.company, contact.jobPosition)
-                            } else {
-                                val phoneNumber = PhoneNumber(address, 0, "", address)
-                                SimpleContact(0, 0, senderName, photoUri, arrayListOf(phoneNumber), ArrayList(), ArrayList())
-                            }
+                    val senderName = context.getNameFromAddress(address, privateCursor)
+                    val participant = if (contacts.isNotEmpty()) {
+                        val contact = contacts.firstOrNull { it.doesHavePhoneNumber(address) } ?: contacts.firstOrNull { it.phoneNumbers.map { it.value }.any { it == address } }
+                        if (contact != null) {
+                            val phoneNumber = contact.phoneNumbers.firstOrNull { it.normalizedNumber == address } ?: PhoneNumber(address, 0, "", address)
+                            if (photoUri.isEmpty()) photoUri = contact.photoUri
+                            if (bitmap == null ) bitmap = context.getNotificationBitmap(photoUri)
+                            SimpleContact(0, 0, senderName, photoUri, arrayListOf(phoneNumber), ArrayList(), ArrayList(), contact.company, contact.jobPosition)
                         } else {
                             val phoneNumber = PhoneNumber(address, 0, "", address)
                             SimpleContact(0, 0, senderName, photoUri, arrayListOf(phoneNumber), ArrayList(), ArrayList())
                         }
+                    } else {
+                        val phoneNumber = PhoneNumber(address, 0, "", address)
+                        SimpleContact(0, 0, senderName, photoUri, arrayListOf(phoneNumber), ArrayList(), ArrayList())
+                    }
 
-                        val participants = arrayListOf(participant)
-                        val messageDate = (date / 1000).toInt()
+                    val participants = arrayListOf(participant)
+                    val messageDate = (date / 1000).toInt()
 
-                        val message =
-                            Message(
-                                newMessageId,
-                                body,
-                                type,
-                                status,
-                                participants,
-                                messageDate,
-                                false,
-                                threadId,
-                                false,
-                                null,
-                                address,
-                                senderName,
-                                photoUri,
-                                subscriptionId
-                            )
-                        context.messagesDB.insertOrUpdate(message)
-                        if (context.shouldUnarchive()) {
-                            context.updateConversationArchivedStatus(threadId, false)
-                        }
-                        refreshMessages()
-                        refreshConversations()
+                    val message =
+                        Message(
+                            newMessageId,
+                            body,
+                            type,
+                            status,
+                            participants,
+                            messageDate,
+                            false,
+                            threadId,
+                            false,
+                            null,
+                            address,
+                            senderName,
+                            photoUri,
+                            subscriptionId
+                        )
+                    context.messagesDB.insertOrUpdate(message)
+                    if (context.shouldUnarchive()) {
+                        context.updateConversationArchivedStatus(threadId, false)
+                    }
+                    refreshMessages()
+                    refreshConversations()
+                    
+                    // Only show notification if number is not blocked, or if blocked numbers are being shown
+                    if (!isNumberBlocked || context.config.showBlockedNumbers) {
                         context.showReceivedMessageNotification(newMessageId, address, body, threadId, bitmap, subscriptionId)
                     }
                 }

@@ -76,6 +76,7 @@ class MmsReceiver : MmsReceivedReceiver() {
         size: Int,
         address: String
     ) {
+        val isNumberBlocked = context.isNumberBlocked(address)
         val glideBitmap = try {
             Glide.with(context)
                 .asBitmap()
@@ -88,14 +89,17 @@ class MmsReceiver : MmsReceivedReceiver() {
         }
 
         Handler(Looper.getMainLooper()).post {
-            context.showReceivedMessageNotification(
-                messageId = mms.id,
-                address = address,
-                body = mms.body,
-                threadId = mms.threadId,
-                bitmap = glideBitmap,
-                subscriptionId = mms.subscriptionId
-            )
+            // Only show notification if number is not blocked, or if blocked numbers are being shown
+            if (!isNumberBlocked || context.config.showBlockedNumbers) {
+                context.showReceivedMessageNotification(
+                    messageId = mms.id,
+                    address = address,
+                    body = mms.body,
+                    threadId = mms.threadId,
+                    bitmap = glideBitmap,
+                    subscriptionId = mms.subscriptionId
+                )
+            }
             ensureBackgroundThread {
                 val conversation = context.getConversations(mms.threadId).firstOrNull()
                     ?: return@ensureBackgroundThread

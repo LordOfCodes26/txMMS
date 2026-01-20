@@ -272,6 +272,8 @@ fun Context.getMMS(
 
     val messages = ArrayList<Message>()
     val contactsMap = HashMap<Int, SimpleContact>()
+    val blockStatus = HashMap<String, Boolean>()
+    val blockedNumbers = getBlockedNumbers()
     queryCursor(uri, projection, selection, selectionArgs, sortOrder, showErrors = true) { cursor ->
         val mmsId = cursor.getLongValue(Mms._ID)
         val type = cursor.getIntValue(Mms.MESSAGE_BOX)
@@ -294,6 +296,12 @@ fun Context.getMMS(
             val namePhoto = getNameAndPhotoFromPhoneNumber(senderNumber)
             senderName = namePhoto.name
             senderPhotoUri = namePhoto.photoUri ?: ""
+            
+            // Filter out messages from blocked numbers if showBlockedNumbers is false
+            val isNumberBlocked = blockStatus.getOrPut(senderNumber) { isNumberBlocked(senderNumber, blockedNumbers) }
+            if (isNumberBlocked && !config.showBlockedNumbers) {
+                return@queryCursor
+            }
         }
 
         val message =
