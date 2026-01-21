@@ -548,6 +548,15 @@ class MainActivity : SimpleActivity() {
                 listOf()
             }
 
+            // Load message counts for cached conversations
+            conversations.forEach { conversation ->
+                try {
+                    conversation.messageCount = messagesDB.getThreadMessageCount(conversation.threadId)
+                } catch (_: Exception) {
+                    conversation.messageCount = 0
+                }
+            }
+
             runOnUiThread {
                 setupConversations(conversations, cached = true)
                 getNewConversations(
@@ -623,6 +632,14 @@ class MainActivity : SimpleActivity() {
             }
 
             val allConversations = conversationsDB.getNonArchived() as ArrayList<Conversation>
+            // Load message counts for all conversations
+            allConversations.forEach { conversation ->
+                try {
+                    conversation.messageCount = messagesDB.getThreadMessageCount(conversation.threadId)
+                } catch (_: Exception) {
+                    conversation.messageCount = 0
+                }
+            }
             runOnUiThread {
                 setupConversations(allConversations)
             }
@@ -922,6 +939,14 @@ class MainActivity : SimpleActivity() {
                 val searchQuery = "%$text%"
                 val messages = messagesDB.getMessagesWithText(searchQuery)
                 val conversations = conversationsDB.getConversationsWithText(searchQuery)
+                // Load message counts for search results
+                conversations.forEach { conversation ->
+                    try {
+                        conversation.messageCount = messagesDB.getThreadMessageCount(conversation.threadId)
+                    } catch (_: Exception) {
+                        conversation.messageCount = 0
+                    }
+                }
                 if (text == lastSearchedText) {
                     showSearchResults(messages, conversations, text)
                 }

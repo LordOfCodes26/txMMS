@@ -222,8 +222,13 @@ abstract class BaseConversationsAdapter(
             swipeView.isSelected = selectedKeys.contains(conversation.hashCode())
 
             val title = conversation.title
+            val displayTitle = if (conversation.messageCount > 0) {
+                "$title (${conversation.messageCount})"
+            } else {
+                title
+            }
             conversationAddress.apply {
-                text = title
+                text = displayTitle
                 setTextSize(TypedValue.COMPLEX_UNIT_PX, fontSize * 1.2f)
             }
 

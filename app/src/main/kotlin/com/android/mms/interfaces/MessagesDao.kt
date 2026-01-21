@@ -89,4 +89,7 @@ interface MessagesDao {
 
     @Query("SELECT COUNT(*) FROM messages WHERE thread_id = :threadId and read = 0")
     fun getThreadUnreadMessages(threadId: Long): Int
+
+    @Query("SELECT COUNT(*) FROM messages LEFT OUTER JOIN recycle_bin_messages ON messages.id = recycle_bin_messages.id WHERE recycle_bin_messages.id IS NULL AND thread_id = :threadId AND is_scheduled = 0")
+    fun getThreadMessageCount(threadId: Long): Int
 }

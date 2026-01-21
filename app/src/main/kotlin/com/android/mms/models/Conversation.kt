@@ -2,6 +2,7 @@ package com.android.mms.models
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
+import androidx.room.Ignore
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
@@ -23,6 +24,8 @@ data class Conversation(
     @ColumnInfo(name = "is_company") var isCompany: Boolean = false,
     @ColumnInfo(name = "is_blocked") var isBlocked: Boolean = false,
 ) {
+    @Ignore
+    var messageCount: Int = 0
 
     companion object {
         fun areItemsTheSame(old: Conversation, new: Conversation): Boolean {
@@ -43,7 +46,8 @@ data class Conversation(
                 old.isDeleted == new.isDeleted &&
                 old.unreadCount == new.unreadCount &&
                 old.isCompany == new.isCompany &&
-                old.isBlocked == new.isBlocked
+                old.isBlocked == new.isBlocked &&
+                old.messageCount == new.messageCount
         }
     }
 }

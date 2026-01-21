@@ -519,6 +519,15 @@ fun Context.getConversations(
         showErrorToast(e)
     }
 
+    // Load message counts for all conversations efficiently
+    conversations.forEach { conversation ->
+        try {
+            conversation.messageCount = messagesDB.getThreadMessageCount(conversation.threadId)
+        } catch (e: Exception) {
+            conversation.messageCount = 0
+        }
+    }
+
     conversations.sortByDescending { it.date }
     return conversations
 }
