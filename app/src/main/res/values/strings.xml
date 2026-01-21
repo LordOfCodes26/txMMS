@@ -66,6 +66,7 @@
     <string name="me">Me</string>
     <string name="enable_custom_notifications">Enable custom notifications</string>
     <string name="notification_sound">Notification sound</string>
+    <string name="delivery_report_sound">Delivery report sound</string>
     <!-- Archive -->
     <string name="unarchive">Unarchive</string>
     <string name="empty_archive">Delete all archived conversations</string>

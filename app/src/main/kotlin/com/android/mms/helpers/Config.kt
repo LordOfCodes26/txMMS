@@ -38,6 +38,16 @@ class Config(context: Context) : BaseConfig(context) {
         get() = prefs.getBoolean(ENABLE_DELIVERY_REPORTS, false)
         set(enableDeliveryReports) = prefs.edit { putBoolean(ENABLE_DELIVERY_REPORTS, enableDeliveryReports) }
 
+    var deliveryReportSound: String?
+        get() = prefs.getString(DELIVERY_REPORT_SOUND, null)
+        set(deliveryReportSound) = prefs.edit { 
+            if (deliveryReportSound != null) {
+                putString(DELIVERY_REPORT_SOUND, deliveryReportSound)
+            } else {
+                remove(DELIVERY_REPORT_SOUND)
+            }
+        }
+
     var sendLongMessageMMS: Boolean
         get() = prefs.getBoolean(SEND_LONG_MESSAGE_MMS, false)
         set(sendLongMessageMMS) = prefs.edit { putBoolean(SEND_LONG_MESSAGE_MMS, sendLongMessageMMS) }

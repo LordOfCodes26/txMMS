@@ -4,9 +4,11 @@ import android.annotation.SuppressLint
 import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
+import android.media.RingtoneManager
 import android.net.Uri
 import android.provider.Telephony.Sms
 import com.goodwy.commons.helpers.ensureBackgroundThread
+import com.android.mms.extensions.config
 import com.android.mms.extensions.messagesDB
 import com.android.mms.extensions.messagingUtils
 import com.android.mms.helpers.refreshMessages
@@ -91,6 +93,20 @@ class SmsStatusDeliveredReceiver : SendStatusReceiver() {
                     context.messagesDB.updateStatus(messageId, status)
                 }
                 refreshMessages()
+                
+                // Play delivery report sound if enabled and message is delivered
+                if (status == Sms.STATUS_COMPLETE && context.config.enableDeliveryReports) {
+                    val soundUriString = context.config.deliveryReportSound
+                    if (soundUriString != null) {
+                        try {
+                            val soundUri = Uri.parse(soundUriString)
+                            val ringtone = RingtoneManager.getRingtone(context, soundUri)
+                            ringtone?.play()
+                        } catch (e: Exception) {
+                            // Ignore errors when playing sound
+                        }
+                    }
+                }
             }
         }
     }

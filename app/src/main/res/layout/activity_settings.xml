@@ -870,6 +870,28 @@
                         </RelativeLayout>
 
                         <RelativeLayout
+                            android:id="@+id/settings_delivery_report_sound_holder"
+                            style="@style/SettingsHolderSwitchStyle">
+
+                            <com.goodwy.commons.views.MyTextView
+                                android:id="@+id/settings_delivery_report_sound_label"
+                                style="@style/SettingsTextLabelStyle"
+                                android:layout_alignParentStart="true"
+                                android:layout_centerVertical="true"
+                                android:layout_toStartOf="@+id/settings_delivery_report_sound_chevron"
+                                android:text="@string/delivery_report_sound"
+                                tools:ignore="TooManyViews" />
+
+                            <ImageView
+                                android:id="@+id/settings_delivery_report_sound_chevron"
+                                style="@style/SettingsChevronStyle"
+                                android:layout_alignParentEnd="true"
+                                android:layout_centerVertical="true"
+                                android:contentDescription="@string/delivery_report_sound"/>
+
+                        </RelativeLayout>
+
+                        <RelativeLayout
                             android:id="@+id/settings_show_character_counter_holder"
                             style="@style/SettingsHolderSwitchStyle">
 

@@ -60,6 +60,26 @@ class SettingsActivity : SimpleActivity() {
             }
         }
 
+    private val pickDeliveryReportSound =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode == android.app.Activity.RESULT_OK) {
+                val uri = result.data?.getParcelableExtra<android.net.Uri>(RingtoneManager.EXTRA_RINGTONE_PICKED_URI)
+                if (uri != null) {
+                    config.deliveryReportSound = uri.toString()
+                    // Play the selected sound
+                    try {
+                        val ringtone = RingtoneManager.getRingtone(this, uri)
+                        ringtone?.play()
+                    } catch (e: Exception) {
+                        showErrorToast(e)
+                    }
+                } else {
+                    // Silent was selected
+                    config.deliveryReportSound = null
+                }
+            }
+        }
+
     private val binding by viewBinding(ActivitySettingsBinding::inflate)
 
     private val productIdX1 = BuildConfig.PRODUCT_ID_X1
@@ -146,6 +166,7 @@ class SettingsActivity : SimpleActivity() {
         binding.settingsSoundOnOutGoingMessagesHolder.beGone()
         setupShowSimSelectionDialog()
         setupEnableDeliveryReports()
+        setupDeliveryReportSound()
         setupShowCharacterCounter()
         setupMessageSendDelay()
         setupUseSimpleCharacters()
@@ -238,6 +259,7 @@ class SettingsActivity : SimpleActivity() {
                 settingsManageQuickTextsChevron,
                 settingsCustomizeNotificationsChevron,
                 settingsNotificationSoundChevron,
+                settingsDeliveryReportSoundChevron,
                 settingsImportMessagesChevron,
                 settingsExportMessagesChevron,
                 settingsTipJarChevron,
@@ -714,9 +736,38 @@ class SettingsActivity : SimpleActivity() {
         settingsEnableDeliveryReports.isChecked = config.enableDeliveryReports
         settingsEnableDeliveryReports.setOnCheckedChangeListener { isChecked ->
             config.enableDeliveryReports = isChecked
+            updateDeliveryReportSoundVisibility()
         }
         settingsEnableDeliveryReportsHolder.setOnClickListener {
             settingsEnableDeliveryReports.toggle()
+        }
+        updateDeliveryReportSoundVisibility()
+    }
+
+    private fun updateDeliveryReportSoundVisibility() {
+        binding.settingsDeliveryReportSoundHolder.beVisibleIf(config.enableDeliveryReports)
+    }
+
+    private fun setupDeliveryReportSound() = binding.apply {
+        updateDeliveryReportSoundVisibility()
+        settingsDeliveryReportSoundChevron.applyColorFilter(getProperTextColor())
+        settingsDeliveryReportSoundHolder.setOnClickListener {
+            try {
+                val currentUri = config.deliveryReportSound?.let { android.net.Uri.parse(it) }
+                val intent = Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
+                    putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_NOTIFICATION)
+                    putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE, getString(R.string.delivery_report_sound))
+                    putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
+                    putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, true)
+                    putExtra(RingtoneManager.EXTRA_RINGTONE_DEFAULT_URI, RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))
+                    if (currentUri != null) {
+                        putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, currentUri)
+                    }
+                }
+                pickDeliveryReportSound.launch(intent)
+            } catch (e: Exception) {
+                showErrorToast(e)
+            }
         }
     }
 
