@@ -142,6 +142,8 @@ class SettingsActivity : SimpleActivity() {
 
         setupSendOnEnter()
         setupSoundOnOutGoingMessages()
+        // Hide "Sound on out going messages" option
+        binding.settingsSoundOnOutGoingMessagesHolder.beGone()
         setupShowSimSelectionDialog()
         setupEnableDeliveryReports()
         setupShowCharacterCounter()
