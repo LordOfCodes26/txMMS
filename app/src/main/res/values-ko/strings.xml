@@ -39,6 +39,10 @@
     <string name="faq_2_text">MMS크기는 정보통신국에 의해 제한됩니다. 프로그람 설정에서 작은 크기로 설정해보십시오.</string>
     <string name="new_message">새 통보문</string>
     <string name="enable_custom_notifications">사용자지정 알림사용</string>
+    <string name="customize_notifications">알림설정</string>
+    <string name="notification_sound">알림음</string>
+    <string name="delivery_report_sound">전송보고알림음</string>
+    <string name="exposed_dropdown_menu">내리펼침목록 현시</string>
     <string name="empty_archive">보관한 대화 모두삭제</string>
     <string name="show_archived_conversations">보관된 대화 표시</string>
     <plurals name="delete_conversations">
@@ -72,6 +76,20 @@
     <string name="keyword">단어</string>
     <string name="manage_blocked_keywords">차단한 검색어</string>
     <string name="add_a_blocked_keyword">차단검색어 추가</string>
+    <string name="quick_texts">일상용어</string>
+    <string name="manage_quick_texts">일상용어편집</string>
+    <string name="no_quick_texts">등록된 일상용어가 없습니다. 여기서 필요한 일상용어를 추가할수 있습니다.</string>
+    <string name="add_a_quick_text">일상용어 추가</string>
+    <string name="quick_text">일상용어</string>
+    <string name="export_quick_texts">일상용어 내보내기</string>
+    <string name="import_quick_texts">일상용어 불러오기</string>
+    <string-array name="default_quick_texts">
+        <item>인차 도착합니다.</item>
+        <item>미안하지만 회의중입니다.</item>
+        <item>미안하지만 누구십니까?</item>
+        <item>저에게 전화해주십시오.</item>
+        <item>어디에 있습니까？</item>
+    </string-array>
     <string name="app_launcher_name">통보문</string>
     <string name="type_a_message">통보문을 입력하십시오.</string>
     <string name="message_not_sent_touch_retry">전송되지 않았습니다. 다시 시도하려면 선택하십시오.</string>
@@ -80,6 +98,7 @@
     <string name="attachment">첨부</string>
     <string name="start_conversation">새 통보문 작성</string>
     <string name="show_character_counter">통보문 작성시 글자수 표시</string>
+    <string name="show_phone_number">전화번호 현시</string>
     <string name="message_send_delay">통보문 전송 지연</string>
     <string name="no_delay">지연없음</string>
     <string name="delay_3s">3초</string>

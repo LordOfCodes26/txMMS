@@ -669,7 +669,7 @@ class SettingsActivity : SimpleActivity() {
             val items = arrayListOf(
                 RadioItem(ACTION_COPY_MESSAGE, getString(com.goodwy.commons.R.string.copy_to_clipboard), icon = com.goodwy.commons.R.drawable.ic_copy_vector),
                 RadioItem(ACTION_SELECT_TEXT, getString(com.goodwy.commons.R.string.select_text), icon = R.drawable.ic_text_select),
-                RadioItem(ACTION_NOTHING, getString(com.google.android.material.R.string.exposed_dropdown_menu_content_description), icon = R.drawable.ic_menu_open),
+                RadioItem(ACTION_NOTHING, getString(R.string.exposed_dropdown_menu), icon = R.drawable.ic_menu_open),
             )
 
             val blurTarget = findViewById<BlurTarget>(R.id.mainBlurTarget)
@@ -687,7 +687,7 @@ class SettingsActivity : SimpleActivity() {
             ACTION_COPY_CODE -> com.goodwy.strings.R.string.copy_code
             ACTION_COPY_MESSAGE -> com.goodwy.commons.R.string.copy_to_clipboard
             ACTION_SELECT_TEXT -> com.goodwy.commons.R.string.select_text
-            else -> com.google.android.material.R.string.exposed_dropdown_menu_content_description
+            else -> R.string.exposed_dropdown_menu
         }
     )
 

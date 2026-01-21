@@ -65,8 +65,11 @@
     <string name="mark_as_unread">Mark as Unread</string>
     <string name="me">Me</string>
     <string name="enable_custom_notifications">Enable custom notifications</string>
+    <string name="customize_notifications">Customize notifications</string>
     <string name="notification_sound">Notification sound</string>
     <string name="delivery_report_sound">Delivery report sound</string>
+    <string name="exposed_dropdown_menu">Show dropdown menu</string>
+
     <!-- Archive -->
     <string name="unarchive">Unarchive</string>
     <string name="empty_archive">Delete all archived conversations</string>
@@ -115,6 +118,7 @@
         <item>Sorry, I am busy now</item>
         <item>Nice to meet you</item>
         <item>It\'s my pleasure</item>
+        <item>Please call me</item>
     </string-array>
     <string name="lock_screen_visibility">Lock screen notification visibility</string>
     <string name="sender_and_message">Sender and message</string>
