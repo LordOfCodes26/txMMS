@@ -608,16 +608,17 @@
                                 style="@style/SettingsTextLabelStyle"
                                 android:layout_alignParentStart="true"
                                 android:layout_centerVertical="true"
-                                android:layout_toStartOf="@+id/settings_notification_sound_chevron"
+                                android:layout_toStartOf="@+id/settings_notification_sound_value"
                                 android:text="@string/notification_sound"
                                 tools:ignore="TooManyViews" />
 
-                            <ImageView
-                                android:id="@+id/settings_notification_sound_chevron"
-                                style="@style/SettingsChevronStyle"
+                            <com.goodwy.commons.views.MyTextView
+                                android:id="@+id/settings_notification_sound_value"
+                                style="@style/SettingsTextValueStyle"
                                 android:layout_alignParentEnd="true"
                                 android:layout_centerVertical="true"
-                                android:contentDescription="@string/notification_sound"/>
+                                android:layout_marginEnd="@dimen/settings_margin"
+                                tools:text="None" />
 
                         </RelativeLayout>
 
@@ -878,16 +879,17 @@
                                 style="@style/SettingsTextLabelStyle"
                                 android:layout_alignParentStart="true"
                                 android:layout_centerVertical="true"
-                                android:layout_toStartOf="@+id/settings_delivery_report_sound_chevron"
+                                android:layout_toStartOf="@+id/settings_delivery_report_sound_value"
                                 android:text="@string/delivery_report_sound"
                                 tools:ignore="TooManyViews" />
 
-                            <ImageView
-                                android:id="@+id/settings_delivery_report_sound_chevron"
-                                style="@style/SettingsChevronStyle"
+                            <com.goodwy.commons.views.MyTextView
+                                android:id="@+id/settings_delivery_report_sound_value"
+                                style="@style/SettingsTextValueStyle"
                                 android:layout_alignParentEnd="true"
                                 android:layout_centerVertical="true"
-                                android:contentDescription="@string/delivery_report_sound"/>
+                                android:layout_marginEnd="@dimen/settings_margin"
+                                tools:text="None" />
 
                         </RelativeLayout>
 

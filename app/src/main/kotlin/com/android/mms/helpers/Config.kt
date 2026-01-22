@@ -48,6 +48,16 @@ class Config(context: Context) : BaseConfig(context) {
             }
         }
 
+    var notificationSound: String?
+        get() = prefs.getString(NOTIFICATION_SOUND, null)
+        set(notificationSound) = prefs.edit { 
+            if (notificationSound != null) {
+                putString(NOTIFICATION_SOUND, notificationSound)
+            } else {
+                remove(NOTIFICATION_SOUND)
+            }
+        }
+
     var sendLongMessageMMS: Boolean
         get() = prefs.getBoolean(SEND_LONG_MESSAGE_MMS, false)
         set(sendLongMessageMMS) = prefs.edit { putBoolean(SEND_LONG_MESSAGE_MMS, sendLongMessageMMS) }

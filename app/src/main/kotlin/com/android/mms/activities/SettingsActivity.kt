@@ -60,12 +60,35 @@ class SettingsActivity : SimpleActivity() {
             }
         }
 
+    private val pickNotificationSound =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode == android.app.Activity.RESULT_OK) {
+                val uri = result.data?.getParcelableExtra<android.net.Uri>(RingtoneManager.EXTRA_RINGTONE_PICKED_URI)
+                if (uri != null) {
+                    config.notificationSound = uri.toString()
+                    updateNotificationSoundDisplay()
+                    // Play the selected sound
+                    try {
+                        val ringtone = RingtoneManager.getRingtone(this, uri)
+                        ringtone?.play()
+                    } catch (e: Exception) {
+                        showErrorToast(e)
+                    }
+                } else {
+                    // Silent was selected
+                    config.notificationSound = null
+                    updateNotificationSoundDisplay()
+                }
+            }
+        }
+
     private val pickDeliveryReportSound =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode == android.app.Activity.RESULT_OK) {
                 val uri = result.data?.getParcelableExtra<android.net.Uri>(RingtoneManager.EXTRA_RINGTONE_PICKED_URI)
                 if (uri != null) {
                     config.deliveryReportSound = uri.toString()
+                    updateDeliveryReportSoundDisplay()
                     // Play the selected sound
                     try {
                         val ringtone = RingtoneManager.getRingtone(this, uri)
@@ -76,6 +99,7 @@ class SettingsActivity : SimpleActivity() {
                 } else {
                     // Silent was selected
                     config.deliveryReportSound = null
+                    updateDeliveryReportSoundDisplay()
                 }
             }
         }
@@ -258,8 +282,6 @@ class SettingsActivity : SimpleActivity() {
                 settingsManageBlockedKeywordsChevron,
                 settingsManageQuickTextsChevron,
                 settingsCustomizeNotificationsChevron,
-                settingsNotificationSoundChevron,
-                settingsDeliveryReportSoundChevron,
                 settingsImportMessagesChevron,
                 settingsExportMessagesChevron,
                 settingsTipJarChevron,
@@ -318,21 +340,40 @@ class SettingsActivity : SimpleActivity() {
     }
 
     private fun setupNotificationSound() = binding.apply {
-        settingsNotificationSoundChevron.applyColorFilter(getProperTextColor())
+        updateNotificationSoundDisplay()
         settingsNotificationSoundHolder.setOnClickListener {
             try {
+                val currentUri = config.notificationSound?.let { android.net.Uri.parse(it) }
                 val intent = Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
                     putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_NOTIFICATION)
                     putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE, getString(R.string.notification_sound))
                     putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
                     putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, true)
                     putExtra(RingtoneManager.EXTRA_RINGTONE_DEFAULT_URI, RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))
+                    if (currentUri != null) {
+                        putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, currentUri)
+                    }
                 }
-                startActivity(intent)
+                pickNotificationSound.launch(intent)
             } catch (e: Exception) {
                 showErrorToast(e)
             }
         }
+    }
+
+    private fun updateNotificationSoundDisplay() {
+        val soundUriString = config.notificationSound
+        val soundName = if (soundUriString != null) {
+            try {
+                val uri = android.net.Uri.parse(soundUriString)
+                RingtoneManager.getRingtone(this, uri)?.getTitle(this) ?: getString(com.goodwy.commons.R.string.none)
+            } catch (e: Exception) {
+                getString(com.goodwy.commons.R.string.none)
+            }
+        } else {
+            getString(com.goodwy.commons.R.string.none)
+        }
+        binding.settingsNotificationSoundValue.text = soundName
     }
 
     private fun setupOverflowIcon() {
@@ -750,7 +791,7 @@ class SettingsActivity : SimpleActivity() {
 
     private fun setupDeliveryReportSound() = binding.apply {
         updateDeliveryReportSoundVisibility()
-        settingsDeliveryReportSoundChevron.applyColorFilter(getProperTextColor())
+        updateDeliveryReportSoundDisplay()
         settingsDeliveryReportSoundHolder.setOnClickListener {
             try {
                 val currentUri = config.deliveryReportSound?.let { android.net.Uri.parse(it) }
@@ -769,6 +810,21 @@ class SettingsActivity : SimpleActivity() {
                 showErrorToast(e)
             }
         }
+    }
+
+    private fun updateDeliveryReportSoundDisplay() {
+        val soundUriString = config.deliveryReportSound
+        val soundName = if (soundUriString != null) {
+            try {
+                val uri = android.net.Uri.parse(soundUriString)
+                RingtoneManager.getRingtone(this, uri)?.getTitle(this) ?: getString(com.goodwy.commons.R.string.none)
+            } catch (e: Exception) {
+                getString(com.goodwy.commons.R.string.none)
+            }
+        } else {
+            getString(com.goodwy.commons.R.string.none)
+        }
+        binding.settingsDeliveryReportSoundValue.text = soundName
     }
 
     private fun setupKeepConversationsArchived() = binding.apply {
