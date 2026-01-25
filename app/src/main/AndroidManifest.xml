@@ -123,7 +123,7 @@
 
         <activity
             android:name=".activities.SettingsActivity"
-            android:configChanges="orientation"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
             android:exported="true"
             android:label="@string/settings"
             android:parentActivityName=".activities.MainActivity">

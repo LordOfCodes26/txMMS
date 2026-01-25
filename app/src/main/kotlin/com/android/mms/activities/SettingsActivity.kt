@@ -61,6 +61,56 @@ class SettingsActivity : SimpleActivity() {
             }
         }
 
+    private val notificationSoundPicker =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode == android.app.Activity.RESULT_OK && result.data != null) {
+                val extras = result.data?.extras
+                if (extras?.containsKey(RingtoneManager.EXTRA_RINGTONE_PICKED_URI) == true) {
+                    val uri = extras.getParcelable<android.net.Uri>(RingtoneManager.EXTRA_RINGTONE_PICKED_URI)
+                    if (uri != null) {
+                        config.notificationSound = uri.toString()
+                        updateNotificationSoundDisplay()
+                        // Play the selected sound
+                        try {
+                            val ringtone = RingtoneManager.getRingtone(this, uri)
+                            ringtone?.play()
+                        } catch (e: Exception) {
+                            showErrorToast(e)
+                        }
+                    } else {
+                        // Silent was selected
+                        config.notificationSound = SILENT
+                        updateNotificationSoundDisplay()
+                    }
+                }
+            }
+        }
+
+    private val deliveryReportSoundPicker =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode == android.app.Activity.RESULT_OK && result.data != null) {
+                val extras = result.data?.extras
+                if (extras?.containsKey(RingtoneManager.EXTRA_RINGTONE_PICKED_URI) == true) {
+                    val uri = extras.getParcelable<android.net.Uri>(RingtoneManager.EXTRA_RINGTONE_PICKED_URI)
+                    if (uri != null) {
+                        config.deliveryReportSound = uri.toString()
+                        updateDeliveryReportSoundDisplay()
+                        // Play the selected sound
+                        try {
+                            val ringtone = RingtoneManager.getRingtone(this, uri)
+                            ringtone?.play()
+                        } catch (e: Exception) {
+                            showErrorToast(e)
+                        }
+                    } else {
+                        // Silent was selected
+                        config.deliveryReportSound = SILENT
+                        updateDeliveryReportSoundDisplay()
+                    }
+                }
+            }
+        }
+
 
     private val binding by viewBinding(ActivitySettingsBinding::inflate)
 
@@ -270,48 +320,6 @@ class SettingsActivity : SimpleActivity() {
         super.onActivityResult(requestCode, resultCode, resultData)
         if (resultCode == android.app.Activity.RESULT_OK && resultData != null) {
             when (requestCode) {
-                INTENT_SELECT_NOTIFICATION_SOUND -> {
-                    val extras = resultData.extras
-                    if (extras?.containsKey(RingtoneManager.EXTRA_RINGTONE_PICKED_URI) == true) {
-                        val uri = extras.getParcelable<android.net.Uri>(RingtoneManager.EXTRA_RINGTONE_PICKED_URI)
-                        if (uri != null) {
-                            config.notificationSound = uri.toString()
-                            updateNotificationSoundDisplay()
-                            // Play the selected sound
-                            try {
-                                val ringtone = RingtoneManager.getRingtone(this, uri)
-                                ringtone?.play()
-                            } catch (e: Exception) {
-                                showErrorToast(e)
-                            }
-                        } else {
-                            // Silent was selected
-                            config.notificationSound = SILENT
-                            updateNotificationSoundDisplay()
-                        }
-                    }
-                }
-                INTENT_SELECT_DELIVERY_REPORT_SOUND -> {
-                    val extras = resultData.extras
-                    if (extras?.containsKey(RingtoneManager.EXTRA_RINGTONE_PICKED_URI) == true) {
-                        val uri = extras.getParcelable<android.net.Uri>(RingtoneManager.EXTRA_RINGTONE_PICKED_URI)
-                        if (uri != null) {
-                            config.deliveryReportSound = uri.toString()
-                            updateDeliveryReportSoundDisplay()
-                            // Play the selected sound
-                            try {
-                                val ringtone = RingtoneManager.getRingtone(this, uri)
-                                ringtone?.play()
-                            } catch (e: Exception) {
-                                showErrorToast(e)
-                            }
-                        } else {
-                            // Silent was selected
-                            config.deliveryReportSound = SILENT
-                            updateDeliveryReportSoundDisplay()
-                        }
-                    }
-                }
                 PICK_NOTIFICATION_SOUND_INTENT_ID -> {
                     val alarmSound = storeNewYourAlarmSound(resultData)
                     config.notificationSound = alarmSound.uri
@@ -363,7 +371,7 @@ class SettingsActivity : SimpleActivity() {
             hideKeyboard()
             val ringtonePickerIntent = getNotificationSoundPickerIntent()
             try {
-                startActivityForResult(ringtonePickerIntent, INTENT_SELECT_NOTIFICATION_SOUND)
+                notificationSoundPicker.launch(ringtonePickerIntent)
             } catch (e: Exception) {
                 val currentRingtone = config.notificationSound ?: getDefaultAlarmSound(RingtoneManager.TYPE_NOTIFICATION).uri
                 val blurTarget = findViewById<BlurTarget>(R.id.mainBlurTarget)
@@ -407,8 +415,6 @@ class SettingsActivity : SimpleActivity() {
     }
 
     companion object {
-        private const val INTENT_SELECT_NOTIFICATION_SOUND = 600
-        private const val INTENT_SELECT_DELIVERY_REPORT_SOUND = 601
         private const val PICK_NOTIFICATION_SOUND_INTENT_ID = 1001
         private const val PICK_DELIVERY_REPORT_SOUND_INTENT_ID = 1002
     }
@@ -614,8 +620,11 @@ class SettingsActivity : SimpleActivity() {
         )
         settingsUseEnglish.isChecked = config.useEnglish
         settingsUseEnglish.setOnCheckedChangeListener { isChecked ->
-            config.useEnglish = isChecked
-            exitProcess(0)
+            // Only exit if the value actually changed
+            if (config.useEnglish != isChecked) {
+                config.useEnglish = isChecked
+                exitProcess(0)
+            }
         }
         settingsUseEnglishHolder.setOnClickListener {
             settingsUseEnglish.toggle()
@@ -854,7 +863,7 @@ class SettingsActivity : SimpleActivity() {
             hideKeyboard()
             val ringtonePickerIntent = getDeliveryReportSoundPickerIntent()
             try {
-                startActivityForResult(ringtonePickerIntent, INTENT_SELECT_DELIVERY_REPORT_SOUND)
+                deliveryReportSoundPicker.launch(ringtonePickerIntent)
             } catch (e: Exception) {
                 val currentRingtone = config.deliveryReportSound ?: getDefaultAlarmSound(RingtoneManager.TYPE_NOTIFICATION).uri
                 val blurTarget = findViewById<BlurTarget>(R.id.mainBlurTarget)
@@ -1215,45 +1224,48 @@ class SettingsActivity : SimpleActivity() {
     private fun setupAppPasswordProtection() = binding.apply {
         settingsAppPasswordProtection.isChecked = config.isAppPasswordProtectionOn
         settingsAppPasswordProtection.setOnCheckedChangeListener { isChecked ->
-            val tabToShow = if (config.isAppPasswordProtectionOn) config.appProtectionType else SHOW_ALL_TABS
+            // Only show dialog if the value actually changed
+            if (config.isAppPasswordProtectionOn != isChecked) {
+                val tabToShow = if (config.isAppPasswordProtectionOn) config.appProtectionType else SHOW_ALL_TABS
 
-            val blurTarget = findViewById<BlurTarget>(R.id.mainBlurTarget)
-                ?: throw IllegalStateException("mainBlurTarget not found")
-            SecurityDialog(
-                activity = this@SettingsActivity,
-                requiredHash = config.appPasswordHash,
-                showTabIndex = tabToShow,
-                blurTarget = blurTarget
-            ) { hash, type, success ->
-                if (success) {
-                    val hasPasswordProtection = config.isAppPasswordProtectionOn
-                    settingsAppPasswordProtection.isChecked = !hasPasswordProtection
-                    config.isAppPasswordProtectionOn = !hasPasswordProtection
-                    config.appPasswordHash = if (hasPasswordProtection) "" else hash
-                    config.appProtectionType = type
+                val blurTarget = findViewById<BlurTarget>(R.id.mainBlurTarget)
+                    ?: throw IllegalStateException("mainBlurTarget not found")
+                SecurityDialog(
+                    activity = this@SettingsActivity,
+                    requiredHash = config.appPasswordHash,
+                    showTabIndex = tabToShow,
+                    blurTarget = blurTarget
+                ) { hash, type, success ->
+                    if (success) {
+                        val hasPasswordProtection = config.isAppPasswordProtectionOn
+                        settingsAppPasswordProtection.isChecked = !hasPasswordProtection
+                        config.isAppPasswordProtectionOn = !hasPasswordProtection
+                        config.appPasswordHash = if (hasPasswordProtection) "" else hash
+                        config.appProtectionType = type
 
-                    if (config.isAppPasswordProtectionOn) {
-                        val confirmationTextId =
-                            if (config.appProtectionType == PROTECTION_FINGERPRINT) {
-                                com.goodwy.commons.R.string.fingerprint_setup_successfully
-                            } else {
-                                com.goodwy.commons.R.string.protection_setup_successfully
-                            }
+                        if (config.isAppPasswordProtectionOn) {
+                            val confirmationTextId =
+                                if (config.appProtectionType == PROTECTION_FINGERPRINT) {
+                                    com.goodwy.commons.R.string.fingerprint_setup_successfully
+                                } else {
+                                    com.goodwy.commons.R.string.protection_setup_successfully
+                                }
 
-                        val blurTarget = findViewById<BlurTarget>(R.id.mainBlurTarget)
-                            ?: throw IllegalStateException("mainBlurTarget not found")
-                        ConfirmationDialog(
-                            activity = this@SettingsActivity,
-                            message = "",
-                            messageId = confirmationTextId,
-                            positive = com.goodwy.commons.R.string.ok,
-                            negative = 0,
-                            blurTarget = blurTarget
-                        ) { }
+                            val blurTarget = findViewById<BlurTarget>(R.id.mainBlurTarget)
+                                ?: throw IllegalStateException("mainBlurTarget not found")
+                            ConfirmationDialog(
+                                activity = this@SettingsActivity,
+                                message = "",
+                                messageId = confirmationTextId,
+                                positive = com.goodwy.commons.R.string.ok,
+                                negative = 0,
+                                blurTarget = blurTarget
+                            ) { }
+                        }
+                    } else {
+                        // Revert the switch if dialog was cancelled
+                        settingsAppPasswordProtection.isChecked = config.isAppPasswordProtectionOn
                     }
-                } else {
-                    // Revert the switch if dialog was cancelled
-                    settingsAppPasswordProtection.isChecked = config.isAppPasswordProtectionOn
                 }
             }
         }
