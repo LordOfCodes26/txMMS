@@ -2,6 +2,7 @@ package com.android.mms.activities
 
 import android.annotation.SuppressLint
 import android.content.Intent
+import android.media.AudioManager
 import android.media.RingtoneManager
 import android.os.Bundle
 import android.provider.Settings
@@ -60,49 +61,6 @@ class SettingsActivity : SimpleActivity() {
             }
         }
 
-    private val pickNotificationSound =
-        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-            if (result.resultCode == android.app.Activity.RESULT_OK) {
-                val uri = result.data?.getParcelableExtra<android.net.Uri>(RingtoneManager.EXTRA_RINGTONE_PICKED_URI)
-                if (uri != null) {
-                    config.notificationSound = uri.toString()
-                    updateNotificationSoundDisplay()
-                    // Play the selected sound
-                    try {
-                        val ringtone = RingtoneManager.getRingtone(this, uri)
-                        ringtone?.play()
-                    } catch (e: Exception) {
-                        showErrorToast(e)
-                    }
-                } else {
-                    // Silent was selected
-                    config.notificationSound = null
-                    updateNotificationSoundDisplay()
-                }
-            }
-        }
-
-    private val pickDeliveryReportSound =
-        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-            if (result.resultCode == android.app.Activity.RESULT_OK) {
-                val uri = result.data?.getParcelableExtra<android.net.Uri>(RingtoneManager.EXTRA_RINGTONE_PICKED_URI)
-                if (uri != null) {
-                    config.deliveryReportSound = uri.toString()
-                    updateDeliveryReportSoundDisplay()
-                    // Play the selected sound
-                    try {
-                        val ringtone = RingtoneManager.getRingtone(this, uri)
-                        ringtone?.play()
-                    } catch (e: Exception) {
-                        showErrorToast(e)
-                    }
-                } else {
-                    // Silent was selected
-                    config.deliveryReportSound = null
-                    updateDeliveryReportSoundDisplay()
-                }
-            }
-        }
 
     private val binding by viewBinding(ActivitySettingsBinding::inflate)
 
@@ -402,36 +360,76 @@ class SettingsActivity : SimpleActivity() {
     private fun setupNotificationSound() = binding.apply {
         updateNotificationSoundDisplay()
         settingsNotificationSoundHolder.setOnClickListener {
+            hideKeyboard()
+            val ringtonePickerIntent = getNotificationSoundPickerIntent()
             try {
-                val currentUri = config.notificationSound?.let { android.net.Uri.parse(it) }
-                val intent = Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
-                    putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_NOTIFICATION)
-                    putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE, getString(R.string.notification_sound))
-                    putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
-                    putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, true)
-                    putExtra(RingtoneManager.EXTRA_RINGTONE_DEFAULT_URI, RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))
-                    if (currentUri != null) {
-                        putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, currentUri)
-                    }
-                }
-                pickNotificationSound.launch(intent)
+                startActivityForResult(ringtonePickerIntent, INTENT_SELECT_NOTIFICATION_SOUND)
             } catch (e: Exception) {
-                showErrorToast(e)
+                val currentRingtone = config.notificationSound ?: getDefaultAlarmSound(RingtoneManager.TYPE_NOTIFICATION).uri
+                val blurTarget = findViewById<BlurTarget>(R.id.mainBlurTarget)
+                    ?: throw IllegalStateException("mainBlurTarget not found")
+                SelectAlarmSoundDialog(
+                    this@SettingsActivity,
+                    currentRingtone,
+                    AudioManager.STREAM_NOTIFICATION,
+                    PICK_NOTIFICATION_SOUND_INTENT_ID,
+                    RingtoneManager.TYPE_NOTIFICATION,
+                    false,
+                    onAlarmPicked = { alarmSound ->
+                        config.notificationSound = alarmSound?.uri
+                        updateNotificationSoundDisplay()
+                    },
+                    onAlarmSoundDeleted = { alarmSound ->
+                        if (config.notificationSound == alarmSound.uri) {
+                            val default = getDefaultAlarmSound(RingtoneManager.TYPE_NOTIFICATION)
+                            config.notificationSound = default.uri
+                            updateNotificationSoundDisplay()
+                        }
+                    }
+                )
             }
         }
     }
 
+    private fun getNotificationSoundPickerIntent(): Intent {
+        val defaultRingtoneUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+        val currentRingtoneUri = config.notificationSound?.let { android.net.Uri.parse(it) }
+            ?: defaultRingtoneUri
+
+        return Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
+            putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, true)
+            putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
+            putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_NOTIFICATION)
+            putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE, getString(R.string.notification_sound))
+            putExtra(RingtoneManager.EXTRA_RINGTONE_DEFAULT_URI, defaultRingtoneUri)
+            putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, currentRingtoneUri)
+        }
+    }
+
+    companion object {
+        private const val INTENT_SELECT_NOTIFICATION_SOUND = 600
+        private const val INTENT_SELECT_DELIVERY_REPORT_SOUND = 601
+        private const val PICK_NOTIFICATION_SOUND_INTENT_ID = 1001
+        private const val PICK_DELIVERY_REPORT_SOUND_INTENT_ID = 1002
+    }
+
     private fun updateNotificationSoundDisplay() {
         val soundUriString = config.notificationSound
-        val soundName = if (soundUriString != null) {
-            try {
-                val uri = android.net.Uri.parse(soundUriString)
-                RingtoneManager.getRingtone(this, uri)?.getTitle(this) ?: getString(com.goodwy.commons.R.string.none)
-            } catch (e: Exception) {
-                getString(com.goodwy.commons.R.string.none)
+        val soundName = when {
+            soundUriString == null -> {
+                val default = getDefaultAlarmSound(RingtoneManager.TYPE_NOTIFICATION)
+                default.title
             }
-        } else {
-            getString(com.goodwy.commons.R.string.none)
+            soundUriString == SILENT -> getString(com.goodwy.commons.R.string.no_sound)
+            soundUriString.isEmpty() -> getString(com.goodwy.commons.R.string.no_sound)
+            else -> {
+                try {
+                    val uri = android.net.Uri.parse(soundUriString)
+                    RingtoneManager.getRingtone(this, uri)?.getTitle(this) ?: getString(com.goodwy.commons.R.string.none)
+                } catch (e: Exception) {
+                    getString(com.goodwy.commons.R.string.none)
+                }
+            }
         }
         binding.settingsNotificationSoundValue.text = soundName
     }
@@ -853,36 +851,69 @@ class SettingsActivity : SimpleActivity() {
         updateDeliveryReportSoundVisibility()
         updateDeliveryReportSoundDisplay()
         settingsDeliveryReportSoundHolder.setOnClickListener {
+            hideKeyboard()
+            val ringtonePickerIntent = getDeliveryReportSoundPickerIntent()
             try {
-                val currentUri = config.deliveryReportSound?.let { android.net.Uri.parse(it) }
-                val intent = Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
-                    putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_NOTIFICATION)
-                    putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE, getString(R.string.delivery_report_sound))
-                    putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
-                    putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, true)
-                    putExtra(RingtoneManager.EXTRA_RINGTONE_DEFAULT_URI, RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))
-                    if (currentUri != null) {
-                        putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, currentUri)
-                    }
-                }
-                pickDeliveryReportSound.launch(intent)
+                startActivityForResult(ringtonePickerIntent, INTENT_SELECT_DELIVERY_REPORT_SOUND)
             } catch (e: Exception) {
-                showErrorToast(e)
+                val currentRingtone = config.deliveryReportSound ?: getDefaultAlarmSound(RingtoneManager.TYPE_NOTIFICATION).uri
+                val blurTarget = findViewById<BlurTarget>(R.id.mainBlurTarget)
+                    ?: throw IllegalStateException("mainBlurTarget not found")
+                SelectAlarmSoundDialog(
+                    this@SettingsActivity,
+                    currentRingtone,
+                    AudioManager.STREAM_NOTIFICATION,
+                    PICK_DELIVERY_REPORT_SOUND_INTENT_ID,
+                    RingtoneManager.TYPE_NOTIFICATION,
+                    false,
+                    onAlarmPicked = { alarmSound ->
+                        config.deliveryReportSound = alarmSound?.uri
+                        updateDeliveryReportSoundDisplay()
+                    },
+                    onAlarmSoundDeleted = { alarmSound ->
+                        if (config.deliveryReportSound == alarmSound.uri) {
+                            val default = getDefaultAlarmSound(RingtoneManager.TYPE_NOTIFICATION)
+                            config.deliveryReportSound = default.uri
+                            updateDeliveryReportSoundDisplay()
+                        }
+                    }
+                )
             }
+        }
+    }
+
+    private fun getDeliveryReportSoundPickerIntent(): Intent {
+        val defaultRingtoneUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+        val currentRingtoneUri = config.deliveryReportSound?.let { android.net.Uri.parse(it) }
+            ?: defaultRingtoneUri
+
+        return Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
+            putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, true)
+            putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
+            putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_NOTIFICATION)
+            putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE, getString(R.string.delivery_report_sound))
+            putExtra(RingtoneManager.EXTRA_RINGTONE_DEFAULT_URI, defaultRingtoneUri)
+            putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, currentRingtoneUri)
         }
     }
 
     private fun updateDeliveryReportSoundDisplay() {
         val soundUriString = config.deliveryReportSound
-        val soundName = if (soundUriString != null) {
-            try {
-                val uri = android.net.Uri.parse(soundUriString)
-                RingtoneManager.getRingtone(this, uri)?.getTitle(this) ?: getString(com.goodwy.commons.R.string.none)
-            } catch (e: Exception) {
-                getString(com.goodwy.commons.R.string.none)
+        val soundName = when {
+            soundUriString == null -> {
+                val default = getDefaultAlarmSound(RingtoneManager.TYPE_NOTIFICATION)
+                default.title
             }
-        } else {
-            getString(com.goodwy.commons.R.string.none)
+            soundUriString == SILENT -> getString(com.goodwy.commons.R.string.no_sound)
+            soundUriString.isEmpty() -> getString(com.goodwy.commons.R.string.no_sound)
+            else -> {
+                try {
+                    val uri = android.net.Uri.parse(soundUriString)
+                    RingtoneManager.getRingtone(this, uri)?.getTitle(this) ?: getString(com.goodwy.commons.R.string.none)
+                } catch (e: Exception) {
+                    getString(com.goodwy.commons.R.string.none)
+                }
+            }
         }
         binding.settingsDeliveryReportSoundValue.text = soundName
     }
