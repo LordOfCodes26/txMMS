@@ -3,6 +3,7 @@ package com.goodwy.commons.views
 import android.app.Activity
 import android.content.Context
 import android.content.res.ColorStateList
+import android.graphics.Outline
 import android.graphics.drawable.Drawable
 import android.util.AttributeSet
 import android.util.TypedValue
@@ -13,6 +14,7 @@ import android.view.MenuInflater
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewOutlineProvider
 import android.animation.ValueAnimator
 import android.graphics.PorterDuff
 import android.util.Log
@@ -806,6 +808,17 @@ class CustomToolbar @JvmOverloads constructor(
         val decorView = activity.window.decorView
         val windowBackground = decorView.background
         
+        // Get corner radius from resources to match the drawable
+        val cornerRadius = context.resources.getDimension(R.dimen.material_dialog_corner_radius)
+        
+        // Setup rounded corners with proper clipping
+        blurView.clipToOutline = true
+        blurView.outlineProvider = object : ViewOutlineProvider() {
+            override fun getOutline(view: View, outline: Outline) {
+                outline.setRoundRect(0, 0, view.width, view.height, cornerRadius)
+            }
+        }
+        
         blurView.setOverlayColor(context.getProperBlurOverlayColor())
         blurView.setupWith(blurTarget)
             .setFrameClearDrawable(windowBackground)
@@ -846,6 +859,9 @@ class CustomToolbar @JvmOverloads constructor(
             View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
             View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
         )
+        
+        // Ensure outline is updated after measurement
+        blurView.invalidateOutline()
         
         // Calculate position
         val anchor = binding.menuButton

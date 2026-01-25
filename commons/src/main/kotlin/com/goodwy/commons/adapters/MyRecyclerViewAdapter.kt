@@ -41,7 +41,7 @@ abstract class MyRecyclerViewAdapter(
     protected var positionOffset = 0
     protected var actMode: ActionMode? = null
 
-    private var actBarToolbar: CustomActionModeToolbar? = null
+    protected var actBarToolbar: CustomActionModeToolbar? = null
     private var lastLongPressedItem = -1
 
     private var isDividersVisible = false
@@ -125,18 +125,6 @@ abstract class MyRecyclerViewAdapter(
                     finishActMode()
                 }
                 actBarToolbar!!.setNavigationContentDescription(android.R.string.cancel)
-                
-                // Set up select all button
-                val selectAllIcon = resources.getDrawable(R.drawable.ic_select_all_vector, activity.theme)
-                actBarToolbar!!.selectAllIcon = selectAllIcon
-                actBarToolbar!!.setOnSelectAllClickListener {
-                    if (getSelectableItemCount() == selectedKeys.size) {
-                        finishActMode()
-                    } else {
-                        selectAll()
-                    }
-                }
-                actBarToolbar!!.isSelectAllVisible = true
 
 //                val cabBackgroundColor = if (activity.isDynamicTheme()) {
 //                    resources.getColor(R.color.you_background_color, activity.theme)
@@ -251,6 +239,30 @@ abstract class MyRecyclerViewAdapter(
         if (oldTitle != newTitle) {
             actBarToolbar?.title = newTitle
             actMode?.invalidate()
+        }
+        
+        // Update select all button icon based on selection state
+        // Note: Subclasses should override this to provide the correct menu item ID
+        updateSelectAllButtonIconIfAvailable(selectableItemCount, selectedCount)
+    }
+    
+    /**
+     * Updates the select all button icon if the menu item ID is available.
+     * Subclasses can override this to provide the correct menu item ID.
+     */
+    protected open fun updateSelectAllButtonIconIfAvailable(selectableItemCount: Int, selectedCount: Int) {
+        // Try to find select all menu item by title
+        val allSelected = selectableItemCount > 0 && selectedCount == selectableItemCount
+        actBarToolbar?.menu?.let { menu ->
+            for (i in 0 until menu.size()) {
+                val item = menu.getItem(i)
+                if (item?.title?.toString()?.contains("select", ignoreCase = true) == true ||
+                    item?.title?.toString()?.contains("全选", ignoreCase = false) == true ||
+                    item?.title?.toString()?.contains("전체", ignoreCase = false) == true) {
+                    actBarToolbar?.updateSelectAllButtonIcon(item.itemId, allSelected)
+                    break
+                }
+            }
         }
     }
 

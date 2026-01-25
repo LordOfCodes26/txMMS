@@ -89,6 +89,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.joda.time.DateTimeConstants
 import androidx.core.graphics.toColorInt
+import com.goodwy.commons.compose.theme.isDarkMode
 
 fun Context.getSharedPrefs() = getSharedPreferences(PREFS_KEY, Context.MODE_PRIVATE)
 
@@ -1466,7 +1467,7 @@ fun Context.sendSMSPendingIntent(recipient: String): PendingIntent {
 fun Context.getLetterBackgroundColors(): ArrayList<Long> {
     return when (baseConfig.contactColorList) {
         LBC_ORIGINAL -> letterBackgroundColors
-        LBC_IOS -> letterBackgroundColorsIOS
+        LBC_IOS ->  if (!isSystemInDarkMode()) letterBackgroundColorsIOS else letterBackgroundColorsIOSDark
         LBC_ARC -> letterBackgroundColorsArc
         else -> letterBackgroundColorsAndroid
     }

@@ -23,7 +23,11 @@ import android.view.ViewGroup
 import android.view.Window
 import android.view.WindowManager
 import android.view.inputmethod.InputMethodManager
+import android.graphics.Color
 import android.widget.EditText
+import android.widget.FrameLayout
+import android.widget.ProgressBar
+import android.widget.TextView
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AlertDialog
@@ -49,6 +53,7 @@ import eightbitlab.com.blurview.BlurTarget
 import java.io.*
 import java.util.Locale
 import java.util.TreeSet
+import java.util.WeakHashMap
 import androidx.core.net.toUri
 
 fun Activity.appLaunched(appId: String) {
@@ -1850,4 +1855,77 @@ fun Activity.isSpeechToTextAvailable(): Boolean {
         Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH), 0
     )
     return activities.isNotEmpty()
+}
+
+private val blockingOverlayViews = WeakHashMap<Activity, View>()
+
+fun Activity.showBlockingSpinnerOverlay(message: String = "") {
+    if (isFinishing || isDestroyed) return
+    
+    runOnUiThread {
+        if (blockingOverlayViews.containsKey(this@showBlockingSpinnerOverlay)) {
+            return@runOnUiThread
+        }
+        
+        val rootView = window.decorView.rootView as? ViewGroup ?: return@runOnUiThread
+        val overlayColor = getProperBackgroundColor()
+        val textColor = getProperTextColor()
+        
+        val overlay = FrameLayout(this).apply {
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT
+            )
+            setBackgroundColor(overlayColor.adjustAlpha(0.9f))
+            isClickable = true
+            isFocusable = true
+            setOnTouchListener { _, _ -> true } // Block all touch events
+        }
+        
+        val container = FrameLayout(this).apply {
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                gravity = android.view.Gravity.CENTER
+            }
+        }
+        
+        val progressBar = ProgressBar(this, null, android.R.attr.progressBarStyleLarge).apply {
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT
+            )
+        }
+        container.addView(progressBar)
+        
+        if (message.isNotEmpty()) {
+            val textView = TextView(this).apply {
+                layoutParams = FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.WRAP_CONTENT,
+                    FrameLayout.LayoutParams.WRAP_CONTENT
+                ).apply {
+                    topMargin = resources.getDimensionPixelSize(R.dimen.activity_margin)
+                }
+                text = message
+                setTextColor(textColor)
+                textSize = 16f
+                gravity = android.view.Gravity.CENTER
+            }
+            container.addView(textView)
+        }
+        
+        overlay.addView(container)
+        rootView.addView(overlay)
+        blockingOverlayViews[this@showBlockingSpinnerOverlay] = overlay
+    }
+}
+
+fun Activity.hideBlockingSpinnerOverlay() {
+    runOnUiThread {
+        blockingOverlayViews.remove(this@hideBlockingSpinnerOverlay)?.let { overlay ->
+            val rootView = window.decorView.rootView as? ViewGroup
+            rootView?.removeView(overlay)
+        }
+    }
 }

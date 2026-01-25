@@ -2,6 +2,7 @@ package com.goodwy.commons.views
 
 import android.app.Activity
 import android.content.Context
+import android.graphics.Outline
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.Menu
@@ -9,6 +10,7 @@ import android.view.MenuInflater
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewOutlineProvider
 import android.widget.PopupWindow
 import android.widget.TextView
 import androidx.appcompat.view.menu.MenuBuilder
@@ -69,13 +71,21 @@ class BlurPopupMenu(
         val inflater = LayoutInflater.from(context)
         val popupBinding = PopupMenuBlurBinding.inflate(inflater, null, false)
 
-        // Setup rounded corners
-        popupBinding.root.clipToOutline = true
-
         // Setup BlurView
         val blurView = popupBinding.blurView
         val decorView = activity.window.decorView
         val windowBackground = decorView.background
+
+        // Get corner radius from resources to match the drawable
+        val cornerRadius = context.resources.getDimension(R.dimen.material_dialog_corner_radius)
+        
+        // Setup rounded corners with proper clipping
+        blurView.clipToOutline = true
+        blurView.outlineProvider = object : ViewOutlineProvider() {
+            override fun getOutline(view: View, outline: Outline) {
+                outline.setRoundRect(0, 0, view.width, view.height, cornerRadius)
+            }
+        }
 
         blurView.setOverlayColor(context.getProperBlurOverlayColor())
         blurView.setupWith(blurTarget)
@@ -117,6 +127,9 @@ class BlurPopupMenu(
             View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
             View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
         )
+        
+        // Ensure outline is updated after measurement
+        blurView.invalidateOutline()
 
         // Ensure anchor is measured before using its dimensions
         if (anchor.width == 0 && anchor.height == 0) {

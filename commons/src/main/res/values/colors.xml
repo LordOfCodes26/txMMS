@@ -53,6 +53,7 @@
     <!-- My Customization -->
     <color name="primary">#FF5589F1</color> <!-- -11171343-->
     <color name="dialog_background_color">#03FFFFFF</color>
+    <color name="popup_menu_border_color">#CC000000</color>
 
     <!-- Default values -->
     <color name="default_text_color">@color/theme_light_text_color</color>

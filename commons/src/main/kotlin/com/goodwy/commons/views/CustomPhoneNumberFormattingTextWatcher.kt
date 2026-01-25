@@ -31,6 +31,13 @@ class CustomPhoneNumberFormattingTextWatcher : TextWatcher {
         }
 
         val originalText = s.toString()
+        
+        // Skip formatting if text contains special characters (* or #) used for special sequences
+        // This prevents formatting from interfering with codes like *#06#, *#*#...#*#*, etc.
+        if (originalText.contains('*') || originalText.contains('#')) {
+            return
+        }
+        
         val normalizedNumber = originalText.normalizePhoneNumber()
         
         // Only format if the text has changed and meets minimum length

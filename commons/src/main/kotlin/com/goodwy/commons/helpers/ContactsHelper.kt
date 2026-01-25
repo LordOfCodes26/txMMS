@@ -1925,18 +1925,20 @@ class ContactsHelper(val context: Context) {
         return ""
     }
 
-    fun addFavorites(contacts: ArrayList<Contact>) {
+    fun addFavorites(contacts: ArrayList<Contact>, callback: (() -> Unit)? = null) {
         ensureBackgroundThread {
             if (context.hasContactPermissions()) {
                 toggleFavorites(contacts, true)
+                callback?.invoke()
             }
         }
     }
 
-    fun removeFavorites(contacts: ArrayList<Contact>) {
+    fun removeFavorites(contacts: ArrayList<Contact>, callback: (() -> Unit)? = null) {
         ensureBackgroundThread {
             if (context.hasContactPermissions()) {
                 toggleFavorites(contacts, false)
+                callback?.invoke()
             }
         }
     }
@@ -1996,44 +1998,88 @@ class ContactsHelper(val context: Context) {
     }
 
     fun moveContacts(contacts: ArrayList<Contact>, destinationSource: String, callback: (success: Boolean, movedCount: Int) -> Unit) {
+        moveContacts(contacts, destinationSource, null, callback)
+    }
+
+    fun moveContacts(contacts: ArrayList<Contact>, destinationSource: String, progressCallback: ((current: Int, total: Int) -> Unit)?, callback: (success: Boolean, movedCount: Int) -> Unit) {
         ensureBackgroundThread {
+            val handler = Handler(Looper.getMainLooper())
+            
             if (!context.hasPermission(PERMISSION_WRITE_CONTACTS)) {
-                callback(false, 0)
+                handler.post {
+                    callback(false, 0)
+                }
                 return@ensureBackgroundThread
             }
 
-            var copiedCount = 0
+            val totalContacts = contacts.size
+            var movedCount = 0
             var failedCount = 0
+            val contactsToDelete = ArrayList<Contact>()
+            val BATCH_SIZE = 10
+            val BATCH_DELAY_MS = 50L
 
             try {
-                contacts.forEach { contact ->
-                    // Get full contact data before copying
-                    val fullContact = getContactWithId(contact.id)
-                    if (fullContact == null) {
-                        failedCount++
-                        return@forEach
-                    }
-
-                    // Create a copy of the contact with the new source
-                    val newContact = fullContact.copy()
-                    newContact.source = destinationSource
-                    newContact.id = 0 // Reset ID for new contact
-                    newContact.contactId = 0
-
-                    // Insert contact to new location (copy, don't delete original)
-                    val insertSuccess = insertContact(newContact)
+                var currentIndex = 0
+                
+                while (currentIndex < totalContacts) {
+                    val batchEnd = minOf(currentIndex + BATCH_SIZE, totalContacts)
+                    val batch = contacts.subList(currentIndex, batchEnd)
                     
-                    if (insertSuccess) {
-                        copiedCount++
-                    } else {
-                        failedCount++
+                    batch.forEach { contact ->
+                        // Get full contact data before copying
+                        val fullContact = getContactWithId(contact.id)
+                        if (fullContact == null) {
+                            failedCount++
+                            return@forEach
+                        }
+
+                        // Create a copy of the contact with the new source
+                        val newContact = fullContact.copy()
+                        newContact.source = destinationSource
+                        newContact.id = 0 // Reset ID for new contact
+                        newContact.contactId = 0
+
+                        // Insert contact to new location
+                        val insertSuccess = insertContact(newContact)
+                        
+                        if (insertSuccess) {
+                            // Store original contact for deletion after all copies succeed
+                            contactsToDelete.add(fullContact)
+                            movedCount++
+                        } else {
+                            failedCount++
+                        }
+                    }
+                    
+                    currentIndex = batchEnd
+                    
+                    // Update progress on UI thread
+                    if (progressCallback != null) {
+                        handler.post {
+                            progressCallback(currentIndex, totalContacts)
+                        }
+                    }
+                    
+                    // Small delay between batches to keep UI responsive
+                    if (currentIndex < totalContacts) {
+                        Thread.sleep(BATCH_DELAY_MS)
                     }
                 }
 
-                callback(copiedCount > 0, copiedCount)
+                // Delete original contacts after successful copy
+                if (contactsToDelete.isNotEmpty()) {
+                    deleteContacts(contactsToDelete)
+                }
+
+                handler.post {
+                    callback(movedCount > 0, movedCount)
+                }
             } catch (e: Exception) {
                 context.showErrorToast(e)
-                callback(false, copiedCount)
+                handler.post {
+                    callback(false, movedCount)
+                }
             }
         }
     }

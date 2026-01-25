@@ -1,10 +1,13 @@
 package com.goodwy.commons.extensions
 
+import android.annotation.SuppressLint
 import android.content.ComponentName
 import android.content.Context
 import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.graphics.Color
+import android.graphics.drawable.Drawable
+import android.util.Log
 import android.view.Gravity
 import android.view.ViewGroup
 import androidx.loader.content.CursorLoader
@@ -259,6 +262,15 @@ fun Context.getAvatarColorForName(name: String): Int {
     return letterBackgroundColors[abs(name.hashCode()) % letterBackgroundColors.size].toInt()
 }
 
+fun Context.getAvatarColorIndexForName(name: String) : Int {
+    if (!baseConfig.useColoredContacts){
+        return -1
+    }
+    val letterBackgroundColors = getLetterBackgroundColors()
+
+    return abs(name.hashCode()) % letterBackgroundColors.size
+}
+
 /**
  * Creates a gradient drawable for activity background based on avatar color.
  * The gradient is similar to iOS 26 contacts background style with a glow effect.
@@ -268,68 +280,117 @@ fun Context.getAvatarColorForName(name: String): Int {
  * @param glowIntensity The intensity of the glow effect (0.0 to 1.0, default: 0.4)
  * @return A LayerDrawable with linear gradient base and radial glow overlay
  */
+@SuppressLint("UseCompatLoadingForDrawables")
 fun Context.createAvatarGradientDrawable(
-    avatarColor: Int, 
+    avatarColorIndex: Int,
     blendWithSurface: Boolean = true,
     glowIntensity: Float = 0.4f
-): android.graphics.drawable.Drawable {
-    val (topColor, bottomColor) = avatarColor.createGradientColors()
-    
-    val finalTopColor: Int
-    val finalBottomColor: Int
-    
-    if (blendWithSurface && (isLightTheme() || isGrayTheme()) && !isDynamicTheme()) {
-        // For light theme, blend with surface color for subtlety
-        val surfaceColor = getSurfaceColor()
-        finalTopColor = topColor.blendColors(surfaceColor, 0.3f)
-        finalBottomColor = bottomColor.blendColors(surfaceColor, 0.3f)
-    } else {
-        finalTopColor = topColor
-        finalBottomColor = bottomColor
+): Drawable {
+//    val (topColor, bottomColor) = avatarColor.createGradientColors()
+
+    var imageDrawable: Drawable
+    Log.d("CHero-createAvatarDrawable", avatarColorIndex.toString())
+
+    imageDrawable = when{
+        avatarColorIndex == 0 -> {
+            getDrawable(R.drawable.contact_background1)!!
+        }
+        avatarColorIndex == 1 -> {
+            getDrawable(R.drawable.contact_background2)!!
+        }
+        avatarColorIndex == 2 -> {
+            getDrawable(R.drawable.contact_background3)!!
+        }
+        avatarColorIndex == 3 -> {
+            getDrawable(R.drawable.contact_background4)!!
+        }
+        avatarColorIndex == 4 -> {
+            getDrawable(R.drawable.contact_background5)!!
+        }
+        avatarColorIndex == 5 -> {
+            getDrawable(R.drawable.contact_background6)!!
+        }
+        avatarColorIndex == 6 -> {
+            getDrawable(R.drawable.contact_background7)!!
+        }
+        avatarColorIndex == 7 -> {
+            getDrawable(R.drawable.contact_background8)!!
+        }
+        avatarColorIndex == 8 -> {
+            getDrawable(R.drawable.contact_background9)!!
+        }
+        else -> {
+            getDrawable(R.drawable.contact_background1)!!
+        }
     }
-    
-    // Base linear gradient
-    val baseGradient = android.graphics.drawable.GradientDrawable(
-        android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM,
-        intArrayOf(finalTopColor, finalBottomColor)
-    )
-    
-    // Create glow colors - brighter version of the avatar color with multiple stops for smooth glow
-    val hsv = FloatArray(3)
-    Color.colorToHSV(avatarColor, hsv)
-    
-    // Create multiple glow color stops for smooth radial gradient
-    val glowHsv1 = hsv.clone()
-    glowHsv1[2] = (glowHsv1[2] * 1.25f).coerceAtMost(0.95f) // Brightest at center
-    val glowColor1 = Color.HSVToColor((255 * glowIntensity * 0.8f).toInt(), glowHsv1)
-    
-    val glowHsv2 = hsv.clone()
-    glowHsv2[2] = (glowHsv2[2] * 1.15f).coerceAtMost(0.9f)
-    val glowColor2 = Color.HSVToColor((255 * glowIntensity * 0.5f).toInt(), glowHsv2)
-    
-    val glowHsv3 = hsv.clone()
-    glowHsv3[2] = (glowHsv3[2] * 1.05f).coerceAtMost(0.85f)
-    val glowColor3 = Color.HSVToColor((255 * glowIntensity * 0.2f).toInt(), glowHsv3)
-    
-    // Radial gradient for glow effect - centered at top
-    val glowGradient = android.graphics.drawable.GradientDrawable().apply {
-        gradientType = android.graphics.drawable.GradientDrawable.RADIAL_GRADIENT
-        // Multiple color stops for smooth glow: bright center fading to transparent
-        colors = intArrayOf(glowColor1, glowColor2, glowColor3, Color.TRANSPARENT)
-        // Set gradient center to top center (0.5, 0.0 means center horizontally, top vertically)
-        setGradientCenter(0.5f, 0.0f)
-        // Set radius to create a large glow effect (in pixels, will scale with screen)
-        gradientRadius = 600f
-    }
-    
-    // Use LayerDrawable to combine base gradient with glow
-    return android.graphics.drawable.LayerDrawable(arrayOf(baseGradient, glowGradient)).apply {
-        // Set glow layer to be larger and positioned at top center
-        setLayerGravity(1, Gravity.TOP or Gravity.CENTER_HORIZONTAL)
-        setLayerSize(1, 2400, 1200) // Make glow layer larger than screen
-        setLayerInset(1, -600, -400, -600, 0) // Position glow at top, extend beyond bounds for smooth fade
-    }
+
+    return imageDrawable
+
+//    if(avatarColor.toLong() == 0xFFd0b2e0) imageDrawable = getDrawable(R.drawable.contact_background1)!!
+
+
+//    val finalTopColor: Int
+//    val finalBottomColor: Int
+//
+//    if (blendWithSurface && (isLightTheme() || isGrayTheme()) && !isDynamicTheme()) {
+//        // For light theme, blend with surface color for subtlety
+//        val surfaceColor = getSurfaceColor()
+//        finalTopColor = topColor.blendColors(surfaceColor, 0.3f)
+//        finalBottomColor = bottomColor.blendColors(surfaceColor, 0.3f)
+//    } else {
+//        finalTopColor = topColor
+//        finalBottomColor = bottomColor
+//    }
+//
+//    // Base linear gradient
+//    val baseGradient = android.graphics.drawable.GradientDrawable(
+//        android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM,
+//        intArrayOf(finalTopColor, finalBottomColor)
+//    )
+//
+//    // Create glow colors - brighter version of the avatar color with multiple stops for smooth glow
+//    val hsv = FloatArray(3)
+//    Color.colorToHSV(avatarColor, hsv)
+//
+//    // Create multiple glow color stops for smooth radial gradient
+//    val glowHsv1 = hsv.clone()
+//    glowHsv1[2] = (glowHsv1[2] * 1.25f).coerceAtMost(0.95f) // Brightest at center
+//    val glowColor1 = Color.HSVToColor((255 * glowIntensity * 0.8f).toInt(), glowHsv1)
+//
+//    val glowHsv2 = hsv.clone()
+//    glowHsv2[2] = (glowHsv2[2] * 1.15f).coerceAtMost(0.9f)
+//    val glowColor2 = Color.HSVToColor((255 * glowIntensity * 0.5f).toInt(), glowHsv2)
+//
+//    val glowHsv3 = hsv.clone()
+//    glowHsv3[2] = (glowHsv3[2] * 1.05f).coerceAtMost(0.85f)
+//    val glowColor3 = Color.HSVToColor((255 * glowIntensity * 0.2f).toInt(), glowHsv3)
+//
+//    // Radial gradient for glow effect - centered at top
+//    val glowGradient = android.graphics.drawable.GradientDrawable().apply {
+//        gradientType = android.graphics.drawable.GradientDrawable.RADIAL_GRADIENT
+//        // Multiple color stops for smooth glow: bright center fading to transparent
+//        colors = intArrayOf(glowColor1, glowColor2, glowColor3, Color.TRANSPARENT)
+//        // Set gradient center to top center (0.5, 0.0 means center horizontally, top vertically)
+//        setGradientCenter(0.5f, 0.0f)
+//        // Set radius to create a large glow effect (in pixels, will scale with screen)
+//        gradientRadius = 600f
+//    }
+//
+//    // Use LayerDrawable to combine base gradient with glow
+//    return android.graphics.drawable.LayerDrawable(arrayOf(baseGradient, glowGradient)).apply {
+//        // Set glow layer to be larger and positioned at top center
+//        setLayerGravity(1, Gravity.TOP or Gravity.CENTER_HORIZONTAL)
+//        setLayerSize(1, 2400, 1200) // Make glow layer larger than screen
+//        setLayerInset(1, -600, -400, -600, 0) // Position glow at top, extend beyond bounds for smooth fade
+//    }
 }
+
+//fun Context.getAvatarDrawablw(
+//    avatarColor: Int,
+//): Drawable {
+//    var avatarDrawable: Drawable
+//    avatarDrawable =
+//}
 
 fun Context.getProperBlurOverlayColor(): Int {
     val isDark = when {

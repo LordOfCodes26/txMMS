@@ -24,10 +24,14 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.Outline
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
@@ -98,7 +102,8 @@ fun LiquidBottomTabs(
             }
         }
 
-        val isLtr = LocalLayoutDirection.current == LayoutDirection.Ltr
+        val layoutDirection = LocalLayoutDirection.current
+        val isLtr = layoutDirection == LayoutDirection.Ltr
         val animationScope = rememberCoroutineScope()
         var currentIndex by remember(selectedTabIndex) {
             mutableIntStateOf(selectedTabIndex())
@@ -162,6 +167,9 @@ fun LiquidBottomTabs(
             )
         }
 
+        val borderColor = if (isLightTheme) Color.Black else Color.White
+        val borderWidth = with(density) { 1.dp.toPx() }
+
         Row(
             Modifier
                 .graphicsLayer {
@@ -183,6 +191,14 @@ fun LiquidBottomTabs(
                     },
                     onDrawSurface = { drawRect(containerColor) }
                 )
+                .drawBehind {
+                    val outline = ContinuousCapsule.createOutline(size, layoutDirection, density)
+                    drawOutline(
+                        outline = outline,
+                        color = borderColor,
+                        style = Stroke(width = borderWidth)
+                    )
+                }
                 .then(interactiveHighlight.modifier)
                 .height(56f.dp)
                 .fillMaxWidth()
@@ -222,6 +238,14 @@ fun LiquidBottomTabs(
                         },
                         onDrawSurface = { drawRect(containerColor) }
                     )
+                    .drawBehind {
+                        val outline = ContinuousCapsule.createOutline(size, layoutDirection, density)
+                        drawOutline(
+                            outline = outline,
+                            color = borderColor,
+                            style = Stroke(width = borderWidth)
+                        )
+                    }
                     .then(interactiveHighlight.modifier)
                     .height(48f.dp)
                     .fillMaxWidth()
@@ -248,8 +272,8 @@ fun LiquidBottomTabs(
                     effects = {
                         val progress = dampedDragAnimation.pressProgress
                         lens(
-                            8f.dp.toPx() * progress,
-                            8f.dp.toPx() * progress,
+                            4f.dp.toPx() * progress,
+                            4f.dp.toPx() * progress,
                             chromaticAberration = true
                         )
                     },
@@ -275,33 +299,15 @@ fun LiquidBottomTabs(
                     },
                     onDrawSurface = {
                         val progress = dampedDragAnimation.pressProgress
-                        val borderWidth = with(density) {
-                            lerp(1f.dp.toPx(), 2f.dp.toPx(), progress)
-                        }
-                        val borderColor = if (isLightTheme) {
-                            Color.Black.copy(alpha = lerp(0.1f, 0.5f, progress))
-                        } else {
-                            Color.White.copy(alpha = lerp(0.1f, 0.5f, progress))
-                        }
-                        
-                        // Draw background rectangles
                         drawRect(
                             if (isLightTheme) Color.Black.copy(0.1f)
                             else Color.White.copy(0.1f),
                             alpha = 1f - progress
                         )
                         drawRect(Color.Black.copy(alpha = 0.03f * progress))
-                        
-                        // Draw capsule border (perfect capsule when corner radius = half height)
-                        val cornerRadius = size.height / 2f
-                        drawRoundRect(
-                            color = borderColor,
-                            cornerRadius = CornerRadius(cornerRadius, cornerRadius),
-                            style = Stroke(width = borderWidth)
-                        )
                     }
                 )
-                .height(48f.dp)
+                .height(45f.dp)
                 .fillMaxWidth(1f / tabsCount)
         )
     }

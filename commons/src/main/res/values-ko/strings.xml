@@ -385,7 +385,7 @@
     <string name="keep_last_modified">화일 작업시 오래된 마지막 변경 값을 유지</string>
     <string name="show_info_bubble">흘림띠 끌기시 설명글 활성화</string>
     <string name="prevent_phone_from_sleeping">응용프로그람 실행중 화면 자동 꺼짐 방지</string>
-    <string name="skip_delete_confirmation">삭제 확인창 비활성화</string>
+    <string name="skip_delete_confirmation">삭제시 확인</string>
     <string name="enable_pull_to_refresh">아래로 밀기 하여 새로고치기</string>
     <string name="use_24_hour_time_format">24시간 표시 사용</string>
     <string name="change_date_and_time_format">날자 및 시간 표시 형식 변경</string>
@@ -607,7 +607,7 @@
     <string name="column_count">렬 개수</string>
     <string name="row_count">행 개수</string>
     <string name="not_blocking_anyone">아무도 차단하지 않았습니다.</string>
-    <string name="manage_blocked_numbers">차단 번호 관리</string>
+    <string name="manage_blocked_numbers">차단목록</string>
     <string name="blocked_numbers">차단 번호</string>
     <string name="block_number">전화번호 차단</string>
     <string name="block_confirmation">\"%s\"를 차단하시겠습니까?</string>

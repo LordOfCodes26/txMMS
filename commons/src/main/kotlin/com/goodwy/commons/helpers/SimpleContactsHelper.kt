@@ -18,6 +18,7 @@ import com.bumptech.glide.load.DecodeFormat
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
 import com.bumptech.glide.request.RequestOptions
+import com.bumptech.glide.signature.ObjectKey
 import com.goodwy.commons.R
 import com.goodwy.commons.extensions.*
 import com.goodwy.commons.models.PhoneNumber
@@ -394,6 +395,9 @@ class SimpleContactsHelper(val context: Context) {
             .diskCacheStrategy(DiskCacheStrategy.RESOURCE)
             .error(placeholder)
             .centerCrop()
+            // Add signature to help with cache invalidation when contact photos are updated
+            // Using the photo URI as signature key ensures different URIs are cached separately
+            .signature(if (path.isNotEmpty()) ObjectKey(path) else ObjectKey(placeholderName))
 
         Glide.with(context)
             .load(path)
