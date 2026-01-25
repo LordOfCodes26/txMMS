@@ -308,7 +308,66 @@ class SettingsActivity : SimpleActivity() {
         }
     }
 
+    override fun onActivityResult(requestCode: Int, resultCode: Int, resultData: Intent?) {
+        super.onActivityResult(requestCode, resultCode, resultData)
+        if (resultCode == android.app.Activity.RESULT_OK && resultData != null) {
+            when (requestCode) {
+                INTENT_SELECT_NOTIFICATION_SOUND -> {
                     val extras = resultData.extras
+                    if (extras?.containsKey(RingtoneManager.EXTRA_RINGTONE_PICKED_URI) == true) {
+                        val uri = extras.getParcelable<android.net.Uri>(RingtoneManager.EXTRA_RINGTONE_PICKED_URI)
+                        if (uri != null) {
+                            config.notificationSound = uri.toString()
+                            updateNotificationSoundDisplay()
+                            // Play the selected sound
+                            try {
+                                val ringtone = RingtoneManager.getRingtone(this, uri)
+                                ringtone?.play()
+                            } catch (e: Exception) {
+                                showErrorToast(e)
+                            }
+                        } else {
+                            // Silent was selected
+                            config.notificationSound = SILENT
+                            updateNotificationSoundDisplay()
+                        }
+                    }
+                }
+                INTENT_SELECT_DELIVERY_REPORT_SOUND -> {
+                    val extras = resultData.extras
+                    if (extras?.containsKey(RingtoneManager.EXTRA_RINGTONE_PICKED_URI) == true) {
+                        val uri = extras.getParcelable<android.net.Uri>(RingtoneManager.EXTRA_RINGTONE_PICKED_URI)
+                        if (uri != null) {
+                            config.deliveryReportSound = uri.toString()
+                            updateDeliveryReportSoundDisplay()
+                            // Play the selected sound
+                            try {
+                                val ringtone = RingtoneManager.getRingtone(this, uri)
+                                ringtone?.play()
+                            } catch (e: Exception) {
+                                showErrorToast(e)
+                            }
+                        } else {
+                            // Silent was selected
+                            config.deliveryReportSound = SILENT
+                            updateDeliveryReportSoundDisplay()
+                        }
+                    }
+                }
+                PICK_NOTIFICATION_SOUND_INTENT_ID -> {
+                    val alarmSound = storeNewYourAlarmSound(resultData)
+                    config.notificationSound = alarmSound.uri
+                    updateNotificationSoundDisplay()
+                }
+                PICK_DELIVERY_REPORT_SOUND_INTENT_ID -> {
+                    val alarmSound = storeNewYourAlarmSound(resultData)
+                    config.deliveryReportSound = alarmSound.uri
+                    updateDeliveryReportSoundDisplay()
+                }
+            }
+        }
+    }
+
     override fun onPause() {
         super.onPause()
         blockedNumbersAtPause = getBlockedNumbers().hashCode()
