@@ -308,6 +308,7 @@ class SettingsActivity : SimpleActivity() {
         }
     }
 
+                    val extras = resultData.extras
     override fun onPause() {
         super.onPause()
         blockedNumbersAtPause = getBlockedNumbers().hashCode()
