@@ -1928,8 +1928,7 @@ class ContactsHelper(val context: Context) {
     fun addFavorites(contacts: ArrayList<Contact>, callback: (() -> Unit)? = null) {
         ensureBackgroundThread {
             if (context.hasContactPermissions()) {
-                toggleFavorites(contacts, true)
-                callback?.invoke()
+                toggleFavorites(contacts, true, callback)
             }
         }
     }
@@ -1937,13 +1936,12 @@ class ContactsHelper(val context: Context) {
     fun removeFavorites(contacts: ArrayList<Contact>, callback: (() -> Unit)? = null) {
         ensureBackgroundThread {
             if (context.hasContactPermissions()) {
-                toggleFavorites(contacts, false)
-                callback?.invoke()
+                toggleFavorites(contacts, false, callback)
             }
         }
     }
 
-    private fun toggleFavorites(contacts: ArrayList<Contact>, addToFavorites: Boolean) {
+    private fun toggleFavorites(contacts: ArrayList<Contact>, addToFavorites: Boolean, callback: (() -> Unit)? = null) {
         try {
             val operations = ArrayList<ContentProviderOperation>()
             contacts.map { it.contactId.toString() }.forEach {
@@ -1959,8 +1957,10 @@ class ContactsHelper(val context: Context) {
                 }
             }
             context.contentResolver.applyBatch(AUTHORITY, operations)
+            callback?.invoke()
         } catch (e: Exception) {
             context.showErrorToast(e)
+            callback?.invoke()
         }
     }
 

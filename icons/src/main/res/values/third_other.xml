@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- page indicator -->
+    <declare-styleable name="MyAttrs">
+        <attr name="pager_dot_active_color" format="color" />
+        <attr name="pager_dot_inactive_color" format="color" />
+    </declare-styleable>
+
+    <dimen name="page_indicator_dot_size">6dp</dimen>
+
+    <!-- file downloader -->
+    <string name="default_filedownloader_notification_title">FileDownloader</string>
+    <string name="default_filedownloader_notification_content">FileDownloader is running.</string>
+
+    <!-- section adapter -->
+    <item  type="id" name="sectioning_adapter_tag_key_view_viewholder" />
+
+    <!-- UltraViewPager -->
+    <declare-styleable name="UltraViewPager">
+        <attr name="upv_autoscroll" format="integer" />
+        <attr name="upv_infiniteloop" format="boolean" />
+        <attr name="upv_ratio" format="float" />
+        <attr name="upv_scrollmode" format="enum">
+            <enum name="horizontal" value="0" />
+            <enum name="vertical" value="1" />
+        </attr>
+        <attr name="upv_disablescroll" format="enum">
+            <enum name="none" value="0" />
+            <enum name="backward" value="1" />
+            <enum name="forward" value="2" />
+        </attr>
+        <attr name="upv_multiscreen" format="float" />
+        <attr name="upv_automeasure" format="boolean" />
+        <attr name="upv_itemratio" format="float" />
+    </declare-styleable>
+
+    <!-- qr code -->
+    <item type="id" name="auto_focus"/>
+    <item type="id" name="decode"/>
+    <item type="id" name="decode_failed"/>
+    <item type="id" name="decode_succeeded"/>
+    <item type="id" name="launch_product_query"/>
+    <item type="id" name="quit"/>
+    <item type="id" name="restart_preview"/>
+    <item type="id" name="return_scan_result"/>
+
+    <color name="status_text">#ffffffff</color>
+    <color name="possible_result_points">#c0ffbd21</color>
+    <color name="result_view">#b0000000</color>
+    <color name="viewfinder_laser">#ffcc0000</color>
+    <color name="viewfinder_mask">#60000000</color>
+
+    <string name="scan_failed">다시 해보십시오.</string>
+    <string name="msg_qr_scan_hint" translatable="false">사각형령역안에 2차원부호그림을 배치하십시오.</string>
+</resources>

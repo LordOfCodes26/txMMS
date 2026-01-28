@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="main_bg_color">#FFFFFF</color>
+    <color name="transparent">#00FFFFFF</color>
+    <color name="switch_thumb_stroke_on">#488eff</color>
+    <color name="switch_thumb_stroke_off">#c6c6c6</color>
+    <color name="switch_thumb_bg_on">#FFFFFF</color>
+    <color name="switch_thumb_bg_off">#FFFFFF</color>
+    <color name="switch_track_bg_off">#f1f1f3</color>
+    <color name="switch_track_bg_on">#d9e3f5</color>
+    <color name="switch_track_stroke_off">#00FFFFFF</color>
+    <color name="switch_track_stroke_on">#ddddde</color>
+    <color name="seekbar_indicator_color">#4290f7</color>
+    <color name="seekbar_track_color">#cbcbcb</color>
+    <color name="seekbar_thumb_border_color">#4290f7</color>
+    <color name="seekbar_thumb_bg_color">#FFFFFF</color>
+    <color name="switch_track_color_off">#dcdcdc</color>
+    <color name="switch_track_color_on">#488eff</color>
+    <color name="switch_thumb_color_off">#b0afb2</color>
+    <color name="switch_thumb_color_on">#ffffff</color>
+
+    <color name="tx_checkbox_checked_color">#598cce</color>
+    <color name="tx_checkbox_unchecked_color">#878787</color>
+
+    <color name="tx_popup_menu_bg_color">#ffffff</color>
+
+    <color name="number_picker_color">#E0202020</color>
+    <color name="divider_color">#888888</color>
+    <color name="select_number_color">#4290f7</color>
+    <color name="ultraview_indicator">#707070</color>
+
+    <color name="icon_tint_color_common">#FF222222</color>
+    <color name="main_item_color_common">@color/white</color>
+    <color name="main_text_color_common">@color/black</color>
+    <color name="description_text_color_common">#FF111111</color>
+    <color name="blue_color_common">#2e40e8</color>
+    <color name="trace_color_common">#55000000</color>
+
+    <color name="tx_main_background_color">#f6f6f6</color>
+    <color name="tx_title_text_color">#393939</color>
+    <color name="tx_toolbar_icon_color">#393939</color>
+    <color name="tx_toolbar_icon_disable_color">#CACACA</color>
+    <color name="tx_content_text_color">#393939</color>
+    <color name="tx_sub_text_color">#a7a7a7</color>
+    <color name="tx_disable_text_color">#CACACA</color>
+    <color name="tx_hint_text_color">#b7b7b7</color>
+    <color name="tx_search_background_color">#55e4e4e6</color>
+    <color name="tx_dialog_confirm_text_color">#4290f7</color>
+    <color name="tx_dialog_cancel_text_color">#b6caf6</color>
+    <color name="tx_dialog_blur_overlay">#B3FFFFFF</color>
+    <color name="tx_setting_sub_title_color">#4290f7</color>
+    <color name="tx_ripple_color">#30000000</color>
+
+    <color name="indicator_1">#11FF00</color>
+    <color name="indicator_2">#64A4A4</color>
+    <color name="indicator_3">#66D7B9</color>
+    <color name="indicator_4">#FDBC7D</color>
+
+    <color name="tx_setting_cardview_description_color">#4290f7</color>
+
+    <color name="tx_toast_bg_color">#44141920</color>
+
+    <color name="tx_ripple_background">#000000</color>
+
+    <color name="tx_liquid_glass_tab_bar_indicator">#10000000</color>
+</resources>

@@ -150,6 +150,7 @@ dependencies {
 
     //Goodwy
     api(project(":strings"))
+    api(project(":icons"))
     api(libs.persian.date)
     implementation(libs.behavio.rule)
     implementation(libs.rx.animation)

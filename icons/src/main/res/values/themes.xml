@@ -1,0 +1,80 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme. -->
+    <style name="Base.Theme.Common" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Customize your light theme here. -->
+        <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
+
+    </style>
+
+    <style name="SwitchStyle" >
+        <!-- Customize your light theme here. -->
+        <item name="colorPrimary">@color/m3_sys_color_light_primary</item>
+        <item name="colorPrimaryDark">?attr/colorPrimary</item>
+        <item name="colorOnPrimary">@color/m3_sys_color_light_on_primary</item>
+        <item name="colorPrimaryInverse">@color/m3_sys_color_light_inverse_primary</item>
+        <item name="colorPrimaryContainer">@color/m3_sys_color_light_primary_container</item>
+        <item name="colorOnPrimaryContainer">@color/m3_sys_color_light_on_primary_container</item>
+        <item name="colorSecondary">@color/m3_sys_color_light_secondary</item>
+        <item name="colorOnSecondary">@color/m3_sys_color_light_on_secondary</item>
+        <item name="colorSecondaryContainer">@color/m3_sys_color_light_secondary_container</item>
+        <item name="colorOnSecondaryContainer">@color/m3_sys_color_light_on_secondary_container</item>
+        <item name="colorTertiary">@color/m3_sys_color_light_tertiary</item>
+        <item name="colorOnTertiary">@color/m3_sys_color_light_on_tertiary</item>
+        <item name="colorTertiaryContainer">@color/m3_sys_color_light_tertiary_container</item>
+        <item name="colorOnTertiaryContainer">@color/m3_sys_color_light_on_tertiary_container</item>
+        <item name="android:colorBackground">@color/m3_sys_color_light_background</item>
+        <item name="colorOnBackground">@color/m3_sys_color_light_on_background</item>
+        <item name="colorSurface">@color/m3_sys_color_light_surface</item>
+        <item name="colorOnSurface">@color/m3_sys_color_light_on_surface</item>
+        <item name="colorSurfaceVariant">@color/m3_sys_color_light_surface_variant</item>
+        <item name="colorOnSurfaceVariant">@color/m3_sys_color_light_on_surface_variant</item>
+        <item name="colorSurfaceInverse">@color/m3_sys_color_light_inverse_surface</item>
+        <item name="colorOnSurfaceInverse">@color/m3_sys_color_light_inverse_on_surface</item>
+        <item name="colorOutline">@color/m3_sys_color_light_outline</item>
+        <item name="colorError">@color/m3_sys_color_light_error</item>
+        <item name="colorOnError">@color/m3_sys_color_light_on_error</item>
+        <item name="colorErrorContainer">@color/m3_sys_color_light_error_container</item>
+        <item name="colorOnErrorContainer">@color/m3_sys_color_light_on_error_container</item>
+
+        <!-- Default Framework Text Colors. -->
+        <item name="android:textColorPrimary">@color/m3_default_color_primary_text</item>
+        <item name="android:textColorPrimaryInverse">@color/m3_dark_default_color_primary_text</item>
+        <item name="android:textColorSecondary">@color/m3_default_color_secondary_text</item>
+        <item name="android:textColorSecondaryInverse">@color/m3_dark_default_color_secondary_text</item>
+        <item name="android:textColorTertiary">@color/m3_default_color_secondary_text</item>
+        <item name="android:textColorTertiaryInverse">@color/m3_dark_default_color_secondary_text</item>
+        <item name="android:textColorPrimaryDisableOnly">@color/m3_primary_text_disable_only</item>
+        <item name="android:textColorPrimaryInverseDisableOnly">@color/m3_dark_primary_text_disable_only</item>
+        <item name="android:textColorHint">@color/m3_hint_foreground</item>
+        <item name="android:textColorHintInverse">@color/m3_dark_hint_foreground</item>
+        <item name="android:textColorHighlight">@color/m3_highlighted_text</item>
+        <item name="android:textColorHighlightInverse">@color/m3_dark_highlighted_text</item>
+        <item name="android:textColorLink">?attr/colorPrimary</item>
+        <item name="android:textColorLinkInverse">?attr/colorPrimaryInverse</item>
+        <item name="android:textColorAlertDialogListItem">@color/m3_default_color_primary_text</item>
+
+    </style>
+
+    <style name="Theme.Common" parent="Base.Theme.Common" />
+
+
+    <style name="MDialogStyle" parent="Theme.AppCompat.Light.Dialog">
+        <item name="android:windowFrame">@null</item>
+        <item name="android:windowSoftInputMode">adjustPan</item>
+        <item name="android:textSize">17dp</item>
+        <item name="android:windowBackground">@color/transparent</item>
+        <item name="android:background">@color/transparent</item>
+        <item name="android:windowAnimationStyle">@style/MCustomDialogAnimation</item>
+    </style>
+
+    <style name="MDialogStyleMinWidth" parent="MDialogStyle">
+        <item name="android:windowMinWidthMajor">90%</item>
+        <item name="android:windowMinWidthMinor">90%</item>
+    </style>
+
+    <style name="MCustomDialogAnimation">
+        <item name="android:windowEnterAnimation">@anim/sms_detail_dialog_in</item>
+        <item name="android:windowExitAnimation">@anim/sms_detail_dialog_out</item>
+    </style>
+
+</resources>
