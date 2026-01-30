@@ -357,7 +357,7 @@ class CustomToolbar @JvmOverloads constructor(
         val iconSize = getIconSize()
         
         val currentDrawables = editText.compoundDrawables
-        val searchIcon = currentDrawables[0] ?: ContextCompat.getDrawable(context, R.drawable.ic_cmn_search)
+        val searchIcon = currentDrawables[0] ?: ContextCompat.getDrawable(context, com.tx.icons.R.drawable.ic_cmn_search)
         val clearIcon = currentDrawables[2] // Preserve clear icon if it exists
         
         searchIcon?.let {
@@ -376,7 +376,7 @@ class CustomToolbar @JvmOverloads constructor(
         if (show) {
             // Show clear icon (drawableEnd)
             val iconSize = getIconSize()
-            val clearIcon = ContextCompat.getDrawable(context, R.drawable.ic_cmn_search_close)
+            val clearIcon = ContextCompat.getDrawable(context, com.tx.icons.R.drawable.ic_cmn_search_close)
             
             clearIcon?.let {
                 val drawable = it.mutate()

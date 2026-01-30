@@ -68,7 +68,7 @@ open class MySearchMenuTop(context: Context, attrs: AttributeSet) : MyAppBarLayo
             val size = text.length
             if (size == 1) openSearch()
             if (size == 0 && !useArrowIcon) {
-                binding.topToolbarSearchIcon.setImageResource(R.drawable.ic_cmn_search)
+                binding.topToolbarSearchIcon.setImageResource(com.tx.icons.R.drawable.ic_cmn_search)
                 binding.topToolbarSearchIcon.contentDescription = resources.getString(R.string.search)
             }
             onSearchTextChangedListener?.invoke(text)
@@ -98,7 +98,7 @@ open class MySearchMenuTop(context: Context, attrs: AttributeSet) : MyAppBarLayo
         onSearchClosedListener?.invoke()
         binding.topToolbarSearch.setText("")
         if (!useArrowIcon) {
-            binding.topToolbarSearchIcon.setImageResource(R.drawable.ic_cmn_search)
+            binding.topToolbarSearchIcon.setImageResource(com.tx.icons.R.drawable.ic_cmn_search)
             binding.topToolbarSearchIcon.contentDescription = resources.getString(R.string.search)
         }
         (context as? Activity)?.hideKeyboard()
@@ -119,7 +119,7 @@ open class MySearchMenuTop(context: Context, attrs: AttributeSet) : MyAppBarLayo
         val (icon, accessibilityString) = if (useArrowBack) {
             Pair(R.drawable.ic_chevron_left_vector, R.string.back)
         } else {
-            Pair(R.drawable.ic_cmn_search, R.string.search)
+            Pair(com.tx.icons.R.drawable.ic_cmn_search, R.string.search)
         }
 
         binding.topToolbarSearchIcon.setImageResource(icon)
