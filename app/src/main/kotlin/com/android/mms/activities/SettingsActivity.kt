@@ -70,6 +70,16 @@ class SettingsActivity : SimpleActivity() {
                     if (uri != null) {
                         config.notificationSound = uri.toString()
                         updateNotificationSoundDisplay()
+                        // Update system notification sound
+                        try {
+                            RingtoneManager.setActualDefaultRingtoneUri(
+                                this,
+                                RingtoneManager.TYPE_NOTIFICATION,
+                                uri
+                            )
+                        } catch (e: Exception) {
+                            showErrorToast(e)
+                        }
                         // Play the selected sound
                         try {
                             val ringtone = RingtoneManager.getRingtone(this, uri)
@@ -81,6 +91,16 @@ class SettingsActivity : SimpleActivity() {
                         // Silent was selected
                         config.notificationSound = SILENT
                         updateNotificationSoundDisplay()
+                        // Update system notification sound to null (silent)
+                        try {
+                            RingtoneManager.setActualDefaultRingtoneUri(
+                                this,
+                                RingtoneManager.TYPE_NOTIFICATION,
+                                null
+                            )
+                        } catch (e: Exception) {
+                            showErrorToast(e)
+                        }
                     }
                 }
             }
@@ -324,6 +344,21 @@ class SettingsActivity : SimpleActivity() {
                     val alarmSound = storeNewYourAlarmSound(resultData)
                     config.notificationSound = alarmSound.uri
                     updateNotificationSoundDisplay()
+                    // Update system notification sound
+                    try {
+                        val uri = if (alarmSound.uri.isNotEmpty() && alarmSound.uri != SILENT) {
+                            android.net.Uri.parse(alarmSound.uri)
+                        } else {
+                            null
+                        }
+                        RingtoneManager.setActualDefaultRingtoneUri(
+                            this,
+                            RingtoneManager.TYPE_NOTIFICATION,
+                            uri
+                        )
+                    } catch (e: Exception) {
+                        showErrorToast(e)
+                    }
                 }
                 PICK_DELIVERY_REPORT_SOUND_INTENT_ID -> {
                     val alarmSound = storeNewYourAlarmSound(resultData)
@@ -386,12 +421,42 @@ class SettingsActivity : SimpleActivity() {
                     onAlarmPicked = { alarmSound ->
                         config.notificationSound = alarmSound?.uri
                         updateNotificationSoundDisplay()
+                        // Update system notification sound
+                        try {
+                            val uri = if (alarmSound?.uri?.isNotEmpty() == true && alarmSound.uri != SILENT) {
+                                android.net.Uri.parse(alarmSound.uri)
+                            } else {
+                                null
+                            }
+                            RingtoneManager.setActualDefaultRingtoneUri(
+                                this@SettingsActivity,
+                                RingtoneManager.TYPE_NOTIFICATION,
+                                uri
+                            )
+                        } catch (e: Exception) {
+                            showErrorToast(e)
+                        }
                     },
                     onAlarmSoundDeleted = { alarmSound ->
                         if (config.notificationSound == alarmSound.uri) {
                             val default = getDefaultAlarmSound(RingtoneManager.TYPE_NOTIFICATION)
                             config.notificationSound = default.uri
                             updateNotificationSoundDisplay()
+                            // Update system notification sound to default
+                            try {
+                                val uri = if (default.uri.isNotEmpty() && default.uri != SILENT) {
+                                    android.net.Uri.parse(default.uri)
+                                } else {
+                                    null
+                                }
+                                RingtoneManager.setActualDefaultRingtoneUri(
+                                    this@SettingsActivity,
+                                    RingtoneManager.TYPE_NOTIFICATION,
+                                    uri
+                                )
+                            } catch (e: Exception) {
+                                showErrorToast(e)
+                            }
                         }
                     }
                 )
