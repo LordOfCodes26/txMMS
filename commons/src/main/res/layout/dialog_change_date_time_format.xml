@@ -1,9 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<eightbitlab.com.blurview.BlurView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/change_date_time_dialog_scrollview"
+    android:id="@+id/blurView"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="@drawable/dialog_background_transparent">
+    <ScrollView
+        android:id="@+id/change_date_time_dialog_scrollview"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
 
     <LinearLayout
         android:id="@+id/change_date_time_dialog_holder"
@@ -24,6 +29,8 @@
                 android:id="@+id/change_date_time_dialog_radio_one"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:buttonTint="@color/tx_dialog_confirm_text_color"
+                android:theme="@style/Theme.Common"
                 android:checked="true"
                 android:paddingTop="@dimen/normal_margin"
                 android:paddingBottom="@dimen/normal_margin"
@@ -34,6 +41,8 @@
                 android:id="@+id/change_date_time_dialog_radio_two"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:buttonTint="@color/tx_dialog_confirm_text_color"
+                android:theme="@style/Theme.Common"
                 android:paddingTop="@dimen/normal_margin"
                 android:paddingBottom="@dimen/normal_margin"
                 android:textAllCaps="true"
@@ -43,6 +52,8 @@
                 android:id="@+id/change_date_time_dialog_radio_eight"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:buttonTint="@color/tx_dialog_confirm_text_color"
+                android:theme="@style/Theme.Common"
                 android:paddingTop="@dimen/normal_margin"
                 android:paddingBottom="@dimen/normal_margin"
                 tools:text="dd-MM-yyyy" />
@@ -51,6 +62,8 @@
                 android:id="@+id/change_date_time_dialog_radio_three"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:buttonTint="@color/tx_dialog_confirm_text_color"
+                android:theme="@style/Theme.Common"
                 android:paddingTop="@dimen/normal_margin"
                 android:paddingBottom="@dimen/normal_margin"
                 android:textAllCaps="true"
@@ -60,6 +73,8 @@
                 android:id="@+id/change_date_time_dialog_radio_seven"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:buttonTint="@color/tx_dialog_confirm_text_color"
+                android:theme="@style/Theme.Common"
                 android:paddingTop="@dimen/normal_margin"
                 android:paddingBottom="@dimen/normal_margin"
                 tools:text="MM-dd-yyyy" />
@@ -68,6 +83,8 @@
                 android:id="@+id/change_date_time_dialog_radio_ten"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:buttonTint="@color/tx_dialog_confirm_text_color"
+                android:theme="@style/Theme.Common"
                 android:paddingTop="@dimen/normal_margin"
                 android:paddingBottom="@dimen/normal_margin"
                 android:textAllCaps="true"
@@ -77,6 +94,8 @@
                 android:id="@+id/change_date_time_dialog_radio_four"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:buttonTint="@color/tx_dialog_confirm_text_color"
+                android:theme="@style/Theme.Common"
                 android:paddingTop="@dimen/normal_margin"
                 android:paddingBottom="@dimen/normal_margin"
                 android:textAllCaps="true"
@@ -86,6 +105,8 @@
                 android:id="@+id/change_date_time_dialog_radio_five"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:buttonTint="@color/tx_dialog_confirm_text_color"
+                android:theme="@style/Theme.Common"
                 android:paddingTop="@dimen/normal_margin"
                 android:paddingBottom="@dimen/normal_margin"
                 tools:text="d MMMM yyyy" />
@@ -94,6 +115,8 @@
                 android:id="@+id/change_date_time_dialog_radio_six"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:buttonTint="@color/tx_dialog_confirm_text_color"
+                android:theme="@style/Theme.Common"
                 android:paddingTop="@dimen/normal_margin"
                 android:paddingBottom="@dimen/normal_margin"
                 tools:text="MMMM d yyyy" />
@@ -151,3 +174,4 @@
 
     </LinearLayout>
 </ScrollView>
+</eightbitlab.com.blurview.BlurView>

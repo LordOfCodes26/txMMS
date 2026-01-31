@@ -57,7 +57,7 @@ class CustomIntervalPickerDialog(val activity: Activity, val selectedSeconds: In
         blurView?.setOverlayColor(activity.getProperBlurOverlayColor())
         blurView?.setupWith(blurTarget)
             ?.setFrameClearDrawable(windowBackground)
-            ?.setBlurRadius(8f)
+            ?.setBlurRadius(5f)
             ?.setBlurAutoUpdate(true)
 
         // Setup title inside BlurView - hide it as the dialog is self-explanatory

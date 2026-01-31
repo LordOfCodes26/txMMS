@@ -57,7 +57,7 @@ class WhatsNewDialog(val activity: Activity, val releases: List<Release>, blurTa
         blurView?.setOverlayColor(activity.getProperBlurOverlayColor())
         blurView?.setupWith(blurTarget)
             ?.setFrameClearDrawable(windowBackground)
-            ?.setBlurRadius(8f)
+            ?.setBlurRadius(5f)
             ?.setBlurAutoUpdate(true)
 //        view.whatsNewContent.text = getNewReleases()
         // Find the container and hide the original TextView

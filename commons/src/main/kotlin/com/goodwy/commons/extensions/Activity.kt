@@ -38,7 +38,6 @@ import androidx.biometric.auth.Class2BiometricAuthPrompt
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.FragmentActivity
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.goodwy.commons.R
 import com.goodwy.commons.activities.BaseSimpleActivity
 import com.goodwy.commons.databinding.DialogTitleBinding
@@ -1522,7 +1521,7 @@ fun Activity.updateGlobalConfig(contentValues: ContentValues) {
 
 fun Activity.setupDialogStuff(
     view: View,
-    dialog: AlertDialog.Builder,
+    dialog: CustomDialogBuilder,
     titleId: Int = 0,
     titleText: String = "",
     cancelOnTouchOutside: Boolean = true,
@@ -1541,75 +1540,51 @@ fun Activity.setupDialogStuff(
         view.setColors(textColor, primaryColor, backgroundColor)
     }
 
-    if (dialog is MaterialAlertDialogBuilder) {
-        dialog.create().apply {
-            if (titleId != 0) {
-                setTitle(titleId)
-            } else if (titleText.isNotEmpty()) {
-                setTitle(titleText)
+    var title: DialogTitleBinding? = null
+    if (titleId != 0 || titleText.isNotEmpty()) {
+        title = DialogTitleBinding.inflate(layoutInflater, null, false)
+        title.dialogTitleTextview.apply {
+            if (titleText.isNotEmpty()) {
+                text = titleText
+            } else {
+                setText(titleId)
             }
-
-            setView(view)
-            setCancelable(cancelOnTouchOutside)
-            if (!isFinishing) {
-                show()
-            }
-            getButton(Dialog.BUTTON_POSITIVE)?.setTextColor(primaryColor)
-            getButton(Dialog.BUTTON_NEGATIVE)?.setTextColor(primaryColor)
-            getButton(Dialog.BUTTON_NEUTRAL)?.setTextColor(primaryColor)
-            callback?.invoke(this)
+            setTextColor(textColor)
         }
+    }
+
+    // if we use the same primary and background color, use the text color for dialog confirmation buttons
+    val dialogButtonColor = if (primaryColor == baseConfig.backgroundColor) {
+        textColor
     } else {
-        var title: DialogTitleBinding? = null
-        if (titleId != 0 || titleText.isNotEmpty()) {
-            title = DialogTitleBinding.inflate(layoutInflater, null, false)
-            title.dialogTitleTextview.apply {
-                if (titleText.isNotEmpty()) {
-                    text = titleText
-                } else {
-                    setText(titleId)
-                }
-                setTextColor(textColor)
-            }
+        primaryColor
+    }
+
+    dialog.create().apply {
+        setView(view)
+        requestWindowFeature(Window.FEATURE_NO_TITLE)
+        setCustomTitle(title?.root)
+        setCanceledOnTouchOutside(cancelOnTouchOutside)
+        if (!isFinishing) {
+            show()
+        }
+        getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(dialogButtonColor)
+        getButton(AlertDialog.BUTTON_NEGATIVE).setTextColor(dialogButtonColor)
+        getButton(AlertDialog.BUTTON_NEUTRAL).setTextColor(dialogButtonColor)
+
+        //TODO Dialog background
+        val bgDrawable = when {
+            isDynamicTheme() -> ResourcesCompat.getDrawable(resources, com.android.common.R.drawable.dialog_background_common, theme)
+            isBlackTheme() -> resources.getColoredDrawableWithColor(this@setupDialogStuff, R.drawable.dialog_bg, getSurfaceColor())
+            else -> resources.getColoredDrawableWithColor(this@setupDialogStuff, R.drawable.dialog_bg, baseConfig.backgroundColor)
         }
 
-        // if we use the same primary and background color, use the text color for dialog confirmation buttons
-        val dialogButtonColor = if (primaryColor == baseConfig.backgroundColor) {
-            textColor
-        } else {
-            primaryColor
-        }
-
-        dialog.create().apply {
-            setView(view)
-            requestWindowFeature(Window.FEATURE_NO_TITLE)
-            setCustomTitle(title?.root)
-            setCanceledOnTouchOutside(cancelOnTouchOutside)
-            if (!isFinishing) {
-                show()
-            }
-            getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(dialogButtonColor)
-            getButton(AlertDialog.BUTTON_NEGATIVE).setTextColor(dialogButtonColor)
-            getButton(AlertDialog.BUTTON_NEUTRAL).setTextColor(dialogButtonColor)
-
-            //TODO Dialog background
-            val bgDrawable = when {
-                isDynamicTheme() -> ResourcesCompat.getDrawable(resources, R.drawable.dialog_you_background, theme)
-                isBlackTheme() -> resources.getColoredDrawableWithColor(this@setupDialogStuff, R.drawable.dialog_bg, getSurfaceColor())
-                else -> resources.getColoredDrawableWithColor(this@setupDialogStuff, R.drawable.dialog_bg, baseConfig.backgroundColor)
-            }
-
-            window?.setBackgroundDrawable(bgDrawable)
-            callback?.invoke(this)
-        }
+        window?.setBackgroundDrawable(bgDrawable)
+        callback?.invoke(this)
     }
 }
 
-fun Activity.getAlertDialogBuilder() = if (isDynamicTheme()) {
-    MaterialAlertDialogBuilder(this)
-} else {
-    AlertDialog.Builder(this)
-}
+fun Activity.getAlertDialogBuilder() = CustomDialogBuilder(this)
 
 fun Activity.showPickSecondsDialogHelper(
     curMinutes: Int, isSnoozePicker: Boolean = false, showSecondsAtCustomDialog: Boolean = false, showDuringDayOption: Boolean = false,

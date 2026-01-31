@@ -1,8 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/change_view_type_dialog_scrollview"
+<eightbitlab.com.blurview.BlurView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/blurView"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="@drawable/dialog_background_transparent">
+    <ScrollView
+        android:id="@+id/change_view_type_dialog_scrollview"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
 
     <LinearLayout
         android:id="@+id/change_view_type_dialog_holder"
@@ -23,6 +28,8 @@
                 android:id="@+id/change_view_type_dialog_radio_grid"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:buttonTint="@color/tx_dialog_confirm_text_color"
+                android:theme="@style/Theme.Common"
                 android:paddingTop="@dimen/medium_margin"
                 android:paddingBottom="@dimen/medium_margin"
                 android:text="@string/grid" />
@@ -31,6 +38,8 @@
                 android:id="@+id/change_view_type_dialog_radio_list"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:buttonTint="@color/tx_dialog_confirm_text_color"
+                android:theme="@style/Theme.Common"
                 android:paddingTop="@dimen/medium_margin"
                 android:paddingBottom="@dimen/medium_margin"
                 android:text="@string/list" />
@@ -39,3 +48,4 @@
 
     </LinearLayout>
 </ScrollView>
+</eightbitlab.com.blurview.BlurView>

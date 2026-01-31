@@ -1,8 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<com.goodwy.commons.views.MyScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/dialog_scrollview"
+<eightbitlab.com.blurview.BlurView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/blurView"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content">
+    android:layout_height="match_parent"
+    android:background="@drawable/dialog_background_transparent">
+    <com.goodwy.commons.views.MyScrollView
+        android:id="@+id/dialog_scrollview"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
 
     <RelativeLayout
         android:id="@+id/dialog_holder"
@@ -35,3 +40,4 @@
 
     </RelativeLayout>
 </com.goodwy.commons.views.MyScrollView>
+</eightbitlab.com.blurview.BlurView>

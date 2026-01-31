@@ -90,7 +90,7 @@ class BlurPopupMenu(
         blurView.setOverlayColor(context.getProperBlurOverlayColor())
         blurView.setupWith(blurTarget)
             .setFrameClearDrawable(windowBackground)
-            .setBlurRadius(8f)
+            .setBlurRadius(5f)
             .setBlurAutoUpdate(true)
 
         // Create menu items

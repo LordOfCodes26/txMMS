@@ -289,13 +289,12 @@
 
     <!-- Standardized Dialog Title Style -->
     <style name="DialogTitleStyle">
-        <item name="android:textSize">@dimen/actionbar_text_size</item>
-        <item name="android:textStyle">bold</item>
+        <item name="android:textSize">@dimen/tx_dialog_title_text_size</item>
+        <item name="android:textColor">@color/tx_dialog_confirm_text_color</item>
         <item name="android:gravity">start|center_vertical</item>
-        <item name="android:paddingStart">@dimen/big_margin</item>
         <item name="android:paddingTop">@dimen/big_margin</item>
-        <item name="android:paddingEnd">@dimen/big_margin</item>
-        <item name="android:paddingBottom">@dimen/normal_margin</item>
+        <item name="android:paddingHorizontal">@dimen/tx_dialog_padding_horizontal</item>
+        <item name="android:paddingBottom">@dimen/tx_dialog_padding_top</item>
     </style>
 
     <!-- Standardized Dialog Button Container Style -->

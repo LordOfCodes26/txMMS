@@ -4,5 +4,7 @@
     android:id="@+id/item_select_alarm_sound"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:buttonTint="@color/tx_dialog_confirm_text_color"
+    android:theme="@style/Theme.Common"
     android:paddingBottom="@dimen/activity_margin"
     android:paddingTop="@dimen/activity_margin"/>

@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<eightbitlab.com.blurview.BlurView
+<eightbitlab.com.blurview.BlurView xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/blurView"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    xmlns:android="http://schemas.android.com/apk/res/android">
+    android:background="@drawable/dialog_background_transparent">
 <LinearLayout
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
@@ -66,6 +66,8 @@
                 android:id="@+id/dialog_radio_seconds"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:buttonTint="@color/tx_dialog_confirm_text_color"
+                android:theme="@style/Theme.Common"
                 android:paddingTop="@dimen/activity_margin"
                 android:paddingBottom="@dimen/activity_margin"
                 android:text="@string/seconds_raw" />
@@ -74,6 +76,8 @@
                 android:id="@+id/dialog_radio_minutes"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:buttonTint="@color/tx_dialog_confirm_text_color"
+                android:theme="@style/Theme.Common"
                 android:paddingTop="@dimen/activity_margin"
                 android:paddingBottom="@dimen/activity_margin"
                 android:text="@string/minutes_raw" />
@@ -82,6 +86,8 @@
                 android:id="@+id/dialog_radio_hours"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:buttonTint="@color/tx_dialog_confirm_text_color"
+                android:theme="@style/Theme.Common"
                 android:paddingTop="@dimen/activity_margin"
                 android:paddingBottom="@dimen/activity_margin"
                 android:text="@string/hours_raw" />
@@ -90,6 +96,8 @@
                 android:id="@+id/dialog_radio_days"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:buttonTint="@color/tx_dialog_confirm_text_color"
+                android:theme="@style/Theme.Common"
                 android:paddingTop="@dimen/activity_margin"
                 android:paddingBottom="@dimen/activity_margin"
                 android:text="@string/days_raw" />

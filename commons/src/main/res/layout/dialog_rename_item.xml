@@ -1,10 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/rename_item_holder"
+<eightbitlab.com.blurview.BlurView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/blurView"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="@dimen/activity_margin">
+    android:background="@drawable/dialog_background_transparent">
+    <LinearLayout
+        android:id="@+id/rename_item_holder"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="@dimen/activity_margin">
 
     <com.goodwy.commons.views.MyTextInputLayout
         android:id="@+id/rename_item_title_hint"
@@ -40,3 +45,4 @@
 
     </com.goodwy.commons.views.MyTextInputLayout>
 </LinearLayout>
+</eightbitlab.com.blurview.BlurView>

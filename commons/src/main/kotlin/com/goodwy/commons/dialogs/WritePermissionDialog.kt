@@ -87,7 +87,7 @@ class WritePermissionDialog(activity: Activity, val writePermissionDialogMode: W
         blurView?.setOverlayColor(activity.getProperBlurOverlayColor())
         blurView?.setupWith(blurTarget)
             ?.setFrameClearDrawable(windowBackground)
-            ?.setBlurRadius(8f)
+            ?.setBlurRadius(5f)
             ?.setBlurAutoUpdate(true)
 
         var dialogTitle = R.string.confirm_storage_access_title

@@ -34,6 +34,8 @@
             android:id="@+id/rename_simple_radio_append"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:buttonTint="@color/tx_dialog_confirm_text_color"
+            android:theme="@style/Theme.Common"
             android:checked="true"
             android:paddingTop="@dimen/normal_margin"
             android:paddingBottom="@dimen/normal_margin"
@@ -43,6 +45,8 @@
             android:id="@+id/rename_simple_radio_prepend"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:buttonTint="@color/tx_dialog_confirm_text_color"
+            android:theme="@style/Theme.Common"
             android:paddingTop="@dimen/normal_margin"
             android:paddingBottom="@dimen/normal_margin"
             android:text="@string/prepend_filenames" />

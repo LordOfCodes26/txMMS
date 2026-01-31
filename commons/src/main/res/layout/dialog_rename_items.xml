@@ -1,11 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/rename_items_holder"
+<eightbitlab.com.blurview.BlurView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/blurView"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:paddingStart="@dimen/activity_margin"
-    android:paddingTop="@dimen/activity_margin"
-    android:paddingEnd="@dimen/activity_margin">
+    android:background="@drawable/dialog_background_transparent">
+    <RelativeLayout
+        android:id="@+id/rename_items_holder"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:paddingStart="@dimen/activity_margin"
+        android:paddingTop="@dimen/activity_margin"
+        android:paddingEnd="@dimen/activity_margin">
 
     <com.goodwy.commons.views.MyTextInputLayout
         android:id="@+id/rename_items_hint"
@@ -34,6 +39,8 @@
             android:id="@+id/rename_items_radio_append"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:buttonTint="@color/tx_dialog_confirm_text_color"
+            android:theme="@style/Theme.Common"
             android:checked="true"
             android:paddingTop="@dimen/normal_margin"
             android:paddingBottom="@dimen/normal_margin"
@@ -43,9 +50,12 @@
             android:id="@+id/rename_items_radio_prepend"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:buttonTint="@color/tx_dialog_confirm_text_color"
+            android:theme="@style/Theme.Common"
             android:paddingTop="@dimen/normal_margin"
             android:paddingBottom="@dimen/normal_margin"
             android:text="@string/prepend_filenames" />
 
     </RadioGroup>
 </RelativeLayout>
+</eightbitlab.com.blurview.BlurView>

@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<eightbitlab.com.blurview.BlurView
+<eightbitlab.com.blurview.BlurView xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/blurView"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    xmlns:android="http://schemas.android.com/apk/res/android">
+    android:background="@drawable/dialog_background_transparent">
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -11,9 +12,9 @@
 
         <com.goodwy.commons.views.MyTextView
             android:id="@+id/dialog_title"
+            style="@style/DialogTitleStyle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            style="@style/DialogTitleStyle"
             android:visibility="gone" />
 
         <ScrollView
@@ -25,18 +26,18 @@
                 android:id="@+id/dialog_radio_group"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:paddingLeft="@dimen/activity_margin"
+                android:paddingLeft="@dimen/normal_margin"
                 android:paddingTop="@dimen/normal_margin"
-                android:paddingRight="@dimen/activity_margin"
+                android:paddingRight="@dimen/normal_margin"
                 android:paddingBottom="@dimen/normal_margin" />
 
         </ScrollView>
 
         <LinearLayout
             android:id="@+id/buttons_container"
+            style="@style/DialogButtonContainerStyle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            style="@style/DialogButtonContainerStyle"
             android:visibility="gone">
 
             <com.google.android.material.button.MaterialButton

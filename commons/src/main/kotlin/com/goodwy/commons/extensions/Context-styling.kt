@@ -84,7 +84,7 @@ fun Context.updateTextColors(viewGroup: ViewGroup) {
         when (it) {
             is MyTextView -> it.setColors(textColor, primaryColor, backgroundColor)
             is MyAppCompatSpinner -> it.setColors(textColor, primaryColor, backgroundColor)
-            is MyCompatRadioButton -> it.setColors(textColor, accentColor, backgroundColor)
+//            is MyCompatRadioButton -> it.setColors(textColor, accentColor, backgroundColor)
             is MyAppCompatCheckbox -> it.setColors(textColor, accentColor, backgroundColor)
             is MyMaterialSwitch -> it.setColors(textColor, accentColor, backgroundColor)
             is MyEditText -> it.setColors(textColor, primaryColor, textCursorColor)
@@ -112,7 +112,16 @@ fun Context.getTimePickerDialogTheme() = when {
 }
 
 fun Context.getDatePickerDialogTheme() = when {
-    isDynamicTheme() -> R.style.MyDateTimePickerMaterialTheme
+    isDynamicTheme() -> com.android.common.R.style.MDialogStyleMinWidth
+    isBlackTheme() -> R.style.MyDialogTheme_Black
+    isLightTheme() -> R.style.MyDialogTheme_Light
+    isGrayTheme() -> R.style.MyDialogTheme_Gray
+    baseConfig.backgroundColor.getContrastColor() == Color.WHITE -> R.style.MyDialogTheme_Dark
+    else -> R.style.MyDialogTheme
+}
+
+fun Context.getDialogTheme() = when {
+    isDynamicTheme() -> com.android.common.R.style.MDialogStyleMinWidth
     isBlackTheme() -> R.style.MyDialogTheme_Black
     isLightTheme() -> R.style.MyDialogTheme_Light
     isGrayTheme() -> R.style.MyDialogTheme_Gray
