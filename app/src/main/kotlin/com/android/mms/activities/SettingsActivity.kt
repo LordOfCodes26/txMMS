@@ -34,6 +34,7 @@ import java.util.Locale
 class SettingsActivity : SimpleActivity() {
     private var blockedNumbersAtPause = -1
     private var recycleBinMessages = 0
+    private var currentlyPlayingRingtone: android.media.Ringtone? = null
     private val messagesFileType = "application/json"
     private val messageImportFileTypes = buildList {
         add("application/json")
@@ -74,8 +75,10 @@ class SettingsActivity : SimpleActivity() {
                         updateSystemNotificationSound(uri)
                         // Play the selected sound
                         try {
+                            stopCurrentlyPlayingRingtone()
                             val ringtone = RingtoneManager.getRingtone(this, uri)
                             ringtone?.play()
+                            currentlyPlayingRingtone = ringtone
                         } catch (e: Exception) {
                             showErrorToast(e)
                         }
@@ -101,8 +104,10 @@ class SettingsActivity : SimpleActivity() {
                         updateDeliveryReportSoundDisplay()
                         // Play the selected sound
                         try {
+                            stopCurrentlyPlayingRingtone()
                             val ringtone = RingtoneManager.getRingtone(this, uri)
                             ringtone?.play()
+                            currentlyPlayingRingtone = ringtone
                         } catch (e: Exception) {
                             showErrorToast(e)
                         }
@@ -155,6 +160,7 @@ class SettingsActivity : SimpleActivity() {
 
     override fun onResume() {
         super.onResume()
+        stopCurrentlyPlayingRingtone()
         setupTopAppBar(binding.settingsAppbar, NavigationIcon.Arrow)
 
         setupCustomizeColors()
@@ -347,7 +353,21 @@ class SettingsActivity : SimpleActivity() {
 
     override fun onPause() {
         super.onPause()
+        stopCurrentlyPlayingRingtone()
         blockedNumbersAtPause = getBlockedNumbers().hashCode()
+    }
+
+    private fun stopCurrentlyPlayingRingtone() {
+        try {
+            currentlyPlayingRingtone?.let {
+                if (it.isPlaying) {
+                    it.stop()
+                }
+            }
+            currentlyPlayingRingtone = null
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     private fun setupCustomizeColors() = binding.apply {
