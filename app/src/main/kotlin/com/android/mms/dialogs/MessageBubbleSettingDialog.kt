@@ -98,12 +98,22 @@ class MessageBubbleSettingDialog(
             setText(com.goodwy.strings.R.string.speech_bubble)
         }
 
-        // Setup custom button inside BlurView
+        // Setup custom buttons inside BlurView
         val primaryColor = activity.getProperPrimaryColor()
         val buttonsContainer = binding.root.findViewById<android.widget.LinearLayout>(com.goodwy.commons.R.id.buttons_container)
         val positiveButton = binding.root.findViewById<com.google.android.material.button.MaterialButton>(com.goodwy.commons.R.id.positive_button)
+        val negativeButton = binding.root.findViewById<com.google.android.material.button.MaterialButton>(com.goodwy.commons.R.id.negative_button)
 
         buttonsContainer?.visibility = android.view.View.VISIBLE
+
+        negativeButton?.apply {
+            visibility = android.view.View.VISIBLE
+            text = activity.resources.getString(com.goodwy.commons.R.string.cancel)
+            setTextColor(primaryColor)
+            setOnClickListener {
+                dialog?.dismiss()
+            }
+        }
 
         positiveButton?.apply {
             visibility = android.view.View.VISIBLE

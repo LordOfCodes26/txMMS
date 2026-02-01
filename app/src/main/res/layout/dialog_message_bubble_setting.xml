@@ -487,10 +487,19 @@
         android:visibility="visible">
 
         <com.google.android.material.button.MaterialButton
+            android:id="@+id/negative_button"
+            style="@style/Widget.Material3.Button.TextButton.Dialog"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/cancel"
+            android:visibility="visible" />
+
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/positive_button"
             style="@style/Widget.Material3.Button.TextButton.Dialog"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/normal_margin"
             android:text="@string/ok"
             android:visibility="visible" />
 
