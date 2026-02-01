@@ -46,7 +46,7 @@ class ExportQuickTextsDialog(
                 blurView?.setOverlayColor(activity.getProperBlurOverlayColor())
                 blurView?.setupWith(blurTarget)
                     ?.setFrameClearDrawable(windowBackground)
-                    ?.setBlurRadius(8f)
+                    ?.setBlurRadius(5f)
                     ?.setBlurAutoUpdate(true)
                 
                 exportQuickTextsFolder.text = activity.humanizePath(realPath)

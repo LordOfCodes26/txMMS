@@ -24,7 +24,7 @@ class AddQuickTextDialog(val activity: BaseSimpleActivity, private val originalT
             blurView?.setOverlayColor(activity.getProperBlurOverlayColor())
             blurView?.setupWith(blurTarget)
                 ?.setFrameClearDrawable(windowBackground)
-                ?.setBlurRadius(8f)
+                ?.setBlurRadius(5f)
                 ?.setBlurAutoUpdate(true)
             
             if (originalText != null) {

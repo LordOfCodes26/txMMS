@@ -33,7 +33,7 @@ class MessageDetailsDialog(val activity: BaseSimpleActivity, val message: Messag
         blurView?.setOverlayColor(activity.getProperBlurOverlayColor())
         blurView?.setupWith(blurTarget)
             ?.setFrameClearDrawable(windowBackground)
-            ?.setBlurRadius(8f)
+            ?.setBlurRadius(5f)
             ?.setBlurAutoUpdate(true)
 
         addProperty(R.string.message_type, if (message.isMMS) "MMS" else "SMS")
