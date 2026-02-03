@@ -67,6 +67,7 @@ class NewConversationActivity : SimpleActivity() {
     companion object {
         private const val PICK_SAVE_FILE_INTENT = 1008
         private const val PICK_SAVE_DIR_INTENT = 1009
+        private const val REQUEST_CODE_CONTACT_PICKER = 1010
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -180,6 +181,21 @@ class NewConversationActivity : SimpleActivity() {
             val speechToText = Objects.requireNonNull(res)[0]
             if (speechToText.isNotEmpty()) {
                 messageHolderHelper?.setMessageText(speechToText)
+            }
+        } else if (requestCode == REQUEST_CODE_CONTACT_PICKER && resultData != null) {
+            val displayTexts = ContactPickerActivity.getSelectedDisplayTexts(resultData)
+            val normalizedNumbers = ContactPickerActivity.getSelectedPhoneNumbers(resultData)
+            if (displayTexts.size == normalizedNumbers.size) {
+                isUpdatingChips = true
+                for (i in displayTexts.indices) {
+                    val displayText = displayTexts[i]
+                    val normalizedNumber = normalizedNumbers[i]
+                    if (displayText.isNotEmpty() && normalizedNumber.isNotEmpty() && !chipDisplayToPhoneNumber.containsKey(displayText)) {
+                        chipDisplayToPhoneNumber[displayText] = normalizedNumber
+                        binding.newConversationAddress.addChip(displayText)
+                    }
+                }
+                isUpdatingChips = false
             }
         } else {
             messageHolderHelper?.handleActivityResult(requestCode, resultCode, resultData)
@@ -305,8 +321,9 @@ class NewConversationActivity : SimpleActivity() {
             setupAdapter(filteredContacts)
         }
 
-        binding.newConversationAddress.setSpeechToTextButtonVisible(isSpeechToTextAvailable)
+        binding.newConversationAddress.setSpeechToTextButtonVisible(false)
         binding.newConversationAddress.setSpeechToTextButtonClickListener { speechToText() }
+        binding.newConversationAddress.setAddressBookButtonClickListener { launchContactPicker() }
 
         binding.noContactsPlaceholder2.setOnClickListener {
             handlePermission(PERMISSION_READ_CONTACTS) {
@@ -953,6 +970,17 @@ class NewConversationActivity : SimpleActivity() {
         Intent(Intent.ACTION_PICK).apply {
             type = ContactsContract.Contacts.CONTENT_TYPE
             launchActivityForResult(this, MessageHolderHelper.PICK_CONTACT_INTENT)
+        }
+    }
+
+    private fun launchContactPicker() {
+        handlePermission(PERMISSION_READ_CONTACTS) { granted ->
+            if (granted) {
+                hideKeyboard()
+                startActivityForResult(Intent(this, ContactPickerActivity::class.java), REQUEST_CODE_CONTACT_PICKER)
+            } else {
+                toast(com.goodwy.commons.R.string.no_contacts_permission, length = Toast.LENGTH_LONG)
+            }
         }
     }
     

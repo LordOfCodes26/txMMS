@@ -38,6 +38,21 @@
             android:textCursorDrawable="@null" />
 
         <ImageView
+            android:id="@+id/chips_address_book_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignTop="@+id/chips_edit_text"
+            android:layout_alignBottom="@+id/chips_edit_text"
+            android:layout_alignEnd="@+id/chips_edit_text"
+            android:layout_marginEnd="@dimen/medium_margin"
+            android:background="?selectableItemBackgroundBorderless"
+            android:alpha="0.4"
+            android:contentDescription="@string/search_contacts"
+            android:src="@drawable/ic_people_vector"
+            android:visibility="visible"
+            tools:tint="@color/dark_grey" />
+
+        <ImageView
             android:id="@+id/chips_speech_to_text_button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -50,7 +65,6 @@
             android:contentDescription="@string/delete"
             android:src="@drawable/ic_microphone_vector"
             android:visibility="gone"
-            tools:visibility="visible"
             tools:tint="@color/dark_grey" />
 
         <ImageView

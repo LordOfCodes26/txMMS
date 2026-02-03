@@ -27,6 +27,7 @@ class ChipsInputView @JvmOverloads constructor(
     private val chipGroup: ChipGroup
     private val editText: MyEditText
     private val clearButton: ImageView
+    private val addressBookButton: ImageView
     private val speechToTextButton: ImageView
 
     private val chips = mutableListOf<String>()
@@ -53,6 +54,7 @@ class ChipsInputView @JvmOverloads constructor(
         chipGroup = rootView.findViewById(R.id.chips_group)
         editText = rootView.findViewById(R.id.chips_edit_text)
         clearButton = rootView.findViewById(R.id.chips_clear_button)
+        addressBookButton = rootView.findViewById(R.id.chips_address_book_button)
         speechToTextButton = rootView.findViewById(R.id.chips_speech_to_text_button)
 
         setupEditText()
@@ -100,8 +102,12 @@ class ChipsInputView @JvmOverloads constructor(
             editText.requestFocus()
         }
 
+        addressBookButton.setOnClickListener {
+            // Handled by setAddressBookButtonClickListener
+        }
+
         speechToTextButton.setOnClickListener {
-            // This will be handled by the activity
+            // Handled by setSpeechToTextButtonClickListener
         }
     }
 
@@ -183,6 +189,10 @@ class ChipsInputView @JvmOverloads constructor(
         speechToTextButton.setOnClickListener { listener() }
     }
 
+    fun setAddressBookButtonClickListener(listener: () -> Unit) {
+        addressBookButton.setOnClickListener { listener() }
+    }
+
     fun setColors(textColor: Int, accentColor: Int, backgroundColor: Int) {
         editText.setColors(textColor, accentColor, backgroundColor)
         
@@ -199,6 +209,7 @@ class ChipsInputView @JvmOverloads constructor(
         }
 
         clearButton.imageTintList = ColorStateList.valueOf(textColor.adjustAlpha(0.4f))
+        addressBookButton.imageTintList = ColorStateList.valueOf(textColor.adjustAlpha(0.4f))
         speechToTextButton.imageTintList = ColorStateList.valueOf(textColor.adjustAlpha(0.4f))
     }
 
@@ -229,11 +240,13 @@ class ChipsInputView @JvmOverloads constructor(
     private fun updateButtonsVisibility(text: String) {
         val hasText = text.isNotEmpty()
         clearButton.visibility = if (hasText) View.VISIBLE else View.GONE
-        speechToTextButton.visibility = if (!hasText) View.VISIBLE else View.GONE
+        addressBookButton.visibility = if (!hasText) View.VISIBLE else View.GONE
+        speechToTextButton.visibility = View.GONE
     }
 
     fun getEditText(): MyEditText = editText
     fun getClearButton(): ImageView = clearButton
+    fun getAddressBookButton(): ImageView = addressBookButton
     fun getSpeechToTextButton(): ImageView = speechToTextButton
 }
 
