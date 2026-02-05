@@ -65,15 +65,15 @@
             </eightbitlab.com.blurview.BlurTarget>
         </com.goodwy.commons.views.BounceScrollView>
 
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="340px"
-            android:layout_gravity="top"
-            android:background="@drawable/bg_cmn_appbar_up"/>
+<!--        <View-->
+<!--            android:layout_width="match_parent"-->
+<!--            android:layout_height="340px"-->
+<!--            android:layout_gravity="top"-->
+<!--            android:background="@drawable/bg_cmn_appbar_up"/>-->
 
         <com.google.android.material.appbar.AppBarLayout
             android:id="@+id/app_bar_layout"
-            android:background="@android:color/transparent"
+            android:background="@drawable/bg_cmn_appbar_up"
             android:layout_width="match_parent"
             android:layout_height="125dp"
             android:paddingBottom="5dp">
@@ -114,6 +114,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="@dimen/tx_top_bar_toolbar_height"
                     android:layout_marginTop="@dimen/tx_top_bar_toolbar_margin_top"
+                    android:background="@android:color/transparent"
                     android:gravity="bottom"
                     android:visibility="visible"
                     app:layout_collapseMode="pin"
