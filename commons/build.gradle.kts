@@ -163,7 +163,6 @@ dependencies {
 
     // add tx common library
     implementation(files("libs/QmBlurView-release.aar"))
-    api(files("libs/library-release.aar"))
     api(files("libs/common-release.aar"))
     implementation(files("libs/AndroidLiquidGlassView-release.aar"))
 }
