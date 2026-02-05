@@ -1,5 +1,6 @@
 package com.android.mms.adapters
 
+import android.graphics.drawable.GradientDrawable
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -8,78 +9,139 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.android.mms.R
-import com.android.mms.activities.SimpleActivity
-import com.goodwy.commons.extensions.applyColorFilter
-import com.goodwy.commons.extensions.beVisible
-import com.goodwy.commons.extensions.getProperTextColor
-import com.goodwy.commons.helpers.SimpleContactsHelper
-import com.goodwy.commons.models.PhoneNumber
-import com.goodwy.commons.models.SimpleContact
+import com.android.mms.models.Contact
 
 class ContactPickerAdapter(
-    private val activity: SimpleActivity,
-    private var items: ArrayList<ContactPhonePair>,
-    private val selectedPositions: MutableSet<Int>,
-    private val listener: (Int, Boolean) -> Unit
-) : RecyclerView.Adapter<ContactPickerAdapter.ViewHolder>() {
+    private val context: android.content.Context
+) : RecyclerView.Adapter<ContactPickerAdapter.ContactViewHolder>() {
 
-    class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        val image: ImageView = view.findViewById(R.id.item_contact_picker_image)
-        val name: TextView = view.findViewById(R.id.item_contact_picker_name)
-        val number: TextView = view.findViewById(R.id.item_contact_picker_number)
-        val checkbox: CheckBox = view.findViewById(R.id.item_contact_picker_checkbox)
-    }
+    private var contacts = mutableListOf<Contact>()
+    private val selectedPositions = mutableSetOf<Int>()
+    private var listener: ContactPickerAdapterListener? = null
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ContactViewHolder {
         val view = LayoutInflater.from(parent.context)
             .inflate(R.layout.item_contact_picker, parent, false)
-        return ViewHolder(view)
+        return ContactViewHolder(view)
     }
 
-    override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        val pair = items[position]
-        val contact = pair.contact
-        val phoneNumber = pair.phoneNumber
+    override fun onBindViewHolder(holder: ContactViewHolder, position: Int) {
+        val contact = contacts[position]
+        holder.nameTextView.text = contact.name
+        holder.checkBox.isChecked = selectedPositions.contains(position)
 
-        holder.name.text = contact.name
-        holder.number.text = phoneNumber.value
-        holder.number.beVisible()
-        holder.checkbox.isChecked = selectedPositions.contains(position)
-
-        if (contact.photoUri.isNotEmpty()) {
-            SimpleContactsHelper(activity).loadContactImage(
-                contact.photoUri,
-                holder.image,
-                contact.name
-            )
+        if (contact.icon != -1) {
+            holder.avatarImageView.setImageResource(contact.icon)
+            holder.avatarImageView.visibility = View.VISIBLE
+            holder.initialTextView.visibility = View.GONE
+            holder.avatarBackgroundView.visibility = View.GONE
         } else {
-            holder.image.setImageResource(com.goodwy.commons.R.drawable.ic_person_vector)
-            holder.image.applyColorFilter(activity.getProperTextColor())
+            holder.avatarImageView.visibility = View.GONE
+            holder.initialTextView.visibility = View.VISIBLE
+            holder.avatarBackgroundView.visibility = View.VISIBLE
+
+            if (contact.name.isNotEmpty()) {
+                val initial = contact.name.uppercase().first().toString()
+                holder.initialTextView.text = initial
+                val colors = getGradientColorsForInitial(initial)
+                val gradientDrawable = GradientDrawable(
+                    GradientDrawable.Orientation.TL_BR,
+                    colors
+                )
+                gradientDrawable.shape = GradientDrawable.OVAL
+                holder.avatarBackgroundView.background = gradientDrawable
+            }
         }
 
         holder.itemView.setOnClickListener {
-            val isSelected = !selectedPositions.contains(position)
-            toggleSelection(position, isSelected)
-            listener(position, isSelected)
+            val isChecked = !holder.checkBox.isChecked
+            holder.checkBox.isChecked = isChecked
+            if (isChecked) selectedPositions.add(position) else selectedPositions.remove(position)
+            listener?.onContactToggled(position, isChecked)
         }
 
-        holder.checkbox.isClickable = false
-        holder.checkbox.isFocusable = false
-    }
-
-    private fun toggleSelection(position: Int, isSelected: Boolean) {
-        if (isSelected) {
-            selectedPositions.add(position)
-        } else {
-            selectedPositions.remove(position)
+        holder.checkBox.setOnClickListener {
+            val isChecked = holder.checkBox.isChecked
+            if (isChecked) selectedPositions.add(position) else selectedPositions.remove(position)
+            listener?.onContactToggled(position, isChecked)
         }
-        notifyItemChanged(position)
     }
 
-    override fun getItemCount(): Int = items.size
+    override fun getItemCount(): Int = contacts.size
 
-    fun setItems(newItems: ArrayList<ContactPhonePair>) {
-        items = newItems
+    fun setItems(newContacts: List<Contact>?) {
+        contacts = (newContacts ?: emptyList()).toMutableList()
         notifyDataSetChanged()
+    }
+
+    fun setItems(newContacts: List<Contact>?, newSelectedPositions: Set<Int>?) {
+        contacts = (newContacts ?: emptyList()).toMutableList()
+        selectedPositions.clear()
+        selectedPositions.addAll(newSelectedPositions ?: emptySet())
+        notifyDataSetChanged()
+    }
+
+    fun addItems(newContacts: List<Contact>, newSelectedPositions: Set<Int>?) {
+        if (newContacts.isEmpty()) return
+        val startPosition = contacts.size
+        contacts.addAll(newContacts)
+        newSelectedPositions?.forEach { pos ->
+            selectedPositions.add(startPosition + pos)
+        }
+        notifyItemRangeInserted(startPosition, newContacts.size)
+    }
+
+    fun setListener(l: ContactPickerAdapterListener?) {
+        listener = l
+    }
+
+    interface ContactPickerAdapterListener {
+        fun onContactToggled(position: Int, isSelected: Boolean)
+    }
+
+    private fun getGradientColorsForInitial(initial: String): IntArray {
+        val firstChar = initial.firstOrNull() ?: return intArrayOf(0xFF007AFF.toInt(), 0xFF5AC8FA.toInt())
+        val index = when {
+            firstChar in 'A'..'Z' -> firstChar - 'A'
+            firstChar in '0'..'9' -> return intArrayOf(0xFF8E8E93.toInt(), 0xFFAEAEB2.toInt())
+            else -> 0
+        }
+        val colorPairs = arrayOf(
+            intArrayOf(0xFF007AFF.toInt(), 0xFF5AC8FA.toInt()),
+            intArrayOf(0xFF5856D6.toInt(), 0xFFAF52DE.toInt()),
+            intArrayOf(0xFFFF2D55.toInt(), 0xFFFF3B30.toInt()),
+            intArrayOf(0xFFFF9500.toInt(), 0xFFFFCC00.toInt()),
+            intArrayOf(0xFF34C759.toInt(), 0xFF30D158.toInt()),
+            intArrayOf(0xFF007AFF.toInt(), 0xFF5AC8FA.toInt()),
+            intArrayOf(0xFF5856D6.toInt(), 0xFFAF52DE.toInt()),
+            intArrayOf(0xFFFF2D55.toInt(), 0xFFFF3B30.toInt()),
+            intArrayOf(0xFFFF9500.toInt(), 0xFFFFCC00.toInt()),
+            intArrayOf(0xFF34C759.toInt(), 0xFF30D158.toInt()),
+            intArrayOf(0xFF007AFF.toInt(), 0xFF5AC8FA.toInt()),
+            intArrayOf(0xFF5856D6.toInt(), 0xFFAF52DE.toInt()),
+            intArrayOf(0xFFFF2D55.toInt(), 0xFFFF3B30.toInt()),
+            intArrayOf(0xFFFF9500.toInt(), 0xFFFFCC00.toInt()),
+            intArrayOf(0xFF34C759.toInt(), 0xFF30D158.toInt()),
+            intArrayOf(0xFF007AFF.toInt(), 0xFF5AC8FA.toInt()),
+            intArrayOf(0xFF5856D6.toInt(), 0xFFAF52DE.toInt()),
+            intArrayOf(0xFFFF2D55.toInt(), 0xFFFF3B30.toInt()),
+            intArrayOf(0xFFFF9500.toInt(), 0xFFFFCC00.toInt()),
+            intArrayOf(0xFF34C759.toInt(), 0xFF30D158.toInt()),
+            intArrayOf(0xFF007AFF.toInt(), 0xFF5AC8FA.toInt()),
+            intArrayOf(0xFF5856D6.toInt(), 0xFFAF52DE.toInt()),
+            intArrayOf(0xFFFF2D55.toInt(), 0xFFFF3B30.toInt()),
+            intArrayOf(0xFFFF9500.toInt(), 0xFFFFCC00.toInt()),
+            intArrayOf(0xFF34C759.toInt(), 0xFF30D158.toInt()),
+            intArrayOf(0xFF007AFF.toInt(), 0xFF5AC8FA.toInt())
+        )
+        return colorPairs[index % colorPairs.size]
+    }
+
+    class ContactViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+        val nameTextView: TextView = itemView.findViewById(R.id.tv_contact_name)
+        val initialTextView: TextView = itemView.findViewById(R.id.tv_contact_initial)
+        val avatarImageView: ImageView = itemView.findViewById(R.id.iv_contact_avatar)
+        val avatarBackgroundView: View = itemView.findViewById(R.id.v_avatar_background)
+        val checkBox: CheckBox = itemView.findViewById(R.id.cb_contact_select)
     }
 }
