@@ -420,7 +420,7 @@ class CustomActionModeToolbar @JvmOverloads constructor(
             
             // Set default overflow icon if menu button is visible and no icon is set
             if (hasOverflowItems && binding.menuButton.drawable == null) {
-                val overflowIcon = ContextCompat.getDrawable(context, R.drawable.ic_three_dots_vector)
+                val overflowIcon = ContextCompat.getDrawable(context, com.android.common.R.drawable.ic_cmn_more)
                 overflowIcon?.let {
                     // Use cached text color or get and cache it
                     if (cachedTextColor == -1) {

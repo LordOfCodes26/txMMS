@@ -33,9 +33,9 @@
         android:background="@drawable/search_bg"
         android:paddingStart="@dimen/normal_margin"
         android:paddingEnd="@dimen/normal_margin"
-        android:textSize="@dimen/big_text_size"
-        android:drawableStart="@drawable/ic_search_vector"
-        android:drawableEnd="@drawable/ic_clear_round"
+        android:textSize="@dimen/normal_text_size"
+        android:drawableStart="@drawable/ic_cmn_search"
+        android:drawableEnd="@drawable/ic_cmn_search_close"
         android:drawablePadding="@dimen/smaller_margin"
         tools:text="Search text" />
 

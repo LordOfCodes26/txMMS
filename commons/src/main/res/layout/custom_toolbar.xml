@@ -15,7 +15,7 @@
         android:orientation="horizontal"
         tools:ignore="UselessParent">
 
-        <ImageView
+        <com.android.common.view.MImageButton
             android:id="@+id/navigationIconView"
             android:layout_width="@dimen/medium_icon_size"
             android:layout_height="@dimen/medium_icon_size"
@@ -26,7 +26,7 @@
             android:background="?android:selectableItemBackgroundBorderless"
             android:clickable="true"
             android:focusable="true"
-            android:paddingVertical="@dimen/smaller_margin"
+            android:paddingVertical="@dimen/icon_padding"
             android:scaleType="centerInside"
             android:visibility="gone"
             tools:visibility="visible" />
@@ -67,7 +67,7 @@
             android:gravity="center_vertical|end"
             android:visibility="gone" />
 
-        <ImageView
+        <com.android.common.view.MImageButton
             android:id="@+id/menuButton"
             android:layout_width="@dimen/medium_icon_size"
             android:layout_height="@dimen/medium_icon_size"
@@ -75,7 +75,7 @@
             android:layout_centerVertical="true"
             android:layout_marginEnd="@dimen/medium_margin"
             android:adjustViewBounds="true"
-            android:padding="@dimen/small_margin"
+            android:padding="@dimen/icon_padding"
             android:background="?android:selectableItemBackgroundBorderless"
             android:clickable="true"
             android:focusable="true"

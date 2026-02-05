@@ -40,7 +40,7 @@ fun Context.getProperTextColor() = when {
 }
 
 fun Context.getProperBackgroundColor() = when {
-    isDynamicTheme() -> resources.getColor(R.color.you_background_color, theme)
+    isDynamicTheme() -> resources.getColor(com.android.common.R.color.tx_main_background_color, theme)
     else -> baseConfig.backgroundColor
 }
 

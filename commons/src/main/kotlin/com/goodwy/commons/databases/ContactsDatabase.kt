@@ -11,19 +11,23 @@ import com.goodwy.commons.helpers.Converters
 import com.goodwy.commons.helpers.FIRST_CONTACT_ID
 import com.goodwy.commons.helpers.FIRST_GROUP_ID
 import com.goodwy.commons.helpers.getEmptyLocalContact
+import com.goodwy.commons.interfaces.ContactPosterDao
 import com.goodwy.commons.interfaces.ContactsDao
 import com.goodwy.commons.interfaces.GroupsDao
+import com.goodwy.commons.models.contacts.ContactPoster
 import com.goodwy.commons.models.contacts.Group
 import com.goodwy.commons.models.contacts.LocalContact
 import java.util.concurrent.Executors
 
-@Database(entities = [LocalContact::class, Group::class], version = 4, exportSchema = true)
+@Database(entities = [LocalContact::class, Group::class, ContactPoster::class], version = 5, exportSchema = true)
 @TypeConverters(Converters::class)
 abstract class ContactsDatabase : RoomDatabase() {
 
     abstract fun ContactsDao(): ContactsDao
 
     abstract fun GroupsDao(): GroupsDao
+
+    abstract fun ContactPosterDao(): ContactPosterDao
 
     companion object {
         private var db: ContactsDatabase? = null
@@ -42,6 +46,7 @@ abstract class ContactsDatabase : RoomDatabase() {
                             .addMigrations(MIGRATION_1_2)
                             .addMigrations(MIGRATION_2_3)
                             .addMigrations(MIGRATION_3_4)
+                            .addMigrations(MIGRATION_4_5)
                             .build()
                     }
                 }
@@ -92,6 +97,30 @@ abstract class ContactsDatabase : RoomDatabase() {
             override fun migrate(database: SupportSQLiteDatabase) {
                 database.apply {
                     execSQL("ALTER TABLE contacts ADD COLUMN relations TEXT NOT NULL DEFAULT ''")
+                }
+            }
+        }
+
+        private val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.apply {
+                    // Drop table if it exists (in case it was created with wrong schema)
+                    execSQL("DROP TABLE IF EXISTS contact_posters")
+                    execSQL("""
+                        CREATE TABLE contact_posters (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            contact_id INTEGER NOT NULL,
+                            image_uri TEXT NOT NULL,
+                            scale REAL NOT NULL,
+                            offset_x REAL NOT NULL,
+                            offset_y REAL NOT NULL,
+                            text_color INTEGER NOT NULL,
+                            font_size REAL NOT NULL,
+                            font_weight INTEGER NOT NULL,
+                            text_alignment TEXT NOT NULL
+                        )
+                    """.trimIndent())
+                    execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_contact_posters_contact_id ON contact_posters(contact_id)")
                 }
             }
         }

@@ -18,7 +18,7 @@
     <dimen name="about_margin">20dp</dimen>
     <dimen name="dialpad_bottom_margin">50dp</dimen>
 
-    <dimen name="material_dialog_corner_radius">28dp</dimen>
+    <dimen name="material_dialog_corner_radius">12dp</dimen>
     <dimen name="dialog_corner_radius">12dp</dimen>
     <dimen name="material_button_corner_radius">24dp</dimen>
     <dimen name="app_logo">80dp</dimen>
@@ -35,7 +35,7 @@
     <dimen name="colorpicker_color_height">70dp</dimen>
 
     <dimen name="normal_icon_size">48dp</dimen>
-    <dimen name="medium_icon_size">32dp</dimen>
+    <dimen name="medium_icon_size">@dimen/tx_toolbar_icon_size</dimen>
     <dimen name="fingerprint_size">72dp</dimen>
     <dimen name="fab_size">56dp</dimen>
     <dimen name="secondary_fab_bottom_margin">76dp</dimen>
@@ -133,4 +133,7 @@
 
     <!--Swipe-->
     <dimen name="swipe_width">180dp</dimen>
+
+    <!--padding-->
+    <dimen name="icon_padding">@dimen/tx_toolbar_icon_padding</dimen>
 </resources>

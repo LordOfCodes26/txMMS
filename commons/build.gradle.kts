@@ -162,7 +162,7 @@ dependencies {
     implementation("com.github.Dimezis:BlurView:version-3.2.0")
 
     // add tx common library
-    implementation(files("libs/QmBlurView-release.aar"))
-    api(files("libs/common-release.aar"))
-    implementation(files("libs/AndroidLiquidGlassView-release.aar"))
+    implementation(files("libs/QmBlurView.aar"))
+    api(files("libs/common.aar"))
+    implementation(files("libs/AndroidLiquidGlassView.aar"))
 }
