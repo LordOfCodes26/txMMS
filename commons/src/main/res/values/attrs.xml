@@ -24,4 +24,8 @@
         <attr name="disableBounce" format="boolean" />
         <attr name="nestedScrollingEnabled" format="boolean" />
     </declare-styleable>
+
+    <declare-styleable name="BlurAppBarLayout">
+        <attr name="appBarBackground" format="reference" />
+    </declare-styleable>
 </resources>

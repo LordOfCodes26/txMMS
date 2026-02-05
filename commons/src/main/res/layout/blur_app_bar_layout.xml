@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<merge xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <com.google.android.material.appbar.CollapsingToolbarLayout
+        android:id="@+id/collapsing_toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:contentScrim="@android:color/transparent"
+        app:statusBarScrim="@android:color/transparent"
+        app:collapsedTitleGravity="center"
+        app:expandedTitleTextAppearance="@style/TextAppearance.AppCompat.Title"
+        app:layout_scrollFlags="scroll|exitUntilCollapsed"
+        app:titleEnabled="true">
+
+        <LinearLayout
+            android:layout_marginStart="@dimen/tx_top_bar_margin_left"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:gravity="bottom"
+            android:layout_gravity="bottom"
+            app:layout_collapseMode="pin">
+
+            <TextView
+                android:id="@+id/tv_title"
+                android:layout_width="wrap_content"
+                android:layout_height="@dimen/tx_top_bar_toolbar_margin_top"
+                android:layout_gravity="bottom"
+                android:gravity="center|start"
+                android:layout_marginBottom="2dp"
+                android:textColor="@color/tx_title_text_color"
+                android:textSize="@dimen/tx_bigger_text_size" />
+        </LinearLayout>
+
+        <androidx.appcompat.widget.Toolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/tx_top_bar_toolbar_height"
+            android:layout_marginTop="@dimen/tx_top_bar_toolbar_margin_top"
+            android:background="@android:color/transparent"
+            android:gravity="bottom"
+            android:visibility="visible"
+            app:layout_collapseMode="pin"
+            app:popupTheme="@style/ThemeOverlay.AppCompat.Light" >
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                >
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="5dp"
+                    android:layout_marginEnd="@dimen/tx_top_bar_margin_right"
+                    android:gravity="end">
+                    <com.android.common.view.MImageButton
+                        android:id="@+id/iv_search_btn"
+                        android:layout_width="wrap_content"
+                        android:layout_marginEnd="@dimen/tx_toolbar_icon_marginEnd"
+                        android:layout_height="@dimen/tx_toolbar_search_height"
+                        android:layout_gravity="center"
+                        android:clickable="true"
+                        android:padding="@dimen/tx_toolbar_icon_padding"
+                        android:src="@drawable/ic_cmn_search"
+                        android:tint="@color/tx_title_text_color"
+                        />
+                </LinearLayout>
+
+                <FrameLayout
+                    android:visibility="invisible"
+                    android:id="@+id/fl_search_container"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@android:color/transparent"
+                    >
+
+                    <FrameLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:clickable="true">
+
+                        <com.android.common.view.MSearchView
+                            android:id="@+id/m_search_view"
+                            android:layout_width="match_parent"
+                            android:layout_height="40dp"
+                            android:layout_gravity="bottom"
+                            android:layout_marginEnd="@dimen/tx_top_bar_margin_left" />
+                    </FrameLayout>
+
+                </FrameLayout>
+            </FrameLayout>
+
+        </androidx.appcompat.widget.Toolbar>
+
+        <FrameLayout
+            android:id="@+id/search_bar"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_gravity="bottom|center"
+            app:cardCornerRadius="3dp"
+            android:background="#00FFFFFF">
+
+        </FrameLayout>
+
+    </com.google.android.material.appbar.CollapsingToolbarLayout>
+
+</merge>

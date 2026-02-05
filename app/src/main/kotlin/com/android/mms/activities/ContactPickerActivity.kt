@@ -9,8 +9,6 @@ import android.os.Bundle
 import android.provider.ContactsContract
 import android.view.View
 import android.view.ViewGroup
-import android.widget.FrameLayout
-import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -21,13 +19,11 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.android.common.helper.IconItem
-import com.android.common.view.MImageButton
 import com.android.common.view.MRippleToolBar
-import com.android.common.view.MSearchView
 import com.android.mms.R
 import com.android.mms.adapters.ContactPickerAdapter
 import com.android.mms.models.Contact
-import com.google.android.material.appbar.AppBarLayout
+import com.goodwy.commons.views.BlurAppBarLayout
 import eightbitlab.com.blurview.BlurTarget
 
 class ContactPickerActivity : AppCompatActivity() {
@@ -65,9 +61,7 @@ class ContactPickerActivity : AppCompatActivity() {
     }
 
     private var scrollView: View? = null
-    private var appBarLayout: AppBarLayout? = null
-    private var titleView: TextView? = null
-    private var verticalOffset = 0
+    private var blurAppBarLayout: BlurAppBarLayout? = null
     private var totalOffset = 0
     private var rootView: View? = null
     private var contactRecyclerView: RecyclerView? = null
@@ -75,9 +69,6 @@ class ContactPickerActivity : AppCompatActivity() {
     private val allContacts = ArrayList<Contact>()
     private val filteredContacts = ArrayList<Contact>()
     private val selectedPositions = HashSet<Int>()
-    private var searchBtn: MImageButton? = null
-    private var searchView: MSearchView? = null
-    private var searchContainer: FrameLayout? = null
     private var searchString = ""
     private var contactsCursor: android.database.Cursor? = null
     private var isLoadingMore = false
@@ -153,25 +144,23 @@ class ContactPickerActivity : AppCompatActivity() {
     }
 
     private fun initBouncy() {
-        appBarLayout = findViewById(R.id.app_bar_layout)
+        blurAppBarLayout = findViewById(R.id.blur_app_bar_layout)
         scrollView = findViewById(R.id.nest_scroll)
-        titleView = findViewById(R.id.tv_title)
-        appBarLayout?.post {
-            totalOffset = appBarLayout?.totalScrollRange ?: 0
+        blurAppBarLayout?.post {
+            totalOffset = blurAppBarLayout?.totalScrollRange ?: 0
         }
     }
 
     private fun initBouncyListener() {
-        appBarLayout?.addOnOffsetChangedListener { _, verticalOffset ->
-            this.verticalOffset = verticalOffset
-            val height = appBarLayout?.height ?: 1
-            titleView?.scaleX = (1 + 0.7f * verticalOffset / height)
-            titleView?.scaleY = (1 + 0.7f * verticalOffset / height)
+        blurAppBarLayout?.setupOffsetListener { verticalOffset, height ->
+            val h = if (height > 0) height else 1
+            blurAppBarLayout?.titleView?.scaleX = (1 + 0.7f * verticalOffset / h)
+            blurAppBarLayout?.titleView?.scaleY = (1 + 0.7f * verticalOffset / h)
         }
     }
 
     private fun initComponent() {
-        titleView?.text = getString(R.string.select_contacts)
+        blurAppBarLayout?.setTitle(getString(R.string.select_contacts))
 
         bottomBarContainer = findViewById(R.id.lyt_action)
         tabBar = findViewById(R.id.confirm_tab)
@@ -199,9 +188,16 @@ class ContactPickerActivity : AppCompatActivity() {
             }
         }
 
-        searchBtn = findViewById(R.id.iv_search_btn)
-        searchView = findViewById(R.id.m_search_view)
-        searchContainer = findViewById(R.id.fl_search_container)
+        blurAppBarLayout?.searchBtn?.setOnClickListener {
+            blurAppBarLayout?.startSearch()
+        }
+        blurAppBarLayout?.setOnSearchStateListener(object : BlurAppBarLayout.OnSearchStateListener {
+            override fun onState(state: Int) {}
+            override fun onSearchTextChanged(s: String?) {
+                searchString = s ?: ""
+                searchListByQuery(searchString)
+            }
+        })
 
         contactRecyclerView = findViewById<RecyclerView>(R.id.contactRecyclerView).apply {
             layoutManager = LinearLayoutManager(this@ContactPickerActivity)
@@ -231,34 +227,6 @@ class ContactPickerActivity : AppCompatActivity() {
                 if (idx >= 0) {
                     if (isSelected) selectedPositions.add(idx) else selectedPositions.remove(idx)
                 }
-            }
-        })
-
-        searchBtn?.setOnClickListener {
-            searchContainer?.visibility = View.VISIBLE
-            searchView?.startSearch()
-        }
-
-        searchView?.setOnStateListener(object : MSearchView.OnSearchStateListener {
-            override fun onState(state: Int) {
-                when (state) {
-                    MSearchView.SEARCH_START -> {
-                        appBarLayout?.setExpanded(false)
-                        searchContainer?.visibility = View.VISIBLE
-                        searchBtn?.visibility = View.GONE
-                        titleView?.visibility = View.GONE
-                    }
-                    MSearchView.SEARCH_END -> {
-                        appBarLayout?.setExpanded(true)
-                        titleView?.visibility = View.VISIBLE
-                        searchBtn?.visibility = View.VISIBLE
-                        searchContainer?.visibility = View.INVISIBLE
-                    }
-                }
-            }
-            override fun onSearchTextChanged(s: String?) {
-                searchString = s ?: ""
-                searchListByQuery(searchString)
             }
         })
     }
