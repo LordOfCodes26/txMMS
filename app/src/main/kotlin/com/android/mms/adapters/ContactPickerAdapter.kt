@@ -28,6 +28,12 @@ class ContactPickerAdapter(
     override fun onBindViewHolder(holder: ContactViewHolder, position: Int) {
         val contact = contacts[position]
         holder.nameTextView.text = contact.name
+        if (contact.phoneNumber.isNotEmpty()) {
+            holder.phoneTextView.text = contact.phoneNumber
+            holder.phoneTextView.visibility = View.VISIBLE
+        } else {
+            holder.phoneTextView.visibility = View.GONE
+        }
         holder.checkBox.isChecked = selectedPositions.contains(position)
 
         if (contact.icon != -1) {
@@ -139,6 +145,7 @@ class ContactPickerAdapter(
 
     class ContactViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val nameTextView: TextView = itemView.findViewById(R.id.tv_contact_name)
+        val phoneTextView: TextView = itemView.findViewById(R.id.tv_contact_phone)
         val initialTextView: TextView = itemView.findViewById(R.id.tv_contact_initial)
         val avatarImageView: ImageView = itemView.findViewById(R.id.iv_contact_avatar)
         val avatarBackgroundView: View = itemView.findViewById(R.id.v_avatar_background)

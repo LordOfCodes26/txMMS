@@ -227,7 +227,7 @@ class ContactPickerActivity : AppCompatActivity() {
             override fun onContactToggled(position: Int, isSelected: Boolean) {
                 if (position !in filteredContacts.indices) return
                 val contact = filteredContacts[position]
-                val idx = allContacts.indexOfFirst { it.contactId == contact.contactId }
+                val idx = allContacts.indexOfFirst { it.contactId == contact.contactId && it.phoneNumber == contact.phoneNumber }
                 if (idx >= 0) {
                     if (isSelected) selectedPositions.add(idx) else selectedPositions.remove(idx)
                 }
@@ -286,7 +286,7 @@ class ContactPickerActivity : AppCompatActivity() {
     private fun updateAdapterWithFilteredContacts() {
         val filteredSelected = HashSet<Int>()
         filteredContacts.forEachIndexed { i, contact ->
-            val idx = allContacts.indexOfFirst { it.contactId == contact.contactId }
+            val idx = allContacts.indexOfFirst { it.contactId == contact.contactId && it.phoneNumber == contact.phoneNumber }
             if (idx >= 0 && selectedPositions.contains(idx)) filteredSelected.add(i)
         }
         contactAdapter?.setItems(filteredContacts, filteredSelected)
@@ -323,7 +323,10 @@ class ContactPickerActivity : AppCompatActivity() {
         val alreadySelected = intent?.getParcelableArrayListExtra<Contact>(EXTRA_ALREADY_SELECTED_CONTACTS) ?: arrayListOf()
         alreadySelectedContactIds.clear()
         alreadySelected.forEach { c ->
-            if (c.contactId.isNotEmpty()) alreadySelectedContactIds.add(c.contactId)
+            if (c.contactId.isNotEmpty()) {
+                val key = contactNumberKey(c.contactId, c.phoneNumber)
+                alreadySelectedContactIds.add(key)
+            }
         }
 
         try {
@@ -355,19 +358,25 @@ class ContactPickerActivity : AppCompatActivity() {
                 while (cursor.moveToNext() && loaded < BATCH_SIZE) {
                     val contactId = cursor.getString(cursor.getColumnIndexOrThrow(ContactsContract.Contacts._ID))
                     val name = cursor.getString(cursor.getColumnIndexOrThrow(ContactsContract.Contacts.DISPLAY_NAME))
-                    if (name.isNullOrEmpty() || addedContactIds.contains(contactId)) continue
+                    if (name.isNullOrEmpty()) continue
 
-                    val phoneNumber = getPhoneNumberForContact(contactId)
+                    val phoneNumbers = getAllPhoneNumbersForContact(contactId)
                     val address = getAddressForContact(contactId)
                     val organizationName = getOrganizationNameForContact(contactId)
-                    val contact = Contact(name, contactId, -1, phoneNumber ?: "", address ?: "", organizationName ?: "")
-                    batch.add(contact)
-                    addedContactIds.add(contactId)
-                    if (alreadySelectedContactIds.contains(contactId)) {
-                        batchSelected.add(loaded)
-                        selectedPositions.add(currentPosition + loaded)
+                    val numbersToAdd = if (phoneNumbers.isEmpty()) listOf("") else phoneNumbers
+                    for (phoneNumber in numbersToAdd) {
+                        val key = contactNumberKey(contactId, phoneNumber)
+                        if (addedContactIds.contains(key)) continue
+                        val contact = Contact(name, contactId, -1, phoneNumber, address ?: "", organizationName ?: "")
+                        batch.add(contact)
+                        addedContactIds.add(key)
+                        if (alreadySelectedContactIds.contains(key)) {
+                            batchSelected.add(loaded)
+                            selectedPositions.add(currentPosition + loaded)
+                        }
+                        loaded++
+                        if (loaded >= BATCH_SIZE) break
                     }
-                    loaded++
                 }
                 hasMoreContacts = loaded >= BATCH_SIZE
                 val finalBatch = ArrayList(batch)
@@ -426,7 +435,12 @@ class ContactPickerActivity : AppCompatActivity() {
         }
     }
 
-    private fun getPhoneNumberForContact(contactId: String): String? {
+    private fun contactNumberKey(contactId: String, phoneNumber: String): String {
+        return "$contactId|${normalizePhoneNumber(phoneNumber)}"
+    }
+
+    private fun getAllPhoneNumbersForContact(contactId: String): List<String> {
+        val numbers = ArrayList<String>()
         var cursor: android.database.Cursor? = null
         try {
             cursor = contentResolver.query(
@@ -434,17 +448,20 @@ class ContactPickerActivity : AppCompatActivity() {
                 arrayOf(ContactsContract.CommonDataKinds.Phone.NUMBER),
                 "${ContactsContract.CommonDataKinds.Phone.CONTACT_ID} = ?",
                 arrayOf(contactId),
-                "${ContactsContract.CommonDataKinds.Phone.IS_PRIMARY} DESC"
+                "${ContactsContract.CommonDataKinds.Phone.IS_PRIMARY} DESC, ${ContactsContract.CommonDataKinds.Phone._ID} ASC"
             )
-            if (cursor != null && cursor.moveToFirst()) {
-                return cursor.getString(cursor.getColumnIndexOrThrow(ContactsContract.CommonDataKinds.Phone.NUMBER))
+            if (cursor != null) {
+                while (cursor.moveToNext()) {
+                    val number = cursor.getString(cursor.getColumnIndexOrThrow(ContactsContract.CommonDataKinds.Phone.NUMBER))
+                    if (!number.isNullOrEmpty()) numbers.add(number)
+                }
             }
         } catch (e: Exception) {
             e.printStackTrace()
         } finally {
             cursor?.close()
         }
-        return ""
+        return numbers
     }
 
     private fun getAddressForContact(contactId: String): String? {
