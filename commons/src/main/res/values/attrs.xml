@@ -11,4 +11,17 @@
     <declare-styleable name="MyFloatingActionButton">
         <attr name="applyWindowInsets" format="boolean" />
     </declare-styleable>
+
+    <declare-styleable name="BounceScrollView">
+        <attr name="damping" format="float" />
+        <attr name="scrollOrientation" format="enum">
+            <enum name="vertical" value="0" />
+            <enum name="horizontal" value="1" />
+        </attr>
+        <attr name="incrementalDamping" format="boolean" />
+        <attr name="bounceDelay" format="integer" />
+        <attr name="triggerOverScrollThreshold" format="integer" />
+        <attr name="disableBounce" format="boolean" />
+        <attr name="nestedScrollingEnabled" format="boolean" />
+    </declare-styleable>
 </resources>

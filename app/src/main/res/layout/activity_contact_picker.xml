@@ -4,7 +4,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/root_view"
-    android:background="@color/theme_light_background_color"
+    android:background="@color/tx_main_background_color"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".activities.ContactPickerActivity">
@@ -15,7 +15,7 @@
         android:layout_height="match_parent"
         android:background="@android:color/transparent">
 
-        <androidx.core.widget.NestedScrollView
+        <com.goodwy.commons.views.BounceScrollView
             android:id="@+id/nest_scroll"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
@@ -25,27 +25,27 @@
 
             <eightbitlab.com.blurview.BlurTarget
                 android:id="@+id/blurTarget"
-                android:background="@color/theme_light_background_color"
+                android:background="@color/tx_main_background_color"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent">
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:layout_marginHorizontal="@dimen/activity_margin"
-                    android:paddingTop="@dimen/medium_margin"
+                    android:layout_marginHorizontal="@dimen/tx_setting_cardview_margin_horizontal"
+                    android:paddingTop="@dimen/tx_setting_cardview_item_margin_vertical"
                     android:paddingBottom="150px">
 
                     <androidx.cardview.widget.CardView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginVertical="@dimen/medium_margin"
-                        app:cardBackgroundColor="@color/theme_light_background_color"
-                        app:cardCornerRadius="@dimen/rounded_corner_radius_big"
+                        android:layout_marginVertical="@dimen/tx_setting_cardview_margin_vertical"
+                        app:cardBackgroundColor="@color/tx_cardview_bg_color"
+                        app:cardCornerRadius="@dimen/tx_item_radius"
                         app:cardElevation="0dp">
                         <LinearLayout
-                            android:paddingVertical="@dimen/medium_margin"
-                            android:layout_marginVertical="@dimen/small_margin"
+                            android:paddingVertical="@dimen/tx_setting_cardview_item_margin_vertical"
+                            android:layout_marginVertical="@dimen/tx_setting_cardview_padding_vertical"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:orientation="vertical">
@@ -63,7 +63,7 @@
 
                 </LinearLayout>
             </eightbitlab.com.blurview.BlurTarget>
-        </androidx.core.widget.NestedScrollView>
+        </com.goodwy.commons.views.BounceScrollView>
 
         <View
             android:layout_width="match_parent"
@@ -90,7 +90,7 @@
                 app:titleEnabled="true">
 
                 <LinearLayout
-                    android:layout_marginStart="@dimen/activity_margin"
+                    android:layout_marginStart="@dimen/tx_top_bar_margin_left"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:orientation="vertical"
@@ -101,19 +101,19 @@
                     <TextView
                         android:id="@+id/tv_title"
                         android:layout_width="wrap_content"
-                        android:layout_height="48dp"
+                        android:layout_height="@dimen/tx_top_bar_toolbar_margin_top"
                         android:layout_gravity="bottom"
                         android:gravity="center|start"
                         android:layout_marginBottom="2dp"
-                        android:textColor="@color/theme_light_text_color"
-                        android:textSize="20sp" />
+                        android:textColor="@color/tx_title_text_color"
+                        android:textSize="@dimen/tx_bigger_text_size" />
                 </LinearLayout>
 
                 <androidx.appcompat.widget.Toolbar
                     android:id="@+id/toolbar"
                     android:layout_width="match_parent"
-                    android:layout_height="48dp"
-                    android:layout_marginTop="48dp"
+                    android:layout_height="@dimen/tx_top_bar_toolbar_height"
+                    android:layout_marginTop="@dimen/tx_top_bar_toolbar_margin_top"
                     android:gravity="bottom"
                     android:visibility="visible"
                     app:layout_collapseMode="pin"
@@ -127,18 +127,18 @@
                             android:layout_height="match_parent"
                             android:orientation="horizontal"
                             android:layout_marginTop="5dp"
-                            android:layout_marginEnd="@dimen/activity_margin"
+                            android:layout_marginEnd="@dimen/tx_top_bar_margin_right"
                             android:gravity="end">
                             <com.android.common.view.MImageButton
                                 android:id="@+id/iv_search_btn"
                                 android:layout_width="wrap_content"
-                                android:layout_marginEnd="@dimen/medium_margin"
-                                android:layout_height="40dp"
+                                android:layout_marginEnd="@dimen/tx_toolbar_icon_marginEnd"
+                                android:layout_height="@dimen/tx_toolbar_search_height"
                                 android:layout_gravity="center"
                                 android:clickable="true"
-                                android:padding="@dimen/small_margin"
-                                android:src="@drawable/ic_contacts_icon"
-                                android:tint="@color/theme_light_text_color"
+                                android:padding="@dimen/tx_toolbar_icon_padding"
+                                android:src="@drawable/ic_cmn_search"
+                                android:tint="@color/tx_title_text_color"
                                 />
                         </LinearLayout>
 
@@ -160,7 +160,7 @@
                                     android:layout_width="match_parent"
                                     android:layout_height="40dp"
                                     android:layout_gravity="bottom"
-                                    android:layout_marginEnd="@dimen/activity_margin" />
+                                    android:layout_marginEnd="@dimen/tx_top_bar_margin_left" />
                             </FrameLayout>
 
                         </FrameLayout>

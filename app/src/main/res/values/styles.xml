@@ -2,6 +2,11 @@
 
     <style name="AppTheme" parent="AppTheme.Base" />
 
+    <style name="ContactPickerTheme" parent="AppTheme">
+        <item name="android:windowIsTranslucent">false</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+
     <style name="roundedImageView" parent="">
         <item name="cornerFamily">rounded</item>
         <item name="cornerSize">@dimen/normal_margin</item>

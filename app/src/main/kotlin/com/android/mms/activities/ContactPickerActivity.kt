@@ -1,6 +1,7 @@
 package com.android.mms.activities
 
 import android.Manifest
+import android.app.UiModeManager
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
@@ -14,13 +15,11 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.core.graphics.Insets
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import eightbitlab.com.blurview.BlurTarget
 import com.android.common.helper.IconItem
 import com.android.common.view.MImageButton
 import com.android.common.view.MRippleToolBar
@@ -29,8 +28,7 @@ import com.android.mms.R
 import com.android.mms.adapters.ContactPickerAdapter
 import com.android.mms.models.Contact
 import com.google.android.material.appbar.AppBarLayout
-import java.util.ArrayList
-import java.util.HashSet
+import eightbitlab.com.blurview.BlurTarget
 
 class ContactPickerActivity : AppCompatActivity() {
 
@@ -125,8 +123,7 @@ class ContactPickerActivity : AppCompatActivity() {
     }
 
     private fun isDarkTheme(): Boolean {
-        return (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) ==
-            android.content.res.Configuration.UI_MODE_NIGHT_YES
+        return (getSystemService(UI_MODE_SERVICE) as UiModeManager).nightMode == UiModeManager.MODE_NIGHT_YES;
     }
 
     override fun onDestroy() {

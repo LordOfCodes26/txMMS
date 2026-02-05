@@ -3,8 +3,8 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:orientation="horizontal"
-    android:paddingHorizontal="@dimen/activity_margin"
-    android:paddingVertical="@dimen/medium_margin"
+    android:paddingHorizontal="@dimen/tx_setting_cardview_padding_horizontal"
+    android:paddingVertical="@dimen/tx_setting_cardview_textview_padding"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:gravity="center_vertical">
@@ -12,7 +12,7 @@
     <RelativeLayout
         android:layout_width="48dp"
         android:layout_height="48dp"
-        android:layout_marginEnd="@dimen/medium_margin">
+        android:layout_marginEnd="@dimen/tx_setting_cardview_textview_padding">
 
         <View
             android:id="@+id/v_avatar_background"
@@ -45,15 +45,14 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:textColor="@color/theme_light_text_color"
-        android:textSize="@dimen/normal_text_size"
+        android:textColor="@color/tx_content_text_color"
+        android:textSize="@dimen/tx_normal_text_size"
         android:singleLine="true"
         android:ellipsize="end" />
 
-    <CheckBox
+    <com.android.common.view.MCheckBox
         android:id="@+id/cb_contact_select"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:buttonTint="@color/color_primary" />
+        android:layout_height="wrap_content" />
 
 </LinearLayout>

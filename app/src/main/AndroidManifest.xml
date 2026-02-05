@@ -92,6 +92,7 @@
             android:configChanges="orientation"
             android:exported="false"
             android:label="@string/select_contacts"
+            android:theme="@style/ContactPickerTheme"
             android:parentActivityName=".activities.NewConversationActivity" />
 
         <activity
