@@ -188,8 +188,14 @@ class ContactPickerActivity : AppCompatActivity() {
             }
         }
 
-        blurAppBarLayout?.searchBtn?.setOnClickListener {
-            blurAppBarLayout?.startSearch()
+        blurAppBarLayout?.toolbar?.apply {
+            inflateMenu(R.menu.menu_contact_picker)
+            setOnMenuItemClickListener { item ->
+                if (item.itemId == R.id.search) {
+                    blurAppBarLayout?.startSearch()
+                    true
+                } else false
+            }
         }
         blurAppBarLayout?.setOnSearchStateListener(object : BlurAppBarLayout.OnSearchStateListener {
             override fun onState(state: Int) {}

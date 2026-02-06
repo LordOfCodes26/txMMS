@@ -35,7 +35,7 @@
                 android:textSize="@dimen/tx_bigger_text_size" />
         </LinearLayout>
 
-        <androidx.appcompat.widget.Toolbar
+        <com.goodwy.commons.views.CustomToolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="@dimen/tx_top_bar_toolbar_height"
@@ -44,56 +44,7 @@
             android:gravity="bottom"
             android:visibility="visible"
             app:layout_collapseMode="pin"
-            app:popupTheme="@style/ThemeOverlay.AppCompat.Light" >
-            <FrameLayout
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                >
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:orientation="horizontal"
-                    android:layout_marginTop="5dp"
-                    android:layout_marginEnd="@dimen/tx_top_bar_margin_right"
-                    android:gravity="end">
-                    <com.android.common.view.MImageButton
-                        android:id="@+id/iv_search_btn"
-                        android:layout_width="wrap_content"
-                        android:layout_marginEnd="@dimen/tx_toolbar_icon_marginEnd"
-                        android:layout_height="@dimen/tx_toolbar_search_height"
-                        android:layout_gravity="center"
-                        android:clickable="true"
-                        android:padding="@dimen/tx_toolbar_icon_padding"
-                        android:src="@drawable/ic_cmn_search"
-                        android:tint="@color/tx_title_text_color"
-                        />
-                </LinearLayout>
-
-                <FrameLayout
-                    android:visibility="invisible"
-                    android:id="@+id/fl_search_container"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:background="@android:color/transparent"
-                    >
-
-                    <FrameLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:clickable="true">
-
-                        <com.android.common.view.MSearchView
-                            android:id="@+id/m_search_view"
-                            android:layout_width="match_parent"
-                            android:layout_height="40dp"
-                            android:layout_gravity="bottom"
-                            android:layout_marginEnd="@dimen/tx_top_bar_margin_left" />
-                    </FrameLayout>
-
-                </FrameLayout>
-            </FrameLayout>
-
-        </androidx.appcompat.widget.Toolbar>
+            app:popupTheme="@style/ThemeOverlay.AppCompat.Light" />
 
         <FrameLayout
             android:id="@+id/search_bar"

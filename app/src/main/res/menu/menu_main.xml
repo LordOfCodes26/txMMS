@@ -5,7 +5,7 @@
     tools:ignore="AppCompatResource,AlwaysShowAction">
     <item
         android:id="@+id/search"
-        android:icon="@drawable/ic_search_vector"
+        android:icon="@drawable/ic_cmn_search"
         android:title="@string/search"
         android:showAsAction="collapseActionView|always"/>
     <item
