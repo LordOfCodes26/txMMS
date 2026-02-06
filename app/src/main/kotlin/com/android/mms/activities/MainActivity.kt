@@ -19,9 +19,13 @@ import android.text.TextUtils
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.content.res.AppCompatResources
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.appcompat.widget.SearchView
 import androidx.core.view.MenuItemCompat
 import androidx.recyclerview.widget.RecyclerView
@@ -75,7 +79,10 @@ class MainActivity : SimpleActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
-        window.statusBarColor = android.graphics.Color.TRANSPARENT
+        initTheme()
+        initBouncy()
+        initBouncyListener()
+        makeSystemBarsToTransparent()
         val isFirstLaunch = baseConfig.appRunCount == 0
         appLaunched(BuildConfig.APPLICATION_ID)
         // Initialize default quick texts if they haven't been initialized yet
@@ -406,6 +413,44 @@ class MainActivity : SimpleActivity() {
                     binding.mainMenu.setText(speechToText)
                 }
             }
+        }
+    }
+
+    private fun initTheme() {
+        window.navigationBarColor = Color.TRANSPARENT
+        window.statusBarColor = Color.TRANSPARENT
+    }
+
+    private fun initBouncy() {
+        binding.mainMenu.post {
+            // totalScrollRange is used by bouncy/offset logic if needed
+        }
+    }
+
+    private fun initBouncyListener() {
+        binding.mainMenu.setupOffsetListener { verticalOffset, height ->
+            val h = if (height > 0) height else 1
+            binding.mainMenu.titleView?.scaleX = (1 + 0.7f * verticalOffset / h)
+            binding.mainMenu.titleView?.scaleY = (1 + 0.7f * verticalOffset / h)
+        }
+    }
+
+    private fun makeSystemBarsToTransparent() {
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        val bottomMask = binding.bottomMask
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
+            val nav = insets.getInsets(WindowInsetsCompat.Type.navigationBars())
+            val navHeight = nav.bottom
+            val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
+            val dp5 = (5 * resources.displayMetrics.density).toInt()
+            bottomMask.layoutParams = bottomMask.layoutParams.apply { height = navHeight + dp5 }
+            val bottomOffset = (20 * resources.displayMetrics.density).toInt()
+            val fabLp = binding.conversationsFab.layoutParams as? ViewGroup.MarginLayoutParams
+            if (fabLp != null) {
+                fabLp.bottomMargin = if (ime.bottom > 0) ime.bottom + bottomOffset else navHeight + bottomOffset
+                binding.conversationsFab.layoutParams = fabLp
+            }
+            insets
         }
     }
 
