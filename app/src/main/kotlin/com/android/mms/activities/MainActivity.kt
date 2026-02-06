@@ -25,9 +25,11 @@ import androidx.appcompat.content.res.AppCompatResources
 import androidx.appcompat.widget.SearchView
 import androidx.core.view.MenuItemCompat
 import androidx.recyclerview.widget.RecyclerView
+import com.android.common.view.MSearchView
 import com.goodwy.commons.dialogs.PermissionRequiredDialog
 import com.goodwy.commons.extensions.*
 import com.goodwy.commons.helpers.*
+import com.goodwy.commons.views.BlurAppBarLayout
 import com.android.mms.BuildConfig
 import com.android.mms.R
 import com.android.mms.adapters.ConversationsAdapter
@@ -73,6 +75,7 @@ class MainActivity : SimpleActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
+        window.statusBarColor = android.graphics.Color.TRANSPARENT
         val isFirstLaunch = baseConfig.appRunCount == 0
         appLaunched(BuildConfig.APPLICATION_ID)
         // Initialize default quick texts if they haven't been initialized yet
@@ -84,7 +87,7 @@ class MainActivity : SimpleActivity() {
         setupOptionsMenu()
         refreshMenuItems()
 
-        binding.mainMenu.updateTitle(getString(R.string.messages))
+        binding.mainMenu.setTitle(getString(R.string.messages))
         setupEdgeToEdge(padBottomImeAndSystem = listOf(binding.conversationsList, binding.searchResultsList))
         if (config.changeColourTopBar) {
             val useSurfaceColor = isDynamicTheme() && !isSystemInDarkMode()
@@ -181,7 +184,7 @@ class MainActivity : SimpleActivity() {
     }
 
     override fun onBackPressedCompat(): Boolean {
-        val customToolbar = binding.mainMenu.requireCustomToolbar()
+        val customToolbar = binding.mainMenu.toolbar ?: return appLockManager.lock().let { false }
         return if (customToolbar.isSearchExpanded) {
             customToolbar.collapseSearch()
             isSearchOpen = false
@@ -194,56 +197,46 @@ class MainActivity : SimpleActivity() {
 
     private fun setupOptionsMenu() {
         binding.apply {
-            mainMenu.requireCustomToolbar().inflateMenu(R.menu.menu_main)
-//            mainMenu.toggleHideOnScroll(config.hideTopBarWhenScroll)
+            mainMenu.toolbar?.inflateMenu(R.menu.menu_main)
 
-            if (isSearchAlwaysShow) {
-                // commented by jim 260117
-//                if (baseConfig.useSpeechToText) {
-//                    isSpeechToTextAvailable = isSpeechToTextAvailable()
-//                    mainMenu.showSpeechToText = isSpeechToTextAvailable
-//                }
-//                mainMenu.setupMenu()
-//
-//                mainMenu.onSpeechToTextClickListener = {
-//                    speechToText()
-//                }
-//
-//                mainMenu.onSearchClosedListener = {
-//                    fadeOutSearch()
-//                }
+            mainMenu.setOnSearchStateListener(object : BlurAppBarLayout.OnSearchStateListener {
+                override fun onState(state: Int) {
+                    when (state) {
+                        MSearchView.SEARCH_START -> isSearchOpen = true
+                        MSearchView.SEARCH_END -> {
+                            fadeOutSearch()
+                            isSearchOpen = false
+                        }
+                    }
+                }
 
-                mainMenu.onSearchTextChangedListener = { text ->
+                override fun onSearchTextChanged(s: String?) {
+                    val text = s ?: ""
+                    searchQuery = text
                     if (text.isNotEmpty()) {
-                        if (binding.searchHolder.alpha < 1f) {
-                            binding.searchHolder.fadeIn()
+                        if (searchHolder.alpha < 1f) {
+                            searchHolder.fadeIn()
                         }
                     } else {
                         fadeOutSearch()
                     }
                     searchTextChanged(text)
-                    mainMenu.clearSearch()
+                    if (isSearchAlwaysShow) mainMenu.clearSearch()
                 }
-            } else {
-                setupCustomToolbarSearch()
-            }
+            })
 
-            mainMenu.requireCustomToolbar().setOnMenuItemClickListener { menuItem ->
+            mainMenu.toolbar?.setOnMenuItemClickListener { menuItem ->
                 when (menuItem.itemId) {
                     R.id.search -> {
-                        // Expand search when search menu item is clicked
-                        val customToolbar = binding.mainMenu.requireCustomToolbar()
-                        if (!customToolbar.isSearchExpanded) {
-                            customToolbar.expandSearch()
+                        if (mainMenu.toolbar?.isSearchExpanded != true) {
+                            mainMenu.startSearch()
                             isSearchOpen = true
                         }
                         return@setOnMenuItemClickListener true
                     }
                     R.id.select_conversations -> {
-                        // Collapse CustomToolbar search if expanded
-                        val customToolbar = binding.mainMenu.requireCustomToolbar()
-                        if (customToolbar.isSearchExpanded) {
-                            customToolbar.collapseSearch()
+                        if (mainMenu.toolbar?.isSearchExpanded == true) {
+                            mainMenu.toolbar?.collapseSearch()
                             isSearchOpen = false
                         }
                         getOrCreateConversationsAdapter().startActMode()
@@ -259,34 +252,6 @@ class MainActivity : SimpleActivity() {
             }
 
             mainMenu.clearSearch()
-        }
-    }
-
-    private fun setupCustomToolbarSearch() {
-        val customToolbar = binding.mainMenu.requireCustomToolbar()
-        
-        // Set up search expand listener to sync isSearchOpen
-        customToolbar.setOnSearchExpandListener {
-            isSearchOpen = true
-        }
-        
-        // Set up search text change listener
-        customToolbar.setOnSearchTextChangedListener { text ->
-            searchQuery = text
-            if (text.isNotEmpty()) {
-                if (binding.searchHolder.alpha < 1f) {
-                    binding.searchHolder.fadeIn()
-                }
-            } else {
-                fadeOutSearch()
-            }
-            searchTextChanged(text)
-        }
-        
-        // Set up search back button listener to collapse search
-        customToolbar.setOnSearchBackClickListener {
-            fadeOutSearch()
-            isSearchOpen = false
         }
     }
 
@@ -350,7 +315,7 @@ class MainActivity : SimpleActivity() {
                 mSearchView?.let { searchView ->
                     searchView.post {
                         // Get the parent toolbar width for smooth slide-in
-                        val toolbar = binding.mainMenu.requireCustomToolbar()
+                        val toolbar = binding.mainMenu.toolbar ?: return@post
                         val slideDistance = toolbar.width.toFloat()
 
                         // Start from right side
@@ -379,7 +344,7 @@ class MainActivity : SimpleActivity() {
 
                 // Animate search bar disappearance with smooth translation (slide out to right)
                 mSearchView?.let { searchView ->
-                    val toolbar = binding.mainMenu.requireCustomToolbar()
+                    val toolbar = binding.mainMenu.toolbar ?: return@let
                     val slideDistance = toolbar.width.toFloat()
 
                     searchView.animate()
@@ -402,11 +367,11 @@ class MainActivity : SimpleActivity() {
     }
 
     private fun refreshMenuItems() {
-        binding.mainMenu.requireCustomToolbar().menu.apply {
-            findItem(R.id.show_recycle_bin).isVisible = config.useRecycleBin
-            findItem(R.id.show_archived).isVisible = config.isArchiveAvailable
-            findItem(R.id.about).isVisible = false
-            findItem(R.id.show_blocked_numbers).title =
+        binding.mainMenu.toolbar?.menu?.apply {
+            findItem(R.id.show_recycle_bin)?.isVisible = config.useRecycleBin
+            findItem(R.id.show_archived)?.isVisible = config.isArchiveAvailable
+            findItem(R.id.about)?.isVisible = false
+            findItem(R.id.show_blocked_numbers)?.title =
                 if (config.showBlockedNumbers) getString(com.goodwy.strings.R.string.hide_blocked_numbers)
                 else getString(com.goodwy.strings.R.string.show_blocked_numbers)
         }
@@ -414,7 +379,7 @@ class MainActivity : SimpleActivity() {
 
     private fun showBlockedNumbers() {
         config.showBlockedNumbers = !config.showBlockedNumbers
-        binding.mainMenu.requireCustomToolbar().menu.findItem(R.id.show_blocked_numbers).title =
+        binding.mainMenu.toolbar?.menu?.findItem(R.id.show_blocked_numbers)?.title =
             if (config.showBlockedNumbers) getString(com.goodwy.strings.R.string.hide_blocked_numbers)
             else getString(com.goodwy.strings.R.string.show_blocked_numbers)
 //        runOnUiThread {
@@ -457,8 +422,7 @@ class MainActivity : SimpleActivity() {
         val backgroundColor = if (useSurfaceColor) getSurfaceColor() else getProperBackgroundColor()
         val statusBarColor = if (config.changeColourTopBar) getRequiredStatusBarColor(useSurfaceColor) else backgroundColor
         binding.mainMenu.updateColors(statusBarColor, scrollingView?.computeVerticalScrollOffset() ?: 0)
-        // Update search colors when menu colors are updated
-        binding.mainMenu.requireCustomToolbar().updateSearchColors()
+        binding.mainMenu.toolbar?.updateSearchColors()
     }
 
     private fun loadMessages() {
@@ -926,8 +890,8 @@ class MainActivity : SimpleActivity() {
     }
 
     private fun searchTextChanged(text: String, forceUpdate: Boolean = false) {
-        val customToolbar = binding.mainMenu.requireCustomToolbar()
-        if (isSearchAlwaysShow && !customToolbar.isSearchExpanded && !forceUpdate) {
+        val customToolbar = binding.mainMenu.toolbar
+        if (isSearchAlwaysShow && customToolbar?.isSearchExpanded != true && !forceUpdate) {
             return
         }
 

@@ -5,35 +5,32 @@
     android:id="@+id/mainBlurTarget"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
-<androidx.coordinatorlayout.widget.CoordinatorLayout
-    android:id="@+id/main_coordinator"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent">
-
-    <com.goodwy.commons.views.MySearchMenu
-        android:id="@+id/main_menu"
+    <androidx.coordinatorlayout.widget.CoordinatorLayout
+        android:id="@+id/main_coordinator"
+        android:clipChildren="false"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
+        android:layout_height="match_parent"
+        android:background="@color/tx_main_background_color">
 
-    <RelativeLayout
-        android:id="@+id/main_nested_scrollview"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:fillViewport="true"
-        android:scrollbars="none"
-        app:layout_behavior="@string/appbar_scrolling_view_behavior">
-
-        <androidx.coordinatorlayout.widget.CoordinatorLayout
-            android:id="@+id/main_coordinator_wrapper"
+        <com.goodwy.commons.views.BlurAppBarLayout
+            android:id="@+id/main_menu"
             android:layout_width="match_parent"
-            android:layout_height="match_parent">
-            <com.goodwy.commons.views.BounceScrollView
-                android:id="@+id/nest_scroll"
+            android:layout_height="@dimen/blur_app_bar_height"
+            android:paddingBottom="5dp"
+            app:appBarBackground="@drawable/bg_cmn_appbar_up" />
+
+        <com.goodwy.commons.views.BounceScrollView
+            android:id="@+id/main_nested_scrollview"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scrollbars="none"
+            android:scrollingCache="true"
+            app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+            <androidx.coordinatorlayout.widget.CoordinatorLayout
+                android:id="@+id/main_coordinator_wrapper"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:scrollbars="none"
-                android:scrollingCache="true"
-                app:layout_behavior="com.google.android.material.appbar.AppBarLayout$ScrollingViewBehavior">
+                android:layout_height="match_parent">
                 <RelativeLayout
                     android:id="@+id/main_holder"
                     android:layout_width="match_parent"
@@ -97,70 +94,69 @@
 
                     </com.qtalk.recyclerviewfastscroller.RecyclerViewFastScroller>
                 </RelativeLayout>
-            </com.goodwy.commons.views.BounceScrollView>
 
-        </androidx.coordinatorlayout.widget.CoordinatorLayout>
+                <RelativeLayout
+                    android:id="@+id/search_holder"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:alpha="0"
+                    android:visibility="gone"
+                    tools:visibility="visible">
 
-        <RelativeLayout
-            android:id="@+id/search_holder"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:alpha="0"
-            android:visibility="gone"
-            tools:visibility="visible">
+                    <com.goodwy.commons.views.MyTextView
+                        android:id="@+id/search_placeholder"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_centerHorizontal="true"
+                        android:layout_marginTop="@dimen/activity_margin"
+                        android:alpha="0.8"
+                        android:gravity="center"
+                        android:paddingStart="@dimen/activity_margin"
+                        android:paddingEnd="@dimen/activity_margin"
+                        android:text="@string/no_items_found"
+                        android:textSize="@dimen/bigger_text_size"
+                        android:textStyle="italic" />
 
-            <com.goodwy.commons.views.MyTextView
-                android:id="@+id/search_placeholder"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_centerHorizontal="true"
-                android:layout_marginTop="@dimen/activity_margin"
-                android:alpha="0.8"
-                android:gravity="center"
-                android:paddingStart="@dimen/activity_margin"
-                android:paddingEnd="@dimen/activity_margin"
-                android:text="@string/no_items_found"
-                android:textSize="@dimen/bigger_text_size"
-                android:textStyle="italic" />
+                    <com.goodwy.commons.views.MyTextView
+                        android:id="@+id/search_placeholder_2"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_below="@+id/search_placeholder"
+                        android:layout_centerHorizontal="true"
+                        android:alpha="0.8"
+                        android:gravity="center"
+                        android:paddingStart="@dimen/activity_margin"
+                        android:paddingTop="@dimen/medium_margin"
+                        android:paddingEnd="@dimen/activity_margin"
+                        android:paddingBottom="@dimen/medium_margin"
+                        android:text="@string/type_2_characters"
+                        android:textSize="@dimen/bigger_text_size"
+                        android:textStyle="italic" />
 
-            <com.goodwy.commons.views.MyTextView
-                android:id="@+id/search_placeholder_2"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_below="@+id/search_placeholder"
-                android:layout_centerHorizontal="true"
-                android:alpha="0.8"
-                android:gravity="center"
-                android:paddingStart="@dimen/activity_margin"
-                android:paddingTop="@dimen/medium_margin"
-                android:paddingEnd="@dimen/activity_margin"
-                android:paddingBottom="@dimen/medium_margin"
-                android:text="@string/type_2_characters"
-                android:textSize="@dimen/bigger_text_size"
-                android:textStyle="italic" />
+                    <com.goodwy.commons.views.MyRecyclerView
+                        android:id="@+id/search_results_list"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:paddingTop="@dimen/smaller_margin"
+                        android:clipToPadding="false"
+                        android:scrollbars="vertical"
+                        app:layoutManager="com.goodwy.commons.views.MyLinearLayoutManager" />
 
-            <com.goodwy.commons.views.MyRecyclerView
-                android:id="@+id/search_results_list"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:paddingTop="@dimen/smaller_margin"
-                android:clipToPadding="false"
-                android:scrollbars="vertical"
-                app:layoutManager="com.goodwy.commons.views.MyLinearLayoutManager" />
+                </RelativeLayout>
 
-        </RelativeLayout>
-    </RelativeLayout>
+            </androidx.coordinatorlayout.widget.CoordinatorLayout>
+        </com.goodwy.commons.views.BounceScrollView>
 
-    <com.goodwy.commons.views.MyFloatingActionButton
-        android:id="@+id/conversations_fab"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|end"
-        android:layout_margin="@dimen/activity_margin"
-        android:contentDescription="@string/new_conversation"
-        android:src="@drawable/ic_messages_outline"
-        app:applyWindowInsets="true" />
+        <com.goodwy.commons.views.MyFloatingActionButton
+            android:id="@+id/conversations_fab"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|end"
+            android:layout_margin="@dimen/activity_margin"
+            android:contentDescription="@string/new_conversation"
+            android:src="@drawable/ic_messages_outline"
+            app:applyWindowInsets="true" />
 
-</androidx.coordinatorlayout.widget.CoordinatorLayout>
+    </androidx.coordinatorlayout.widget.CoordinatorLayout>
 </eightbitlab.com.blurview.BlurTarget>
 

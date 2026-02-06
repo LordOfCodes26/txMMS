@@ -84,6 +84,7 @@
             android:configChanges="orientation"
             android:exported="false"
             android:launchMode="singleTop"
+            android:theme="@style/BlurAppBarTheme"
             android:parentActivityName=".activities.MainActivity"
             android:windowSoftInputMode="adjustResize" />
 
@@ -92,7 +93,7 @@
             android:configChanges="orientation"
             android:exported="false"
             android:label="@string/select_contacts"
-            android:theme="@style/ContactPickerTheme"
+            android:theme="@style/BlurAppBarTheme"
             android:parentActivityName=".activities.NewConversationActivity" />
 
         <activity

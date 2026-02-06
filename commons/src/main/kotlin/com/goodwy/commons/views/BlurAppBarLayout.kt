@@ -8,6 +8,8 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.core.view.ViewCompat
 import com.android.common.view.MSearchView
+import com.goodwy.commons.activities.BaseSimpleActivity
+import com.goodwy.commons.activities.TopBarWithUpdateColors
 import com.google.android.material.appbar.AppBarLayout
 import com.google.android.material.appbar.CollapsingToolbarLayout
 import com.goodwy.commons.R
@@ -20,7 +22,7 @@ class BlurAppBarLayout @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0
-) : AppBarLayout(context, attrs, defStyleAttr) {
+) : AppBarLayout(context, attrs, defStyleAttr), TopBarWithUpdateColors {
 
     interface OnSearchStateListener {
         fun onState(state: Int)
@@ -69,7 +71,6 @@ class BlurAppBarLayout @JvmOverloads constructor(
             if (minHeight > 0) {
                 collapsing.minimumHeight = minHeight
             } else {
-                // Before first layout: run again after layout so toolbar has height
                 tb.post {
                     val margins = (tb.layoutParams as? ViewGroup.MarginLayoutParams)?.let { it.topMargin + it.bottomMargin } ?: 0
                     val h = tb.height + margins
@@ -115,5 +116,31 @@ class BlurAppBarLayout @JvmOverloads constructor(
     fun startSearch() {
         toolbar?.expandSearch()
         titleView?.visibility = View.GONE
+    }
+
+    /**
+     * When [visible] is true, the search bar can be shown (e.g. always visible).
+     * When false, the top search bar is hidden until the user taps the search menu item.
+     */
+    fun searchBeVisibleIf(visible: Boolean) {
+        if (!visible) {
+            toolbar?.collapseSearch()
+            titleView?.visibility = View.VISIBLE
+        }
+    }
+
+    override fun updateColors(background: Int, scrollOffset: Int) {
+        (context as? BaseSimpleActivity)?.updateTopBarColors(this, background, toolbar, setAppBarViewBackground = false)
+        toolbar?.updateSearchColors()
+    }
+
+    /** Clears the search field in the toolbar. */
+    fun clearSearch() {
+        toolbar?.setSearchText("")
+    }
+
+    /** Sets the search field text (e.g. for speech-to-text). */
+    fun setText(text: String) {
+        toolbar?.setSearchText(text)
     }
 }

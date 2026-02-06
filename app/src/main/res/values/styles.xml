@@ -2,7 +2,7 @@
 
     <style name="AppTheme" parent="AppTheme.Base" />
 
-    <style name="ContactPickerTheme" parent="AppTheme">
+    <style name="BlurAppBarTheme" parent="AppTheme">
         <item name="android:windowIsTranslucent">false</item>
         <item name="android:windowLightStatusBar">true</item>
     </style>
