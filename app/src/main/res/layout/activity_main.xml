@@ -12,16 +12,10 @@
         <androidx.coordinatorlayout.widget.CoordinatorLayout
             android:id="@+id/main_coordinator"
             android:clipChildren="false"
+            android:clipToPadding="false"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:background="@color/tx_main_background_color">
-
-            <com.goodwy.commons.views.BlurAppBarLayout
-                android:id="@+id/main_menu"
-                android:layout_width="match_parent"
-                android:layout_height="@dimen/blur_app_bar_height"
-                android:paddingBottom="5dp"
-                app:appBarBackground="@drawable/bg_cmn_appbar_up" />
 
             <com.goodwy.commons.views.BounceScrollView
                 android:id="@+id/main_nested_scrollview"
@@ -150,6 +144,13 @@
 
                 </androidx.coordinatorlayout.widget.CoordinatorLayout>
             </com.goodwy.commons.views.BounceScrollView>
+
+            <com.goodwy.commons.views.BlurAppBarLayout
+                android:id="@+id/main_menu"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/blur_app_bar_height"
+                android:paddingBottom="5dp"
+                app:appBarBackground="@drawable/bg_cmn_appbar_up" />
 
             <com.goodwy.commons.views.MyFloatingActionButton
                 android:id="@+id/conversations_fab"

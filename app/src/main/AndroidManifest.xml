@@ -63,6 +63,7 @@
         <activity
             android:name=".activities.MainActivity"
             android:configChanges="orientation"
+            android:theme="@style/BlurAppBarTheme"
             android:exported="true" />
 
         <activity
@@ -193,12 +194,6 @@
             android:exported="false"
             android:label="@string/conversation_details"
             android:parentActivityName=".activities.ThreadActivity" />
-
-        <activity
-            android:name="com.goodwy.commons.activities.PurchaseActivity"
-            android:exported="false"
-            android:label=""
-            android:parentActivityName=".activities.MainActivity" />
 
         <service
             android:name=".services.HeadlessSmsSendService"
