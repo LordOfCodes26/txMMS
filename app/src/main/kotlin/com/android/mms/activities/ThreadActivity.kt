@@ -4,11 +4,13 @@ import android.animation.ObjectAnimator
 import android.animation.StateListAnimator
 import android.annotation.SuppressLint
 import android.app.AlarmManager
+import android.app.UiModeManager
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
 import android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION
 import android.content.res.ColorStateList
+import android.graphics.Color
 import android.graphics.drawable.LayerDrawable
 import android.media.AudioManager
 import android.net.Uri
@@ -37,6 +39,7 @@ import android.view.animation.OvershootInterpolator
 import android.view.inputmethod.EditorInfo
 import android.os.Handler
 import android.os.Looper
+import android.view.ViewGroup
 import android.widget.LinearLayout
 import android.widget.LinearLayout.LayoutParams
 import android.widget.RelativeLayout
@@ -46,6 +49,7 @@ import androidx.core.content.res.ResourcesCompat
 import androidx.core.net.toUri
 import androidx.core.view.MenuItemCompat
 import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.documentfile.provider.DocumentFile
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -134,10 +138,12 @@ class ThreadActivity : SimpleActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
+        initTheme()
         setupOptionsMenu()
         refreshMenuItems()
 
         val bottomView = if (isRecycleBin) binding.threadMessagesList else binding.messageHolder.root
+        makeSystemBarsToTransparent()
         setupEdgeToEdge(
 //            padTopSystem = listOf(binding.topDetailsCompact.root),
             padBottomImeAndSystem = listOf(
@@ -174,6 +180,16 @@ class ThreadActivity : SimpleActivity() {
 
     override fun onResume() {
         super.onResume()
+        if (isDarkTheme()) {
+            window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+        } else {
+            @Suppress("DEPRECATION")
+            window.decorView.systemUiVisibility = (
+                View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                    or View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
+                    or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
+                )
+        }
         if (config.threadTopStyle == THREAD_TOP_LARGE) binding.topDetailsCompact.root.beGone()
         else binding.topDetailsLarge.beGone()
 
@@ -271,6 +287,37 @@ class ThreadActivity : SimpleActivity() {
     override fun onDestroy() {
         super.onDestroy()
         bus?.unregister(this)
+    }
+
+    private fun initTheme() {
+        window.navigationBarColor = Color.TRANSPARENT
+        window.statusBarColor = Color.TRANSPARENT
+    }
+
+    private fun isDarkTheme(): Boolean {
+        return (getSystemService(UI_MODE_SERVICE) as UiModeManager).nightMode == UiModeManager.MODE_NIGHT_YES
+    }
+
+    private fun makeSystemBarsToTransparent() {
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        val bottomMask = binding.root.findViewById<View>(R.id.bottomMask)
+        val barContainer = binding.messageHolder.root
+
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
+            val nav = insets.getInsets(WindowInsetsCompat.Type.navigationBars())
+            val navHeight = nav.bottom
+            val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
+
+            bottomMask.layoutParams = bottomMask.layoutParams.apply {
+                height = navHeight + (5 * resources.displayMetrics.density).toInt()
+            }
+
+            val bottomBarLp = barContainer.layoutParams as ViewGroup.MarginLayoutParams
+            val bottomOffset = (20 * resources.displayMetrics.density).toInt()
+            bottomBarLp.bottomMargin = if (ime.bottom > 0) ime.bottom + bottomOffset else navHeight + bottomOffset
+            barContainer.layoutParams = bottomBarLp
+            insets
+        }
     }
 
     private fun saveDraftMessage() {

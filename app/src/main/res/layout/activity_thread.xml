@@ -256,6 +256,15 @@
         </com.google.android.material.appbar.AppBarLayout>
     </androidx.coordinatorlayout.widget.CoordinatorLayout>
 
+    <View
+        android:layout_alignParentBottom="true"
+        android:id="@+id/bottomMask"
+        android:layout_width="match_parent"
+        android:layout_height="400px"
+        android:layout_gravity="bottom"
+        android:visibility="visible"
+        android:background="@drawable/bg_cmn_appbar_down" />
+
     <FrameLayout
         android:id="@+id/fragment_container"
         android:layout_width="match_parent"
