@@ -9,88 +9,11 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
     <androidx.coordinatorlayout.widget.CoordinatorLayout
+        android:clipChildren="false"
         android:id="@+id/thread_coordinator"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
-
-        <com.goodwy.commons.views.MyAppBarLayout
-            android:id="@+id/threadAppbar"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            tools:layout_behavior="com.google.android.material.appbar.AppBarLayout$ScrollingViewBehavior">
-
-            <com.google.android.material.appbar.CollapsingToolbarLayout
-                android:id="@+id/collapsing_toolbar"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                app:layout_scrollFlags="noScroll">
-
-                <com.google.android.material.appbar.MaterialToolbar
-                    android:id="@+id/thread_toolbar"
-                    android:layout_width="match_parent"
-                    android:layout_height="?attr/actionBarSize"
-                    app:layout_collapseMode="pin" />
-
-                <androidx.constraintlayout.widget.ConstraintLayout
-                    android:id="@+id/topDetailsLarge"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:paddingBottom="4dp"
-                    android:translationZ="4dp">
-
-                    <ImageView
-                        android:id="@+id/sender_photo_large"
-                        android:layout_width="@dimen/normal_icon_size"
-                        android:layout_height="@dimen/normal_icon_size"
-                        android:layout_marginTop="8dp"
-                        android:contentDescription="@string/conversation_details"
-                        app:layout_constraintEnd_toEndOf="parent"
-                        app:layout_constraintStart_toStartOf="parent"
-                        app:layout_constraintTop_toTopOf="parent"
-                        android:src="@drawable/ic_person" />
-
-                    <com.goodwy.commons.views.MyTextView
-                        android:id="@+id/sender_name_large"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:background="@drawable/ripple_all_corners"
-                        android:layout_marginTop="4dp"
-                        android:paddingStart="12dp"
-                        android:paddingEnd="12dp"
-                        android:maxLines="2"
-                        android:gravity="center"
-                        android:textSize="@dimen/big_text_size"
-                        app:layout_goneMarginTop="16dp"
-                        app:layout_constraintEnd_toEndOf="parent"
-                        app:layout_constraintStart_toStartOf="parent"
-                        app:layout_constraintTop_toBottomOf="@+id/sender_photo_large"
-                        tools:text="Name"/>
-
-                    <com.goodwy.commons.views.MyTextView
-                        android:id="@+id/sender_number_large"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:background="@drawable/ripple_all_corners"
-                        android:paddingStart="12dp"
-                        android:paddingEnd="12dp"
-                        android:maxLines="1"
-                        android:alpha="0.8"
-                        android:gravity="center"
-                        android:textSize="@dimen/smaller_text_size"
-                        app:layout_constraintEnd_toEndOf="parent"
-                        app:layout_constraintStart_toStartOf="parent"
-                        app:layout_constraintTop_toBottomOf="@+id/sender_name_large"
-                        tools:text="+12345678"/>
-                </androidx.constraintlayout.widget.ConstraintLayout>
-
-                <include
-                    android:id="@+id/topDetailsCompact"
-                    layout="@layout/top_view"
-                    android:layout_width="match_parent"
-                    android:layout_height="?attr/actionBarSize"
-                    tools:visibility="gone" />
-            </com.google.android.material.appbar.CollapsingToolbarLayout>
-        </com.goodwy.commons.views.MyAppBarLayout>
+        android:layout_height="match_parent"
+        android:background="@android:color/transparent">
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/thread_holder"
@@ -232,6 +155,105 @@
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent" />
         </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <com.google.android.material.appbar.AppBarLayout
+            android:id="@+id/threadAppbar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingBottom="5dp"
+            app:appBarBackground="@drawable/bg_cmn_appbar_up"
+            tools:layout_behavior="com.google.android.material.appbar.AppBarLayout$ScrollingViewBehavior">
+
+            <com.google.android.material.appbar.CollapsingToolbarLayout
+                android:id="@+id/collapsing_toolbar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:contentScrim="@android:color/transparent"
+                app:statusBarScrim="@android:color/transparent"
+                app:collapsedTitleGravity="center"
+                app:expandedTitleTextAppearance="@style/TextAppearance.AppCompat.Title"
+                app:layout_scrollFlags="noScroll"
+                app:titleEnabled="true">
+
+                <com.goodwy.commons.views.CustomToolbar
+                    android:id="@+id/thread_toolbar"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/tx_top_bar_toolbar_height"
+                    android:layout_marginTop="@dimen/tx_top_bar_toolbar_margin_top"
+                    android:background="@android:color/transparent"
+                    android:gravity="bottom"
+                    android:visibility="visible"
+                    app:layout_collapseMode="pin"
+                    app:popupTheme="@style/ThemeOverlay.AppCompat.Light" />
+
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:id="@+id/topDetailsLarge"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    app:layout_collapseMode="pin"
+                    android:paddingBottom="4dp"
+                    android:translationZ="4dp">
+
+                    <!--
+                    <ImageView
+                        android:id="@+id/sender_photo_large"
+                        android:layout_width="@dimen/normal_icon_size"
+                        android:layout_height="@dimen/normal_icon_size"
+                        android:layout_marginTop="8dp"
+                        android:contentDescription="@string/conversation_details"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        android:src="@drawable/ic_person" />
+                    -->
+
+                    <LinearLayout
+                        android:id="@+id/topDetailsLarge_center_group"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:gravity="center_horizontal"
+                        android:layout_marginBottom="@dimen/small_margin"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_collapseMode="pin">
+
+                        <com.goodwy.commons.views.MyTextView
+                            android:id="@+id/sender_name_large"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:background="@drawable/ripple_all_corners"
+                            android:paddingStart="12dp"
+                            android:paddingEnd="12dp"
+                            android:maxLines="2"
+                            android:gravity="center"
+                            android:textSize="@dimen/tx_bigger_text_size"
+                            tools:text="Name"/>
+
+                        <com.goodwy.commons.views.MyTextView
+                            android:id="@+id/sender_number_large"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:background="@drawable/ripple_all_corners"
+                            android:paddingStart="12dp"
+                            android:paddingEnd="12dp"
+                            android:maxLines="1"
+                            android:alpha="0.8"
+                            android:gravity="center"
+                            android:textSize="@dimen/tx_small_text_size"
+                            tools:text="+12345678"/>
+                    </LinearLayout>
+                </androidx.constraintlayout.widget.ConstraintLayout>
+
+                <include
+                    android:id="@+id/topDetailsCompact"
+                    layout="@layout/top_view"
+                    android:layout_width="match_parent"
+                    android:layout_height="?attr/actionBarSize"
+                    tools:visibility="gone" />
+            </com.google.android.material.appbar.CollapsingToolbarLayout>
+        </com.google.android.material.appbar.AppBarLayout>
     </androidx.coordinatorlayout.widget.CoordinatorLayout>
 
     <FrameLayout

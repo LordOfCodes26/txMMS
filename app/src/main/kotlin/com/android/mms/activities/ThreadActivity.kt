@@ -1,5 +1,7 @@
 package com.android.mms.activities
 
+import android.animation.ObjectAnimator
+import android.animation.StateListAnimator
 import android.annotation.SuppressLint
 import android.app.AlarmManager
 import android.content.ActivityNotFoundException
@@ -42,6 +44,7 @@ import android.widget.Toast
 import androidx.annotation.StringRes
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.net.toUri
+import androidx.core.view.MenuItemCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.documentfile.provider.DocumentFile
@@ -175,15 +178,20 @@ class ThreadActivity : SimpleActivity() {
         else binding.topDetailsLarge.beGone()
 
         val topBarColor = getColoredMaterialStatusBarColor()
-        // Disable navigation click in setupTopAppBar since we handle it manually for MaterialToolbar
-        setupTopAppBar(
-            topAppBar = binding.threadAppbar,
-            navigationIcon = NavigationIcon.None, // Don't let setupTopAppBar handle navigation
-            topBarColor = topBarColor,
-            appBarLayout = binding.threadAppbar,
-            navigationClick = false // We'll handle navigation click manually
+        // Use updateTopBarColors for AppBarLayout + CustomToolbar (not MyAppBarLayout)
+        updateTopBarColors(
+            appBarView = binding.threadAppbar,
+            colorBackground = topBarColor,
+            customToolbar = binding.threadToolbar
         )
-        // Setup MaterialToolbar navigation icon and colors
+        // Zero elevation for app bar
+        val stateListAnimator = StateListAnimator()
+        stateListAnimator.addState(
+            IntArray(0),
+            ObjectAnimator.ofFloat(binding.threadAppbar, "elevation", 0.0f)
+        )
+        binding.threadAppbar.stateListAnimator = stateListAnimator
+        // Setup CustomToolbar navigation icon and colors
         val toolbar = binding.threadToolbar
         val contrastColor = topBarColor.getContrastColor()
         val itemColor = if (baseConfig.topAppBarColorIcon) getProperPrimaryColor() else contrastColor
@@ -303,6 +311,7 @@ class ThreadActivity : SimpleActivity() {
             val blockText = if (participants.size == 1) com.goodwy.commons.R.string.block_number else com.goodwy.commons.R.string.block_numbers
             findItem(R.id.block_number)?.title = if (isBlockNumbers()) getString(unblockText) else getString(blockText)
         }
+        binding.threadToolbar.invalidateMenu()
         // Update menu item icon colors after refreshing menu items
         updateMenuItemIconColors()
     }
@@ -325,6 +334,11 @@ class ThreadActivity : SimpleActivity() {
     private fun setupOptionsMenu() {
         // Explicitly inflate menu to ensure it's ready (XML inflation happens asynchronously)
         binding.threadToolbar.inflateMenu(R.menu.menu_thread)
+        // Force dial_number to show as action (like MainActivity search item) so CustomToolbar shows it in the bar
+        binding.threadToolbar.menu.findItem(R.id.dial_number)?.let { item ->
+            MenuItemCompat.setShowAsAction(item, MenuItemCompat.SHOW_AS_ACTION_ALWAYS)
+        }
+        binding.threadToolbar.invalidateMenu()
         binding.threadToolbar.setOnMenuItemClickListener { menuItem ->
             if (participants.isEmpty()) {
                 return@setOnMenuItemClickListener true
@@ -1009,7 +1023,7 @@ class ThreadActivity : SimpleActivity() {
             }
             THREAD_TOP_LARGE -> topDetailsLarge.apply {
                 topDetailsCompact.root.beGone()
-                senderPhotoLarge.beVisibleIf(config.showContactThumbnails)
+                // senderPhotoLarge.beVisibleIf(config.showContactThumbnails)
                 if (threadTitle.isNotEmpty()) {
                     senderNameLarge.text = threadTitle
                     senderNameLarge.setTextColor(textColor)
@@ -1018,7 +1032,7 @@ class ThreadActivity : SimpleActivity() {
                 senderNumberLarge.text = threadSubtitle
                 senderNumberLarge.setTextColor(textColor)
                 arrayOf(
-                    senderPhotoLarge,
+                    // senderPhotoLarge,
                     senderNameLarge,
                     senderNumberLarge
                 ).forEach {
@@ -2090,9 +2104,12 @@ class ThreadActivity : SimpleActivity() {
     private fun updateContactImage() {
         val senderPhoto = when (config.threadTopStyle) {
             THREAD_TOP_COMPACT -> binding.topDetailsCompact.senderPhoto
-            THREAD_TOP_LARGE -> binding.senderPhotoLarge
+            // THREAD_TOP_LARGE -> binding.senderPhotoLarge
+            THREAD_TOP_LARGE -> null
             else -> binding.topDetailsCompact.senderPhoto
         }
+
+        if (senderPhoto == null) return
 
         val title = conversation?.title
         var threadTitle = if (!title.isNullOrEmpty()) {

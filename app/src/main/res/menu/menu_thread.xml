@@ -2,31 +2,31 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    tools:ignore="AppCompatResource">
+    tools:ignore="AppCompatResource,AlwaysShowAction">
     <item
         android:id="@+id/dial_number"
         android:icon="@drawable/ic_phone_vector"
         android:title="@string/dial_number"
-        app:showAsAction="always" />
+        android:showAsAction="collapseActionView|always" />
     <item
         android:id="@+id/conversation_details"
         android:icon="@drawable/ic_info_vector"
         android:title="@string/conversation_details"
-        app:showAsAction="never" />
+        android:showAsAction="never" />
     <item
         android:id="@+id/rename_conversation"
         android:icon="@drawable/ic_edit_vector"
         android:title="@string/rename_conversation"
-        app:showAsAction="never" />
+        android:showAsAction="never" />
     <item
         android:id="@+id/manage_people"
         android:icon="@drawable/ic_add_person_vector"
         android:title="@string/add_person"
-        app:showAsAction="never" />
+        android:showAsAction="never" />
     <item
         android:id="@+id/add_number_to_contact"
         android:title="@string/add_number_to_contact"
-        app:showAsAction="never" />
+        android:showAsAction="never" />
     <item
         android:id="@+id/block_number"
         android:showAsAction="never"
@@ -46,20 +46,20 @@
         android:id="@+id/archive"
         android:icon="@drawable/ic_archive_vector"
         android:title="@string/archive"
-        app:showAsAction="never" />
+        android:showAsAction="never" />
     <item
         android:id="@+id/unarchive"
         android:icon="@drawable/ic_unarchive_vector"
         android:title="@string/unarchive"
-        app:showAsAction="ifRoom" />
+        android:showAsAction="ifRoom" />
     <item
         android:id="@+id/delete"
         android:icon="@drawable/ic_delete_outline"
         android:title="@string/delete"
-        app:showAsAction="never" />
+        android:showAsAction="never" />
 
     <item
         android:id="@+id/select_messages"
         android:title="@string/select_conversations"
-        app:showAsAction="never" />
+        android:showAsAction="never" />
 </menu>
