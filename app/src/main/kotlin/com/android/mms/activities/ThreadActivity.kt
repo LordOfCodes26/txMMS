@@ -181,6 +181,7 @@ class ThreadActivity : SimpleActivity() {
     override fun onResume() {
         super.onResume()
         if (isDarkTheme()) {
+            @Suppress("DEPRECATION")
             window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
         } else {
             @Suppress("DEPRECATION")

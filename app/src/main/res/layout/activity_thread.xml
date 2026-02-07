@@ -119,6 +119,11 @@
                     tools:itemCount="3"
                     tools:listitem="@layout/item_message" />
 
+                <FrameLayout
+                    android:id="@+id/fragment_container"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent" />
+
             </com.qtalk.recyclerviewfastscroller.RecyclerViewFastScroller>
 
             <com.goodwy.commons.views.MyFloatingActionButton
@@ -265,9 +270,5 @@
         android:visibility="visible"
         android:background="@drawable/bg_cmn_appbar_down" />
 
-    <FrameLayout
-        android:id="@+id/fragment_container"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent" />
 </FrameLayout>
 </eightbitlab.com.blurview.BlurTarget>
