@@ -11,7 +11,6 @@ import android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
 import android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION
 import android.content.res.ColorStateList
 import android.graphics.Color
-import android.graphics.drawable.LayerDrawable
 import android.media.AudioManager
 import android.net.Uri
 import android.os.Bundle
@@ -31,18 +30,13 @@ import android.text.format.DateUtils.FORMAT_NO_YEAR
 import android.text.format.DateUtils.FORMAT_SHOW_DATE
 import android.text.format.DateUtils.FORMAT_SHOW_TIME
 import android.util.TypedValue
-import android.view.Gravity
 import android.view.KeyEvent
 import android.view.View
 import android.view.WindowManager
 import android.view.animation.OvershootInterpolator
-import android.view.inputmethod.EditorInfo
 import android.os.Handler
 import android.os.Looper
 import android.view.ViewGroup
-import android.widget.LinearLayout
-import android.widget.LinearLayout.LayoutParams
-import android.widget.RelativeLayout
 import android.widget.Toast
 import androidx.annotation.StringRes
 import androidx.core.content.res.ResourcesCompat
@@ -68,11 +62,9 @@ import com.goodwy.commons.models.SimpleContact
 import com.android.mms.BuildConfig
 import com.android.mms.R
 import com.android.mms.adapters.AttachmentsAdapter
-import com.android.mms.adapters.AutoCompleteTextViewAdapter
 import com.android.mms.adapters.ThreadAdapter
 import com.android.mms.helpers.MessageHolderHelper
 import com.android.mms.databinding.ActivityThreadBinding
-import com.android.mms.databinding.ItemSelectedContactBinding
 import com.android.mms.dialogs.InvalidNumberDialog
 import com.android.mms.dialogs.RenameConversationDialog
 import com.android.mms.dialogs.ScheduleMessageDialog
@@ -195,12 +187,12 @@ class ThreadActivity : SimpleActivity() {
         else binding.topDetailsLarge.beGone()
 
         val topBarColor = getColoredMaterialStatusBarColor()
-        // Use updateTopBarColors for AppBarLayout + CustomToolbar (not MyAppBarLayout)
-        updateTopBarColors(
-            appBarView = binding.threadAppbar,
-            colorBackground = topBarColor,
-            customToolbar = binding.threadToolbar
-        )
+//        // Use updateTopBarColors for AppBarLayout + CustomToolbar (not MyAppBarLayout)
+//        updateTopBarColors(
+//            appBarView = binding.threadAppbar,
+//            colorBackground = topBarColor,
+//            customToolbar = binding.threadToolbar
+//        )
         // Zero elevation for app bar
         val stateListAnimator = StateListAnimator()
         stateListAnimator.addState(
@@ -226,7 +218,7 @@ class ThreadActivity : SimpleActivity() {
         // Ensure click listener is set after icon
         toolbar.setNavigationOnClickListener(navigationClickListener)
         toolbar.setNavigationContentDescription(com.goodwy.commons.R.string.back)
-        toolbar.setBackgroundColor(topBarColor)
+        // toolbar.setBackgroundColor(topBarColor)
         // Update menu button color
         val overflowIconRes = getOverflowIcon(baseConfig.overflowIcon)
         toolbar.overflowIcon = resources.getColoredDrawableWithColor(this, overflowIconRes, itemColor)
@@ -258,8 +250,8 @@ class ThreadActivity : SimpleActivity() {
             markThreadMessagesRead(threadId)
         }
 
-        val bottomBarColor = getBottomBarColor()
-        binding.shortCodeHolder.root.setBackgroundColor(bottomBarColor)
+//        val bottomBarColor = getBottomBarColor()
+//        binding.shortCodeHolder.root.setBackgroundColor(bottomBarColor)
 //        binding.messageHolder.attachmentPickerHolder.setBackgroundColor(bottomBarColor)
     }
 
@@ -347,7 +339,6 @@ class ThreadActivity : SimpleActivity() {
             findItem(R.id.conversation_details)?.isVisible = conversation != null && !isRecycleBin
             findItem(R.id.block_number)?.isVisible = !isRecycleBin
             findItem(R.id.dial_number)?.isVisible = participants.size == 1 && !isSpecialNumber() && !isRecycleBin
-            findItem(R.id.manage_people)?.isVisible = !isSpecialNumber() && !isRecycleBin
             findItem(R.id.mark_as_unread)?.isVisible = threadItems.isNotEmpty() && !isRecycleBin
 
             // allow saving number in cases when we don't have it stored yet and it is a casual readable number
@@ -402,7 +393,6 @@ class ThreadActivity : SimpleActivity() {
                 R.id.conversation_details -> launchConversationDetails(threadId)
                 R.id.add_number_to_contact -> addNumberToContact()
                 R.id.dial_number -> dialNumber()
-                R.id.manage_people -> managePeople()
                 R.id.mark_as_unread -> markAsUnread()
                 R.id.select_messages -> getOrCreateThreadAdapter().startActMode()
                 else -> return@setOnMenuItemClickListener false
@@ -622,51 +612,6 @@ class ThreadActivity : SimpleActivity() {
             }
         }
 
-        SimpleContactsHelper(this).getAvailableContacts(false) { contacts ->
-            contacts.addAll(privateContacts)
-            runOnUiThread {
-                val adapter = AutoCompleteTextViewAdapter(this, contacts)
-                binding.addContactOrNumber.setAdapter(adapter)
-                binding.addContactOrNumber.imeOptions = EditorInfo.IME_ACTION_NEXT
-                binding.addContactOrNumber.setOnItemClickListener { _, _, position, _ ->
-                    val currContacts = (binding.addContactOrNumber.adapter as AutoCompleteTextViewAdapter).resultList
-                    val selectedContact = currContacts[position]
-                    maybeShowNumberPickerDialog(selectedContact.phoneNumbers) { phoneNumber ->
-                        val contactWithSelectedNumber = selectedContact.copy(
-                            phoneNumbers = arrayListOf(phoneNumber)
-                        )
-                        addSelectedContact(contactWithSelectedNumber)
-                    }
-                }
-
-                binding.addContactOrNumber.onTextChangeListener {
-                    binding.confirmInsertedNumber.beVisibleIf(it.length > 2)
-                }
-            }
-        }
-
-        runOnUiThread {
-            binding.confirmInsertedNumber.setOnClickListener {
-                val number = binding.addContactOrNumber.value
-                val phoneNumber = PhoneNumber(number, 0, "", number)
-                val contact = SimpleContact(
-                    rawId = number.hashCode(),
-                    contactId = number.hashCode(),
-                    name = number,
-                    photoUri = "",
-                    phoneNumbers = arrayListOf(phoneNumber),
-                    birthdays = ArrayList(),
-                    anniversaries = ArrayList()
-                )
-                addSelectedContact(contact)
-            }
-        }
-
-        binding.confirmInsertedNumber.setColorFilter(getProperTextColor())
-        binding.addContactOrNumber.setBackgroundResource(com.goodwy.commons.R.drawable.search_bg)
-        val useSurfaceColor = isDynamicTheme() && !isSystemInDarkMode()
-        val surfaceColor = if (useSurfaceColor) getProperBackgroundColor() else getSurfaceColor()
-        binding.addContactOrNumber.backgroundTintList = ColorStateList.valueOf(surfaceColor)
     }
 
     private fun scrollToBottom() {
@@ -928,30 +873,6 @@ class ThreadActivity : SimpleActivity() {
             threadMessagesFastscroller.updateColors(getProperAccentColor())
             threadAddAttachment.applyColorFilter(textColor)
             threadAddAttachment.background.applyColorFilter(surfaceColor)
-            
-            // Setup ThreadActivity-specific UI
-            confirmManageContacts.applyColorFilter(textColor)
-            confirmManageContacts.setOnClickListener {
-                hideKeyboard()
-                threadAddContacts.beGone()
-
-                val numbers = HashSet<String>()
-                participants.forEach { contact ->
-                    contact.phoneNumbers.forEach {
-                        numbers.add(it.normalizedNumber)
-                    }
-                }
-
-                val newThreadId = getThreadId(numbers)
-                if (threadId != newThreadId) {
-                    hideKeyboard()
-                    Intent(this@ThreadActivity, ThreadActivity::class.java).apply {
-                        putExtra(THREAD_ID, newThreadId)
-                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                        startActivity(this)
-                    }
-                }
-            }
         }
         
         scrollToBottomFab.setOnClickListener {
@@ -1292,58 +1213,6 @@ class ThreadActivity : SimpleActivity() {
     private fun dialNumber() {
         val phoneNumber = participants.first().phoneNumbers.first().normalizedNumber
         dialNumber(phoneNumber)
-    }
-
-    private fun managePeople() {
-        if (binding.threadAddContacts.isVisible()) {
-            hideKeyboard()
-            binding.threadAddContacts.beGone()
-        } else {
-            showSelectedContacts()
-            binding.threadAddContacts.beVisible()
-            binding.addContactOrNumber.requestFocus()
-            showKeyboard(binding.addContactOrNumber)
-        }
-    }
-
-    private fun showSelectedContacts() {
-        val properPrimaryColor = getProperPrimaryColor()
-
-        val views = ArrayList<View>()
-        val firstRawId = participants.first().rawId
-        participants.forEach { contact ->
-            ItemSelectedContactBinding.inflate(layoutInflater).apply {
-                val selectedContactBg =
-                    ResourcesCompat.getDrawable(resources, R.drawable.item_selected_contact_background, theme)
-                (selectedContactBg as LayerDrawable).findDrawableByLayerId(R.id.selected_contact_bg)
-                    .applyColorFilter(properPrimaryColor)
-                selectedContactHolder.background = selectedContactBg
-
-                selectedContactName.text = contact.name
-                selectedContactName.setTextColor(properPrimaryColor.getContrastColor())
-                selectedContactRemove.applyColorFilter(properPrimaryColor.getContrastColor())
-                selectedContactRemove.beGoneIf(contact.rawId == firstRawId)
-
-                selectedContactRemove.setOnClickListener {
-                    if (contact.rawId != firstRawId) {
-                        removeSelectedContact(contact.rawId)
-                    }
-                }
-                views.add(root)
-            }
-        }
-        showSelectedContact(views)
-    }
-
-    private fun addSelectedContact(contact: SimpleContact) {
-        binding.addContactOrNumber.setText("")
-        if (participants.map { it.rawId }.contains(contact.rawId)) {
-            return
-        }
-
-        participants.add(contact)
-        showSelectedContacts()
-        //updateMessageType()
     }
 
     private fun markAsUnread() {
@@ -1757,66 +1626,6 @@ class ThreadActivity : SimpleActivity() {
             updateConversationArchivedStatus(message.threadId, false)
             refreshConversations()
         }
-    }
-
-    // show selected contacts, properly split to new lines when appropriate
-    // based on https://stackoverflow.com/a/13505029/1967672
-    private fun showSelectedContact(views: ArrayList<View>) {
-        binding.selectedContacts.removeAllViews()
-        var newLinearLayout = LinearLayout(this)
-        newLinearLayout.layoutParams =
-            LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
-        newLinearLayout.orientation = LinearLayout.HORIZONTAL
-
-        val sideMargin =
-            (binding.selectedContacts.layoutParams as RelativeLayout.LayoutParams).leftMargin
-        val mediumMargin = resources.getDimension(com.goodwy.commons.R.dimen.medium_margin).toInt()
-        val parentWidth = realScreenSize.x - sideMargin * 2
-        val firstRowWidth =
-            parentWidth - resources.getDimension(com.goodwy.commons.R.dimen.normal_icon_size).toInt() + sideMargin / 2
-        var widthSoFar = 0
-        var isFirstRow = true
-
-        for (i in views.indices) {
-            val layout = LinearLayout(this)
-            layout.orientation = LinearLayout.HORIZONTAL
-            layout.gravity = Gravity.CENTER_HORIZONTAL or Gravity.BOTTOM
-            layout.layoutParams = LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT)
-            views[i].measure(0, 0)
-
-            var params = LayoutParams(views[i].measuredWidth, LayoutParams.WRAP_CONTENT)
-            params.setMargins(0, 0, mediumMargin, 0)
-            layout.addView(views[i], params)
-            layout.measure(0, 0)
-            widthSoFar += views[i].measuredWidth + mediumMargin
-
-            val checkWidth = if (isFirstRow) firstRowWidth else parentWidth
-            if (widthSoFar >= checkWidth) {
-                isFirstRow = false
-                binding.selectedContacts.addView(newLinearLayout)
-                newLinearLayout = LinearLayout(this)
-                newLinearLayout.layoutParams =
-                    LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
-                newLinearLayout.orientation = LinearLayout.HORIZONTAL
-                params = LayoutParams(layout.measuredWidth, layout.measuredHeight)
-                params.topMargin = mediumMargin
-                newLinearLayout.addView(layout, params)
-                widthSoFar = layout.measuredWidth
-            } else {
-                if (!isFirstRow) {
-                    (layout.layoutParams as LayoutParams).topMargin = mediumMargin
-                }
-                newLinearLayout.addView(layout)
-            }
-        }
-        binding.selectedContacts.addView(newLinearLayout)
-    }
-
-    private fun removeSelectedContact(id: Int) {
-        participants =
-            participants.filter { it.rawId != id }.toMutableList() as ArrayList<SimpleContact>
-        showSelectedContacts()
-        //updateMessageType()
     }
 
     private fun getPhoneNumbersFromIntent(): ArrayList<String> {

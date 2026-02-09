@@ -10,100 +10,27 @@
         android:layout_height="match_parent">
         <androidx.coordinatorlayout.widget.CoordinatorLayout
             android:clipChildren="false"
+            android:clipToPadding="false"
             android:id="@+id/thread_coordinator"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="@android:color/transparent">
+            android:background="@color/transparent">
 
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:id="@+id/thread_holder"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:fillViewport="true"
+                android:layout_marginTop="@dimen/blur_app_bar_margin"
                 android:scrollbars="none"
+                android:scrollingCache="true"
                 app:layout_behavior="@string/appbar_scrolling_view_behavior">
-
-                <View
-                    android:id="@+id/message_divider_one"
-                    android:layout_width="match_parent"
-                    android:layout_height="1px"
-                    android:background="@color/divider_grey"
-                    android:importantForAccessibility="no"
-                    app:layout_constraintTop_toTopOf="parent" />
-
-                <RelativeLayout
-                    android:id="@+id/thread_add_contacts"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:visibility="gone"
-                    app:layout_constraintTop_toBottomOf="@+id/message_divider_one"
-                    tools:visibility="visible">
-
-                    <LinearLayout
-                        android:id="@+id/selectedContacts"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="@dimen/activity_margin"
-                        android:layout_marginTop="@dimen/activity_margin"
-                        android:layout_marginEnd="@dimen/activity_margin"
-                        android:layout_marginBottom="@dimen/activity_margin"
-                        android:orientation="vertical" />
-
-                    <ImageView
-                        android:id="@+id/confirm_manage_contacts"
-                        android:layout_width="32dp"
-                        android:layout_height="32dp"
-                        android:layout_alignTop="@+id/selectedContacts"
-                        android:layout_alignParentEnd="true"
-                        android:layout_marginStart="@dimen/medium_margin"
-                        android:layout_marginEnd="@dimen/activity_margin"
-                        android:background="?selectableItemBackgroundBorderless"
-                        android:contentDescription="@string/confirm_selection"
-                        android:padding="@dimen/small_margin"
-                        android:src="@drawable/ic_check_vector" />
-
-                    <com.goodwy.commons.views.MyAutoCompleteTextView
-                        android:id="@+id/addContactOrNumber"
-                        android:layout_width="match_parent"
-                        android:layout_height="36dp"
-                        android:layout_below="@+id/selectedContacts"
-                        android:layout_marginStart="@dimen/activity_margin"
-                        android:layout_marginEnd="@dimen/activity_margin"
-                        android:layout_marginBottom="@dimen/small_margin"
-                        android:layout_toStartOf="@+id/confirmInsertedNumber"
-                        android:background="@drawable/search_bg"
-                        android:completionThreshold="2"
-                        android:gravity="center_vertical"
-                        android:hint="@string/add_contact_or_number"
-                        android:inputType="textCapWords"
-                        android:paddingStart="@dimen/normal_margin"
-                        android:paddingEnd="@dimen/normal_margin"
-                        android:textSize="@dimen/bigger_text_size" />
-
-                    <ImageView
-                        android:id="@+id/confirmInsertedNumber"
-                        android:layout_width="wrap_content"
-                        android:layout_height="match_parent"
-                        android:layout_alignTop="@+id/addContactOrNumber"
-                        android:layout_alignBottom="@+id/addContactOrNumber"
-                        android:layout_alignParentEnd="true"
-                        android:layout_marginEnd="@dimen/activity_margin"
-                        android:background="?selectableItemBackgroundBorderless"
-                        android:contentDescription="@string/confirm_selection"
-                        android:paddingStart="@dimen/smaller_margin"
-                        android:paddingEnd="@dimen/smaller_margin"
-                        android:src="@drawable/ic_plus_vector"
-                        android:visibility="gone"
-                        tools:visibility="visible" />
-                </RelativeLayout>
 
                 <com.qtalk.recyclerviewfastscroller.RecyclerViewFastScroller
                     android:id="@+id/threadMessagesFastscroller"
                     android:layout_width="match_parent"
-                    android:layout_height="0dp"
+                    android:layout_height="match_parent"
                     android:layout_marginBottom="@dimen/small_margin"
-                    app:layout_constraintBottom_toTopOf="@id/shortCodeHolder"
-                    app:layout_constraintTop_toBottomOf="@id/thread_add_contacts"
+                    app:layout_constraintTop_toBottomOf="parent"
                     app:supportSwipeToRefresh="true">
 
                     <com.goodwy.commons.views.MyRecyclerView
@@ -112,6 +39,7 @@
                         android:layout_height="match_parent"
                         android:clipToPadding="false"
                         android:overScrollMode="ifContentScrolls"
+                        android:paddingTop="@dimen/blur_app_bar_height"
                         android:paddingBottom="@dimen/medium_margin"
                         android:scrollbars="none"
                         app:layoutManager="com.goodwy.commons.views.MyLinearLayoutManager"
@@ -173,8 +101,8 @@
                     android:id="@+id/collapsing_toolbar"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    app:contentScrim="@android:color/transparent"
-                    app:statusBarScrim="@android:color/transparent"
+                    app:contentScrim="@color/transparent"
+                    app:statusBarScrim="@color/transparent"
                     app:collapsedTitleGravity="center"
                     app:expandedTitleTextAppearance="@style/TextAppearance.AppCompat.Title"
                     app:layout_scrollFlags="noScroll"
@@ -185,7 +113,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="@dimen/tx_top_bar_toolbar_height"
                         android:layout_marginTop="@dimen/tx_top_bar_toolbar_margin_top"
-                        android:background="@android:color/transparent"
+                        android:background="@color/transparent"
                         android:gravity="bottom"
                         android:visibility="visible"
                         app:layout_collapseMode="pin"

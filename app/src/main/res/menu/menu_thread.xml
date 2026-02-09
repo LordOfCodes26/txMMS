@@ -19,11 +19,6 @@
         android:title="@string/rename_conversation"
         android:showAsAction="never" />
     <item
-        android:id="@+id/manage_people"
-        android:icon="@drawable/ic_add_person_vector"
-        android:title="@string/add_person"
-        android:showAsAction="never" />
-    <item
         android:id="@+id/add_number_to_contact"
         android:title="@string/add_number_to_contact"
         android:showAsAction="never" />
