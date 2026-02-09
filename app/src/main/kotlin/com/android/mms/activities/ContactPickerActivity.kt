@@ -18,8 +18,10 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.goodwy.commons.views.MyRecyclerView
 import com.android.common.helper.IconItem
 import com.android.common.view.MRippleToolBar
+import com.android.common.view.MSearchView
 import com.android.mms.R
 import com.android.mms.adapters.ContactPickerAdapter
 import com.android.mms.models.Contact
@@ -64,7 +66,7 @@ class ContactPickerActivity : AppCompatActivity() {
     private var blurAppBarLayout: BlurAppBarLayout? = null
     private var totalOffset = 0
     private var rootView: View? = null
-    private var contactRecyclerView: RecyclerView? = null
+    private var contactRecyclerView: MyRecyclerView? = null
     private var contactAdapter: ContactPickerAdapter? = null
     private val allContacts = ArrayList<Contact>()
     private val filteredContacts = ArrayList<Contact>()
@@ -126,7 +128,6 @@ class ContactPickerActivity : AppCompatActivity() {
     private fun makeSystemBarsToTransparent() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         val bottomMask = findViewById<View>(R.id.bottomMask)
-        val barContainer = bottomBarContainer ?: return
 
         ViewCompat.setOnApplyWindowInsetsListener(rootView!!) { _, insets ->
             val nav = insets.getInsets(WindowInsetsCompat.Type.navigationBars())
@@ -135,10 +136,20 @@ class ContactPickerActivity : AppCompatActivity() {
 
             bottomMask.layoutParams = bottomMask.layoutParams.apply { height = navHeight + dp(5) }
 
-            val bottomBarLp = barContainer.layoutParams as ViewGroup.MarginLayoutParams
-            val bottomOffset = dp(20)
-            bottomBarLp.bottomMargin = if (ime.bottom > 0) ime.bottom + bottomOffset else navHeight + bottomOffset
-            barContainer.layoutParams = bottomBarLp
+            val barContainer = bottomBarContainer
+            if (barContainer != null) {
+                val bottomBarLp = barContainer.layoutParams as ViewGroup.MarginLayoutParams
+                val bottomOffset = dp(0)
+                if (ime.bottom > 0) {
+                    bottomBarLp.bottomMargin = ime.bottom + bottomOffset
+                    contactRecyclerView?.setPadding(0, dp(120), 0, dp(40) + navHeight + ime.bottom)
+                    contactRecyclerView?.scrollToPosition((contactAdapter?.itemCount ?: 1) - 1)
+                } else {
+                    bottomBarLp.bottomMargin = navHeight + bottomOffset
+                    contactRecyclerView?.setPadding(0, dp(120), 0, dp(90) + navHeight)
+                }
+                barContainer.layoutParams = bottomBarLp
+            }
             insets
         }
     }
@@ -198,14 +209,24 @@ class ContactPickerActivity : AppCompatActivity() {
             }
         }
         blurAppBarLayout?.setOnSearchStateListener(object : BlurAppBarLayout.OnSearchStateListener {
-            override fun onState(state: Int) {}
+            override fun onState(state: Int) {
+                when (state) {
+                    MSearchView.SEARCH_START -> {
+                        contactRecyclerView?.isNestedScrollingEnabled = false
+                        contactRecyclerView?.scrollToPosition((contactAdapter?.itemCount ?: 1) - 1)
+                    }
+                    MSearchView.SEARCH_END -> {
+                        contactRecyclerView?.isNestedScrollingEnabled = true
+                    }
+                }
+            }
             override fun onSearchTextChanged(s: String?) {
                 searchString = s ?: ""
                 searchListByQuery(searchString)
             }
         })
 
-        contactRecyclerView = findViewById<RecyclerView>(R.id.contactRecyclerView).apply {
+        contactRecyclerView = findViewById<MyRecyclerView>(R.id.contactRecyclerView).apply {
             layoutManager = LinearLayoutManager(this@ContactPickerActivity)
             setHasFixedSize(false)
         }

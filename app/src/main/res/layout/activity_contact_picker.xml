@@ -8,71 +8,49 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".activities.ContactPickerActivity">
-
-    <androidx.coordinatorlayout.widget.CoordinatorLayout
-        android:clipChildren="false"
+    <eightbitlab.com.blurview.BlurTarget
+        android:id="@+id/blurTarget"
+        android:background="@color/tx_main_background_color"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="@android:color/transparent">
-
-        <com.goodwy.commons.views.BounceScrollView
-            android:id="@+id/nest_scroll"
+        android:layout_height="match_parent">
+        <RelativeLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:scrollbars="none"
-            android:scrollingCache="true"
-            app:layout_behavior="com.google.android.material.appbar.AppBarLayout$ScrollingViewBehavior">
-
-            <eightbitlab.com.blurview.BlurTarget
-                android:id="@+id/blurTarget"
-                android:background="@color/tx_main_background_color"
+            android:layout_height="match_parent">
+            <androidx.coordinatorlayout.widget.CoordinatorLayout
+                android:clipChildren="false"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent">
-                <LinearLayout
+                android:layout_height="match_parent"
+                android:background="@android:color/transparent">
+                <RelativeLayout
+                    android:id="@+id/nest_scroll"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:layout_marginHorizontal="@dimen/tx_setting_cardview_margin_horizontal"
-                    android:paddingTop="@dimen/tx_setting_cardview_item_margin_vertical"
-                    android:paddingBottom="150px">
-
-                    <androidx.cardview.widget.CardView
+                    android:layout_height="match_parent"
+                    android:background="@color/tx_main_background_color"
+                    android:scrollbars="none"
+                    android:scrollingCache="true"
+                    app:layout_behavior="com.google.android.material.appbar.AppBarLayout$ScrollingViewBehavior">
+                    <com.goodwy.commons.views.MyRecyclerView
+                        android:id="@+id/contactRecyclerView"
+                        android:layout_marginTop="-120dp"
+                        android:layout_marginHorizontal="@dimen/tx_setting_cardview_margin_horizontal"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginVertical="@dimen/tx_setting_cardview_margin_vertical"
-                        app:cardBackgroundColor="@color/tx_cardview_bg_color"
-                        app:cardCornerRadius="@dimen/tx_item_radius"
-                        app:cardElevation="0dp">
-                        <LinearLayout
-                            android:paddingVertical="@dimen/tx_setting_cardview_item_margin_vertical"
-                            android:layout_marginVertical="@dimen/tx_setting_cardview_padding_vertical"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="vertical">
+                        android:layout_height="match_parent"
+                        android:clipToPadding="false"
+                        app:layout_behavior="com.google.android.material.appbar.AppBarLayout$ScrollingViewBehavior"
+                        android:nestedScrollingEnabled="true" />
+                </RelativeLayout>
 
-                            <androidx.recyclerview.widget.RecyclerView
-                                android:id="@+id/contactRecyclerView"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:orientation="vertical"
-                                android:overScrollMode="never"
-                                android:nestedScrollingEnabled="false" />
+                <com.goodwy.commons.views.BlurAppBarLayout
+                    android:id="@+id/blur_app_bar_layout"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/blur_app_bar_height"
+                    android:paddingBottom="5dp"
+                    app:appBarBackground="@drawable/bg_cmn_appbar_up" />
 
-                        </LinearLayout>
-                    </androidx.cardview.widget.CardView>
+            </androidx.coordinatorlayout.widget.CoordinatorLayout>
+        </RelativeLayout>
+    </eightbitlab.com.blurview.BlurTarget>
 
-                </LinearLayout>
-            </eightbitlab.com.blurview.BlurTarget>
-        </com.goodwy.commons.views.BounceScrollView>
-
-        <com.goodwy.commons.views.BlurAppBarLayout
-            android:id="@+id/blur_app_bar_layout"
-            android:layout_width="match_parent"
-            android:layout_height="@dimen/blur_app_bar_height"
-            android:paddingBottom="5dp"
-            app:appBarBackground="@drawable/bg_cmn_appbar_up" />
-
-    </androidx.coordinatorlayout.widget.CoordinatorLayout>
 
     <View
         android:layout_alignParentBottom="true"
