@@ -3,7 +3,6 @@ package com.goodwy.commons.views
 import android.app.Activity
 import android.content.Context
 import android.content.res.ColorStateList
-import android.graphics.Outline
 import android.graphics.drawable.Drawable
 import android.util.AttributeSet
 import android.util.TypedValue
@@ -14,8 +13,8 @@ import android.view.MenuInflater
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
-import android.view.ViewOutlineProvider
 import android.animation.ValueAnimator
+import android.annotation.SuppressLint
 import android.graphics.PorterDuff
 import android.util.Log
 import android.view.animation.AccelerateInterpolator
@@ -23,8 +22,7 @@ import android.view.animation.DecelerateInterpolator
 import android.view.inputmethod.InputMethodManager
 import android.widget.ImageView
 import android.widget.LinearLayout
-import android.widget.PopupMenu
-import android.widget.PopupWindow
+import android.widget.RelativeLayout
 import android.widget.TextView
 import com.goodwy.commons.views.MyEditText
 import androidx.appcompat.view.menu.MenuBuilder
@@ -36,20 +34,18 @@ import androidx.core.view.MenuCompat
 import com.goodwy.commons.R
 import com.goodwy.commons.databinding.CustomToolbarBinding
 import com.goodwy.commons.databinding.CustomToolbarSearchContainerBinding
-import com.goodwy.commons.databinding.PopupMenuBlurBinding
 import com.goodwy.commons.extensions.adjustAlpha
 import com.goodwy.commons.extensions.applyColorFilter
 import com.goodwy.commons.extensions.getColoredMaterialSearchBarColor
-import com.goodwy.commons.extensions.getProperBlurOverlayColor
 import com.goodwy.commons.extensions.getProperPrimaryColor
 import com.goodwy.commons.extensions.getProperTextColor
 import com.goodwy.commons.extensions.getProperTextCursorColor
 import com.goodwy.commons.extensions.isSystemInDarkMode
 import com.goodwy.commons.extensions.onTextChangeListener
 import android.graphics.drawable.GradientDrawable
+import com.android.common.util.Util
 import com.android.common.view.MImageButton
-import eightbitlab.com.blurview.BlurTarget
-import eightbitlab.com.blurview.BlurView
+import com.goodwy.commons.views.BlurPopupMenu
 
 /**
  * Custom toolbar implementation using LinearLayout that mimics MaterialToolbar API
@@ -125,6 +121,8 @@ class CustomToolbar @JvmOverloads constructor(
                 setImageDrawable(value)
                 visibility = if (value != null) View.VISIBLE else View.GONE
             }
+            // Update action buttons container margin when menu button visibility changes
+            updateActionButtonsContainerMargin()
         }
 
     var collapseIcon: Drawable? = null
@@ -151,7 +149,10 @@ class CustomToolbar @JvmOverloads constructor(
         setupSearchContainer()
 
         // Setup click listeners
-        binding?.menuButton?.setOnClickListener { showMenuPopup() }
+        binding?.menuButton?.setOnClickListener {
+            showMenuPopup()
+            Util.startAnimationVectorDrawable(binding?.menuButton)
+        }
 
         // Read attributes from XML
         attrs?.let {
@@ -182,6 +183,7 @@ class CustomToolbar @JvmOverloads constructor(
         }
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     private fun setupSearchContainer() {
         if (searchBinding != null) return
 
@@ -464,13 +466,26 @@ class CustomToolbar @JvmOverloads constructor(
             val searchContainer = search.root
 
             // Calculate the rightmost element (action buttons or menu button)
-            val rightmostElement = if (actionButtonsContainer != null && actionButtonsContainer.visibility == View.VISIBLE) {
-                actionButtonsContainer
-            } else {
-                menuButton
+            // Only consider visible elements
+            val rightmostElement = when {
+                actionButtonsContainer != null && actionButtonsContainer.visibility == View.VISIBLE -> actionButtonsContainer
+                menuButton.visibility == View.VISIBLE -> menuButton
+                else -> null // Both are GONE
             }
 
-            val targetWidth = if (rightmostElement != null && searchContainer != null) {
+            // Update search container layout params if menu button is GONE
+            if (menuButton.visibility == View.GONE && actionButtonsContainer?.visibility != View.VISIBLE) {
+                val searchContainerParams = searchContainer.layoutParams as? RelativeLayout.LayoutParams
+                searchContainerParams?.let {
+                    // Align search container to parent end when menu button is GONE
+                    // This will override the original toStartOf constraint
+                    it.addRule(RelativeLayout.ALIGN_PARENT_END)
+                    it.marginEnd = getNormalMargin()
+                    searchContainer.layoutParams = it
+                }
+            }
+
+            val targetWidth = if (rightmostElement != null && rightmostElement.visibility == View.VISIBLE && searchContainer != null) {
                 // Get the location of rightmost element and search container
                 val rightmostLocation = IntArray(2)
                 rightmostElement.getLocationOnScreen(rightmostLocation)
@@ -488,14 +503,19 @@ class CustomToolbar @JvmOverloads constructor(
                 val distanceToRightmost = rightmostLocation[0] - searchContainerLocation[0]
                 (distanceToRightmost - backButtonWidth - backButtonMargin - editTextMargin).coerceAtLeast(100)
             } else {
-                // Fallback calculation if measurement fails
+                // Fallback calculation if measurement fails or both menu button and action buttons are GONE
                 val toolbarWidth = width
                 val actionButtonsWidth = if (actionButtonsContainer != null && actionButtonsContainer.visibility == View.VISIBLE) {
                     actionButtonsContainer.width
                 } else {
                     0
                 }
-                val menuButtonWidth = menuButton.width.takeIf { it > 0 } ?: getMediumIconSize()
+                // Only include menu button width if it's visible
+                val menuButtonWidth = if (menuButton.visibility == View.VISIBLE) {
+                    menuButton.width.takeIf { it > 0 } ?: getMediumIconSize()
+                } else {
+                    0
+                }
                 val backButtonWidth = search.searchBackButton.width.takeIf { it > 0 } ?: getMediumIconSize()
                 val toolbarPadding = paddingStart + paddingEnd
                 val margins = getNormalMargin() + getSmallerMargin() * 2
@@ -563,6 +583,16 @@ class CustomToolbar @JvmOverloads constructor(
                 // Hide search container and back button
                 search.root.visibility = View.GONE
                 search.searchBackButton.visibility = View.GONE
+
+                // Restore search container layout params to original constraints
+                val searchContainerParams = search.root.layoutParams as? RelativeLayout.LayoutParams
+                searchContainerParams?.let {
+                    // Remove ALIGN_PARENT_END rule (set to 0 to remove)
+                    // This will restore the original XML constraint (toStartOf actionButtonsContainer)
+                    it.addRule(RelativeLayout.ALIGN_PARENT_END, 0)
+                    it.marginEnd = getNormalMargin()
+                    search.root.layoutParams = it
+                }
 
                 // Show title and action buttons (menu button was already visible)
                 binding.titleTextView.visibility =
@@ -686,6 +716,10 @@ class CustomToolbar @JvmOverloads constructor(
                 }
             }
 
+            // Show overflow menu button if there are overflow items
+            val hasOverflowItems = overflowItems.isNotEmpty()
+            val menuButtonVisible = hasOverflowItems
+
             // Create action buttons for items that should be shown as actions
             if (actionButtonsContainer != null) {
                 // Ensure container doesn't intercept touch events
@@ -694,7 +728,7 @@ class CustomToolbar @JvmOverloads constructor(
                 actionButtonsContainer.descendantFocusability = ViewGroup.FOCUS_BLOCK_DESCENDANTS
 
                 actionItems.forEach { item ->
-                    val actionButton = createActionButton(item)
+                    val actionButton = createActionButton(item, menuButtonVisible)
                     actionButtonsContainer.addView(actionButton)
                 }
 
@@ -702,9 +736,11 @@ class CustomToolbar @JvmOverloads constructor(
                 actionButtonsContainer.visibility = if (actionItems.isNotEmpty()) View.VISIBLE else View.GONE
             }
 
-            // Show overflow menu button if there are overflow items
-            val hasOverflowItems = overflowItems.isNotEmpty()
-            binding.menuButton.visibility = if (hasOverflowItems) View.VISIBLE else View.GONE
+            // Update menu button visibility
+            binding.menuButton.visibility = if (menuButtonVisible) View.VISIBLE else View.GONE
+
+            // Update action buttons container margin based on menu button visibility
+            updateActionButtonsContainerMargin()
 
             // Store overflow items for popup menu
             this.overflowItems = overflowItems
@@ -714,9 +750,33 @@ class CustomToolbar @JvmOverloads constructor(
     }
 
     /**
+     * Update the end margin of action buttons container based on menu button visibility.
+     * When menu button is hidden, add margin to prevent action buttons from overlapping the title.
+     */
+    private fun updateActionButtonsContainerMargin() {
+        val binding = this.binding ?: return
+        val actionButtonsContainer = binding.root.findViewById<LinearLayout>(R.id.actionButtonsContainer) ?: return
+        val menuButton = binding.menuButton
+        
+        val params = actionButtonsContainer.layoutParams
+        if (params is RelativeLayout.LayoutParams) {
+            // If menu button is hidden and action buttons are visible, align to parent end
+            if (menuButton.visibility == View.GONE && actionButtonsContainer.visibility == View.VISIBLE) {
+                params.addRule(RelativeLayout.ALIGN_PARENT_END)
+                params.marginEnd = resources.getDimensionPixelSize(R.dimen.medium_margin)
+            } else {
+                // When menu button is visible, use toStartOf constraint (remove alignParentEnd)
+                params.addRule(RelativeLayout.ALIGN_PARENT_END, 0)
+                params.marginEnd = 0
+            }
+            actionButtonsContainer.layoutParams = params
+        }
+    }
+
+    /**
      * Create an action button for a menu item with proper click handling
      */
-    private fun createActionButton(item: MenuItem): MImageButton {
+    private fun createActionButton(item: MenuItem, menuButtonVisible: Boolean): MImageButton {
         val iconSize = getMediumIconSize()
         val margin = getNormalMargin()
         val textColor = getTextColor()
@@ -724,8 +784,21 @@ class CustomToolbar @JvmOverloads constructor(
 
         return MImageButton(context).apply {
             // Set layout params (same size as menu button)
+            // Adjust margin based on menu button visibility
             layoutParams = LinearLayout.LayoutParams(iconSize, iconSize).apply {
-                marginEnd = margin
+                marginEnd = if (menuButtonVisible) {
+                    // Normal margin when menu button is visible
+                    margin
+                } else {
+                    // Use medium margin (same as menu button margin) when menu button is hidden
+                    // This ensures proper spacing from the edge
+                    0
+                }
+                marginStart = if(menuButtonVisible) {
+                    0
+                } else {
+                    margin
+                }
             }
 
             // Set padding for the action button
@@ -801,41 +874,10 @@ class CustomToolbar @JvmOverloads constructor(
 
     private fun showMenuPopup() {
         val menu = _menu ?: return
-        val activity = context as? Activity ?: return
-        val blurTarget = activity.findViewById<BlurTarget>(R.id.mainBlurTarget) ?: return
         val binding = this.binding ?: return
+        val anchor = binding.menuButton
 
-        // Create custom popup window with blur
-        val inflater = LayoutInflater.from(context)
-        val popupBinding = PopupMenuBlurBinding.inflate(inflater, null, false)
-
-        // Setup rounded corners
-        popupBinding.root.clipToOutline = true
-
-        // Setup BlurView
-        val blurView = popupBinding.blurView
-        val decorView = activity.window.decorView
-        val windowBackground = decorView.background
-
-        // Get corner radius from resources to match the drawable
-        val cornerRadius = context.resources.getDimension(R.dimen.material_dialog_corner_radius)
-
-        // Setup rounded corners with proper clipping
-        blurView.clipToOutline = true
-        blurView.outlineProvider = object : ViewOutlineProvider() {
-            override fun getOutline(view: View, outline: Outline) {
-                outline.setRoundRect(0, 0, view.width, view.height, cornerRadius)
-            }
-        }
-
-        blurView.setOverlayColor(context.getProperBlurOverlayColor())
-        blurView.setupWith(blurTarget)
-            .setFrameClearDrawable(windowBackground)
-            .setBlurRadius(5f)
-            .setBlurAutoUpdate(true)
-
-        // Create menu items - only show overflow items (not action buttons)
-        val menuContainer = popupBinding.menuContainer
+        // Get overflow items to show
         val visibleItems = if (overflowItems.isNotEmpty()) {
             overflowItems.filter { it.isVisible }
         } else {
@@ -849,69 +891,49 @@ class CustomToolbar @JvmOverloads constructor(
             }
         }
 
-        visibleItems.forEach { item ->
-            val menuItemView = inflater.inflate(R.layout.item_popup_menu, menuContainer, false)
-            val titleView = menuItemView.findViewById<TextView>(R.id.menu_item_title)
-
-            titleView.text = item.title
-
-            menuItemView.setOnClickListener {
-                onMenuItemClickListener?.onMenuItemClick(item) ?: false
-                popupWindow?.dismiss()
-            }
-
-            menuContainer.addView(menuItemView)
+        // Don't show if no visible items
+        if (visibleItems.isEmpty()) {
+            return
         }
 
-        // Measure the content
-        popupBinding.root.measure(
-            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
-            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
-        )
+        // Create BlurPopupMenu
+        val blurPopupMenu = BlurPopupMenu(context, anchor, Gravity.END)
 
-        // Ensure outline is updated after measurement
-        blurView.invalidateOutline()
-
-        // Calculate position
-        val anchor = binding.menuButton
-        val location = IntArray(2)
-        anchor.getLocationOnScreen(location)
-        val rootView = activity.window.decorView.rootView
-        val rootLocation = IntArray(2)
-        rootView.getLocationOnScreen(rootLocation)
-
-        // Add right margin (16dp converted to pixels)
-        val displayMetrics = resources.displayMetrics
-        val rightMargin = (16 * displayMetrics.density + 0.5f).toInt()
-        val screenWidth = displayMetrics.widthPixels
-        val popupWidth = popupBinding.root.measuredWidth
-
-        // Calculate x position with right margin from screen edge
-        val x = screenWidth - popupWidth - rightMargin
-        val y = location[1] + anchor.height
-
-        // Create and show popup window
-        popupWindow = PopupWindow(
-            popupBinding.root,
-            ViewGroup.LayoutParams.WRAP_CONTENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT,
-            true
-        ).apply {
-            elevation = 8f
-            setBackgroundDrawable(null)
-            isOutsideTouchable = true
-            isFocusable = true
-
-            showAtLocation(
-                rootView,
-                Gravity.NO_GRAVITY,
-                x - rootLocation[0],
-                y - rootLocation[1]
+        // Copy overflow items to BlurPopupMenu's menu
+        // Create a map to track original items by their IDs
+        val itemIdMap = mutableMapOf<Int, MenuItem>()
+        visibleItems.forEach { originalItem ->
+            val newItem = blurPopupMenu.menu.add(
+                originalItem.groupId,
+                originalItem.itemId,
+                originalItem.order,
+                originalItem.title
             )
+            // Copy properties from original item
+            newItem.icon = originalItem.icon
+            newItem.isCheckable = originalItem.isCheckable
+            newItem.isChecked = originalItem.isChecked
+            newItem.isEnabled = originalItem.isEnabled
+            newItem.isVisible = originalItem.isVisible
+            
+            // Store mapping for click handling
+            itemIdMap[originalItem.itemId] = originalItem
         }
+
+        // Set click listener that maps back to original menu items
+        blurPopupMenu.setOnMenuItemClickListener { clickedItem ->
+            val originalItem = itemIdMap[clickedItem.itemId] ?: clickedItem
+            onMenuItemClickListener?.onMenuItemClick(originalItem) ?: false
+        }
+
+        // Show the popup menu
+        blurPopupMenu.show()
+        
+        // Store reference for cleanup
+        popupWindow = blurPopupMenu
     }
 
-    private var popupWindow: PopupWindow? = null
+    private var popupWindow: BlurPopupMenu? = null
 
     override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {
         super.onLayout(changed, l, t, r, b)

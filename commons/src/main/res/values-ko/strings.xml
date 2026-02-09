@@ -580,7 +580,7 @@
     <string name="nothing">없음</string>
     <string name="no_browser_found">련결 가능한 열람기 없음</string>
     <string name="no_email_client_found">련결 가능한 전자우편 없음</string>
-    <string name="copy_number_to_clipboard">오려둠판에 수자 저장</string>
+    <string name="copy_number_to_clipboard">복사</string>
     <string name="dial_number">전화번호</string>
     <string name="no_contacts_found">주소를 찾을수 없음</string>
     <string name="no_access_to_contacts">응용프로그람이 주소록에 접근할수 없습니다</string>
@@ -714,6 +714,8 @@
     <string name="moving_success_one">화일 이동 성공</string>
     <string name="internal_storage">내부 보관공간</string>
     <string name="view_contact_details">주소록 세부 항목 보기</string>
+    <string name="call_from_sim_1">SIM 1로 전화걸기</string>
+    <string name="call_from_sim_2">SIM 2로 전화걸기</string>
     <string name="move_to_top">맨 우로 옮기기</string>
     <string name="pin_item">고정하기</string>
     <string name="unpin_item">고정 해제하기</string>

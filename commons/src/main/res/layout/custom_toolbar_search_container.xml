@@ -15,8 +15,8 @@
         android:layout_height="@dimen/medium_icon_size"
         android:layout_marginEnd="@dimen/smaller_margin"
         android:scaleType="centerInside"
-        android:padding="@dimen/smaller_margin"
-        android:src="@drawable/ic_chevron_left_vector"
+        android:padding="@dimen/icon_padding"
+        android:src="@drawable/ic_cmn_arrow_left"
         android:contentDescription="@string/back"
         android:background="@null"
         android:visibility="gone"
@@ -24,8 +24,9 @@
 
     <com.goodwy.commons.views.MyEditText
         android:id="@+id/searchEditText"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
         android:layout_height="33dp"
+        android:layout_weight="1"
         android:layout_marginEnd="@dimen/smaller_margin"
         android:hint="@string/search"
         android:maxLines="1"

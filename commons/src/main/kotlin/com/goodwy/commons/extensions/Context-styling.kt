@@ -35,7 +35,7 @@ fun Context.isDarkTheme() = baseConfig.backgroundColor == resources.getColor(R.c
 fun Context.isBlackTheme() = baseConfig.backgroundColor == resources.getColor(R.color.theme_black_background_color, theme)
 
 fun Context.getProperTextColor() = when {
-    isDynamicTheme() -> resources.getColor(R.color.you_neutral_text_color, theme)
+    isDynamicTheme() -> resources.getColor(com.android.common.R.color.tx_content_text_color, theme)
     else -> baseConfig.textColor
 }
 
@@ -68,6 +68,7 @@ fun Context.getColoredMaterialSearchBarColor(): Int {
         isDynamicTheme() -> {
             resources.getColor(R.color.you_status_bar_color, theme).darkenColor(if (isSystemInDarkMode()) 4 else 2)
         }
+
         else -> getSurfaceColor().darkenColor(4)
     }
 }
@@ -104,6 +105,7 @@ fun Context.getTimePickerDialogTheme() = when {
     } else {
         R.style.MyDateTimePickerMaterialTheme
     }
+
     isBlackTheme() -> R.style.MyDialogTheme_Black
     isLightTheme() -> R.style.MyDialogTheme_Light
     isGrayTheme() -> R.style.MyDialogTheme_Gray
@@ -271,8 +273,8 @@ fun Context.getAvatarColorForName(name: String): Int {
     return letterBackgroundColors[abs(name.hashCode()) % letterBackgroundColors.size].toInt()
 }
 
-fun Context.getAvatarColorIndexForName(name: String) : Int {
-    if (!baseConfig.useColoredContacts){
+fun Context.getAvatarColorIndexForName(name: String): Int {
+    if (!baseConfig.useColoredContacts) {
         return -1
     }
     val letterBackgroundColors = getLetterBackgroundColors()
@@ -281,9 +283,24 @@ fun Context.getAvatarColorIndexForName(name: String) : Int {
 }
 
 /**
+ * Gets the drawable index (0-8) for avatar background based on name's hash code.
+ * There are 9 drawable backgrounds (contact_background1 through contact_background9).
+ *
+ * @param name The name to get the drawable index for
+ * @return Drawable index (0-8) if colored contacts are enabled, -1 otherwise
+ */
+fun Context.getAvatarDrawableIndexForName(name: String): Int {
+    if (!baseConfig.useColoredContacts) {
+        return -1
+    }
+    // There are 9 drawable backgrounds (contact_background1-9), so indices 0-8
+    return abs(name.hashCode()) % 27
+}
+
+/**
  * Creates a gradient drawable for activity background based on avatar color.
  * The gradient is similar to iOS 26 contacts background style with a glow effect.
- * 
+ *
  * @param avatarColor The base avatar color to create gradient from
  * @param blendWithSurface If true, blends the gradient with surface color for light themes (default: true)
  * @param glowIntensity The intensity of the glow effect (0.0 to 1.0, default: 0.4)
@@ -291,107 +308,50 @@ fun Context.getAvatarColorIndexForName(name: String) : Int {
  */
 @SuppressLint("UseCompatLoadingForDrawables")
 fun Context.createAvatarGradientDrawable(
-    avatarColorIndex: Int,
+    drawableIndex: Int,
     blendWithSurface: Boolean = true,
     glowIntensity: Float = 0.4f
 ): Drawable {
 //    val (topColor, bottomColor) = avatarColor.createGradientColors()
 
-    var imageDrawable: Drawable
-    Log.d("CHero-createAvatarDrawable", avatarColorIndex.toString())
+    Log.d("CHero-createAvatarDrawable", drawableIndex.toString())
 
-    imageDrawable = when{
-        avatarColorIndex == 0 -> {
-            getDrawable(R.drawable.contact_background1)!!
-        }
-        avatarColorIndex == 1 -> {
-            getDrawable(R.drawable.contact_background2)!!
-        }
-        avatarColorIndex == 2 -> {
-            getDrawable(R.drawable.contact_background3)!!
-        }
-        avatarColorIndex == 3 -> {
-            getDrawable(R.drawable.contact_background4)!!
-        }
-        avatarColorIndex == 4 -> {
-            getDrawable(R.drawable.contact_background5)!!
-        }
-        avatarColorIndex == 5 -> {
-            getDrawable(R.drawable.contact_background6)!!
-        }
-        avatarColorIndex == 6 -> {
-            getDrawable(R.drawable.contact_background7)!!
-        }
-        avatarColorIndex == 7 -> {
-            getDrawable(R.drawable.contact_background8)!!
-        }
-        avatarColorIndex == 8 -> {
-            getDrawable(R.drawable.contact_background9)!!
-        }
-        else -> {
-            getDrawable(R.drawable.contact_background1)!!
-        }
+    // Convert drawableIndex to resource number (1-27)
+    // drawableIndex 0 -> contact_avatar_bg_1, drawableIndex 1 -> contact_avatar_bg_2, etc.
+    val resourceNumber = (drawableIndex % 27) + 1
+    val resourceName = "contact_avatar_bg_$resourceNumber"
+    
+    val resourceId = resources.getIdentifier(resourceName, "drawable", packageName)
+    
+    return if (resourceId != 0) {
+        getDrawable(resourceId)!!
+    } else {
+        // Fallback to contact_avatar_bg_1 if resource not found
+        getDrawable(R.drawable.contact_avatar_bg_1)!!
     }
+}
+fun Context.createContactGradientDrawable(
+    drawableIndex: Int,
+    blendWithSurface: Boolean = true,
+    glowIntensity: Float = 0.4f
+): Drawable {
+//    val (topColor, bottomColor) = avatarColor.createGradientColors()
 
-    return imageDrawable
+    Log.d("CHero-createAvatarDrawable", drawableIndex.toString())
 
-//    if(avatarColor.toLong() == 0xFFd0b2e0) imageDrawable = getDrawable(R.drawable.contact_background1)!!
+    // Convert drawableIndex to resource number (1-27)
+    // drawableIndex 0 -> contact_avatar_bg_1, drawableIndex 1 -> contact_avatar_bg_2, etc.
+    val resourceNumber = (drawableIndex % 27) + 1
+    val resourceName = "contact_background_$resourceNumber"
 
+    val resourceId = resources.getIdentifier(resourceName, "drawable", packageName)
 
-//    val finalTopColor: Int
-//    val finalBottomColor: Int
-//
-//    if (blendWithSurface && (isLightTheme() || isGrayTheme()) && !isDynamicTheme()) {
-//        // For light theme, blend with surface color for subtlety
-//        val surfaceColor = getSurfaceColor()
-//        finalTopColor = topColor.blendColors(surfaceColor, 0.3f)
-//        finalBottomColor = bottomColor.blendColors(surfaceColor, 0.3f)
-//    } else {
-//        finalTopColor = topColor
-//        finalBottomColor = bottomColor
-//    }
-//
-//    // Base linear gradient
-//    val baseGradient = android.graphics.drawable.GradientDrawable(
-//        android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM,
-//        intArrayOf(finalTopColor, finalBottomColor)
-//    )
-//
-//    // Create glow colors - brighter version of the avatar color with multiple stops for smooth glow
-//    val hsv = FloatArray(3)
-//    Color.colorToHSV(avatarColor, hsv)
-//
-//    // Create multiple glow color stops for smooth radial gradient
-//    val glowHsv1 = hsv.clone()
-//    glowHsv1[2] = (glowHsv1[2] * 1.25f).coerceAtMost(0.95f) // Brightest at center
-//    val glowColor1 = Color.HSVToColor((255 * glowIntensity * 0.8f).toInt(), glowHsv1)
-//
-//    val glowHsv2 = hsv.clone()
-//    glowHsv2[2] = (glowHsv2[2] * 1.15f).coerceAtMost(0.9f)
-//    val glowColor2 = Color.HSVToColor((255 * glowIntensity * 0.5f).toInt(), glowHsv2)
-//
-//    val glowHsv3 = hsv.clone()
-//    glowHsv3[2] = (glowHsv3[2] * 1.05f).coerceAtMost(0.85f)
-//    val glowColor3 = Color.HSVToColor((255 * glowIntensity * 0.2f).toInt(), glowHsv3)
-//
-//    // Radial gradient for glow effect - centered at top
-//    val glowGradient = android.graphics.drawable.GradientDrawable().apply {
-//        gradientType = android.graphics.drawable.GradientDrawable.RADIAL_GRADIENT
-//        // Multiple color stops for smooth glow: bright center fading to transparent
-//        colors = intArrayOf(glowColor1, glowColor2, glowColor3, Color.TRANSPARENT)
-//        // Set gradient center to top center (0.5, 0.0 means center horizontally, top vertically)
-//        setGradientCenter(0.5f, 0.0f)
-//        // Set radius to create a large glow effect (in pixels, will scale with screen)
-//        gradientRadius = 600f
-//    }
-//
-//    // Use LayerDrawable to combine base gradient with glow
-//    return android.graphics.drawable.LayerDrawable(arrayOf(baseGradient, glowGradient)).apply {
-//        // Set glow layer to be larger and positioned at top center
-//        setLayerGravity(1, Gravity.TOP or Gravity.CENTER_HORIZONTAL)
-//        setLayerSize(1, 2400, 1200) // Make glow layer larger than screen
-//        setLayerInset(1, -600, -400, -600, 0) // Position glow at top, extend beyond bounds for smooth fade
-//    }
+    return if (resourceId != 0) {
+        getDrawable(resourceId)!!
+    } else {
+        // Fallback to contact_avatar_bg_1 if resource not found
+        getDrawable(R.drawable.contact_background_1)!!
+    }
 }
 
 //fun Context.getAvatarDrawablw(

@@ -388,13 +388,18 @@ class SimpleContactsHelper(val context: Context) {
     }
 
     fun loadContactImage(path: String, imageView: ImageView, placeholderName: String, placeholderImage: Drawable? = null, letter: Boolean = true) {
-        val letterOrIcon = if (letter) getContactLetterIcon(placeholderName) else getContactIconBg(placeholderName)
-        val placeholder = placeholderImage ?: letterOrIcon.toDrawable(context.resources)
+        // Generate placeholder only if not provided
+        val placeholder = placeholderImage ?: run {
+            val letterOrIcon = if (letter) getContactLetterIcon(placeholderName) else getContactIconBg(placeholderName)
+            letterOrIcon.toDrawable(context.resources)
+        }
 
+        // Combine all RequestOptions into a single apply for better performance
         val options = RequestOptions()
             .diskCacheStrategy(DiskCacheStrategy.RESOURCE)
             .error(placeholder)
             .centerCrop()
+            .circleCrop()
             // Add signature to help with cache invalidation when contact photos are updated
             // Using the photo URI as signature key ensures different URIs are cached separately
             .signature(if (path.isNotEmpty()) ObjectKey(path) else ObjectKey(placeholderName))
@@ -404,7 +409,6 @@ class SimpleContactsHelper(val context: Context) {
             .transition(DrawableTransitionOptions.withCrossFade())
             .placeholder(placeholder)
             .apply(options)
-            .apply(RequestOptions.circleCropTransform())
             .into(imageView)
     }
 
@@ -414,40 +418,51 @@ class SimpleContactsHelper(val context: Context) {
         val size = context.resources.getDimension(R.dimen.contact_photo_big_size).toInt()
         val bitmap = createBitmap(size, size)
         val canvas = Canvas(bitmap)
-        val view = TextView(context)
-        view.layout(0, 0, size, size)
 
-        val backgroundPaint = if (context.baseConfig.useColoredContacts) {
-            val letterBackgroundColors = context.getLetterBackgroundColors()
-            Paint().apply {
-                color = letterBackgroundColors[abs(name.hashCode()) % letterBackgroundColors.size].toInt()
-                isAntiAlias = true
+        // Use drawable background instead of drawing with Canvas
+        val backgroundDrawable = if (context.baseConfig.useColoredContacts) {
+            val drawableIndex = context.getAvatarDrawableIndexForName(name)
+            if (drawableIndex >= 0) {
+                context.createAvatarGradientDrawable(drawableIndex)
+            } else {
+                @SuppressLint("UseCompatLoadingForDrawables")
+                context.resources.getDrawable(R.drawable.placeholder_contact, context.theme)?.let {
+                    (it as? LayerDrawable)?.findDrawableByLayerId(R.id.placeholder_contact_background)
+                } ?: run {
+                    // Fallback: create a simple gradient drawable
+                    android.graphics.drawable.GradientDrawable().apply {
+                        shape = android.graphics.drawable.GradientDrawable.OVAL
+                        setColor(0xFFa4a8b5.toInt())
+                    }
+                }
             }
         } else {
-            Paint().apply {
-                color = Color.BLACK
-                //strokeWidth = 1F
-                style = Paint.Style.FILL_AND_STROKE
-                shader = LinearGradient(0f, 0f, 0f, context.resources.getDimension(R.dimen.contact_photo_big_size), 0xFFa4a8b5.toInt(), 0xFF878b94.toInt(), Shader.TileMode.MIRROR)
-                isAntiAlias = true
+            // Use default gradient for non-colored contacts
+            android.graphics.drawable.GradientDrawable().apply {
+                shape = android.graphics.drawable.GradientDrawable.OVAL
+                colors = intArrayOf(0xFFa4a8b5.toInt(), 0xFF878b94.toInt())
+                orientation = android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM
             }
         }
 
+        // Draw the background drawable
+        backgroundDrawable.setBounds(0, 0, size, size)
+        backgroundDrawable.draw(canvas)
+
+        // Draw the letter/text on top
         val wantedTextSize = size / 2f
         val textPaint = Paint().apply {
-            color = Color.WHITE //circlePaint.color.getContrastColor()
+            color = Color.WHITE
             isAntiAlias = true
             textAlign = Paint.Align.CENTER
             textSize = wantedTextSize
             style = Paint.Style.FILL
         }
 
-        canvas.drawCircle(size / 2f, size / 2f, size / 2f, backgroundPaint)
-
         val xPos = canvas.width / 2f
         val yPos = canvas.height / 2 - (textPaint.descent() + textPaint.ascent()) / 2
         canvas.drawText(letter, xPos, yPos, textPaint)
-        view.draw(canvas)
+        
         return bitmap
     }
 
@@ -455,28 +470,37 @@ class SimpleContactsHelper(val context: Context) {
         val size = context.resources.getDimension(R.dimen.contact_photo_big_size).toInt()
         val output = createBitmap(size, size)
         val canvas = Canvas(output)
-        val paint = Paint()
 
-        val backgroundPaint = if (context.baseConfig.useColoredContacts) {
-            val letterBackgroundColors = context.getLetterBackgroundColors()
-            Paint().apply {
-                color = letterBackgroundColors[abs(name.hashCode()) % letterBackgroundColors.size].toInt()
-                isAntiAlias = true
+        // Use drawable background instead of drawing with Canvas
+        val backgroundDrawable = if (context.baseConfig.useColoredContacts) {
+            val drawableIndex = context.getAvatarDrawableIndexForName(name)
+            if (drawableIndex >= 0) {
+                context.createAvatarGradientDrawable(drawableIndex)
+            } else {
+                @SuppressLint("UseCompatLoadingForDrawables")
+                context.resources.getDrawable(R.drawable.placeholder_contact, context.theme)?.let {
+                    (it as? LayerDrawable)?.findDrawableByLayerId(R.id.placeholder_contact_background)
+                } ?: run {
+                    // Fallback: create a simple gradient drawable
+                    android.graphics.drawable.GradientDrawable().apply {
+                        shape = android.graphics.drawable.GradientDrawable.OVAL
+                        setColor(0xFFa4a8b5.toInt())
+                    }
+                }
             }
         } else {
-            Paint().apply {
-                color = Color.BLACK
-                //strokeWidth = 1F
-                style = Paint.Style.FILL_AND_STROKE
-                shader = LinearGradient(0f, 0f, 0f, context.resources.getDimension(R.dimen.contact_photo_big_size), 0xFFa4a8b5.toInt(), 0xFF878b94.toInt(), Shader.TileMode.MIRROR)
-                isAntiAlias = true
+            // Use default gradient for non-colored contacts
+            android.graphics.drawable.GradientDrawable().apply {
+                shape = android.graphics.drawable.GradientDrawable.OVAL
+                colors = intArrayOf(0xFFa4a8b5.toInt(), 0xFF878b94.toInt())
+                orientation = android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM
             }
         }
 
-        paint.isAntiAlias = true
-        canvas.drawARGB(0, 0, 0, 0)
-        canvas.drawCircle(size / 2f, size / 2f, size / 2f, backgroundPaint)
-        paint.xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_IN)
+        // Draw the background drawable
+        backgroundDrawable.setBounds(0, 0, size, size)
+        backgroundDrawable.draw(canvas)
+        
         return output
     }
 

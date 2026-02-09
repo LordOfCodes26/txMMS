@@ -5,9 +5,10 @@ import android.content.Context
 import android.content.res.ColorStateList
 import android.util.AttributeSet
 import androidx.appcompat.widget.AppCompatCheckBox
+import com.android.common.view.MCheckBox
 import com.goodwy.commons.extensions.adjustAlpha
 
-open class MyAppCompatCheckbox : AppCompatCheckBox {
+open class MyAppCompatCheckbox : MCheckBox {
     constructor(context: Context) : super(context)
 
     constructor(context: Context, attrs: AttributeSet) : super(context, attrs)
@@ -18,12 +19,12 @@ open class MyAppCompatCheckbox : AppCompatCheckBox {
     fun setColors(textColor: Int, accentColor: Int, backgroundColor: Int) {
         setTextColor(textColor)
         val colorStateList = ColorStateList(
-                arrayOf(
-                    intArrayOf(-android.R.attr.state_checked),
-                    intArrayOf(android.R.attr.state_checked)
-                ),
+            arrayOf(
+                intArrayOf(-android.R.attr.state_checked),
+                intArrayOf(android.R.attr.state_checked)
+            ),
             intArrayOf(textColor.adjustAlpha(0.6f), accentColor)
         )
-        supportButtonTintList = colorStateList
+        buttonTintList = colorStateList
     }
 }

@@ -23,6 +23,7 @@ import android.graphics.PorterDuff
 import androidx.appcompat.view.menu.MenuBuilder
 import androidx.appcompat.view.menu.MenuItemImpl
 import androidx.core.content.ContextCompat
+import com.android.common.view.MImageButton
 import java.lang.reflect.Method
 import com.goodwy.commons.R
 import com.goodwy.commons.databinding.CustomActionModeToolbarBinding
@@ -306,9 +307,9 @@ class CustomActionModeToolbar @JvmOverloads constructor(
         // Get the appropriate icon based on selection state
         val iconRes = if (allSelected) {
             // When all are selected, use checkmark icon to indicate deselect action
-            R.drawable.ic_check_vector
+            com.android.common.R.drawable.ic_cmn_select_all_on
         } else {
-            R.drawable.ic_select_all_vector
+            com.android.common.R.drawable.ic_cmn_select
         }
         
         val icon = ContextCompat.getDrawable(context, iconRes)
@@ -420,7 +421,7 @@ class CustomActionModeToolbar @JvmOverloads constructor(
             
             // Set default overflow icon if menu button is visible and no icon is set
             if (hasOverflowItems && binding.menuButton.drawable == null) {
-                val overflowIcon = ContextCompat.getDrawable(context, com.android.common.R.drawable.ic_cmn_more)
+                val overflowIcon = ContextCompat.getDrawable(context, R.drawable.ic_three_dots_vector)
                 overflowIcon?.let {
                     // Use cached text color or get and cache it
                     if (cachedTextColor == -1) {
@@ -445,12 +446,12 @@ class CustomActionModeToolbar @JvmOverloads constructor(
     /**
      * Create an action button for a menu item with proper click handling
      */
-    private fun createActionButton(item: MenuItem): ImageView {
+    private fun createActionButton(item: MenuItem): MImageButton {
         // Cache dimension values to avoid repeated resource lookups
         if (cachedIconSize == -1) {
             cachedIconSize = resources.getDimensionPixelSize(R.dimen.medium_icon_size)
             cachedMargin = resources.getDimensionPixelSize(R.dimen.normal_margin)
-            cachedPadding = resources.getDimensionPixelSize(R.dimen.smaller_margin)
+            cachedPadding = resources.getDimensionPixelSize(R.dimen.icon_padding)
         }
         
         // Cache text color if not cached
@@ -461,7 +462,7 @@ class CustomActionModeToolbar @JvmOverloads constructor(
         val capturedItemId = item.itemId
         val capturedItem = item
         
-        return ImageView(context).apply {
+        return MImageButton(context).apply {
             // Set layout params (same size as menu button)
             layoutParams = LinearLayout.LayoutParams(cachedIconSize, cachedIconSize).apply {
                 marginEnd = cachedMargin

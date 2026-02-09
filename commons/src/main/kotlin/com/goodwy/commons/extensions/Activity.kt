@@ -90,17 +90,18 @@ fun Activity.appLaunched(appId: String) {
 
     baseConfig.appRunCount++
 
-    if (!baseConfig.wasAppRated) {
-        if (!isTalkBackOn()) {
-            if (baseConfig.appRunCount % 40 == 0) {
-                if (isPlayStoreInstalled() || isRuStoreInstalled()) {
-                    val blurTarget = findViewById<eightbitlab.com.blurview.BlurTarget>(R.id.mainBlurTarget)
-                        ?: throw IllegalStateException("mainBlurTarget not found")
-                    RateStarsDialog(this, blurTarget)
-                }
-            }
-        }
-    }
+    // Rates dialog disabled - never show
+    // if (!baseConfig.wasAppRated) {
+    //     if (!isTalkBackOn()) {
+    //         if (baseConfig.appRunCount % 40 == 0) {
+    //             if (isPlayStoreInstalled() || isRuStoreInstalled()) {
+    //                 val blurTarget = findViewById<eightbitlab.com.blurview.BlurTarget>(R.id.mainBlurTarget)
+    //                     ?: throw IllegalStateException("mainBlurTarget not found")
+    //                 RateStarsDialog(this, blurTarget)
+    //             }
+    //         }
+    //     }
+    // }
 }
 
 fun Activity.isAppInstalledOnSDCard(): Boolean = try {

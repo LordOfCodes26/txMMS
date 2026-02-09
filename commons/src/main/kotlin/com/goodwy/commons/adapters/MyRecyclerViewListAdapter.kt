@@ -48,6 +48,7 @@ abstract class MyRecyclerViewListAdapter<T>(
 
     protected var actBarToolbar: CustomActionModeToolbar? = null
     private var lastLongPressedItem = -1
+    private var originalStatusBarColor: Int? = null
 
     private var isDividersVisible = false
     private var dividerDecoration: MyDividerDecoration? = null
@@ -145,6 +146,14 @@ abstract class MyRecyclerViewListAdapter<T>(
                 actBarToolbar!!.updateColorsForBackground(cabBackgroundColor)
                 // Don't update ActionMode menu colors - we're not using ActionMode's menu
                 // activity.updateMenuItemColors(menu, baseColor = cabBackgroundColor, forceWhiteIcons = false)
+                
+                // Update status bar color to match action mode toolbar
+                if (activity is com.goodwy.commons.activities.EdgeToEdgeActivity) {
+                    originalStatusBarColor = activity.window.statusBarColor
+                    activity.window.statusBarColor = cabBackgroundColor
+                    activity.window.setSystemBarsAppearance(cabBackgroundColor)
+                }
+                
                 onActionModeCreated()
                 
                 // Ensure full width and hide default close button
@@ -201,6 +210,19 @@ abstract class MyRecyclerViewListAdapter<T>(
                 updateTitle()
                 selectedKeys.clear()
                 actBarToolbar?.title = ""
+                
+                // Restore status bar color using activity's method to avoid flash
+                if (activity is com.goodwy.commons.activities.EdgeToEdgeActivity) {
+                    // Post the restoration to avoid flash - let UI settle first
+                    activity.window.decorView.post {
+                        val useSurfaceColor = activity.isDynamicTheme() && !activity.isSystemInDarkMode()
+                        val statusBarColor = activity.getStartRequiredStatusBarColor()
+                        activity.window.statusBarColor = statusBarColor
+                        activity.window.setSystemBarsAppearance(statusBarColor)
+                    }
+                    originalStatusBarColor = null
+                }
+                
                 actMode = null
                 lastLongPressedItem = -1
                 onActionModeDestroyed()

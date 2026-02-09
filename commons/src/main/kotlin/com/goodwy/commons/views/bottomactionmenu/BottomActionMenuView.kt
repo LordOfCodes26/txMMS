@@ -171,7 +171,7 @@ class BottomActionMenuView : LinearLayout {
 
     private fun drawOverflowItem(overFlowItems: List<BottomActionMenuItem>) {
         (inflater.inflate(R.layout.item_action_mode, this, false) as ImageView).apply {
-            setImageResource(com.android.common.R.drawable.ic_cmn_more)
+            setImageResource(R.drawable.ic_three_dots_vector)
             val contentDesc = context.getString(R.string.more_info)
             contentDescription = contentDesc
             applyColorFilter(Color.WHITE)
