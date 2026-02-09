@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<eightbitlab.com.blurview.BlurTarget xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/mainBlurTarget"
+    android:id="@+id/root_view"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
-    <FrameLayout
+    <eightbitlab.com.blurview.BlurTarget
+        android:id="@+id/mainBlurTarget"
         android:layout_width="match_parent"
         android:layout_height="match_parent">
         <androidx.coordinatorlayout.widget.CoordinatorLayout
@@ -20,7 +21,7 @@
                 android:id="@+id/thread_holder"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:layout_marginTop="@dimen/blur_app_bar_margin"
+                android:layout_marginTop="@dimen/normal_app_bar_margin"
                 android:scrollbars="none"
                 android:scrollingCache="true"
                 app:layout_behavior="@string/appbar_scrolling_view_behavior">
@@ -39,8 +40,8 @@
                         android:layout_height="match_parent"
                         android:clipToPadding="false"
                         android:overScrollMode="ifContentScrolls"
-                        android:paddingTop="@dimen/blur_app_bar_height"
-                        android:paddingBottom="@dimen/medium_margin"
+                        android:paddingTop="@dimen/normal_app_bar_height"
+                        android:paddingBottom="@dimen/bigger_margin"
                         android:scrollbars="none"
                         app:layoutManager="com.goodwy.commons.views.MyLinearLayoutManager"
                         app:stackFromEnd="true"
@@ -92,9 +93,8 @@
             <com.google.android.material.appbar.AppBarLayout
                 android:id="@+id/threadAppbar"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="@dimen/normal_app_bar_height"
                 android:paddingBottom="5dp"
-                app:appBarBackground="@drawable/bg_cmn_appbar_up"
                 tools:layout_behavior="com.google.android.material.appbar.AppBarLayout$ScrollingViewBehavior">
 
                 <com.google.android.material.appbar.CollapsingToolbarLayout
@@ -188,15 +188,13 @@
                 </com.google.android.material.appbar.CollapsingToolbarLayout>
             </com.google.android.material.appbar.AppBarLayout>
         </androidx.coordinatorlayout.widget.CoordinatorLayout>
+    </eightbitlab.com.blurview.BlurTarget>
 
-        <View
-            android:layout_alignParentBottom="true"
-            android:id="@+id/bottomMask"
-            android:layout_width="match_parent"
-            android:layout_height="400px"
-            android:layout_gravity="bottom"
-            android:visibility="visible"
-            android:background="@drawable/bg_cmn_appbar_down" />
-
-    </FrameLayout>
-</eightbitlab.com.blurview.BlurTarget>
+    <View
+        android:id="@+id/bottomMask"
+        android:layout_width="match_parent"
+        android:layout_height="400px"
+        android:layout_gravity="bottom"
+        android:visibility="visible"
+        android:background="@drawable/bg_cmn_appbar_down" />
+</FrameLayout>

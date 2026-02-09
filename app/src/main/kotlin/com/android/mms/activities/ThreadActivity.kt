@@ -131,6 +131,7 @@ class ThreadActivity : SimpleActivity() {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
         initTheme()
+        initThreadAppBar()
         setupOptionsMenu()
         refreshMenuItems()
 
@@ -187,12 +188,13 @@ class ThreadActivity : SimpleActivity() {
         else binding.topDetailsLarge.beGone()
 
         val topBarColor = getColoredMaterialStatusBarColor()
-//        // Use updateTopBarColors for AppBarLayout + CustomToolbar (not MyAppBarLayout)
-//        updateTopBarColors(
-//            appBarView = binding.threadAppbar,
-//            colorBackground = topBarColor,
-//            customToolbar = binding.threadToolbar
-//        )
+        // Use updateTopBarColors for AppBarLayout + CustomToolbar (not MyAppBarLayout)
+        updateTopBarColors(
+            appBarView = binding.threadAppbar,
+            colorBackground = topBarColor,
+            customToolbar = binding.threadToolbar,
+            setAppBarViewBackground = false
+        )
         // Zero elevation for app bar
         val stateListAnimator = StateListAnimator()
         stateListAnimator.addState(
@@ -285,6 +287,21 @@ class ThreadActivity : SimpleActivity() {
     private fun initTheme() {
         window.navigationBarColor = Color.TRANSPARENT
         window.statusBarColor = Color.TRANSPARENT
+    }
+
+    /**
+     * Applies app bar background and behavior like [com.goodwy.commons.views.BlurAppBarLayout]:
+     * - Sets appBarBackground drawable programmatically (AppBarLayout may not apply it from XML).
+     * - Zero elevation and disables lift-on-scroll so the bar stays consistent.
+     */
+    private fun initThreadAppBar() {
+        val appBar = binding.threadAppbar
+        appBar.setBackgroundResource(com.android.common.R.drawable.bg_cmn_appbar_up)
+        appBar.elevation = 0f
+        ViewCompat.setElevation(appBar, 0f)
+        appBar.stateListAnimator = null
+        appBar.isLiftOnScroll = false
+        appBar.isLifted = false
     }
 
     private fun isDarkTheme(): Boolean {
@@ -631,6 +648,22 @@ class ThreadActivity : SimpleActivity() {
                     lastVisibleItemPosition >= getOrCreateThreadAdapter().itemCount - SCROLL_TO_BOTTOM_FAB_LIMIT
                 val fab = binding.scrollToBottomFab
                 if (isCloseToBottom) fab.hide() else fab.show()
+                // Update top bar (status bar + toolbar icon) colors on scroll so they match content behind transparent bar
+                if (config.changeColourTopBar) {
+                    val useSurfaceColor = isDynamicTheme() && !isSystemInDarkMode()
+                    val scrollOffset = binding.threadMessagesList.computeVerticalScrollOffset()
+                    val color = if (scrollOffset == 0) {
+                        if (useSurfaceColor) getSurfaceColor() else getProperBackgroundColor()
+                    } else {
+                        getColoredMaterialStatusBarColor()
+                    }
+                    updateTopBarColors(
+                        binding.threadAppbar,
+                        color,
+                        binding.threadToolbar,
+                        setAppBarViewBackground = false
+                    )
+                }
             },
             onScrollStateChanged = { newState ->
                 if (newState == RecyclerView.SCROLL_STATE_IDLE) tryLoadMoreMessages()
