@@ -323,7 +323,7 @@ class ThreadActivity : SimpleActivity() {
             }
 
             val bottomBarLp = barContainer.layoutParams as ViewGroup.MarginLayoutParams
-            val bottomOffset = (20 * resources.displayMetrics.density).toInt()
+            val bottomOffset = (1 * resources.displayMetrics.density).toInt()
             bottomBarLp.bottomMargin = if (ime.bottom > 0) ime.bottom + bottomOffset else navHeight + bottomOffset
             barContainer.layoutParams = bottomBarLp
             insets

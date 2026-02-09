@@ -41,7 +41,7 @@
                         android:clipToPadding="false"
                         android:overScrollMode="ifContentScrolls"
                         android:paddingTop="@dimen/normal_app_bar_height"
-                        android:paddingBottom="@dimen/bigger_margin"
+                        android:paddingBottom="@dimen/normal_app_bar_height"
                         android:scrollbars="none"
                         app:layoutManager="com.goodwy.commons.views.MyLinearLayoutManager"
                         app:stackFromEnd="true"
