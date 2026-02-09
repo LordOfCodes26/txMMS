@@ -17,10 +17,11 @@
             android:layout_height="match_parent"
             android:background="@color/transparent">
 
-            <com.goodwy.commons.views.BounceScrollView
+            <RelativeLayout
                 android:id="@+id/main_nested_scrollview"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
+                android:layout_marginTop="@dimen/blur_app_bar_margin"
                 android:scrollbars="none"
                 android:scrollingCache="true"
                 app:layout_behavior="@string/appbar_scrolling_view_behavior">
@@ -77,7 +78,8 @@
                         <com.qtalk.recyclerviewfastscroller.RecyclerViewFastScroller
                             android:id="@+id/conversations_fastscroller"
                             android:layout_width="match_parent"
-                            android:layout_height="wrap_content">
+                            android:layout_height="wrap_content"
+                            app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
                             <com.goodwy.commons.views.MyRecyclerView
                                 android:id="@+id/conversations_list"
@@ -86,7 +88,7 @@
                                 android:clipToPadding="false"
                                 android:layoutAnimation="@anim/layout_animation"
                                 android:overScrollMode="ifContentScrolls"
-                                android:paddingTop="@dimen/smaller_margin"
+                                android:paddingTop="@dimen/blur_app_bar_height"
                                 android:scrollbars="none"
                                 app:layoutManager="com.goodwy.commons.views.MyLinearLayoutManager" />
 
@@ -143,7 +145,7 @@
                     </RelativeLayout>
 
                 </androidx.coordinatorlayout.widget.CoordinatorLayout>
-            </com.goodwy.commons.views.BounceScrollView>
+            </RelativeLayout>
 
             <com.goodwy.commons.views.BlurAppBarLayout
                 android:id="@+id/main_menu"
