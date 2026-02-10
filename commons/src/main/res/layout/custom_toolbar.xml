@@ -20,7 +20,7 @@
             android:layout_width="@dimen/medium_icon_size"
             android:layout_height="@dimen/medium_icon_size"
             android:layout_centerVertical="true"
-            android:layout_marginEnd="@dimen/smaller_margin"
+            android:layout_marginEnd="@dimen/normal_margin"
             android:layout_alignParentStart="true"
             android:adjustViewBounds="true"
             android:background="?android:selectableItemBackgroundBorderless"
@@ -38,17 +38,18 @@
             android:layout_alignParentStart="true"
             android:layout_centerVertical="true"
             android:layout_marginEnd="@dimen/normal_margin"
-            android:layout_toStartOf="@+id/toolbar_end_group" />
+            android:layout_toStartOf="@+id/actionButtonsContainer" />
 
         <TextView
             android:id="@+id/titleTextView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_toEndOf="@id/navigationIconView"
             android:layout_alignParentStart="true"
             android:layout_centerVertical="true"
-            android:layout_marginStart="@dimen/normal_margin"
+            android:layout_marginStart="@dimen/medium_margin"
             android:layout_marginEnd="@dimen/normal_margin"
-            android:layout_toStartOf="@+id/toolbar_end_group"
+            android:layout_toStartOf="@+id/actionButtonsContainer"
             android:ellipsize="end"
             android:gravity="start|center_vertical"
             android:maxLines="1"
@@ -57,37 +58,30 @@
             tools:text="Toolbar Title" />
 
         <LinearLayout
-            android:id="@+id/toolbar_end_group"
+            android:id="@+id/actionButtonsContainer"
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
-            android:layout_alignParentEnd="true"
+            android:layout_toStartOf="@+id/menuButton"
             android:layout_centerVertical="true"
             android:orientation="horizontal"
-            android:gravity="center_vertical|end">
+            android:gravity="center_vertical|end"
+            android:visibility="gone" />
 
-            <LinearLayout
-                android:id="@+id/actionButtonsContainer"
-                android:layout_width="wrap_content"
-                android:layout_height="match_parent"
-                android:layout_centerVertical="true"
-                android:orientation="horizontal"
-                android:gravity="center_vertical|end"
-                android:visibility="gone" />
-
-            <com.android.common.view.MImageButton
-                android:id="@+id/menuButton"
-                android:layout_width="@dimen/medium_icon_size"
-                android:layout_height="@dimen/medium_icon_size"
-                android:layout_marginEnd="@dimen/medium_margin"
-                android:adjustViewBounds="true"
-                android:padding="@dimen/icon_padding"
-                android:background="?android:selectableItemBackgroundBorderless"
-                android:clickable="true"
-                android:focusable="true"
-                android:scaleType="centerInside"
-                android:visibility="gone"
-                tools:visibility="visible" />
-        </LinearLayout>
+        <com.android.common.view.MImageButton
+            android:id="@+id/menuButton"
+            android:layout_width="@dimen/medium_icon_size"
+            android:layout_height="@dimen/medium_icon_size"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:layout_marginEnd="@dimen/medium_margin"
+            android:adjustViewBounds="true"
+            android:padding="@dimen/icon_padding"
+            android:background="?android:selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:focusable="true"
+            android:scaleType="centerInside"
+            android:visibility="gone"
+            tools:visibility="visible" />
 
     </RelativeLayout>
 

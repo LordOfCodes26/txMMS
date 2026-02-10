@@ -81,7 +81,9 @@
 
     <dimen name="contact_grid_item_max_size">100dp</dimen>
     <dimen name="contact_photo_size">88dp</dimen>
+    <dimen name="contact_photo_small_size">64dp</dimen>
     <dimen name="contact_photo_big_size">132dp</dimen>
+    <dimen name="contact_photo_large_size">196dp</dimen>
 
     <dimen name="app_lock_view_max_size">350dp</dimen>
     <dimen name="app_lock_view_min_size">250dp</dimen>

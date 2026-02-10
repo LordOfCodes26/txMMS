@@ -95,7 +95,27 @@ class CustomToolbar @JvmOverloads constructor(
                     setOnClickListener(onNavigationClickListener)
                 }
             }
+            // Update title margin based on navigation icon visibility
+            updateTitleMargin(value != null)
         }
+    
+    private fun updateTitleMargin(hasNavigationIcon: Boolean) {
+        binding?.titleTextView?.let { titleView ->
+            val layoutParams = titleView.layoutParams as? android.widget.RelativeLayout.LayoutParams
+            if (layoutParams != null) {
+                val marginStart = if (hasNavigationIcon) {
+                    // Use larger margin when navigation icon is visible for better spacing
+                    // Combine activity_margin (16dp) + normal_margin (12dp) = 28dp for more padding
+                    resources.getDimensionPixelSize(com.goodwy.commons.R.dimen.activity_margin) +
+                    resources.getDimensionPixelSize(com.goodwy.commons.R.dimen.normal_margin)
+                } else {
+                    resources.getDimensionPixelSize(com.goodwy.commons.R.dimen.normal_margin)
+                }
+                layoutParams.marginStart = marginStart
+                titleView.layoutParams = layoutParams
+            }
+        }
+    }
 
     var title: CharSequence?
         get() = binding?.titleTextView?.text
@@ -104,6 +124,9 @@ class CustomToolbar @JvmOverloads constructor(
                 text = value
                 visibility = if (value != null && value.isNotEmpty()) View.VISIBLE else View.GONE
             }
+            // Update title margin when title is set
+            val hasNavigationIcon = binding?.navigationIconView?.visibility == View.VISIBLE
+            updateTitleMargin(hasNavigationIcon)
         }
 
     val menu: Menu
@@ -180,6 +203,40 @@ class CustomToolbar @JvmOverloads constructor(
             }
 
             typedArray.recycle()
+            
+            // Read navigation icon and content description from AttributeSet
+            // Handle both namespaced (app:navigationIcon) and non-namespaced attributes
+            for (i in 0 until it.attributeCount) {
+                val attrName = it.getAttributeName(i)
+                // Check for navigationIcon (can be namespaced as app:navigationIcon)
+                if (attrName == "navigationIcon" || attrName.endsWith(":navigationIcon")) {
+                    val navIconRes = it.getAttributeResourceValue(i, 0)
+                    if (navIconRes != 0) {
+                        navigationIcon = ContextCompat.getDrawable(context, navIconRes)
+                    } else {
+                        // Try to get as drawable directly
+                        val navIconDrawable = it.getAttributeValue(i)?.let { value ->
+                            if (value.startsWith("@")) {
+                                val resId = it.getAttributeResourceValue(i, 0)
+                                if (resId != 0) ContextCompat.getDrawable(context, resId) else null
+                            } else null
+                        }
+                        navIconDrawable?.let { drawable -> navigationIcon = drawable }
+                    }
+                }
+                // Check for navigationContentDescription
+                if (attrName == "navigationContentDescription" || attrName.endsWith(":navigationContentDescription")) {
+                    val descRes = it.getAttributeResourceValue(i, 0)
+                    if (descRes != 0) {
+                        setNavigationContentDescription(descRes)
+                    } else {
+                        val descText = it.getAttributeValue(i)
+                        if (!descText.isNullOrEmpty() && !descText.startsWith("@")) {
+                            setNavigationContentDescription(descText)
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -317,7 +374,7 @@ class CustomToolbar @JvmOverloads constructor(
 
     private fun getMediumIconSize(): Int {
         if (cachedMediumIconSize == null) {
-            cachedMediumIconSize = resources.getDimensionPixelSize(com.android.common.R.dimen.tx_toolbar_icon_size)
+            cachedMediumIconSize = resources.getDimensionPixelSize(R.dimen.medium_icon_size)
         }
         return cachedMediumIconSize!!
     }
