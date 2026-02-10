@@ -169,7 +169,7 @@
                                 android:paddingEnd="12dp"
                                 android:maxLines="2"
                                 android:gravity="center"
-                                android:textSize="@dimen/tx_bigger_text_size"
+                                android:textSize="@dimen/tx_date_picker_title_text_size"
                                 tools:text="Name"/>
 
                             <com.goodwy.commons.views.MyTextView
@@ -182,7 +182,7 @@
                                 android:maxLines="1"
                                 android:alpha="0.8"
                                 android:gravity="center"
-                                android:textSize="@dimen/tx_small_text_size"
+                                android:textSize="@dimen/tx_hint_text_size"
                                 tools:text="+12345678"/>
                         </LinearLayout>
                     </androidx.constraintlayout.widget.ConstraintLayout>
