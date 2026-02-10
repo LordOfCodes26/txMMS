@@ -151,10 +151,14 @@ class MainActivity : SimpleActivity() {
         }
 
         updateTextColors(binding.mainCoordinator)
-        //binding.searchHolder.setBackgroundColor(getProperBackgroundColor())
-        binding.searchHolder.setBackgroundColor(getSurfaceColor())
-        binding.conversationsFastscroller.setBackgroundColor(getSurfaceColor())
-        binding.mainHolder.setBackgroundColor(getSurfaceColor())
+        // Use same background logic as Contacts: surface color only for dynamic theme + light mode, else proper background
+        val useSurfaceColor = isDynamicTheme() && !isSystemInDarkMode()
+        val backgroundColor = if (useSurfaceColor) getSurfaceColor() else getProperBackgroundColor()
+        binding.searchHolder.setBackgroundColor(backgroundColor)
+        binding.conversationsFastscroller.setBackgroundColor(backgroundColor)
+        binding.mainHolder.setBackgroundColor(backgroundColor)
+        binding.conversationsList.setBackgroundColor(backgroundColor)
+        binding.searchResultsList.setBackgroundColor(backgroundColor)
 
         val properPrimaryColor = getProperPrimaryColor()
         binding.noConversationsPlaceholder2.setTextColor(properPrimaryColor)
@@ -786,9 +790,10 @@ class MainActivity : SimpleActivity() {
     }
 
     private fun getOrCreateConversationsAdapter(): ConversationsAdapter {
-        if (isDynamicTheme() && !isSystemInDarkMode()) {
-            binding.conversationsList.setBackgroundColor(getSurfaceColor())
-        }
+        // Match Contacts: same background for list as activity (getProperBackgroundColor when !useSurfaceColor)
+        val useSurfaceColor = isDynamicTheme() && !isSystemInDarkMode()
+        val backgroundColor = if (useSurfaceColor) getSurfaceColor() else getProperBackgroundColor()
+        binding.conversationsList.setBackgroundColor(backgroundColor)
 
         var currAdapter = binding.conversationsList.adapter
         if (currAdapter == null) {
