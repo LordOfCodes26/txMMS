@@ -175,7 +175,7 @@ class ThreadActivity : SimpleActivity() {
         super.onResume()
         if (isDarkTheme()) {
             @Suppress("DEPRECATION")
-            window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
         } else {
             @Suppress("DEPRECATION")
             window.decorView.systemUiVisibility = (
@@ -323,14 +323,15 @@ class ThreadActivity : SimpleActivity() {
             if (barContainer != null) {
                 val bottomBarLp = barContainer.layoutParams as ViewGroup.MarginLayoutParams
                 val bottomOffset = dp(5).toInt()
+                val appBarHeightPx = resources.getDimensionPixelSize(com.goodwy.commons.R.dimen.normal_app_bar_height)
 
                 val messagesList = binding.threadMessagesList
                 if (ime.bottom > 0) {
-                    messagesList.setPadding(0, dp(com.goodwy.commons.R.dimen.normal_app_bar_height), 0, dp(50) + navHeight + ime.bottom)
+                    messagesList.setPadding(0, appBarHeightPx, 0, dp(50) + navHeight + ime.bottom)
                     messagesList.scrollToPosition((messagesList.adapter?.itemCount ?: 1) - 1)
                 } else {
                     bottomBarLp.bottomMargin = navHeight + bottomOffset
-                    messagesList.setPadding(0, dp(com.goodwy.commons.R.dimen.normal_app_bar_height), 0, dp(90) + navHeight)
+                    messagesList.setPadding(0, appBarHeightPx + dp(10), 0, dp(90) + navHeight)
                     barContainer.layoutParams = bottomBarLp
                 }
             }
