@@ -317,7 +317,7 @@ class CustomToolbar @JvmOverloads constructor(
 
     private fun getMediumIconSize(): Int {
         if (cachedMediumIconSize == null) {
-            cachedMediumIconSize = resources.getDimensionPixelSize(R.dimen.medium_icon_size)
+            cachedMediumIconSize = resources.getDimensionPixelSize(com.android.common.R.dimen.tx_toolbar_icon_size)
         }
         return cachedMediumIconSize!!
     }
