@@ -41,7 +41,6 @@
                         android:clipToPadding="false"
                         android:overScrollMode="ifContentScrolls"
                         android:paddingTop="@dimen/normal_app_bar_height"
-                        android:paddingBottom="@dimen/normal_app_bar_height"
                         android:scrollbars="none"
                         app:layoutManager="com.goodwy.commons.views.MyLinearLayoutManager"
                         app:stackFromEnd="true"
@@ -79,6 +78,16 @@
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toBottomOf="@id/threadMessagesFastscroller"
                     tools:visibility="visible" />
+
+                <View
+                    android:id="@+id/bottomMask"
+                    android:layout_width="match_parent"
+                    android:layout_height="400px"
+                    android:visibility="visible"
+                    android:background="@drawable/bg_cmn_appbar_down"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent" />
 
                 <include
                     android:id="@+id/message_holder"
@@ -190,11 +199,4 @@
         </androidx.coordinatorlayout.widget.CoordinatorLayout>
     </eightbitlab.com.blurview.BlurTarget>
 
-    <View
-        android:id="@+id/bottomMask"
-        android:layout_width="match_parent"
-        android:layout_height="400px"
-        android:layout_gravity="bottom"
-        android:visibility="visible"
-        android:background="@drawable/bg_cmn_appbar_down" />
 </FrameLayout>

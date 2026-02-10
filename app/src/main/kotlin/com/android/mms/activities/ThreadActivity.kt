@@ -138,14 +138,14 @@ class ThreadActivity : SimpleActivity() {
         val bottomView = if (isRecycleBin) binding.threadMessagesList else binding.messageHolder.root
         makeSystemBarsToTransparent()
         setupEdgeToEdge(
-//            padTopSystem = listOf(binding.topDetailsCompact.root),
+            padTopSystem = listOf(binding.topDetailsCompact.root),
             padBottomImeAndSystem = listOf(
                 bottomView,
                 binding.shortCodeHolder.root
             ),
             animateIme= true
         )
-//        setupMessagingEdgeToEdge()
+        setupMessagingEdgeToEdge()
 //        setupMaterialScrollListener(null, binding.threadAppbar)
 
         val extras = intent.extras
@@ -318,17 +318,27 @@ class ThreadActivity : SimpleActivity() {
             val navHeight = nav.bottom
             val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
 
-            bottomMask.layoutParams = bottomMask.layoutParams.apply {
-                height = navHeight + (5 * resources.displayMetrics.density).toInt()
-            }
+            bottomMask.layoutParams = bottomMask.layoutParams.apply { height = navHeight + dp(5) }
 
-            val bottomBarLp = barContainer.layoutParams as ViewGroup.MarginLayoutParams
-            val bottomOffset = (1 * resources.displayMetrics.density).toInt()
-            bottomBarLp.bottomMargin = if (ime.bottom > 0) ime.bottom + bottomOffset else navHeight + bottomOffset
-            barContainer.layoutParams = bottomBarLp
+            if (barContainer != null) {
+                val bottomBarLp = barContainer.layoutParams as ViewGroup.MarginLayoutParams
+                val bottomOffset = dp(5).toInt()
+
+                val messagesList = binding.threadMessagesList
+                if (ime.bottom > 0) {
+                    messagesList.setPadding(0, dp(com.goodwy.commons.R.dimen.normal_app_bar_height), 0, dp(50) + navHeight + ime.bottom)
+                    messagesList.scrollToPosition((messagesList.adapter?.itemCount ?: 1) - 1)
+                } else {
+                    bottomBarLp.bottomMargin = navHeight + bottomOffset
+                    messagesList.setPadding(0, dp(com.goodwy.commons.R.dimen.normal_app_bar_height), 0, dp(90) + navHeight)
+                    barContainer.layoutParams = bottomBarLp
+                }
+            }
             insets
         }
     }
+
+    private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
 
     private fun saveDraftMessage() {
         val draftMessage = messageHolderHelper?.getMessageText() ?: ""
