@@ -246,6 +246,7 @@ class MainActivity : SimpleActivity() {
                             mainMenu.toolbar?.collapseSearch()
                             isSearchOpen = false
                         }
+                        mainMenu.setExpanded(true)
                         getOrCreateConversationsAdapter().startActMode()
                     }
                     R.id.show_recycle_bin -> launchRecycleBin()

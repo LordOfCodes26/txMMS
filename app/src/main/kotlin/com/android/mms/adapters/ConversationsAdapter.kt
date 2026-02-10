@@ -94,7 +94,7 @@ class ConversationsAdapter(
             findItem(R.id.cab_unblock_number).isVisible = isAllBlockedNumbers && !isAllUnblockedNumbers
             findItem(R.id.cab_add_number_to_contact).isVisible = isSingleSelection && !isGroupConversation
             findItem(R.id.cab_dial_number).isVisible =
-                isSingleSelection && !isGroupConversation && !isShortCodeWithLetters(selectedConversation.phoneNumber)
+                false && isSingleSelection && !isGroupConversation && !isShortCodeWithLetters(selectedConversation.phoneNumber)
             findItem(R.id.cab_copy_number).isVisible = isSingleSelection && !isGroupConversation
             findItem(R.id.cab_conversation_details).isVisible = isSingleSelection
             findItem(R.id.cab_rename_conversation).isVisible = isSingleSelection && isGroupConversation
