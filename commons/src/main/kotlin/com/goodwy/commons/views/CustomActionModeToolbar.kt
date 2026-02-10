@@ -449,7 +449,7 @@ class CustomActionModeToolbar @JvmOverloads constructor(
     private fun createActionButton(item: MenuItem): MImageButton {
         // Cache dimension values to avoid repeated resource lookups
         if (cachedIconSize == -1) {
-            cachedIconSize = resources.getDimensionPixelSize(R.dimen.medium_icon_size)
+            cachedIconSize = resources.getDimensionPixelSize(com.android.common.R.dimen.tx_toolbar_icon_size)
             cachedMargin = resources.getDimensionPixelSize(R.dimen.normal_margin)
             cachedPadding = resources.getDimensionPixelSize(R.dimen.icon_padding)
         }
