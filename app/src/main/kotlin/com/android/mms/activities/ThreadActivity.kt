@@ -115,6 +115,7 @@ class ThreadActivity : SimpleActivity() {
     private lateinit var scheduledDateTime: DateTime
 
     private var isAttachmentPickerVisible = false
+    private var wasKeyboardVisible = false
     private var isSpeechToTextAvailable = false
     private var expandedMessageFragment: com.android.mms.fragments.ExpandedMessageFragment? = null
     private var messageHolderHelper: MessageHolderHelper? = null
@@ -322,7 +323,7 @@ class ThreadActivity : SimpleActivity() {
 
             if (barContainer != null) {
                 val bottomBarLp = barContainer.layoutParams as ViewGroup.MarginLayoutParams
-                val bottomOffset = dp(5).toInt()
+                val bottomOffset = dp(3).toInt()
                 val appBarHeightPx = resources.getDimensionPixelSize(com.goodwy.commons.R.dimen.normal_app_bar_height)
 
                 val messagesList = binding.threadMessagesList
@@ -1982,9 +1983,18 @@ class ThreadActivity : SimpleActivity() {
                 } else {
                     getDefaultKeyboardHeight()
                 }
-                hideAttachmentPicker()
-            } else if (isAttachmentPickerVisible) {
-                showAttachmentPicker()
+                // Only hide the attachment picker when the keyboard *just* became visible (e.g. user focused the input).
+                // When the user taps the attachment button while the keyboard is already visible, we must not hide the picker.
+                if (!wasKeyboardVisible) {
+                    hideAttachmentPicker()
+                    isAttachmentPickerVisible = false
+                }
+                wasKeyboardVisible = true
+            } else {
+                wasKeyboardVisible = false
+                if (isAttachmentPickerVisible) {
+                    showAttachmentPicker()
+                }
             }
 
             insets
