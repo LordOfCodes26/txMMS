@@ -506,6 +506,7 @@ class ContactPickerActivity : AppCompatActivity() {
         hasMoreContacts = true
         contactsCursor?.takeIf { !it.isClosed }?.close()
         contactsCursor = null
+        contactAdapter?.setItems(emptyList(), emptySet())
         callLogPlaceholder?.visibility = View.GONE
         contactRecyclerView?.visibility = View.VISIBLE
 
