@@ -269,7 +269,7 @@ class ConversationDetailsActivity : SimpleActivity() {
 
     private fun setupTopViews() {
         val title = conversation?.title
-        val threadTitle = if (!title.isNullOrEmpty()) title else participants.getThreadTitle()
+        val threadTitle = if (!title.isNullOrEmpty()) title else participants.getThreadTitle(this)
 
         if (conversation != null) {
             if ((threadTitle == conversation!!.phoneNumber || conversation!!.isCompany) && conversation!!.photoUri == "") {

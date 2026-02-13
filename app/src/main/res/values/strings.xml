@@ -33,6 +33,8 @@
         <item quantity="one">and %d other</item>
         <item quantity="other">and %d others</item>
     </plurals>
+    <!-- Thread title for multiple participants: %1$s = first name/number, %2$s = localized "and N others" -->
+    <string name="thread_title_multiple_format">%1$s %2$s</string>
     <!-- New conversation -->
     <string name="new_conversation">New conversation</string>
     <string name="add_contact_or_number">Add Contact or Number…</string>

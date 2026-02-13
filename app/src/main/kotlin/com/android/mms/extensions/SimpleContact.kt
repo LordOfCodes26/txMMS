@@ -23,8 +23,24 @@ import com.android.mms.R
 import com.android.mms.helpers.Config
 import kotlin.math.abs
 
-fun ArrayList<SimpleContact>.getThreadTitle(): String {
-    return TextUtils.join(", ", map { it.name }.toTypedArray()).orEmpty()
+/**
+ * Returns a localized thread title. For multiple participants returns "first name/number" + localized "and N others".
+ * Pass [context] for proper localization; when null and size > 1, a language-neutral numeric suffix is used.
+ */
+fun ArrayList<SimpleContact>.getThreadTitle(context: Context? = null): String {
+    if (isEmpty()) return ""
+    if (size == 1) return first().name.orEmpty()
+    val firstContact = first()
+    val firstDisplayName = firstContact.name.takeIf { it.isNotEmpty() }
+        ?: firstContact.phoneNumbers.firstOrNull()?.normalizedNumber
+        ?: ""
+    val othersCount = size - 1
+    if (context != null) {
+        val othersSuffix = context.resources.getQuantityString(R.plurals.and_other_contacts, othersCount, othersCount)
+        return context.resources.getString(R.string.thread_title_multiple_format, firstDisplayName, othersSuffix).trim()
+    }
+    // Language-neutral fallback when context not available (no localized "other(s)")
+    return "$firstDisplayName (+$othersCount)".trim()
 }
 
 fun ArrayList<SimpleContact>.getAddresses(): List<String> {

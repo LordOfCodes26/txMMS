@@ -1525,7 +1525,7 @@ fun Context.createTemporaryThread(
         val title = if (cachedConv != null && cachedConv.usesCustomTitle) {
             cachedConv.title
         } else {
-            message.participants.getThreadTitle()
+            message.participants.getThreadTitle(this)
         }
 
         var contact =

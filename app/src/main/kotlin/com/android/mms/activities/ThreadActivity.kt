@@ -1011,51 +1011,64 @@ class ThreadActivity : SimpleActivity() {
     private fun setupThreadTitle() = binding.apply {
         val textColor = getProperTextColor()
         val title = conversation?.title
-        val threadTitle = if (!title.isNullOrEmpty()) title else participants.getThreadTitle()
+        // For multiple participants always show "first user's name or phone and N others" in sender_name_large/sender_name
+        val threadTitle = if (participants.size > 1) {
+            participants.getThreadTitle(this@ThreadActivity)
+        } else {
+            if (!title.isNullOrEmpty()) title else participants.getThreadTitle(this@ThreadActivity)
+        }
         val threadSubtitle = participants.getThreadSubtitle(this@ThreadActivity)
+        threadToolbar.title = ""
         when (config.threadTopStyle) {
-            THREAD_TOP_COMPACT -> topDetailsCompact.apply {
-                senderPhoto.beVisibleIf(config.showContactThumbnails)
-                if (threadTitle.isNotEmpty()) {
-                    senderName.text = threadTitle
-                    senderName.setTextColor(textColor)
-                }
-                senderNumber.beGoneIf(threadSubtitle.isEmpty() || threadTitle == threadSubtitle || participants.size > 1)
-                senderNumber.text = threadSubtitle
-                senderNumber.setTextColor(textColor)
-                arrayOf(
-                    senderPhoto,
-                    senderName,
-                    senderNumber
-                ).forEach {
-                    it.setOnClickListener {
-                        if (conversation != null) launchConversationDetails(threadId)
+            THREAD_TOP_COMPACT -> {
+                topDetailsLarge.beGone()
+                topDetailsCompact.root.beVisible()
+                topDetailsCompact.apply {
+                    senderPhoto.beVisibleIf(config.showContactThumbnails)
+                    if (threadTitle.isNotEmpty()) {
+                        senderName.text = threadTitle
+                        senderName.setTextColor(textColor)
                     }
+                    senderNumber.beGoneIf(threadSubtitle.isEmpty() || threadTitle == threadSubtitle || participants.size > 1)
+                    senderNumber.text = threadSubtitle
+                    senderNumber.setTextColor(textColor)
+                    arrayOf(
+                        senderPhoto,
+                        senderName,
+                        senderNumber
+                    ).forEach {
+                        it.setOnClickListener {
+                            if (conversation != null) launchConversationDetails(threadId)
+                        }
+                    }
+                    senderName.setOnLongClickListener { copyToClipboard(senderName.value); true }
+                    senderNumber.setOnLongClickListener { copyToClipboard(senderNumber.value); true }
                 }
-                senderName.setOnLongClickListener { copyToClipboard(senderName.value); true }
-                senderNumber.setOnLongClickListener { copyToClipboard(senderNumber.value); true }
             }
-            THREAD_TOP_LARGE -> topDetailsLarge.apply {
+            THREAD_TOP_LARGE -> {
                 topDetailsCompact.root.beGone()
-                // senderPhotoLarge.beVisibleIf(config.showContactThumbnails)
-                if (threadTitle.isNotEmpty()) {
-                    senderNameLarge.text = threadTitle
-                    senderNameLarge.setTextColor(textColor)
-                }
-                senderNumberLarge.beGoneIf(threadSubtitle.isEmpty() || threadTitle == threadSubtitle || participants.size > 1)
-                senderNumberLarge.text = threadSubtitle
-                senderNumberLarge.setTextColor(textColor)
-                arrayOf(
-                    // senderPhotoLarge,
-                    senderNameLarge,
-                    senderNumberLarge
-                ).forEach {
-                    it.setOnClickListener {
-                        if (conversation != null) launchConversationDetails(threadId)
+                topDetailsLarge.beVisible()
+                topDetailsLarge.apply {
+                    // senderPhotoLarge.beVisibleIf(config.showContactThumbnails)
+                    if (threadTitle.isNotEmpty()) {
+                        senderNameLarge.text = threadTitle
+                        senderNameLarge.setTextColor(textColor)
                     }
+                    senderNumberLarge.beGoneIf(threadSubtitle.isEmpty() || threadTitle == threadSubtitle || participants.size > 1)
+                    senderNumberLarge.text = threadSubtitle
+                    senderNumberLarge.setTextColor(textColor)
+                    arrayOf(
+                        // senderPhotoLarge,
+                        senderNameLarge,
+                        senderNumberLarge
+                    ).forEach {
+                        it.setOnClickListener {
+                            if (conversation != null) launchConversationDetails(threadId)
+                        }
+                    }
+                    senderNameLarge.setOnLongClickListener { copyToClipboard(senderNameLarge.value); true }
+                    senderNumberLarge.setOnLongClickListener { copyToClipboard(senderNumberLarge.value); true }
                 }
-                senderNameLarge.setOnLongClickListener { copyToClipboard(senderNameLarge.value); true }
-                senderNumberLarge.setOnLongClickListener { copyToClipboard(senderNumberLarge.value); true }
             }
         }
     }
@@ -2026,7 +2039,7 @@ class ThreadActivity : SimpleActivity() {
         var threadTitle = if (!title.isNullOrEmpty()) {
             title
         } else {
-            participants.getThreadTitle()
+            participants.getThreadTitle(this@ThreadActivity)
         }
         if (threadTitle.isEmpty()) threadTitle = intent.getStringExtra(THREAD_TITLE) ?: ""
 
@@ -2129,7 +2142,7 @@ class ThreadActivity : SimpleActivity() {
         if (fragment.view == null) return
         
         val title = conversation?.title
-        val threadTitle = if (!title.isNullOrEmpty()) title else participants.getThreadTitle()
+        val threadTitle = if (!title.isNullOrEmpty()) title else participants.getThreadTitle(this@ThreadActivity)
         val threadSubtitle = participants.getThreadSubtitle(this@ThreadActivity)
         fragment.updateThreadTitle(
             threadTitle = threadTitle,

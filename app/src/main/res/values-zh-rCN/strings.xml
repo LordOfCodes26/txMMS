@@ -27,8 +27,10 @@
     <string name="compress_error">无法将图像压缩到选定的大小</string>
     <string name="duplicate_item_warning">未包含重复项</string>
     <plurals name="and_other_contacts">
+        <item quantity="one">及其他 %d 个联系人</item>
         <item quantity="other">及其他 %d 个联系人</item>
     </plurals>
+    <string name="thread_title_multiple_format">%1$s %2$s</string>
     <string name="new_conversation">新的对话</string>
     <string name="add_contact_or_number">添加联系人或者号码…</string>
     <string name="suggestions">建议</string>
