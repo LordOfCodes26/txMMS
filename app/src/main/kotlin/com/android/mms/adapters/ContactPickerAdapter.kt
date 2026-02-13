@@ -1,6 +1,7 @@
 package com.android.mms.adapters
 
 import android.graphics.drawable.GradientDrawable
+import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -27,11 +28,19 @@ class ContactPickerAdapter(
 
     override fun onBindViewHolder(holder: ContactViewHolder, position: Int) {
         val contact = contacts[position]
-        holder.nameTextView.text = contact.name
-        if (contact.phoneNumber.isNotEmpty()) {
-            holder.phoneTextView.text = contact.phoneNumber
-            holder.phoneTextView.visibility = View.VISIBLE
+        val hasContactName = contact.name.isNotEmpty() && contact.name != contact.phoneNumber
+
+        if (hasContactName) {
+            holder.nameTextView.text = contact.name
+            if (contact.phoneNumber.isNotEmpty()) {
+                holder.phoneTextView.text = contact.phoneNumber
+                holder.phoneTextView.visibility = View.VISIBLE
+            } else {
+                holder.phoneTextView.visibility = View.GONE
+            }
         } else {
+            holder.nameTextView.text = contact.phoneNumber
+            holder.phoneTextView.text = ""
             holder.phoneTextView.visibility = View.GONE
         }
         holder.checkBox.isChecked = selectedPositions.contains(position)
@@ -46,10 +55,25 @@ class ContactPickerAdapter(
             holder.initialTextView.visibility = View.VISIBLE
             holder.avatarBackgroundView.visibility = View.VISIBLE
 
-            if (contact.name.isNotEmpty()) {
+            if (hasContactName) {
                 val initial = contact.name.uppercase().first().toString()
                 holder.initialTextView.text = initial
+                holder.initialTextView.ellipsize = null
+                holder.initialTextView.maxLines = 1
+                holder.initialTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20f)
                 val colors = getGradientColorsForInitial(initial)
+                val gradientDrawable = GradientDrawable(
+                    GradientDrawable.Orientation.TL_BR,
+                    colors
+                )
+                gradientDrawable.shape = GradientDrawable.OVAL
+                holder.avatarBackgroundView.background = gradientDrawable
+            } else {
+                holder.initialTextView.text = ""
+                holder.initialTextView.ellipsize = null
+                holder.initialTextView.maxLines = 1
+                holder.initialTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20f)
+                val colors = getGradientColorsForInitial("#")
                 val gradientDrawable = GradientDrawable(
                     GradientDrawable.Orientation.TL_BR,
                     colors

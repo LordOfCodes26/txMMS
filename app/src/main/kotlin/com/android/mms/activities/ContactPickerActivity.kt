@@ -6,8 +6,10 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.os.Bundle
+import android.net.Uri
 import android.provider.CallLog
 import android.provider.ContactsContract
+import android.provider.ContactsContract.PhoneLookup
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
@@ -456,6 +458,11 @@ class ContactPickerActivity : AppCompatActivity() {
                             val cached = c.getString(nameCol)
                             if (!cached.isNullOrBlank()) name = cached
                         }
+                        if (name == number && ContextCompat.checkSelfPermission(this@ContactPickerActivity, Manifest.permission.READ_CONTACTS) == PackageManager.PERMISSION_GRANTED) {
+                            getDisplayNameForNumber(number)?.let { resolvedName ->
+                                if (resolvedName.isNotBlank()) name = resolvedName
+                            }
+                        }
                         list.add(Contact(name = name, contactId = "", phoneNumber = number))
                         count++
                     }
@@ -627,6 +634,28 @@ class ContactPickerActivity : AppCompatActivity() {
 
     private fun contactNumberKey(contactId: String, phoneNumber: String): String {
         return "$contactId|${normalizePhoneNumber(phoneNumber)}"
+    }
+
+    /** Resolves display name from Contacts by phone number; returns null if not found or on error. */
+    private fun getDisplayNameForNumber(number: String): String? {
+        if (number.isBlank()) return null
+        var cursor: android.database.Cursor? = null
+        try {
+            val uri = Uri.withAppendedPath(PhoneLookup.CONTENT_FILTER_URI, Uri.encode(number))
+            cursor = contentResolver.query(uri, arrayOf(PhoneLookup.DISPLAY_NAME), null, null, null)
+            if (cursor?.moveToFirst() == true) {
+                val idx = cursor.getColumnIndex(PhoneLookup.DISPLAY_NAME)
+                if (idx >= 0) {
+                    val name = cursor.getString(idx)
+                    if (!name.isNullOrBlank()) return name
+                }
+            }
+        } catch (_: Exception) {
+            // ignore
+        } finally {
+            cursor?.close()
+        }
+        return null
     }
 
     private fun getAllPhoneNumbersForContact(contactId: String): List<String> {
