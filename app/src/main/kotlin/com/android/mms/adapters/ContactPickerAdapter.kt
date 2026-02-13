@@ -1,7 +1,5 @@
 package com.android.mms.adapters
 
-import android.graphics.drawable.GradientDrawable
-import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -9,6 +7,8 @@ import android.widget.CheckBox
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.Glide
+import com.goodwy.commons.helpers.SimpleContactsHelper
 import com.android.mms.R
 import com.android.mms.models.Contact
 
@@ -45,42 +45,18 @@ class ContactPickerAdapter(
         }
         holder.checkBox.isChecked = selectedPositions.contains(position)
 
+        // Same drawing logic as conversationImage in BaseConversationsAdapter: use loadContactImage
+        // so placeholder (letter in circle) and circleCrop match the conversation list
+        val displayName = contact.name.ifEmpty { contact.phoneNumber }
         if (contact.icon != -1) {
-            holder.avatarImageView.setImageResource(contact.icon)
-            holder.avatarImageView.visibility = View.VISIBLE
-            holder.initialTextView.visibility = View.GONE
-            holder.avatarBackgroundView.visibility = View.GONE
+            holder.contactImage.setImageResource(contact.icon)
         } else {
-            holder.avatarImageView.visibility = View.GONE
-            holder.initialTextView.visibility = View.VISIBLE
-            holder.avatarBackgroundView.visibility = View.VISIBLE
-
-            if (hasContactName) {
-                val initial = contact.name.uppercase().first().toString()
-                holder.initialTextView.text = initial
-                holder.initialTextView.ellipsize = null
-                holder.initialTextView.maxLines = 1
-                holder.initialTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20f)
-                val colors = getGradientColorsForInitial(initial)
-                val gradientDrawable = GradientDrawable(
-                    GradientDrawable.Orientation.TL_BR,
-                    colors
-                )
-                gradientDrawable.shape = GradientDrawable.OVAL
-                holder.avatarBackgroundView.background = gradientDrawable
-            } else {
-                holder.initialTextView.text = ""
-                holder.initialTextView.ellipsize = null
-                holder.initialTextView.maxLines = 1
-                holder.initialTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20f)
-                val colors = getGradientColorsForInitial("#")
-                val gradientDrawable = GradientDrawable(
-                    GradientDrawable.Orientation.TL_BR,
-                    colors
-                )
-                gradientDrawable.shape = GradientDrawable.OVAL
-                holder.avatarBackgroundView.background = gradientDrawable
-            }
+            SimpleContactsHelper(context).loadContactImage(
+                path = "",
+                imageView = holder.contactImage,
+                placeholderName = displayName,
+                placeholderImage = null
+            )
         }
 
         holder.itemView.setOnClickListener {
@@ -125,54 +101,21 @@ class ContactPickerAdapter(
         listener = l
     }
 
-    interface ContactPickerAdapterListener {
-        fun onContactToggled(position: Int, isSelected: Boolean)
+    override fun onViewRecycled(holder: ContactViewHolder) {
+        super.onViewRecycled(holder)
+        if (context is android.app.Activity && !(context as android.app.Activity).isDestroyed && !(context as android.app.Activity).isFinishing) {
+            Glide.with(context).clear(holder.contactImage)
+        }
     }
 
-    private fun getGradientColorsForInitial(initial: String): IntArray {
-        val firstChar = initial.firstOrNull() ?: return intArrayOf(0xFF007AFF.toInt(), 0xFF5AC8FA.toInt())
-        val index = when {
-            firstChar in 'A'..'Z' -> firstChar - 'A'
-            firstChar in '0'..'9' -> return intArrayOf(0xFF8E8E93.toInt(), 0xFFAEAEB2.toInt())
-            else -> 0
-        }
-        val colorPairs = arrayOf(
-            intArrayOf(0xFF007AFF.toInt(), 0xFF5AC8FA.toInt()),
-            intArrayOf(0xFF5856D6.toInt(), 0xFFAF52DE.toInt()),
-            intArrayOf(0xFFFF2D55.toInt(), 0xFFFF3B30.toInt()),
-            intArrayOf(0xFFFF9500.toInt(), 0xFFFFCC00.toInt()),
-            intArrayOf(0xFF34C759.toInt(), 0xFF30D158.toInt()),
-            intArrayOf(0xFF007AFF.toInt(), 0xFF5AC8FA.toInt()),
-            intArrayOf(0xFF5856D6.toInt(), 0xFFAF52DE.toInt()),
-            intArrayOf(0xFFFF2D55.toInt(), 0xFFFF3B30.toInt()),
-            intArrayOf(0xFFFF9500.toInt(), 0xFFFFCC00.toInt()),
-            intArrayOf(0xFF34C759.toInt(), 0xFF30D158.toInt()),
-            intArrayOf(0xFF007AFF.toInt(), 0xFF5AC8FA.toInt()),
-            intArrayOf(0xFF5856D6.toInt(), 0xFFAF52DE.toInt()),
-            intArrayOf(0xFFFF2D55.toInt(), 0xFFFF3B30.toInt()),
-            intArrayOf(0xFFFF9500.toInt(), 0xFFFFCC00.toInt()),
-            intArrayOf(0xFF34C759.toInt(), 0xFF30D158.toInt()),
-            intArrayOf(0xFF007AFF.toInt(), 0xFF5AC8FA.toInt()),
-            intArrayOf(0xFF5856D6.toInt(), 0xFFAF52DE.toInt()),
-            intArrayOf(0xFFFF2D55.toInt(), 0xFFFF3B30.toInt()),
-            intArrayOf(0xFFFF9500.toInt(), 0xFFFFCC00.toInt()),
-            intArrayOf(0xFF34C759.toInt(), 0xFF30D158.toInt()),
-            intArrayOf(0xFF007AFF.toInt(), 0xFF5AC8FA.toInt()),
-            intArrayOf(0xFF5856D6.toInt(), 0xFFAF52DE.toInt()),
-            intArrayOf(0xFFFF2D55.toInt(), 0xFFFF3B30.toInt()),
-            intArrayOf(0xFFFF9500.toInt(), 0xFFFFCC00.toInt()),
-            intArrayOf(0xFF34C759.toInt(), 0xFF30D158.toInt()),
-            intArrayOf(0xFF007AFF.toInt(), 0xFF5AC8FA.toInt())
-        )
-        return colorPairs[index % colorPairs.size]
+    interface ContactPickerAdapterListener {
+        fun onContactToggled(position: Int, isSelected: Boolean)
     }
 
     class ContactViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val nameTextView: TextView = itemView.findViewById(R.id.tv_contact_name)
         val phoneTextView: TextView = itemView.findViewById(R.id.tv_contact_phone)
-        val initialTextView: TextView = itemView.findViewById(R.id.tv_contact_initial)
-        val avatarImageView: ImageView = itemView.findViewById(R.id.iv_contact_avatar)
-        val avatarBackgroundView: View = itemView.findViewById(R.id.v_avatar_background)
+        val contactImage: ImageView = itemView.findViewById(R.id.contactImage)
         val checkBox: CheckBox = itemView.findViewById(R.id.cb_contact_select)
     }
 }

@@ -2,6 +2,7 @@
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:orientation="horizontal"
     android:paddingHorizontal="@dimen/tx_setting_cardview_padding_horizontal"
     android:paddingVertical="@dimen/tx_setting_cardview_textview_padding"
@@ -9,36 +10,13 @@
     android:layout_height="wrap_content"
     android:gravity="center_vertical">
 
-    <RelativeLayout
-        android:layout_width="48dp"
-        android:layout_height="48dp"
-        android:layout_marginEnd="@dimen/tx_setting_cardview_textview_padding">
-
-        <View
-            android:id="@+id/v_avatar_background"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:background="@drawable/circle_background"
-            android:visibility="gone" />
-
-        <TextView
-            android:id="@+id/tv_contact_initial"
-            android:layout_centerInParent="true"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textColor="#FFFFFF"
-            android:textSize="20sp"
-            android:textStyle="bold"
-            android:gravity="center"
-            android:visibility="gone" />
-
-        <de.hdodenhof.circleimageview.CircleImageView
-            android:id="@+id/iv_contact_avatar"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            app:civ_border_width="0dp"
-            android:visibility="gone" />
-    </RelativeLayout>
+    <ImageView
+        android:id="@+id/contactImage"
+        android:layout_width="@dimen/normal_icon_size"
+        android:layout_height="@dimen/normal_icon_size"
+        android:layout_marginEnd="@dimen/tx_setting_cardview_textview_padding"
+        android:contentDescription="@null"
+        tools:src="@drawable/ic_sms_messenger" />
 
     <LinearLayout
         android:layout_width="0dp"
