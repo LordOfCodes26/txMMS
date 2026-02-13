@@ -19,6 +19,7 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.appbar.AppBarLayout
 import com.goodwy.commons.extensions.getProperPrimaryColor
 import com.goodwy.commons.extensions.getProperTextColor
 import com.goodwy.commons.views.MyRecyclerView
@@ -89,6 +90,7 @@ class ContactPickerActivity : AppCompatActivity() {
     private var filterCallLog: MyTextView? = null
     private var filterContacts: MyTextView? = null
     private var callLogPlaceholder: View? = null
+    private var contactPickerFilterBar: View? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -270,8 +272,10 @@ class ContactPickerActivity : AppCompatActivity() {
             }
         })
 
-        val filterBar = findViewById<ViewGroup>(R.id.contact_picker_filter_bar)
+        contactPickerFilterBar = findViewById(R.id.contact_picker_filter_bar)
+        val filterBar = contactPickerFilterBar as? ViewGroup
         callLogPlaceholder = findViewById(R.id.call_log_placeholder)
+        setupFilterBarScrollBehavior()
         if (filterBar != null && filterBar.childCount >= 2) {
             filterCallLog = filterBar.getChildAt(0) as? MyTextView
             filterContacts = filterBar.getChildAt(1) as? MyTextView
@@ -315,6 +319,18 @@ class ContactPickerActivity : AppCompatActivity() {
             filterCallLog?.setTextColor(textColor)
             filterContacts?.setTextColor(primaryColor)
         }
+    }
+
+    /** Hides filter bar when app bar is scrolled (top item going up); shows when app bar is back at original (expanded). */
+    private fun setupFilterBarScrollBehavior() {
+        val bar = blurAppBarLayout ?: return
+        val filterBar = contactPickerFilterBar ?: return
+        bar.addOnOffsetChangedListener(object : AppBarLayout.OnOffsetChangedListener {
+            override fun onOffsetChanged(appBarLayout: AppBarLayout, verticalOffset: Int) {
+                val expanded = verticalOffset >= -dp(8)
+                filterBar.visibility = if (expanded) View.VISIBLE else View.GONE
+            }
+        })
     }
 
     private fun searchListByQuery(s: String) {
