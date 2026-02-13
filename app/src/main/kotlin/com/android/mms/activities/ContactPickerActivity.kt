@@ -6,6 +6,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.os.Bundle
+import android.provider.CallLog
 import android.provider.ContactsContract
 import android.view.View
 import android.view.ViewGroup
@@ -18,7 +19,10 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.goodwy.commons.extensions.getProperPrimaryColor
+import com.goodwy.commons.extensions.getProperTextColor
 import com.goodwy.commons.views.MyRecyclerView
+import com.goodwy.commons.views.MyTextView
 import com.android.common.helper.IconItem
 import com.android.common.view.MRippleToolBar
 import com.android.common.view.MSearchView
@@ -32,6 +36,8 @@ class ContactPickerActivity : AppCompatActivity() {
 
     companion object {
         private const val PERMISSION_REQUEST_READ_CONTACTS = 100
+        private const val PERMISSION_REQUEST_READ_CALL_LOG = 101
+        private const val CALL_LOG_LIMIT = 500
         const val EXTRA_SELECTED_CONTACTS = "selected_contacts"
         const val EXTRA_ALREADY_SELECTED_CONTACTS = "already_selected_contacts"
         const val EXTRA_SELECTED_DISPLAY_TEXTS = "selected_display_texts"
@@ -79,6 +85,10 @@ class ContactPickerActivity : AppCompatActivity() {
     private val alreadySelectedContactIds = HashSet<String>()
     private var bottomBarContainer: View? = null
     private var tabBar: MRippleToolBar? = null
+    private var isCallLogMode = false
+    private var filterCallLog: MyTextView? = null
+    private var filterContacts: MyTextView? = null
+    private var callLogPlaceholder: View? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -142,11 +152,11 @@ class ContactPickerActivity : AppCompatActivity() {
                 val bottomOffset = dp(0)
                 if (ime.bottom > 0) {
                     bottomBarLp.bottomMargin = ime.bottom + bottomOffset
-                    contactRecyclerView?.setPadding(0, dp(120), 0, dp(40) + navHeight + ime.bottom)
+                    contactRecyclerView?.setPadding(0, dp(200), 0, dp(40) + navHeight + ime.bottom)
                     contactRecyclerView?.scrollToPosition((contactAdapter?.itemCount ?: 1) - 1)
                 } else {
                     bottomBarLp.bottomMargin = navHeight + bottomOffset
-                    contactRecyclerView?.setPadding(0, dp(120), 0, dp(90) + navHeight)
+                    contactRecyclerView?.setPadding(0, dp(200), 0, dp(90) + navHeight)
                 }
                 barContainer.layoutParams = bottomBarLp
             }
@@ -240,7 +250,7 @@ class ContactPickerActivity : AppCompatActivity() {
                 val visible = lm.childCount
                 val total = lm.itemCount
                 val first = lm.findFirstVisibleItemPosition()
-                if (!isLoadingMore && hasMoreContacts && searchString.isEmpty()) {
+                if (!isCallLogMode && !isLoadingMore && hasMoreContacts && searchString.isEmpty()) {
                     if (visible + first >= total - 5) loadMoreContacts()
                 }
             }
@@ -250,12 +260,61 @@ class ContactPickerActivity : AppCompatActivity() {
             override fun onContactToggled(position: Int, isSelected: Boolean) {
                 if (position !in filteredContacts.indices) return
                 val contact = filteredContacts[position]
-                val idx = allContacts.indexOfFirst { it.contactId == contact.contactId && it.phoneNumber == contact.phoneNumber }
+                val idx = allContacts.indexOfFirst {
+                    if (contact.contactId.isEmpty()) it.phoneNumber == contact.phoneNumber
+                    else it.contactId == contact.contactId && it.phoneNumber == contact.phoneNumber
+                }
                 if (idx >= 0) {
                     if (isSelected) selectedPositions.add(idx) else selectedPositions.remove(idx)
                 }
             }
         })
+
+        val filterBar = findViewById<ViewGroup>(R.id.contact_picker_filter_bar)
+        callLogPlaceholder = findViewById(R.id.call_log_placeholder)
+        if (filterBar != null && filterBar.childCount >= 2) {
+            filterCallLog = filterBar.getChildAt(0) as? MyTextView
+            filterContacts = filterBar.getChildAt(1) as? MyTextView
+        } else {
+            filterCallLog = findViewById(R.id.filter_call_log)
+            filterContacts = findViewById(R.id.filter_contacts)
+        }
+
+        filterCallLog?.let { callLogTab ->
+            callLogTab.isClickable = true
+            callLogTab.isFocusable = true
+            callLogTab.setOnClickListener {
+                if (!isCallLogMode) {
+                    isCallLogMode = true
+                    updateFilterBar()
+                    if (checkCallLogPermission()) loadCallLog()
+                }
+            }
+        }
+        filterContacts?.let { contactsTab ->
+            contactsTab.isClickable = true
+            contactsTab.isFocusable = true
+            contactsTab.setOnClickListener {
+                if (isCallLogMode) {
+                    isCallLogMode = false
+                    updateFilterBar()
+                    if (checkContactsPermission()) loadContacts()
+                }
+            }
+        }
+        updateFilterBar()
+    }
+
+    private fun updateFilterBar() {
+        val textColor = getProperTextColor()
+        val primaryColor = getProperPrimaryColor()
+        if (isCallLogMode) {
+            filterCallLog?.setTextColor(primaryColor)
+            filterContacts?.setTextColor(textColor)
+        } else {
+            filterCallLog?.setTextColor(textColor)
+            filterContacts?.setTextColor(primaryColor)
+        }
     }
 
     private fun searchListByQuery(s: String) {
@@ -281,7 +340,10 @@ class ContactPickerActivity : AppCompatActivity() {
     private fun updateAdapterWithFilteredContacts() {
         val filteredSelected = HashSet<Int>()
         filteredContacts.forEachIndexed { i, contact ->
-            val idx = allContacts.indexOfFirst { it.contactId == contact.contactId && it.phoneNumber == contact.phoneNumber }
+            val idx = allContacts.indexOfFirst {
+                if (contact.contactId.isEmpty()) it.phoneNumber == contact.phoneNumber
+                else it.contactId == contact.contactId && it.phoneNumber == contact.phoneNumber
+            }
             if (idx >= 0 && selectedPositions.contains(idx)) filteredSelected.add(i)
         }
         contactAdapter?.setItems(filteredContacts, filteredSelected)
@@ -294,16 +356,130 @@ class ContactPickerActivity : AppCompatActivity() {
         } else true
     }
 
+    private fun checkCallLogPermission(): Boolean {
+        return if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_CALL_LOG) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.READ_CALL_LOG), PERMISSION_REQUEST_READ_CALL_LOG)
+            false
+        } else true
+    }
+
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == PERMISSION_REQUEST_READ_CONTACTS) {
-            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                loadContacts()
-            } else {
-                Toast.makeText(this, com.goodwy.commons.R.string.no_contacts_permission, Toast.LENGTH_LONG).show()
-                finish()
+        when (requestCode) {
+            PERMISSION_REQUEST_READ_CONTACTS -> {
+                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    loadContacts()
+                } else {
+                    Toast.makeText(this, com.goodwy.commons.R.string.no_contacts_permission, Toast.LENGTH_LONG).show()
+                    finish()
+                }
+            }
+            PERMISSION_REQUEST_READ_CALL_LOG -> {
+                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    loadCallLog()
+                } else {
+                    Toast.makeText(this, R.string.call_log_permission_required, Toast.LENGTH_LONG).show()
+                    isCallLogMode = false
+                    updateFilterBar()
+                }
             }
         }
+    }
+
+    private fun loadCallLog() {
+        allContacts.clear()
+        filteredContacts.clear()
+        selectedPositions.clear()
+        callLogPlaceholder?.visibility = View.GONE
+        contactRecyclerView?.visibility = View.VISIBLE
+
+        val alreadySelected = intent?.getParcelableArrayListExtra<Contact>(EXTRA_ALREADY_SELECTED_CONTACTS) ?: arrayListOf()
+        val alreadyNumbers = alreadySelected.map { normalizePhoneNumber(it.phoneNumber) }.toSet()
+
+        Thread {
+            try {
+                val projection = arrayOf(
+                    CallLog.Calls.NUMBER,
+                    CallLog.Calls.CACHED_NAME,
+                    CallLog.Calls.DATE
+                )
+                var cursor: android.database.Cursor? = null
+                try {
+                    cursor = contentResolver.query(
+                        CallLog.Calls.CONTENT_URI,
+                        projection,
+                        null,
+                        null,
+                        "${CallLog.Calls.DATE} DESC"
+                    )
+                } catch (_: SecurityException) {
+                    runOnUiThread {
+                        callLogPlaceholder?.visibility = View.VISIBLE
+                        contactRecyclerView?.visibility = View.GONE
+                        contactAdapter?.setItems(emptyList(), emptySet())
+                    }
+                    return@Thread
+                }
+
+                val list = ArrayList<Contact>()
+                val seenNumbers = HashSet<String>()
+                var nameCol = -1
+                cursor?.use { c ->
+                    nameCol = c.getColumnIndex(CallLog.Calls.CACHED_NAME)
+                    val numberCol = c.getColumnIndex(CallLog.Calls.NUMBER)
+                    if (numberCol < 0) return@use
+                    var count = 0
+                    while (c.moveToNext() && count < CALL_LOG_LIMIT) {
+                        val number = c.getString(numberCol) ?: continue
+                        if (number.isBlank()) continue
+                        val normalized = normalizePhoneNumber(number)
+                        if (seenNumbers.contains(normalized)) continue
+                        seenNumbers.add(normalized)
+                        var name = number
+                        if (nameCol >= 0) {
+                            val cached = c.getString(nameCol)
+                            if (!cached.isNullOrBlank()) name = cached
+                        }
+                        list.add(Contact(name = name, contactId = "", phoneNumber = number))
+                        count++
+                    }
+                }
+
+                val selected = HashSet<Int>()
+                list.forEachIndexed { index, contact ->
+                    if (alreadyNumbers.contains(normalizePhoneNumber(contact.phoneNumber))) {
+                        selected.add(index)
+                    }
+                }
+                runOnUiThread {
+                    allContacts.clear()
+                    allContacts.addAll(list)
+                    filteredContacts.clear()
+                    if (searchString.trim().isEmpty()) {
+                        filteredContacts.addAll(list)
+                        contactAdapter?.setItems(list, selected)
+                    } else {
+                        searchListByQuery(searchString)
+                    }
+                    selectedPositions.clear()
+                    selected.forEach { selectedPositions.add(it) }
+                    if (list.isEmpty()) {
+                        callLogPlaceholder?.visibility = View.VISIBLE
+                        contactRecyclerView?.visibility = View.GONE
+                    } else {
+                        callLogPlaceholder?.visibility = View.GONE
+                        contactRecyclerView?.visibility = View.VISIBLE
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                runOnUiThread {
+                    callLogPlaceholder?.visibility = View.VISIBLE
+                    contactRecyclerView?.visibility = View.GONE
+                    contactAdapter?.setItems(emptyList(), emptySet())
+                }
+            }
+        }.start()
     }
 
     private fun loadContacts() {
@@ -314,6 +490,8 @@ class ContactPickerActivity : AppCompatActivity() {
         hasMoreContacts = true
         contactsCursor?.takeIf { !it.isClosed }?.close()
         contactsCursor = null
+        callLogPlaceholder?.visibility = View.GONE
+        contactRecyclerView?.visibility = View.VISIBLE
 
         val alreadySelected = intent?.getParcelableArrayListExtra<Contact>(EXTRA_ALREADY_SELECTED_CONTACTS) ?: arrayListOf()
         alreadySelectedContactIds.clear()

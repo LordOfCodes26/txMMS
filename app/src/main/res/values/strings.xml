@@ -37,6 +37,10 @@
     <string name="new_conversation">New conversation</string>
     <string name="add_contact_or_number">Add Contact or Number…</string>
     <string name="select_contacts">Select contacts</string>
+    <string name="call_log">Call log</string>
+    <string name="contacts">Contacts</string>
+    <string name="no_call_log">No call history</string>
+    <string name="call_log_permission_required">Call log access is needed to pick numbers from call history</string>
     <string name="done">Done</string>
     <string name="suggestions">Suggestions</string>
     <!-- Group conversation -->
