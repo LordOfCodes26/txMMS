@@ -120,6 +120,7 @@
     <string name="thread_title_multiple_format">%1$s %2$s</string>
     <string name="new_conversation">새 통보문</string>
     <string name="add_contact_or_number">주소록 또는 전화번호 추가…</string>
+    <string name="select_contacts">주소 선택</string>
     <string name="suggestions">제안</string>
     <string name="conversation_details">대화 세부사항</string>
     <string name="rename_conversation">대화명 편집</string>
