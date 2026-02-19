@@ -44,7 +44,7 @@ class ConfirmationAdvancedDialog(
         
         blurView.setupWith(blurTarget)
             .setFrameClearDrawable(windowBackground) // Optional: makes background opaque when there's transparent space
-            .setBlurRadius(5f) // Blur radius - adjust as needed (typical range: 1-25)
+            .setBlurRadius(16f) // Blur radius - adjust as needed (typical range: 1-25)
             .setBlurAutoUpdate(true)
 
         // Setup custom buttons inside BlurView

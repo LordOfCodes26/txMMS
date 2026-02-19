@@ -37,7 +37,7 @@ class OpenDeviceSettingsDialog(val activity: BaseSimpleActivity, message: String
             
             blurView.setupWith(blurTarget)
                 .setFrameClearDrawable(windowBackground)
-                .setBlurRadius(5f)
+                .setBlurRadius(16f)
                 .setBlurAutoUpdate(true)
 
             // Setup custom buttons inside BlurView

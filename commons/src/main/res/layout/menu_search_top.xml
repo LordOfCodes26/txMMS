@@ -66,7 +66,7 @@
                 android:layout_centerVertical="true"
                 android:background="?selectableItemBackgroundBorderless"
                 android:alpha="0.4"
-                android:src="@drawable/ic_cmn_search_close"
+                android:src="@drawable/ic_cmn_circle_close_fill"
                 android:contentDescription="@string/delete"
                 android:visibility="gone"
                 tools:visibility="visible" />

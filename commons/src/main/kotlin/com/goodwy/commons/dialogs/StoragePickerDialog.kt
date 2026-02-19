@@ -64,7 +64,7 @@ class StoragePickerDialog(
         blurView?.setOverlayColor(activity.getProperBlurOverlayColor())
         blurView?.setupWith(blurTarget)
             ?.setFrameClearDrawable(windowBackground)
-            ?.setBlurRadius(5f)
+            ?.setBlurRadius(16f)
             ?.setBlurAutoUpdate(true)
         
         radioGroup = view.dialogRadioGroup

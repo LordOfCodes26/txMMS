@@ -46,18 +46,16 @@
             app:layout_constraintTop_toBottomOf="@+id/item_contact_image"
             tools:text="John Doe" />
 
-        <ImageView
-            android:id="@+id/drag_handle_icon"
-            android:layout_width="@dimen/normal_icon_size"
-            android:layout_height="@dimen/normal_icon_size"
-            android:layout_alignParentTop="true"
-            android:contentDescription="@null"
-            android:paddingHorizontal="@dimen/normal_margin"
-            android:src="@drawable/ic_drag_handle_vector"
-            android:visibility="visible"
+        <com.goodwy.commons.views.MyAppCompatCheckbox
+            android:id="@+id/item_contact_checkbox"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_margin="@dimen/small_margin"
+            android:padding="0dp"
+            android:visibility="gone"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"/>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </FrameLayout>

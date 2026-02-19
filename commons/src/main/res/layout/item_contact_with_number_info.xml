@@ -73,43 +73,36 @@
             app:layout_constraintTop_toBottomOf="@+id/item_contact_name"
             tools:text="0123 456 789" />
 
-        <FrameLayout
+        <RelativeLayout
             android:id="@+id/item_contact_info_holder"
-            android:layout_width="72dp"
-            android:layout_height="0dp"
-            android:layout_marginBottom="@dimen/medium_margin"
+            android:layout_width="33dp"
+            android:layout_height="33dp"
+            android:layout_marginEnd="@dimen/medium_margin"
+            android:layout_marginStart="@dimen/medium_margin"
             android:background="?attr/selectableItemBackgroundBorderless"
-            app:layout_constraintTop_toTopOf="parent"
+            android:contentDescription="@string/details"
+            android:layout_marginBottom="@dimen/medium_margin"
             app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent">
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
+
 
             <ImageView
                 android:id="@+id/item_contact_info"
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:layout_gravity="center_vertical|end"
-                android:layout_marginEnd="@dimen/activity_margin"
-                android:src="@drawable/ic_cmn_info" />
+                android:layout_width="@dimen/tx_toolbar_icon_size"
+                android:layout_height="@dimen/tx_toolbar_icon_size"
+                android:contentDescription="@string/contact_details"
+                android:padding="@dimen/tx_toolbar_icon_padding"
+                android:src="@drawable/ic_cmn_info"
+                android:layout_centerInParent="true"/>
 
             <com.goodwy.commons.views.MyAppCompatCheckbox
                 android:id="@+id/item_contact_checkbox"
                 android:layout_width="24dp"
                 android:layout_height="24dp"
-                android:layout_gravity="center_vertical|end"
-                android:layout_marginEnd="@dimen/activity_margin"
-                android:padding="0dp"
+                android:layout_centerInParent="true"
                 android:visibility="gone" />
-        </FrameLayout>
-
-        <ImageView
-            android:id="@+id/drag_handle_icon"
-            style="@style/DragHandleIconStyle"
-            android:layout_marginEnd="@dimen/activity_margin"
-            android:layout_marginBottom="@dimen/medium_margin"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            tools:visibility="visible" />
+        </RelativeLayout>
 
         <ImageView
             android:id="@+id/divider"

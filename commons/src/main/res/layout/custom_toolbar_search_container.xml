@@ -36,7 +36,7 @@
         android:paddingEnd="@dimen/normal_margin"
         android:textSize="@dimen/normal_text_size"
         android:drawableStart="@drawable/ic_cmn_search"
-        android:drawableEnd="@drawable/ic_cmn_search_close"
+        android:drawableEnd="@drawable/ic_cmn_circle_close_fill"
         android:drawablePadding="@dimen/smaller_margin"
         tools:text="Search text" />
 

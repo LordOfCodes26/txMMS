@@ -3,7 +3,7 @@
     android:id="@+id/dialog_radio_button"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:buttonTint="@color/tx_dialog_confirm_text_color"
+    android:buttonTint="@color/tx_dialog_confirm_text"
     android:theme="@style/Theme.Common"
     android:textDirection="locale"
     android:textAlignment="viewStart" />

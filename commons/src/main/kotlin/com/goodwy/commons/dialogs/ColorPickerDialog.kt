@@ -117,7 +117,7 @@ class ColorPickerDialog(
         
         blurView.setupWith(blurTarget)
             .setFrameClearDrawable(windowBackground)
-            .setBlurRadius(5f)
+            .setBlurRadius(16f)
             .setBlurAutoUpdate(true)
 
         // Setup title inside BlurView

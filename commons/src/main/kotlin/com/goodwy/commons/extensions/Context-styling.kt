@@ -35,12 +35,12 @@ fun Context.isDarkTheme() = baseConfig.backgroundColor == resources.getColor(R.c
 fun Context.isBlackTheme() = baseConfig.backgroundColor == resources.getColor(R.color.theme_black_background_color, theme)
 
 fun Context.getProperTextColor() = when {
-    isDynamicTheme() -> resources.getColor(com.android.common.R.color.tx_content_text_color, theme)
+    isDynamicTheme() -> resources.getColor(com.android.common.R.color.tx_content_text, theme)
     else -> baseConfig.textColor
 }
 
 fun Context.getProperBackgroundColor() = when {
-    isDynamicTheme() -> resources.getColor(com.android.common.R.color.tx_main_background_color, theme)
+    isDynamicTheme() -> resources.getColor(com.android.common.R.color.tx_common_bg, theme)
     else -> baseConfig.backgroundColor
 }
 

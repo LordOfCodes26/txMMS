@@ -1,7 +1,6 @@
 package com.goodwy.commons.adapters
 
 import android.annotation.SuppressLint
-import android.graphics.Color
 import android.view.*
 import android.view.ViewParent
 import android.widget.ImageView
@@ -214,14 +213,12 @@ abstract class MyRecyclerViewListAdapter<T>(
                 
                 // Restore status bar color using activity's method to avoid flash
                 if (activity is com.goodwy.commons.activities.EdgeToEdgeActivity) {
-                    val edgeActivity = activity
                     // Post the restoration to avoid flash - let UI settle first
                     activity.window.decorView.post {
-                        val useSurfaceColor = edgeActivity.isDynamicTheme() && !edgeActivity.isSystemInDarkMode()
-                        val backgroundColor = if (useSurfaceColor) edgeActivity.getSurfaceColor() else edgeActivity.getProperBackgroundColor()
-                        val statusBarColor = if (baseConfig.changeColourTopBar) edgeActivity.getRequiredStatusBarColor(useSurfaceColor) else backgroundColor
-                        edgeActivity.window.setSystemBarsAppearance(statusBarColor)
-                        edgeActivity.window.statusBarColor = Color.TRANSPARENT
+                        val useSurfaceColor = activity.isDynamicTheme() && !activity.isSystemInDarkMode()
+                        val statusBarColor = activity.getStartRequiredStatusBarColor()
+                        activity.window.statusBarColor = statusBarColor
+                        activity.window.setSystemBarsAppearance(statusBarColor)
                     }
                     originalStatusBarColor = null
                 }

@@ -1,9 +1,7 @@
 package com.goodwy.commons.views
 
-import android.app.Activity
 import android.content.Context
 import android.content.res.ColorStateList
-import android.graphics.Outline
 import android.graphics.drawable.Drawable
 import android.util.AttributeSet
 import android.util.TypedValue
@@ -14,11 +12,8 @@ import android.view.MenuInflater
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
-import android.view.ViewOutlineProvider
 import android.widget.ImageView
 import android.widget.LinearLayout
-import android.widget.PopupWindow
-import android.widget.TextView
 import android.graphics.PorterDuff
 import androidx.appcompat.view.menu.MenuBuilder
 import androidx.appcompat.view.menu.MenuItemImpl
@@ -27,12 +22,10 @@ import com.android.common.view.MImageButton
 import java.lang.reflect.Method
 import com.goodwy.commons.R
 import com.goodwy.commons.databinding.CustomActionModeToolbarBinding
-import com.goodwy.commons.databinding.PopupMenuBlurBinding
 import com.goodwy.commons.extensions.applyColorFilter
 import com.goodwy.commons.extensions.getContrastColor
-import com.goodwy.commons.extensions.getProperBlurOverlayColor
 import com.goodwy.commons.extensions.getProperTextColor
-import eightbitlab.com.blurview.BlurTarget
+import com.goodwy.commons.views.BlurPopupMenu
 
 /**
  * Custom action mode toolbar implementation similar to CustomToolbar
@@ -54,7 +47,7 @@ class CustomActionModeToolbar @JvmOverloads constructor(
     private var _menu: Menu? = null
     private var menuInflater: MenuInflater? = null
     private var onMenuItemClickListener: MenuItem.OnMenuItemClickListener? = null
-    private var popupWindow: PopupWindow? = null
+    private var popupWindow: BlurPopupMenu? = null
     private var overflowItems: List<MenuItem> = emptyList()
     private var isUpdatingMenu = false
     private var requiresActionButtonMethod: Method? = null
@@ -67,10 +60,6 @@ class CustomActionModeToolbar @JvmOverloads constructor(
     private var cachedMargin: Int = -1
     private var cachedPadding: Int = -1
     private var cachedTextColor: Int = -1
-    
-    // Cached activity and blur target for popup menu
-    private var cachedActivity: Activity? = null
-    private var cachedBlurTarget: BlurTarget? = null
     
     // Menu update optimization flags
     private var menuNeedsUpdate = false
@@ -307,9 +296,9 @@ class CustomActionModeToolbar @JvmOverloads constructor(
         // Get the appropriate icon based on selection state
         val iconRes = if (allSelected) {
             // When all are selected, use checkmark icon to indicate deselect action
-            com.android.common.R.drawable.ic_cmn_select_all_on
+            com.android.common.R.drawable.ic_cmn_multi_unselect
         } else {
-            com.android.common.R.drawable.ic_cmn_select
+            com.android.common.R.drawable.ic_cmn_select_none
         }
         
         val icon = ContextCompat.getDrawable(context, iconRes)
@@ -449,7 +438,7 @@ class CustomActionModeToolbar @JvmOverloads constructor(
     private fun createActionButton(item: MenuItem): MImageButton {
         // Cache dimension values to avoid repeated resource lookups
         if (cachedIconSize == -1) {
-            cachedIconSize = resources.getDimensionPixelSize(com.android.common.R.dimen.tx_toolbar_icon_size)
+            cachedIconSize = resources.getDimensionPixelSize(R.dimen.medium_icon_size)
             cachedMargin = resources.getDimensionPixelSize(R.dimen.normal_margin)
             cachedPadding = resources.getDimensionPixelSize(R.dimen.icon_padding)
         }
@@ -545,111 +534,63 @@ class CustomActionModeToolbar @JvmOverloads constructor(
      */
     private fun showMenuPopup() {
         val menu = _menu ?: return
-        
-        // Use cached activity and blur target if available
-        val activity = cachedActivity ?: (context as? Activity)?.also { cachedActivity = it } ?: return
-        val blurTarget = cachedBlurTarget ?: activity.findViewById<BlurTarget>(R.id.mainBlurTarget)?.also { 
-            cachedBlurTarget = it 
-        } ?: return
-        
-        // Create custom popup window with blur
-        val inflater = LayoutInflater.from(context)
-        val popupBinding = PopupMenuBlurBinding.inflate(inflater, null, false)
-        
-        // Setup rounded corners
-        popupBinding.root.clipToOutline = true
-        
-        // Setup BlurView
-        val blurView = popupBinding.blurView
-        val decorView = activity.window.decorView
-        val windowBackground = decorView.background
-        
-        // Get corner radius from resources to match the drawable
-        val cornerRadius = context.resources.getDimension(R.dimen.material_dialog_corner_radius)
-        
-        // Setup rounded corners with proper clipping
-        blurView.clipToOutline = true
-        blurView.outlineProvider = object : ViewOutlineProvider() {
-            override fun getOutline(view: View, outline: Outline) {
-                outline.setRoundRect(0, 0, view.width, view.height, cornerRadius)
-            }
-        }
-        
-        blurView.setOverlayColor(context.getProperBlurOverlayColor())
-        blurView.setupWith(blurTarget)
-            .setFrameClearDrawable(windowBackground)
-            .setBlurRadius(5f)
-            .setBlurAutoUpdate(true)
-        
-        // Create menu items - only show overflow items (not action buttons)
-        val menuContainer = popupBinding.menuContainer
+        val binding = this.binding ?: return
+        val anchor = binding.menuButton
+
+        // Get overflow items to show
         val visibleItems = if (overflowItems.isNotEmpty()) {
             overflowItems.filter { it.isVisible }
         } else {
             // Fallback: show all visible items if overflowItems is empty
-            (0 until menu.size())
-                .mapNotNull { menu.getItem(it) }
-                .filter { it.isVisible }
-        }
-        
-        visibleItems.forEach { item ->
-            val menuItemView = inflater.inflate(R.layout.item_popup_menu, menuContainer, false)
-            val titleView = menuItemView.findViewById<TextView>(R.id.menu_item_title)
-            
-            titleView.text = item.title
-            
-            menuItemView.setOnClickListener {
-                onMenuItemClickListener?.onMenuItemClick(item) ?: false
-                popupWindow?.dismiss()
+            val menuSize = menu.size()
+            buildList {
+                for (i in 0 until menuSize) {
+                    val item = menu.getItem(i) ?: continue
+                    if (item.isVisible) add(item)
+                }
             }
-            
-            menuContainer.addView(menuItemView)
         }
-        
-        // Measure the content
-        popupBinding.root.measure(
-            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
-            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
-        )
-        
-        // Ensure outline is updated after measurement
-        blurView.invalidateOutline()
-        
-        // Create and show popup window
-        popupWindow = PopupWindow(
-            popupBinding.root,
-            ViewGroup.LayoutParams.WRAP_CONTENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT,
-            true
-        ).apply {
-            elevation = 8f
-            setBackgroundDrawable(null)
-            isOutsideTouchable = true
-            isFocusable = true
-            
-            // Calculate position
-            val anchor = binding?.menuButton ?: this@CustomActionModeToolbar
-            val location = IntArray(2)
-            anchor.getLocationOnScreen(location)
-            val rootLocation = IntArray(2)
-            (context as? Activity)?.window?.decorView?.rootView?.getLocationOnScreen(rootLocation)
-            
-            // Add right margin (16dp converted to pixels)
-            val rightMargin = (16 * resources.displayMetrics.density + 0.5f).toInt()
-            val screenWidth = resources.displayMetrics.widthPixels
-            val popupWidth = popupBinding.root.measuredWidth
-            
-            // Calculate x position with right margin from screen edge
-            val x = screenWidth - popupWidth - rightMargin
-            val y = location[1] + anchor.height
-            
-            showAtLocation(
-                (context as? Activity)?.window?.decorView?.rootView,
-                Gravity.NO_GRAVITY,
-                x - rootLocation[0],
-                y - rootLocation[1]
+
+        // Don't show if no visible items
+        if (visibleItems.isEmpty()) {
+            return
+        }
+
+        // Create BlurPopupMenu
+        val blurPopupMenu = BlurPopupMenu(context, anchor, Gravity.END)
+
+        // Copy overflow items to BlurPopupMenu's menu
+        // Create a map to track original items by their IDs
+        val itemIdMap = mutableMapOf<Int, MenuItem>()
+        visibleItems.forEach { originalItem ->
+            val newItem = blurPopupMenu.menu.add(
+                originalItem.groupId,
+                originalItem.itemId,
+                originalItem.order,
+                originalItem.title
             )
+            // Copy properties from original item
+            newItem.icon = originalItem.icon
+            newItem.isCheckable = originalItem.isCheckable
+            newItem.isChecked = originalItem.isChecked
+            newItem.isEnabled = originalItem.isEnabled
+            newItem.isVisible = originalItem.isVisible
+            
+            // Store mapping for click handling
+            itemIdMap[originalItem.itemId] = originalItem
         }
+
+        // Set click listener that maps back to original menu items
+        blurPopupMenu.setOnMenuItemClickListener { clickedItem ->
+            val originalItem = itemIdMap[clickedItem.itemId] ?: clickedItem
+            onMenuItemClickListener?.onMenuItemClick(originalItem) ?: false
+        }
+
+        // Show the popup menu
+        blurPopupMenu.show()
+        
+        // Store reference for cleanup
+        popupWindow = blurPopupMenu
     }
     
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
@@ -686,8 +627,6 @@ class CustomActionModeToolbar @JvmOverloads constructor(
         
         // Clear cached references
         cachedActionButtonsContainer = null
-        cachedActivity = null
-        cachedBlurTarget = null
         
         // Reset cached values
         cachedIconSize = -1

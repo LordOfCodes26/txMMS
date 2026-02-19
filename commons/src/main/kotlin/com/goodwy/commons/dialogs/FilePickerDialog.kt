@@ -134,7 +134,7 @@ class FilePickerDialog(
         
         blurView.setupWith(blurTarget)
             .setFrameClearDrawable(windowBackground)
-            .setBlurRadius(5f)
+            .setBlurRadius(16f)
             .setBlurAutoUpdate(true)
 
         mDialogView.filepickerPlaceholder.setTextColor(activity.getProperTextColor())

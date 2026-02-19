@@ -15,11 +15,10 @@ import android.widget.PopupWindow
 import android.widget.TextView
 import androidx.appcompat.view.menu.MenuBuilder
 import com.goodwy.commons.R
-import com.goodwy.commons.databinding.PopupMenuBlurBinding
+import com.goodwy.commons.databinding.MenuBlurPopupBinding
 import com.goodwy.commons.extensions.getProperBlurOverlayColor
 import com.goodwy.commons.extensions.getProperTextColor
 import eightbitlab.com.blurview.BlurTarget
-import eightbitlab.com.blurview.BlurView
 
 /**
  * Custom popup menu with blur effect, similar to dialogs.
@@ -44,6 +43,7 @@ class BlurPopupMenu(
     val menu: Menu = MenuBuilder(context)
     private val menuInflater: MenuInflater = MenuInflater(context)
     private var onMenuItemClickListener: MenuItem.OnMenuItemClickListener? = null
+    private var onDismissListener: PopupWindow.OnDismissListener? = null
     private var popupWindow: PopupWindow? = null
 
     /**
@@ -61,6 +61,13 @@ class BlurPopupMenu(
     }
 
     /**
+     * Set a listener that will be invoked when the popup menu is dismissed.
+     */
+    fun setOnDismissListener(listener: PopupWindow.OnDismissListener?) {
+        onDismissListener = listener
+    }
+
+    /**
      * Show the popup menu anchored to the view specified during construction.
      */
     fun show() {
@@ -69,28 +76,33 @@ class BlurPopupMenu(
 
         // Create custom popup window with blur
         val inflater = LayoutInflater.from(context)
-        val popupBinding = PopupMenuBlurBinding.inflate(inflater, null, false)
+        val popupBinding = MenuBlurPopupBinding.inflate(inflater, null, false)
 
         // Setup BlurView
         val blurView = popupBinding.blurView
+        val rootView = popupBinding.root
         val decorView = activity.window.decorView
         val windowBackground = decorView.background
 
-        // Get corner radius from resources to match the drawable
-        val cornerRadius = context.resources.getDimension(R.dimen.material_dialog_corner_radius)
-        
-        // Setup rounded corners with proper clipping
+//        // Get corner radius from resources to match the drawable
+//        val cornerRadius = context.resources.getDimension(R.dimen.material_dialog_corner_radius)
+//        // Border width is 0.5dp - add padding to root so border is visible
+//        val borderWidth = (context.resources.getDimension(R.dimen.one_dp) * 0.5f).toInt()
+//        rootView.setPadding(borderWidth, borderWidth, borderWidth, borderWidth)
+//
+//        // Clip the BlurView to match the rounded corners
+//        // Don't clip the root view so the border (on root background) remains visible
         blurView.clipToOutline = true
-        blurView.outlineProvider = object : ViewOutlineProvider() {
-            override fun getOutline(view: View, outline: Outline) {
-                outline.setRoundRect(0, 0, view.width, view.height, cornerRadius)
-            }
-        }
+//        blurView.outlineProvider = object : ViewOutlineProvider() {
+//            override fun getOutline(view: View, outline: Outline) {
+//                outline.setRoundRect(0, 0, view.width, view.height, cornerRadius)
+//            }
+//        }
 
         blurView.setOverlayColor(context.getProperBlurOverlayColor())
         blurView.setupWith(blurTarget)
             .setFrameClearDrawable(windowBackground)
-            .setBlurRadius(5f)
+            .setBlurRadius(16f)
             .setBlurAutoUpdate(true)
 
         // Create menu items
@@ -101,7 +113,7 @@ class BlurPopupMenu(
             .filter { it.isVisible }
 
         visibleItems.forEach { item ->
-            val menuItemView = inflater.inflate(R.layout.item_popup_menu, menuContainer, false)
+            val menuItemView = inflater.inflate(R.layout.item_blur_popup_menu, menuContainer, false)
             val titleView = menuItemView.findViewById<TextView>(R.id.menu_item_title)
 
             titleView.text = item.title
@@ -271,6 +283,9 @@ class BlurPopupMenu(
             setBackgroundDrawable(null)
             isOutsideTouchable = true
             isFocusable = true
+            setOnDismissListener {
+                onDismissListener?.onDismiss()
+            }
 
             showAtLocation(
                 activity.window.decorView.rootView,

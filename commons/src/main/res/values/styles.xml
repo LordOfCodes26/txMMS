@@ -290,7 +290,7 @@
     <!-- Standardized Dialog Title Style -->
     <style name="DialogTitleStyle">
         <item name="android:textSize">@dimen/tx_dialog_title_text_size</item>
-        <item name="android:textColor">@color/tx_dialog_confirm_text_color</item>
+        <item name="android:textColor">@color/tx_dialog_confirm_text</item>
         <item name="android:gravity">start|center_vertical</item>
         <item name="android:paddingTop">@dimen/big_margin</item>
         <item name="android:paddingHorizontal">@dimen/tx_dialog_padding_horizontal</item>
