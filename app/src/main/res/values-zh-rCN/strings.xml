@@ -34,6 +34,10 @@
     <string name="new_conversation">新的对话</string>
     <string name="add_contact_or_number">添加联系人或者号码…</string>
     <string name="select_contacts">选择联系人</string>
+    <string name="call_log">通话记录</string>
+    <string name="contacts">联系人</string>
+    <string name="no_call_log">无通话记录</string>
+    <string name="call_log_permission_required">需要通话记录权限才能从通话记录中选择号码</string>
     <string name="suggestions">建议</string>
     <string name="members">成员</string>
     <string name="conversation_name">对话名</string>
