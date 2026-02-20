@@ -339,7 +339,9 @@ class ThreadActivity : SimpleActivity() {
                     messagesList.setPadding(0, appBarHeightPx, 0, dp(50) + navHeight + ime.bottom)
                     messagesList.scrollToPosition((messagesList.adapter?.itemCount ?: 1) - 1)
                 } else {
-                    bottomBarLp.bottomMargin = navHeight + bottomOffset
+                    // Don't add navHeight to margin: setupEdgeToEdge already pads barContainer bottom.
+                    // Use only a small offset so we don't double-apply insets (avoids huge gap in gesture nav).
+                    bottomBarLp.bottomMargin = bottomOffset
                     messagesList.setPadding(0, appBarHeightPx + dp(10), 0, dp(90) + navHeight)
                     barContainer.layoutParams = bottomBarLp
                 }

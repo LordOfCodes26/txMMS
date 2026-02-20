@@ -459,7 +459,9 @@ class MainActivity : SimpleActivity() {
             val bottomOffset = (20 * resources.displayMetrics.density).toInt()
             val fabLp = binding.conversationsFab.layoutParams as? ViewGroup.MarginLayoutParams
             if (fabLp != null) {
-                fabLp.bottomMargin = if (ime.bottom > 0) ime.bottom + bottomOffset else navHeight + bottomOffset
+                // Don't add navHeight to margin: setupEdgeToEdge already pads barContainer bottom.
+                // Use only a small offset so we don't double-apply insets (avoids huge gap in gesture nav).
+                fabLp.bottomMargin = if (ime.bottom > 0) ime.bottom + bottomOffset else bottomOffset
                 binding.conversationsFab.layoutParams = fabLp
             }
             insets
