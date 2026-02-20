@@ -2153,7 +2153,12 @@ class ThreadActivity : SimpleActivity() {
         if (fragment.view == null) return
         
         val title = conversation?.title
-        val threadTitle = if (!title.isNullOrEmpty()) title else participants.getThreadTitle(this@ThreadActivity)
+        // Match setupThreadTitle(): for multiple participants use "Name and N others", else use conversation title or getThreadTitle
+        val threadTitle = if (participants.size > 1) {
+            participants.getThreadTitle(this@ThreadActivity)
+        } else {
+            if (!title.isNullOrEmpty()) title else participants.getThreadTitle(this@ThreadActivity)
+        }
         val threadSubtitle = participants.getThreadSubtitle(this@ThreadActivity)
         fragment.updateThreadTitle(
             threadTitle = threadTitle,

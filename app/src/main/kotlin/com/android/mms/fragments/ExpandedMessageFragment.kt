@@ -281,12 +281,13 @@ class ExpandedMessageFragment : Fragment() {
                 val senderNameView = binding.topDetailsCompactExpanded.findViewById<com.goodwy.commons.views.MyTextView>(R.id.sender_name)
                 val senderNumberView = binding.topDetailsCompactExpanded.findViewById<com.goodwy.commons.views.MyTextView>(R.id.sender_number)
                 
+                // Follow ThreadActivity setupThreadTitle() THREAD_TOP_COMPACT logic (sender_name, sender_number)
                 senderPhotoView?.beVisibleIf(showContactThumbnails)
                 if (threadTitle.isNotEmpty()) {
                     senderNameView?.text = threadTitle
                     senderNameView?.setTextColor(textColor)
                 }
-                senderNumberView?.beGoneIf(threadTitle == threadSubtitle || participantsCount > 1 || threadSubtitle.isEmpty())
+                senderNumberView?.beGoneIf(threadSubtitle.isEmpty() || threadTitle == threadSubtitle || participantsCount > 1)
                 senderNumberView?.text = threadSubtitle
                 senderNumberView?.setTextColor(textColor)
                 
@@ -312,12 +313,13 @@ class ExpandedMessageFragment : Fragment() {
                 val senderNameView = binding.topDetailsLargeExpanded.findViewById<com.goodwy.commons.views.MyTextView>(R.id.sender_name_large_expanded)
                 val senderNumberView = binding.topDetailsLargeExpanded.findViewById<com.goodwy.commons.views.MyTextView>(R.id.sender_number_large_expanded)
                 
+                // Follow ThreadActivity setupThreadTitle() THREAD_TOP_LARGE logic (sender_name_large, sender_number_large)
                 senderPhotoView?.beVisibleIf(showContactThumbnails)
                 if (threadTitle.isNotEmpty()) {
                     senderNameView?.text = threadTitle
                     senderNameView?.setTextColor(textColor)
                 }
-                senderNumberView?.beGoneIf(threadTitle == threadSubtitle || participantsCount > 1 || threadSubtitle.isEmpty())
+                senderNumberView?.beGoneIf(threadSubtitle.isEmpty() || threadTitle == threadSubtitle || participantsCount > 1)
                 senderNumberView?.text = threadSubtitle
                 senderNumberView?.setTextColor(textColor)
                 
