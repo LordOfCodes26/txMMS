@@ -46,11 +46,6 @@
                         tools:itemCount="3"
                         tools:listitem="@layout/item_message" />
 
-                    <FrameLayout
-                        android:id="@+id/fragment_container"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent" />
-
                 </com.qtalk.recyclerviewfastscroller.RecyclerViewFastScroller>
 
                 <com.goodwy.commons.views.MyFloatingActionButton
@@ -204,5 +199,11 @@
             app:isTopFrame="false"/>
 
     </androidx.coordinatorlayout.widget.CoordinatorLayout>
+
+    <FrameLayout
+        android:id="@+id/fragment_container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone" />
 
 </FrameLayout>

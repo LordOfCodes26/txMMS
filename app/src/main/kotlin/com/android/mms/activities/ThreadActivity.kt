@@ -2125,8 +2125,9 @@ class ThreadActivity : SimpleActivity() {
             }
             fragment.lifecycle.addObserver(observer)
             
-            // Hide the main content
+            // Hide the main content and show the fragment container (sibling of thread_coordinator)
             findViewById<View>(R.id.thread_coordinator)?.beGone()
+            findViewById<View>(R.id.fragment_container)?.beVisible()
             
             supportFragmentManager.beginTransaction()
                 .replace(R.id.fragment_container, fragment)
@@ -2170,6 +2171,7 @@ class ThreadActivity : SimpleActivity() {
     private fun hideExpandedMessageFragment() {
         expandedMessageFragment?.let {
             supportFragmentManager.popBackStack()
+            findViewById<View>(R.id.fragment_container)?.beGone()
             findViewById<View>(R.id.thread_coordinator)?.beVisible()
             expandedMessageFragment = null
         }
