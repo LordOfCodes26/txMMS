@@ -444,7 +444,7 @@ class CustomToolbar @JvmOverloads constructor(
         if (show) {
             // Show clear icon (drawableEnd)
             val iconSize = getIconSize()
-            val clearIcon = ContextCompat.getDrawable(context, com.android.common.R.drawable.ic_cmn_search_close)
+            val clearIcon = ContextCompat.getDrawable(context, com.android.common.R.drawable.ic_cmn_circle_close_fill)
 
             clearIcon?.let {
                 val drawable = it.mutate()

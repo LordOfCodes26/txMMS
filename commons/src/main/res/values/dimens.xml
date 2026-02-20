@@ -17,6 +17,10 @@
     <dimen name="settings_margin">8dp</dimen>
     <dimen name="about_margin">20dp</dimen>
     <dimen name="dialpad_bottom_margin">50dp</dimen>
+    <dimen name="blur_app_bar_height">125dp</dimen>
+    <dimen name="blur_app_bar_margin">-125dp</dimen>
+    <dimen name="normal_app_bar_height">85dp</dimen>
+    <dimen name="normal_app_bar_margin">-85dp</dimen>
 
     <dimen name="material_dialog_corner_radius">12dp</dimen>
     <dimen name="dialog_corner_radius">12dp</dimen>

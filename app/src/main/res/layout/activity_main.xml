@@ -5,23 +5,24 @@
     android:id="@+id/root_view"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
-    <eightbitlab.com.blurview.BlurTarget
-        android:id="@+id/mainBlurTarget"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent">
-        <androidx.coordinatorlayout.widget.CoordinatorLayout
-            android:id="@+id/main_coordinator"
-            android:clipChildren="false"
-            android:clipToPadding="false"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:background="@color/transparent">
 
+    <androidx.coordinatorlayout.widget.CoordinatorLayout
+        android:id="@+id/main_coordinator"
+        android:clipChildren="false"
+        android:clipToPadding="false"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/transparent">
+
+        <eightbitlab.com.blurview.BlurTarget
+            android:id="@+id/mainBlurTarget"
+            android:background="@color/tx_common_bg"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
             <RelativeLayout
                 android:id="@+id/main_nested_scrollview"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:layout_marginTop="@dimen/blur_app_bar_margin"
                 android:scrollbars="none"
                 android:scrollingCache="true"
                 app:layout_behavior="@string/appbar_scrolling_view_behavior">
@@ -156,33 +157,39 @@
 
                 </androidx.coordinatorlayout.widget.CoordinatorLayout>
             </RelativeLayout>
+        </eightbitlab.com.blurview.BlurTarget>
 
-            <com.goodwy.commons.views.BlurAppBarLayout
-                android:id="@+id/main_menu"
-                android:layout_width="match_parent"
-                android:layout_height="@dimen/blur_app_bar_height"
-                android:paddingBottom="5dp"
-                app:appBarBackground="@drawable/bg_cmn_appbar_up" />
+        <com.android.common.view.MVSideFrame
+            android:id="@+id/m_vertical_side_frame_top"
+            android:layout_width="match_parent"
+            android:layout_height="110dp"
+            android:layout_alignParentTop="true"/>
 
-            <com.goodwy.commons.views.MyFloatingActionButton
-                android:id="@+id/conversations_fab"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="bottom|end"
-                android:layout_margin="@dimen/activity_margin"
-                android:contentDescription="@string/new_conversation"
-                android:src="@drawable/ic_messages_outline"
-                app:applyWindowInsets="true" />
+        <com.goodwy.commons.views.BlurAppBarLayout
+            android:id="@+id/main_menu"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/blur_app_bar_height"
+            android:background="@color/transparent"
+            android:paddingBottom="5dp" />
 
-        </androidx.coordinatorlayout.widget.CoordinatorLayout>
-    </eightbitlab.com.blurview.BlurTarget>
+        <com.android.common.view.MVSideFrame
+            android:id="@+id/m_vertical_side_frame_bottom"
+            android:layout_width="match_parent"
+            android:layout_height="100dp"
+            android:layout_gravity="bottom"
+            app:isTopFrame="false"/>
 
-    <View
-        android:id="@+id/bottomMask"
-        android:layout_width="match_parent"
-        android:layout_height="400px"
-        android:layout_gravity="bottom"
-        android:visibility="visible"
-        android:background="@drawable/bg_cmn_appbar_down" />
+
+        <com.goodwy.commons.views.MyFloatingActionButton
+            android:id="@+id/conversations_fab"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|end"
+            android:layout_margin="@dimen/activity_margin"
+            android:contentDescription="@string/new_conversation"
+            android:src="@drawable/ic_messages_outline"
+            app:applyWindowInsets="true" />
+
+    </androidx.coordinatorlayout.widget.CoordinatorLayout>
 </FrameLayout>
 

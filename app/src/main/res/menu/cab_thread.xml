@@ -38,7 +38,7 @@
         app:showAsAction="never" />
     <item
         android:id="@+id/cab_select_all"
-        android:icon="@drawable/ic_cmn_select"
+        android:icon="@drawable/ic_cmn_select_none"
         android:title="@string/select_all"
         app:showAsAction="never" />
     <item

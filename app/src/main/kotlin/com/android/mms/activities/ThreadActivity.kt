@@ -69,6 +69,7 @@ import com.android.mms.dialogs.InvalidNumberDialog
 import com.android.mms.dialogs.RenameConversationDialog
 import com.android.mms.dialogs.ScheduleMessageDialog
 import com.android.mms.extensions.*
+import com.android.common.view.MVSideFrame
 import com.android.mms.helpers.*
 import com.android.mms.messaging.*
 import com.android.mms.models.*
@@ -132,6 +133,7 @@ class ThreadActivity : SimpleActivity() {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
         initTheme()
+        initMVSideFrames()
         initThreadAppBar()
         setupOptionsMenu()
         refreshMenuItems()
@@ -290,6 +292,11 @@ class ThreadActivity : SimpleActivity() {
         window.statusBarColor = Color.TRANSPARENT
     }
 
+    private fun initMVSideFrames() {
+        binding.mVerticalSideFrameTop.bindBlurTarget(binding.mainBlurTarget)
+        binding.mVerticalSideFrameBottom.bindBlurTarget(binding.mainBlurTarget)
+    }
+
     /**
      * Applies app bar background and behavior like [com.goodwy.commons.views.BlurAppBarLayout]:
      * - Sets appBarBackground drawable programmatically (AppBarLayout may not apply it from XML).
@@ -297,7 +304,7 @@ class ThreadActivity : SimpleActivity() {
      */
     private fun initThreadAppBar() {
         val appBar = binding.threadAppbar
-        appBar.setBackgroundResource(com.android.common.R.drawable.bg_cmn_appbar_up)
+        // appBar.setBackgroundResource(com.android.common.R.drawable.bg_cmn_appbar_up)
         appBar.elevation = 0f
         ViewCompat.setElevation(appBar, 0f)
         appBar.stateListAnimator = null
@@ -311,15 +318,16 @@ class ThreadActivity : SimpleActivity() {
 
     private fun makeSystemBarsToTransparent() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
-        val bottomMask = binding.root.findViewById<View>(R.id.bottomMask)
         val barContainer = binding.messageHolder.root
+        val dp5 = (5 * resources.displayMetrics.density).toInt()
 
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
             val nav = insets.getInsets(WindowInsetsCompat.Type.navigationBars())
             val navHeight = nav.bottom
             val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
 
-            bottomMask.layoutParams = bottomMask.layoutParams.apply { height = navHeight + dp(5) }
+            binding.mVerticalSideFrameBottom.layoutParams =
+                binding.mVerticalSideFrameBottom.layoutParams.apply { height = navHeight + dp5 }
 
             if (barContainer != null) {
                 val bottomBarLp = barContainer.layoutParams as ViewGroup.MarginLayoutParams

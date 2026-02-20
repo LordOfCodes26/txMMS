@@ -29,6 +29,7 @@ import com.goodwy.commons.views.MyTextView
 import com.android.common.helper.IconItem
 import com.android.common.view.MRippleToolBar
 import com.android.common.view.MSearchView
+import com.android.common.view.MVSideFrame
 import com.android.mms.R
 import com.android.mms.adapters.ContactPickerAdapter
 import com.android.mms.models.Contact
@@ -100,6 +101,7 @@ class ContactPickerActivity : AppCompatActivity() {
 
         rootView = findViewById(R.id.root_view)
         initTheme()
+        initMVSideFrames()
         initBouncy()
         initBouncyListener()
         initComponent()
@@ -113,6 +115,12 @@ class ContactPickerActivity : AppCompatActivity() {
     private fun initTheme() {
         window.navigationBarColor = Color.TRANSPARENT
         window.statusBarColor = Color.TRANSPARENT
+    }
+
+    private fun initMVSideFrames() {
+        val blurTarget = findViewById<BlurTarget>(R.id.blurTarget)
+        findViewById<MVSideFrame>(R.id.m_vertical_side_frame_top).bindBlurTarget(blurTarget)
+        findViewById<MVSideFrame>(R.id.m_vertical_side_frame_bottom).bindBlurTarget(blurTarget)
     }
 
     override fun onResume() {
@@ -141,14 +149,14 @@ class ContactPickerActivity : AppCompatActivity() {
 
     private fun makeSystemBarsToTransparent() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
-        val bottomMask = findViewById<View>(R.id.bottomMask)
+        val bottomSideFrame = findViewById<MVSideFrame>(R.id.m_vertical_side_frame_bottom)
 
         ViewCompat.setOnApplyWindowInsetsListener(rootView!!) { _, insets ->
             val nav = insets.getInsets(WindowInsetsCompat.Type.navigationBars())
             val navHeight = nav.bottom
             val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
 
-            bottomMask.layoutParams = bottomMask.layoutParams.apply { height = navHeight + dp(5) }
+            bottomSideFrame.layoutParams = bottomSideFrame.layoutParams.apply { height = navHeight + dp(5) }
 
             val barContainer = bottomBarContainer
             if (barContainer != null) {
@@ -156,11 +164,11 @@ class ContactPickerActivity : AppCompatActivity() {
                 val bottomOffset = dp(0)
                 if (ime.bottom > 0) {
                     bottomBarLp.bottomMargin = ime.bottom + bottomOffset
-                    contactRecyclerView?.setPadding(0, dp(200), 0, dp(40) + navHeight + ime.bottom)
+                    contactRecyclerView?.setPadding(0, dp(150), 0, dp(40) + navHeight + ime.bottom)
                     contactRecyclerView?.scrollToPosition((contactAdapter?.itemCount ?: 1) - 1)
                 } else {
                     bottomBarLp.bottomMargin = navHeight + bottomOffset
-                    contactRecyclerView?.setPadding(0, dp(200), 0, dp(90) + navHeight)
+                    contactRecyclerView?.setPadding(0, dp(150), 0, dp(90) + navHeight)
                 }
                 barContainer.layoutParams = bottomBarLp
             }

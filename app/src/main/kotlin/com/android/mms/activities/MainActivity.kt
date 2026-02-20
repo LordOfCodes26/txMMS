@@ -30,6 +30,7 @@ import androidx.appcompat.widget.SearchView
 import androidx.core.view.MenuItemCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.android.common.view.MSearchView
+import com.android.common.view.MVSideFrame
 import com.goodwy.commons.dialogs.PermissionRequiredDialog
 import com.goodwy.commons.extensions.*
 import com.goodwy.commons.helpers.*
@@ -80,6 +81,7 @@ class MainActivity : SimpleActivity() {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
         initTheme()
+        initMVSideFrames()
         initBouncy()
         initBouncyListener()
         makeSystemBarsToTransparent()
@@ -426,6 +428,11 @@ class MainActivity : SimpleActivity() {
         window.statusBarColor = Color.TRANSPARENT
     }
 
+    private fun initMVSideFrames() {
+        binding.mVerticalSideFrameTop.bindBlurTarget(binding.mainBlurTarget)
+        binding.mVerticalSideFrameBottom.bindBlurTarget(binding.mainBlurTarget)
+    }
+
     private fun initBouncy() {
         binding.mainMenu.post {
             // totalScrollRange is used by bouncy/offset logic if needed
@@ -442,13 +449,13 @@ class MainActivity : SimpleActivity() {
 
     private fun makeSystemBarsToTransparent() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
-        val bottomMask = binding.bottomMask
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
             val nav = insets.getInsets(WindowInsetsCompat.Type.navigationBars())
             val navHeight = nav.bottom
             val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
             val dp5 = (5 * resources.displayMetrics.density).toInt()
-            bottomMask.layoutParams = bottomMask.layoutParams.apply { height = navHeight + dp5 }
+            binding.mVerticalSideFrameBottom.layoutParams =
+                binding.mVerticalSideFrameBottom.layoutParams.apply { height = navHeight + dp5 }
             val bottomOffset = (20 * resources.displayMetrics.density).toInt()
             val fabLp = binding.conversationsFab.layoutParams as? ViewGroup.MarginLayoutParams
             if (fabLp != null) {
