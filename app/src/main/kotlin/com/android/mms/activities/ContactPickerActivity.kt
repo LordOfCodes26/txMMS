@@ -1,7 +1,6 @@
 package com.android.mms.activities
 
 import android.Manifest
-import android.app.UiModeManager
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
@@ -22,8 +21,12 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.appbar.AppBarLayout
+import com.goodwy.commons.extensions.getProperBackgroundColor
 import com.goodwy.commons.extensions.getProperPrimaryColor
 import com.goodwy.commons.extensions.getProperTextColor
+import com.goodwy.commons.extensions.getSurfaceColor
+import com.goodwy.commons.extensions.isDynamicTheme
+import com.goodwy.commons.extensions.isSystemInDarkMode
 import com.goodwy.commons.views.MyRecyclerView
 import com.goodwy.commons.views.MyTextView
 import com.android.common.helper.IconItem
@@ -126,20 +129,13 @@ class ContactPickerActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        if (isDarkTheme()) {
-            window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-        } else {
-            @Suppress("DEPRECATION")
-            window.decorView.systemUiVisibility = (
-                View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                    or View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
-                    or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
-                )
-        }
-    }
-
-    private fun isDarkTheme(): Boolean {
-        return (getSystemService(UI_MODE_SERVICE) as UiModeManager).nightMode == UiModeManager.MODE_NIGHT_YES;
+        // Use same background logic as MainActivity: surface color only for dynamic theme + light mode, else proper background
+        val useSurfaceColor = isDynamicTheme() && !isSystemInDarkMode()
+        val backgroundColor = if (useSurfaceColor) getSurfaceColor() else getProperBackgroundColor()
+        rootView?.setBackgroundColor(backgroundColor)
+        findViewById<BlurTarget>(R.id.blurTarget)?.setBackgroundColor(backgroundColor)
+        scrollView?.setBackgroundColor(backgroundColor)
+        contactRecyclerView?.setBackgroundColor(backgroundColor)
     }
 
     override fun onDestroy() {
@@ -156,8 +152,8 @@ class ContactPickerActivity : AppCompatActivity() {
             val nav = insets.getInsets(WindowInsetsCompat.Type.navigationBars())
             val navHeight = nav.bottom
             val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
-
-            bottomSideFrame.layoutParams = bottomSideFrame.layoutParams.apply { height = navHeight + dp(5) }
+            val dp5 = (5 * resources.displayMetrics.density).toInt()
+            bottomSideFrame.layoutParams = bottomSideFrame.layoutParams.apply { height = navHeight + dp5 }
 
             val barContainer = bottomBarContainer
             if (barContainer != null) {
