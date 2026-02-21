@@ -2,12 +2,18 @@ package com.android.mms.activities
 
 import android.annotation.SuppressLint
 import android.content.Intent
+import android.graphics.Color
 import android.media.AudioManager
 import android.media.RingtoneManager
 import android.os.Bundle
 import android.provider.Settings
 import android.view.Menu
+import android.view.ViewGroup
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.updateLayoutParams
 import androidx.appcompat.content.res.AppCompatResources
 import com.behaviorule.arturdumchev.library.pixels
 import com.goodwy.commons.activities.ManageBlockedNumbersActivity
@@ -25,6 +31,8 @@ import com.android.mms.extensions.*
 import com.android.mms.helpers.*
 import com.mikhaellopez.rxanimation.RxAnimation
 import com.mikhaellopez.rxanimation.shake
+import com.android.common.view.MVSideFrame
+import com.goodwy.commons.views.BlurAppBarLayout
 import eightbitlab.com.blurview.BlurTarget
 import kotlin.math.abs
 import kotlin.system.exitProcess
@@ -136,13 +144,21 @@ class SettingsActivity : SimpleActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
+        initTheme()
+        initMVSideFrames()
+        makeSystemBarsToTransparent()
+        initBouncy()
+        initBouncyListener()
         setupOptionsMenu()
 
-//        setupEdgeToEdge(padBottomImeAndSystem = listOf(binding.settingsNestedScrollview))
-        setupMaterialScrollListener(
-            scrollingView = binding.settingsNestedScrollview,
-            topAppBar = binding.settingsAppbar
-        )
+        if (config.changeColourTopBar) {
+            val useSurfaceColor = isDynamicTheme() && !isSystemInDarkMode()
+            setupSearchMenuScrollListener(
+                scrollingView = binding.settingsNestedScrollview,
+                searchMenu = binding.settingsMenu,
+                surfaceColor = useSurfaceColor
+            )
+        }
 
         val iapList: ArrayList<String> = arrayListOf(productIdX1, productIdX2, productIdX3)
         val subList: ArrayList<String> =
@@ -158,10 +174,71 @@ class SettingsActivity : SimpleActivity() {
             )
     }
 
+    private fun initTheme() {
+        window.navigationBarColor = Color.TRANSPARENT
+        window.statusBarColor = Color.TRANSPARENT
+    }
+
+    private fun initMVSideFrames() {
+        binding.mVerticalSideFrameTop.bindBlurTarget(binding.mainBlurTarget)
+        binding.mVerticalSideFrameBottom.bindBlurTarget(binding.mainBlurTarget)
+    }
+
+    private fun makeSystemBarsToTransparent() {
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
+            val nav = insets.getInsets(WindowInsetsCompat.Type.navigationBars())
+            val navHeight = nav.bottom
+            val dp5 = (5 * resources.displayMetrics.density).toInt()
+            binding.mVerticalSideFrameBottom.layoutParams =
+                binding.mVerticalSideFrameBottom.layoutParams.apply { height = navHeight + dp5 }
+            insets
+        }
+    }
+
+    private fun initBouncy() {
+        binding.settingsMenu.post {
+            // totalScrollRange is used by bouncy/offset logic if needed
+        }
+    }
+
+    private fun initBouncyListener() {
+        binding.settingsMenu.setupOffsetListener { verticalOffset, height ->
+            val h = if (height > 0) height else 1
+            binding.settingsMenu.titleView?.scaleX = (1 + 0.7f * verticalOffset / h)
+            binding.settingsMenu.titleView?.scaleY = (1 + 0.7f * verticalOffset / h)
+        }
+    }
+
+    private fun setupSettingsTopAppBar() {
+        val topBarColor = getRequiredTopBarColor()
+        binding.settingsMenu.setTitle(getString(com.goodwy.commons.R.string.settings))
+        binding.settingsMenu.toolbar?.let { toolbar ->
+            toolbar.navigationIcon =
+                resources.getColoredDrawableWithColor(com.goodwy.commons.R.drawable.ic_chevron_left_vector, topBarColor.getContrastColor())
+            toolbar.setNavigationContentDescription(NavigationIcon.Arrow.accessibilityResId)
+            toolbar.setNavigationOnClickListener {
+                hideKeyboard()
+                finish()
+            }
+        }
+        updateTopBarColors(
+            binding.settingsMenu,
+            topBarColor,
+            binding.settingsMenu.toolbar,
+            setAppBarViewBackground = false
+        )
+        binding.settingsMenu.searchBeVisibleIf(false)
+        // Prevent title from overlapping the back button (icon + small gap)
+        binding.settingsMenu.titleView?.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+            marginStart = (8 * resources.displayMetrics.density).toInt()
+        }
+    }
+
     override fun onResume() {
         super.onResume()
         stopCurrentlyPlayingRingtone()
-        setupTopAppBar(binding.settingsAppbar, NavigationIcon.Arrow)
+        setupSettingsTopAppBar()
 
         setupCustomizeColors()
         // Hide "Customize colors" option
@@ -307,6 +384,8 @@ class SettingsActivity : SimpleActivity() {
             ).forEach {
                 it.applyColorFilter(properTextColor)
             }
+
+            settingsMenu.toolbar?.menu?.let { updateMenuItemColors(it) }
         }
     }
 
@@ -1653,18 +1732,18 @@ class SettingsActivity : SimpleActivity() {
     }
 
     private fun setupOptionsMenu() {
-        binding.settingsToolbar.setOnMenuItemClickListener { menuItem ->
-            when (menuItem.itemId) {
-                R.id.whats_new -> {
-
-                    val blurTarget = findViewById<BlurTarget>(R.id.mainBlurTarget)
-                        ?: throw IllegalStateException("mainBlurTarget not found")
-
-                    WhatsNewDialog(this@SettingsActivity, whatsNewList(),
-                        blurTarget = blurTarget) //arrayListOf(whatsNewList().last())
-                    true
+        binding.settingsMenu.toolbar?.apply {
+            inflateMenu(R.menu.menu_settings)
+            setOnMenuItemClickListener { menuItem ->
+                when (menuItem.itemId) {
+                    R.id.whats_new -> {
+                        val blurTarget = findViewById<BlurTarget>(R.id.mainBlurTarget)
+                            ?: throw IllegalStateException("mainBlurTarget not found")
+                        WhatsNewDialog(this@SettingsActivity, whatsNewList(), blurTarget = blurTarget)
+                        true
+                    }
+                    else -> false
                 }
-                else -> false
             }
         }
     }
