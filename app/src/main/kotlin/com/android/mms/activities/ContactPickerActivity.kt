@@ -33,6 +33,7 @@ import com.android.common.view.MVSideFrame
 import com.android.mms.R
 import com.android.mms.adapters.ContactPickerAdapter
 import com.android.mms.models.Contact
+import com.goodwy.commons.helpers.SimpleContactsHelper
 import com.goodwy.commons.views.BlurAppBarLayout
 import eightbitlab.com.blurview.BlurTarget
 
@@ -518,7 +519,7 @@ class ContactPickerActivity : AppCompatActivity() {
         filteredContacts.clear()
         selectedPositions.clear()
         addedContactIds.clear()
-        hasMoreContacts = true
+        hasMoreContacts = false
         contactsCursor?.takeIf { !it.isClosed }?.close()
         contactsCursor = null
         contactAdapter?.setItems(emptyList(), emptySet())
@@ -534,110 +535,48 @@ class ContactPickerActivity : AppCompatActivity() {
             }
         }
 
-        try {
-            contactsCursor = contentResolver.query(
-                ContactsContract.Contacts.CONTENT_URI,
-                arrayOf(ContactsContract.Contacts._ID, ContactsContract.Contacts.DISPLAY_NAME),
-                null, null,
-                "${ContactsContract.Contacts.DISPLAY_NAME} ASC"
-            )
-            if (contactsCursor != null) loadMoreContacts()
-        } catch (e: Exception) {
-            e.printStackTrace()
-            hasMoreContacts = false
+        // Use same source as NewConversationActivity: SimpleContactsHelper only includes phone/SIM contacts (excludes hidden-account "Hidden Contact N" entries)
+        SimpleContactsHelper(this).getAvailableContacts(false) { simpleContacts ->
+            val contactList = ArrayList<Contact>()
+            val selected = HashSet<Int>()
+            var index = 0
+            for (sc in simpleContacts) {
+                val contactIdStr = sc.contactId.toString()
+                val name = sc.name
+                val org = sc.company ?: ""
+                if (sc.phoneNumbers.isEmpty()) {
+                    val key = contactNumberKey(contactIdStr, "")
+                    contactList.add(Contact(name, contactIdStr, -1, "", "", org))
+                    if (alreadySelectedContactIds.contains(key)) selected.add(index)
+                    index++
+                } else {
+                    for (pn in sc.phoneNumbers) {
+                        val key = contactNumberKey(contactIdStr, pn.value)
+                        contactList.add(Contact(name, contactIdStr, -1, pn.value, "", org))
+                        if (alreadySelectedContactIds.contains(key)) selected.add(index)
+                        index++
+                    }
+                }
+            }
+            contactList.sortWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.name })
+            runOnUiThread {
+                allContacts.clear()
+                allContacts.addAll(contactList)
+                selectedPositions.clear()
+                selected.forEach { selectedPositions.add(it) }
+                filteredContacts.clear()
+                if (searchString.trim().isEmpty()) {
+                    filteredContacts.addAll(contactList)
+                    contactAdapter?.setItems(contactList, selected)
+                } else {
+                    searchListByQuery(searchString)
+                }
+            }
         }
     }
 
     private fun loadMoreContacts() {
-        val cursor = contactsCursor ?: return
-        if (isLoadingMore || cursor.isClosed) return
-        isLoadingMore = true
-
-        Thread {
-            val batch = ArrayList<Contact>()
-            val batchSelected = HashSet<Int>()
-            var loaded = 0
-            val currentPosition = allContacts.size
-
-            try {
-                while (cursor.moveToNext() && loaded < BATCH_SIZE) {
-                    val contactId = cursor.getString(cursor.getColumnIndexOrThrow(ContactsContract.Contacts._ID))
-                    val name = cursor.getString(cursor.getColumnIndexOrThrow(ContactsContract.Contacts.DISPLAY_NAME))
-                    if (name.isNullOrEmpty()) continue
-
-                    val phoneNumbers = getAllPhoneNumbersForContact(contactId)
-                    val address = getAddressForContact(contactId)
-                    val organizationName = getOrganizationNameForContact(contactId)
-                    val numbersToAdd = if (phoneNumbers.isEmpty()) listOf("") else phoneNumbers
-                    for (phoneNumber in numbersToAdd) {
-                        val key = contactNumberKey(contactId, phoneNumber)
-                        if (addedContactIds.contains(key)) continue
-                        val contact = Contact(name, contactId, -1, phoneNumber, address ?: "", organizationName ?: "")
-                        batch.add(contact)
-                        addedContactIds.add(key)
-                        if (alreadySelectedContactIds.contains(key)) {
-                            batchSelected.add(loaded)
-                            selectedPositions.add(currentPosition + loaded)
-                        }
-                        loaded++
-                        if (loaded >= BATCH_SIZE) break
-                    }
-                }
-                hasMoreContacts = loaded >= BATCH_SIZE
-                val finalBatch = ArrayList(batch)
-                val finalSelected = HashSet(batchSelected)
-                val batchStart = allContacts.size
-                runOnUiThread {
-                    if (finalBatch.isNotEmpty()) {
-                        allContacts.addAll(finalBatch)
-                        if (searchString.trim().isEmpty()) {
-                            filteredContacts.addAll(finalBatch)
-                            contactAdapter?.addItems(finalBatch, finalSelected)
-                        } else {
-                            filterAndAddBatch(finalBatch, batchStart, finalSelected)
-                        }
-                    }
-                    isLoadingMore = false
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-                runOnUiThread {
-                    isLoadingMore = false
-                    hasMoreContacts = false
-                }
-            }
-        }.start()
-    }
-
-    private fun filterAndAddBatch(
-        batchContacts: List<Contact>,
-        batchStartPosition: Int,
-        batchSelectedPositions: Set<Int>
-    ) {
-        if (searchString.trim().isEmpty()) return
-        val query = searchString.lowercase().trim()
-        val matching = ArrayList<Contact>()
-        val matchingSelected = HashSet<Int>()
-        var filteredIndex = filteredContacts.size
-        for (i in batchContacts.indices) {
-            val c = batchContacts[i]
-            val matches = (c.name.lowercase().contains(query)) ||
-                (c.phoneNumber.lowercase().contains(query)) ||
-                (c.address.lowercase().contains(query)) ||
-                (c.organizationName.lowercase().contains(query))
-            if (matches) {
-                matching.add(c)
-                val posInAll = batchStartPosition + i
-                if (batchSelectedPositions.contains(i) || selectedPositions.contains(posInAll)) {
-                    matchingSelected.add(filteredIndex)
-                }
-                filteredIndex++
-            }
-        }
-        if (matching.isNotEmpty()) {
-            filteredContacts.addAll(matching)
-            contactAdapter?.addItems(matching, matchingSelected)
-        }
+        // No-op: contacts are loaded all at once via SimpleContactsHelper (hasMoreContacts = false)
     }
 
     private fun contactNumberKey(contactId: String, phoneNumber: String): String {
