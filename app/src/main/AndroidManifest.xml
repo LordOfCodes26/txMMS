@@ -138,6 +138,7 @@
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
             android:exported="true"
             android:label="@string/settings"
+            android:theme="@style/BlurAppBarTheme"
             android:parentActivityName=".activities.MainActivity">
 
             <intent-filter>
