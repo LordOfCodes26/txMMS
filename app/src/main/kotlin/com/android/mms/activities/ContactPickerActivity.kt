@@ -12,7 +12,6 @@ import android.provider.ContactsContract.PhoneLookup
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
@@ -40,7 +39,7 @@ import com.goodwy.commons.helpers.SimpleContactsHelper
 import com.goodwy.commons.views.BlurAppBarLayout
 import eightbitlab.com.blurview.BlurTarget
 
-class ContactPickerActivity : AppCompatActivity() {
+class ContactPickerActivity : SimpleActivity() {
 
     companion object {
         private const val PERMISSION_REQUEST_READ_CONTACTS = 100
@@ -101,7 +100,6 @@ class ContactPickerActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        WindowCompat.enableEdgeToEdge(window)
         setContentView(R.layout.activity_contact_picker)
 
         rootView = findViewById(R.id.root_view)
@@ -399,7 +397,7 @@ class ContactPickerActivity : AppCompatActivity() {
         } else true
     }
 
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         when (requestCode) {
             PERMISSION_REQUEST_READ_CONTACTS -> {
