@@ -101,6 +101,7 @@ class ContactPickerActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        WindowCompat.enableEdgeToEdge(window)
         setContentView(R.layout.activity_contact_picker)
 
         rootView = findViewById(R.id.root_view)
@@ -129,6 +130,18 @@ class ContactPickerActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        // Match ThreadActivity: layout fullscreen so content draws behind transparent status/nav bars
+        if (isSystemInDarkMode()) {
+            @Suppress("DEPRECATION")
+            window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+        } else {
+            @Suppress("DEPRECATION")
+            window.decorView.systemUiVisibility = (
+                View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                    or View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
+                    or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
+            )
+        }
         // Use same background logic as MainActivity: surface color only for dynamic theme + light mode, else proper background
         val useSurfaceColor = isDynamicTheme() && !isSystemInDarkMode()
         val backgroundColor = if (useSurfaceColor) getSurfaceColor() else getProperBackgroundColor()
