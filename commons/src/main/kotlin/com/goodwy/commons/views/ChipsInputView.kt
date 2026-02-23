@@ -2,6 +2,7 @@ package com.goodwy.commons.views
 
 import android.content.Context
 import android.content.res.ColorStateList
+import android.graphics.drawable.GradientDrawable
 import android.text.Editable
 import android.text.TextWatcher
 import android.util.AttributeSet
@@ -11,12 +12,14 @@ import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.widget.FrameLayout
 import android.widget.ImageView
+import androidx.compose.ui.unit.dp
 import androidx.core.view.children
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
 import com.goodwy.commons.R
 import com.goodwy.commons.extensions.adjustAlpha
 import com.goodwy.commons.extensions.getContrastColor
+import com.google.android.material.chip.ChipDrawable
 
 class ChipsInputView @JvmOverloads constructor(
     context: Context,
@@ -223,9 +226,15 @@ class ChipsInputView @JvmOverloads constructor(
         // Set colors if they've been set
         val textColor = editText.currentTextColor
         val accentColor = context.getColor(com.goodwy.commons.R.color.color_primary)
-        val chipBackgroundColor = accentColor.adjustAlpha(0.2f)
-        
+        val chipBackgroundColor = accentColor.adjustAlpha(0.1f)
+
+        val shapeDrawable = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = 60f
+        }
+        chip.background = shapeDrawable
         chip.chipBackgroundColor = ColorStateList.valueOf(chipBackgroundColor)
+        chip.chipStrokeWidth = 0f
         chip.setTextColor(textColor)
         chip.chipIconTint = ColorStateList.valueOf(textColor)
         chip.closeIconTint = ColorStateList.valueOf(textColor.adjustAlpha(0.6f))
