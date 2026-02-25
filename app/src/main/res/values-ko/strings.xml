@@ -44,8 +44,6 @@
     <string name="delivery_report_sound">전송보고알림음</string>
     <string name="exposed_dropdown_menu">내리펼침목록 현시</string>
     <string name="message_bubble_type">류형 %1$d</string>
-    <string name="bubble_preview_incoming">어떻게 지내고있습니까?</string>
-    <string name="bubble_preview_outgoing">잘 지내고있습니다. 고맙습니다.</string>
     <string name="empty_archive">보관한 대화 모두삭제</string>
     <string name="show_archived_conversations">보관된 대화 표시</string>
     <plurals name="delete_conversations">
