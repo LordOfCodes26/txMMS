@@ -671,6 +671,14 @@ class ThreadAdapter(
         popupMenu.show()
     }
 
+    private fun View.applyDrawablePadding(drawable: Drawable?) {
+        if (drawable == null) return
+        val padding = Rect()
+        if (drawable.getPadding(padding)) {
+            setPadding(padding.left, padding.top, padding.right, padding.bottom)
+        }
+    }
+
     private fun setupReceivedMessageView(messageBinding: ItemMessageBinding, message: Message) {
         messageBinding.apply {
             with(ConstraintSet()) {
@@ -728,10 +736,14 @@ class ThreadAdapter(
                         else -> if (isRtl) R.drawable.item_sent_background else R.drawable.item_received_background
                     }
                 }
-                background = ResourcesCompat.getDrawable(resources, bubbleReceived, activity.theme)
+                val bubbleDrawable = ResourcesCompat.getDrawable(resources, bubbleReceived, activity.theme)
+                background = bubbleDrawable
                 if (selectedBubbleOption == null) {
                     setPaddingBubble(activity, bubbleStyle)
                     background.applyColorFilter(backgroundReceived)
+                } else {
+                    // Respect 9-patch content padding when using custom bubble drawables.
+                    applyDrawablePadding(bubbleDrawable)
                 }
             }
 
@@ -836,10 +848,14 @@ class ThreadAdapter(
                         else -> if (isRtl) R.drawable.item_received_background else R.drawable.item_sent_background
                     }
                 }
-                background = AppCompatResources.getDrawable(activity, bubbleReceived)
+                val bubbleDrawable = AppCompatResources.getDrawable(activity, bubbleReceived)
+                background = bubbleDrawable
                 if (selectedBubbleOption == null) {
                     setPaddingBubble(activity, bubbleStyle, false)
                     background.applyColorFilter(backgroundReceived)
+                } else {
+                    // Respect 9-patch content padding when using custom bubble drawables.
+                    applyDrawablePadding(bubbleDrawable)
                 }
             }
             threadMessageBody.apply {
