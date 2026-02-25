@@ -102,6 +102,7 @@ import com.android.mms.helpers.ACTION_SELECT_TEXT
 import com.android.mms.helpers.BUBBLE_STYLE_IOS
 import com.android.mms.helpers.BUBBLE_STYLE_IOS_NEW
 import com.android.mms.helpers.BUBBLE_STYLE_ROUNDED
+import com.android.mms.helpers.BubbleDrawableOption
 import com.android.mms.helpers.EXTRA_VCARD_URI
 import com.android.mms.helpers.THREAD_DATE_TIME
 import com.android.mms.helpers.THREAD_RECEIVED_MESSAGE
@@ -679,6 +680,11 @@ class ThreadAdapter(
         }
     }
 
+    private fun View.applyBubbleMinimumHeight(@Suppress("UNUSED_PARAMETER") selectedBubbleOption: BubbleDrawableOption?) {
+        // Let the bubble wrap its content height; fixed minimums make short one-line messages look too tall.
+        minimumHeight = 0
+    }
+
     private fun setupReceivedMessageView(messageBinding: ItemMessageBinding, message: Message) {
         messageBinding.apply {
             with(ConstraintSet()) {
@@ -738,6 +744,7 @@ class ThreadAdapter(
                 }
                 val bubbleDrawable = ResourcesCompat.getDrawable(resources, bubbleReceived, activity.theme)
                 background = bubbleDrawable
+                applyBubbleMinimumHeight(selectedBubbleOption)
                 if (selectedBubbleOption == null) {
                     setPaddingBubble(activity, bubbleStyle)
                     background.applyColorFilter(backgroundReceived)
@@ -850,6 +857,7 @@ class ThreadAdapter(
                 }
                 val bubbleDrawable = AppCompatResources.getDrawable(activity, bubbleReceived)
                 background = bubbleDrawable
+                applyBubbleMinimumHeight(selectedBubbleOption)
                 if (selectedBubbleOption == null) {
                     setPaddingBubble(activity, bubbleStyle, false)
                     background.applyColorFilter(backgroundReceived)
