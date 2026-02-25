@@ -813,7 +813,8 @@ class ThreadAdapter(
         val surfaceColor = if (useSurfaceColor) activity.getProperBackgroundColor() else activity.getSurfaceColor()
         val backgroundReceived = if (activity.config.bubbleInvertColor) surfaceColor else primaryOrSenderColor
         val selectedBubbleOption = getBubbleDrawableOption(activity.config.bubbleDrawableSet)
-        val contrastColorReceived = if (selectedBubbleOption != null) Color.WHITE else backgroundReceived.getContrastColor()
+        // Custom bubble drawables can be light in light mode, so avoid forcing white text.
+        val contrastColorReceived = if (selectedBubbleOption != null) activity.getProperTextColor() else backgroundReceived.getContrastColor()
 
         messageBinding.apply {
             with(ConstraintSet()) {
