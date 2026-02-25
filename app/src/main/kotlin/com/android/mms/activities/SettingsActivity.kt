@@ -26,7 +26,6 @@ import com.android.mms.BuildConfig
 import com.android.mms.R
 import com.android.mms.databinding.ActivitySettingsBinding
 import com.android.mms.dialogs.ExportMessagesDialog
-import com.android.mms.dialogs.MessageBubbleSettingDialog
 import com.android.mms.extensions.*
 import com.android.mms.helpers.*
 import com.mikhaellopez.rxanimation.RxAnimation
@@ -680,26 +679,9 @@ class SettingsActivity : SimpleActivity() {
     )
 
     private fun setupMessageBubble() = binding.apply {
-        val primaryColor = getProperPrimaryColor()
-        settingsMessageBubbleIcon.background = resources.getColoredDrawableWithColor(getMessageBubbleResource(config.bubbleStyle), primaryColor)
-        settingsMessageBubbleIcon.setTextColor(primaryColor.getContrastColor())
-        settingsMessageBubbleIcon.setPaddingBubble(this@SettingsActivity, config.bubbleStyle)
+        settingsMessageBubbleIcon.text = getString(R.string.message_bubble_type, config.bubbleDrawableSet)
         settingsMessageBubbleHolder.setOnClickListener {
-            val blurTarget = findViewById<BlurTarget>(R.id.mainBlurTarget)
-                ?: throw IllegalStateException("mainBlurTarget not found")
-            MessageBubbleSettingDialog(this@SettingsActivity, isPro(), blurTarget) {
-                settingsMessageBubbleIcon.background = resources.getColoredDrawableWithColor(getMessageBubbleResource(it), primaryColor)
-                settingsMessageBubbleIcon.setPaddingBubble(this@SettingsActivity, it)
-            }
-        }
-    }
-
-    private fun getMessageBubbleResource(bubbleStyle: Int): Int {
-        return when (bubbleStyle) {
-            BUBBLE_STYLE_ROUNDED -> R.drawable.item_received_rounded_background
-            BUBBLE_STYLE_IOS_NEW -> R.drawable.item_received_ios_new_background
-            BUBBLE_STYLE_IOS -> R.drawable.item_received_ios_background
-            else -> R.drawable.item_received_background
+            startActivity(Intent(this@SettingsActivity, MessageBubblePickerActivity::class.java))
         }
     }
 

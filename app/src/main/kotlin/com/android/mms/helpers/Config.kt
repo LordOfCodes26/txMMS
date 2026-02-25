@@ -261,6 +261,10 @@ class Config(context: Context) : BaseConfig(context) {
         get() = prefs.getInt(BUBBLE_STYLE, BUBBLE_STYLE_IOS_NEW)
         set(bubbleStyle) = prefs.edit { putInt(BUBBLE_STYLE, bubbleStyle) }
 
+    var bubbleDrawableSet: Int
+        get() = prefs.getInt(BUBBLE_DRAWABLE_SET, 1)
+        set(bubbleDrawableSet) = prefs.edit { putInt(BUBBLE_DRAWABLE_SET, bubbleDrawableSet) }
+
     var bubbleInvertColor: Boolean
         get() = prefs.getBoolean(BUBBLE_INVERT_COLOR, false)
         set(bubbleInvertColor) = prefs.edit { putBoolean(BUBBLE_INVERT_COLOR, bubbleInvertColor) }

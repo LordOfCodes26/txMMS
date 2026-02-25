@@ -149,6 +149,7 @@ const val BUBBLE_STYLE_ORIGINAL = 0
 const val BUBBLE_STYLE_IOS_NEW = 1
 const val BUBBLE_STYLE_IOS = 2
 const val BUBBLE_STYLE_ROUNDED = 3
+const val BUBBLE_DRAWABLE_SET = "bubble_drawable_set"
 const val BUBBLE_INVERT_COLOR = "bubble_invert_color"
 const val BUBBLE_IN_CONTACT_COLOR = "bubble_in_contact_color"
 const val UNREAD_AT_TOP = "unread_at_top"

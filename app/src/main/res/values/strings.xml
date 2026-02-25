@@ -77,6 +77,7 @@
     <string name="notification_sound">Notification sound</string>
     <string name="delivery_report_sound">Delivery report sound</string>
     <string name="exposed_dropdown_menu">Show dropdown menu</string>
+    <string name="message_bubble_type">Type %1$d</string>
 
     <!-- Archive -->
     <string name="unarchive">Unarchive</string>

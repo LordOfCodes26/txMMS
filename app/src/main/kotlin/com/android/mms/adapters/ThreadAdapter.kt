@@ -53,6 +53,7 @@ import com.goodwy.commons.extensions.getLetterBackgroundColors
 import com.goodwy.commons.extensions.getPopupMenuTheme
 import com.goodwy.commons.extensions.getProperBackgroundColor
 import com.goodwy.commons.extensions.getProperPrimaryColor
+import com.goodwy.commons.extensions.getProperTextColor
 import com.goodwy.commons.extensions.getSurfaceColor
 import com.goodwy.commons.extensions.getTextSize
 import com.goodwy.commons.extensions.getTextSizeSmall
@@ -108,6 +109,7 @@ import com.android.mms.helpers.THREAD_SENT_MESSAGE
 import com.android.mms.helpers.THREAD_SENT_MESSAGE_ERROR
 import com.android.mms.helpers.THREAD_SENT_MESSAGE_SENDING
 import com.android.mms.helpers.THREAD_SENT_MESSAGE_SENT
+import com.android.mms.helpers.getBubbleDrawableOption
 import com.android.mms.helpers.generateStableId
 import com.android.mms.helpers.setupDocumentPreview
 import com.android.mms.helpers.setupVCardPreview
@@ -696,6 +698,8 @@ class ThreadAdapter(
             val useSurfaceColor = activity.isDynamicTheme() && !activity.isSystemInDarkMode()
             val surfaceColor = if (useSurfaceColor) activity.getProperBackgroundColor() else activity.getSurfaceColor()
             val backgroundReceived = if (activity.config.bubbleInvertColor) primaryOrSenderColor else surfaceColor
+            val selectedBubbleOption = getBubbleDrawableOption(activity.config.bubbleDrawableSet)
+            val contrastColorReceived = if (selectedBubbleOption != null) activity.getProperTextColor() else backgroundReceived.getContrastColor()
 
             threadMessageBodyWrapper.apply {
                 // Setup pinch-to-zoom gesture detector for font size adjustment
@@ -714,22 +718,27 @@ class ThreadAdapter(
                 val isRtl = activity.isRTLLayout
                 val bubbleStyle = activity.config.bubbleStyle
 
-                val bubbleReceived = when (bubbleStyle) {
-                    BUBBLE_STYLE_IOS_NEW -> if (isRtl) R.drawable.item_sent_ios_new_background else R.drawable.item_received_ios_new_background
-                    BUBBLE_STYLE_IOS -> if (isRtl) R.drawable.item_sent_ios_background else R.drawable.item_received_ios_background
-                    BUBBLE_STYLE_ROUNDED -> if (isRtl) R.drawable.item_sent_rounded_background else R.drawable.item_received_rounded_background
-                    else -> if (isRtl) R.drawable.item_sent_background else R.drawable.item_received_background
+                val bubbleReceived = if (selectedBubbleOption != null) {
+                    if (isRtl) selectedBubbleOption.outgoingRes else selectedBubbleOption.incomingRes
+                } else {
+                    when (bubbleStyle) {
+                        BUBBLE_STYLE_IOS_NEW -> if (isRtl) R.drawable.item_sent_ios_new_background else R.drawable.item_received_ios_new_background
+                        BUBBLE_STYLE_IOS -> if (isRtl) R.drawable.item_sent_ios_background else R.drawable.item_received_ios_background
+                        BUBBLE_STYLE_ROUNDED -> if (isRtl) R.drawable.item_sent_rounded_background else R.drawable.item_received_rounded_background
+                        else -> if (isRtl) R.drawable.item_sent_background else R.drawable.item_received_background
+                    }
                 }
                 background = ResourcesCompat.getDrawable(resources, bubbleReceived, activity.theme)
-                setPaddingBubble(activity, bubbleStyle)
-                background.applyColorFilter(backgroundReceived)
+                if (selectedBubbleOption == null) {
+                    setPaddingBubble(activity, bubbleStyle)
+                    background.applyColorFilter(backgroundReceived)
+                }
             }
 
             val alignment =
                 if (activity.config.textAlignment == TEXT_ALIGNMENT_ALONG_EDGES) View.TEXT_ALIGNMENT_VIEW_START else View.TEXT_ALIGNMENT_INHERIT
             threadMessageBody.apply {
                 textAlignment = alignment
-                val contrastColorReceived = backgroundReceived.getContrastColor()
                 setTextColor(contrastColorReceived)
                 setLinkTextColor(contrastColorReceived)
             }
@@ -784,6 +793,8 @@ class ThreadAdapter(
         val useSurfaceColor = activity.isDynamicTheme() && !activity.isSystemInDarkMode()
         val surfaceColor = if (useSurfaceColor) activity.getProperBackgroundColor() else activity.getSurfaceColor()
         val backgroundReceived = if (activity.config.bubbleInvertColor) surfaceColor else primaryOrSenderColor
+        val selectedBubbleOption = getBubbleDrawableOption(activity.config.bubbleDrawableSet)
+        val contrastColorReceived = if (selectedBubbleOption != null) Color.WHITE else backgroundReceived.getContrastColor()
 
         messageBinding.apply {
             with(ConstraintSet()) {
@@ -792,9 +803,6 @@ class ThreadAdapter(
                 connect(threadMessageWrapper.id, ConstraintSet.END, ConstraintSet.PARENT_ID, ConstraintSet.END)
                 applyTo(threadMessageHolder)
             }
-
-            val primaryColor = activity.getProperPrimaryColor()
-            val contrastColor = primaryColor.getContrastColor()
 
             threadMessageBodyWrapper.apply {
                 // Setup pinch-to-zoom gesture detector for font size adjustment
@@ -818,25 +826,30 @@ class ThreadAdapter(
                 val isRtl = Locale.getDefault().layoutDirection == ViewCompat.LAYOUT_DIRECTION_RTL
                 val bubbleStyle = activity.config.bubbleStyle
 
-                val bubbleReceived = when (bubbleStyle) {
-                    BUBBLE_STYLE_IOS_NEW -> if (isRtl) R.drawable.item_received_ios_new_background else R.drawable.item_sent_ios_new_background
-                    BUBBLE_STYLE_IOS -> if (isRtl) R.drawable.item_received_ios_background else R.drawable.item_sent_ios_background
-                    BUBBLE_STYLE_ROUNDED -> if (isRtl) R.drawable.item_received_rounded_background else R.drawable.item_sent_rounded_background
-                    else -> if (isRtl) R.drawable.item_received_background else R.drawable.item_sent_background
+                val bubbleReceived = if (selectedBubbleOption != null) {
+                    if (isRtl) selectedBubbleOption.incomingRes else selectedBubbleOption.outgoingRes
+                } else {
+                    when (bubbleStyle) {
+                        BUBBLE_STYLE_IOS_NEW -> if (isRtl) R.drawable.item_received_ios_new_background else R.drawable.item_sent_ios_new_background
+                        BUBBLE_STYLE_IOS -> if (isRtl) R.drawable.item_received_ios_background else R.drawable.item_sent_ios_background
+                        BUBBLE_STYLE_ROUNDED -> if (isRtl) R.drawable.item_received_rounded_background else R.drawable.item_sent_rounded_background
+                        else -> if (isRtl) R.drawable.item_received_background else R.drawable.item_sent_background
+                    }
                 }
                 background = AppCompatResources.getDrawable(activity, bubbleReceived)
-                setPaddingBubble(activity, bubbleStyle, false)
-                background.applyColorFilter(backgroundReceived)
+                if (selectedBubbleOption == null) {
+                    setPaddingBubble(activity, bubbleStyle, false)
+                    background.applyColorFilter(backgroundReceived)
+                }
             }
             threadMessageBody.apply {
-                val contrastColorReceived = backgroundReceived.getContrastColor()
                 setTextColor(contrastColorReceived)
                 setLinkTextColor(contrastColorReceived)
 
                 if (message.isScheduled) {
                     typeface = Typeface.create(Typeface.DEFAULT, Typeface.ITALIC)
                     val scheduledDrawable = AppCompatResources.getDrawable(activity, com.goodwy.commons.R.drawable.ic_clock_vector)?.apply {
-                        applyColorFilter(contrastColor)
+                        applyColorFilter(contrastColorReceived)
                         val size = lineHeight
                         //val paddingIconBottom = context.resources.getDimensionPixelSize(com.goodwy.commons.R.dimen.smaller_margin)
                         setBounds(0, 0, size, size)

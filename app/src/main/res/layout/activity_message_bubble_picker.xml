@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/root_view"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <androidx.coordinatorlayout.widget.CoordinatorLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@android:color/transparent"
+        android:clipChildren="false"
+        android:clipToPadding="false">
+
+        <eightbitlab.com.blurview.BlurTarget
+            android:id="@+id/mainBlurTarget"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@color/tx_common_bg">
+
+            <RelativeLayout
+                android:id="@+id/nest_scroll"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scrollbars="none"
+                android:scrollingCache="true"
+                app:layout_behavior="com.google.android.material.appbar.AppBarLayout$ScrollingViewBehavior">
+
+                <com.goodwy.commons.views.MyRecyclerView
+                    android:id="@+id/bubblePickerList"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:clipToPadding="false"
+                    android:nestedScrollingEnabled="true"
+                    android:paddingStart="@dimen/activity_margin"
+                    android:paddingTop="@dimen/blur_app_bar_height"
+                    android:paddingEnd="@dimen/activity_margin"
+                    android:paddingBottom="@dimen/activity_margin"
+                    android:scrollbars="none"
+                    app:layout_behavior="com.google.android.material.appbar.AppBarLayout$ScrollingViewBehavior" />
+            </RelativeLayout>
+        </eightbitlab.com.blurview.BlurTarget>
+
+        <com.android.common.view.MVSideFrame
+            android:id="@+id/m_vertical_side_frame_top"
+            android:layout_width="match_parent"
+            android:layout_height="110dp"
+            android:layout_gravity="top" />
+
+        <com.goodwy.commons.views.BlurAppBarLayout
+            android:id="@+id/bubblePickerAppbar"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/blur_app_bar_height"
+            android:background="@android:color/transparent"
+            android:paddingBottom="5dp" />
+
+        <FrameLayout
+            android:id="@+id/lyt_action"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom"
+            android:layout_marginLeft="15dp"
+            android:layout_marginRight="15dp"
+            android:layout_marginBottom="@dimen/activity_margin">
+
+            <com.android.common.view.MRippleToolBar
+                android:id="@+id/confirm_tab"
+                android:layout_width="240dp"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:visibility="visible" />
+        </FrameLayout>
+
+        <com.android.common.view.MVSideFrame
+            android:id="@+id/m_vertical_side_frame_bottom"
+            android:layout_width="match_parent"
+            android:layout_height="100dp"
+            android:layout_gravity="bottom"
+            app:isTopFrame="false" />
+    </androidx.coordinatorlayout.widget.CoordinatorLayout>
+</FrameLayout>

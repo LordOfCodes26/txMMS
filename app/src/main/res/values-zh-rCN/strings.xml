@@ -144,6 +144,7 @@
     <string name="notification_sound">通知声音</string>
     <string name="delivery_report_sound">发送报告声音</string>
     <string name="exposed_dropdown_menu">显示下拉菜单</string>
+    <string name="message_bubble_type">类型 %1$d</string>
     <string name="app_launcher_name">短信</string>
     <string name="import_blocked_keywords">导入拦截关键词</string>
     <string name="keywords">关键词</string>
