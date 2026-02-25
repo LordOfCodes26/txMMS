@@ -62,6 +62,8 @@
     <string name="mark_as_read">标记为已读</string>
     <string name="mark_as_unread">标记为未读</string>
     <string name="me">自己</string>
+    <string name="bubble_preview_incoming">最近怎么样？</string>
+    <string name="bubble_preview_outgoing">好久不见。挺好的，谢谢。</string>
     <string name="unarchive">解压缩</string>
     <string name="empty_archive">删除所有已归档对话</string>
     <string name="archived_conversations">归档</string>
