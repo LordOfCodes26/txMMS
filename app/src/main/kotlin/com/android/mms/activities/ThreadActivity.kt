@@ -170,6 +170,7 @@ class ThreadActivity : SimpleActivity() {
         bus = EventBus.getDefault()
         bus!!.register(this)
 
+        ensureDefaultBubbleType()
         loadConversation()
         maybeSetupRecycleBinView()
     }
@@ -314,6 +315,12 @@ class ThreadActivity : SimpleActivity() {
 
     private fun isDarkTheme(): Boolean {
         return (getSystemService(UI_MODE_SERVICE) as UiModeManager).nightMode == UiModeManager.MODE_NIGHT_YES
+    }
+
+    private fun ensureDefaultBubbleType() {
+        if (getBubbleDrawableOption(config.bubbleDrawableSet) == null) {
+            config.bubbleDrawableSet = 1
+        }
     }
 
     private fun makeSystemBarsToTransparent() {
