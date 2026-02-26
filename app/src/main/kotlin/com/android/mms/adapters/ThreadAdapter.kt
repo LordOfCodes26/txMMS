@@ -18,6 +18,7 @@ import android.view.ScaleGestureDetector
 import android.widget.LinearLayout
 import com.goodwy.commons.views.BlurPopupMenu
 import android.widget.RelativeLayout
+import androidx.annotation.DrawableRes
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.constraintlayout.widget.ConstraintSet
 import androidx.core.content.res.ResourcesCompat
@@ -164,6 +165,18 @@ class ThreadAdapter(
         private const val MAX_MEDIA_HEIGHT_RATIO = 3
         private const val SIM_BITS = 21
         private const val SIM_MASK = (1L shl SIM_BITS) - 1
+    }
+
+    @DrawableRes
+    private fun getCompactBubbleRes(@DrawableRes baseRes: Int): Int {
+        val baseName = runCatching { resources.getResourceEntryName(baseRes) }.getOrNull() ?: return baseRes
+        val compactName = when {
+            baseName.startsWith("bubble_incoming_") -> baseName.replaceFirst("bubble_incoming_", "bubble_incoming_compact_")
+            baseName.startsWith("bubble_outgoing_") -> baseName.replaceFirst("bubble_outgoing_", "bubble_outgoing_compact_")
+            else -> return baseRes
+        }
+        val compactRes = resources.getIdentifier(compactName, "drawable", activity.packageName)
+        return if (compactRes != 0) compactRes else baseRes
     }
 
     init {
@@ -733,7 +746,7 @@ class ThreadAdapter(
                 val bubbleStyle = activity.config.bubbleStyle
 
                 val bubbleReceived = if (selectedBubbleOption != null) {
-                    if (isRtl) selectedBubbleOption.outgoingRes else selectedBubbleOption.incomingRes
+                    if (isRtl) getCompactBubbleRes(selectedBubbleOption.outgoingRes) else getCompactBubbleRes(selectedBubbleOption.incomingRes)
                 } else {
                     when (bubbleStyle) {
                         BUBBLE_STYLE_IOS_NEW -> if (isRtl) R.drawable.item_sent_ios_new_background else R.drawable.item_received_ios_new_background
@@ -847,7 +860,7 @@ class ThreadAdapter(
                 val bubbleStyle = activity.config.bubbleStyle
 
                 val bubbleReceived = if (selectedBubbleOption != null) {
-                    if (isRtl) selectedBubbleOption.incomingRes else selectedBubbleOption.outgoingRes
+                    if (isRtl) getCompactBubbleRes(selectedBubbleOption.incomingRes) else getCompactBubbleRes(selectedBubbleOption.outgoingRes)
                 } else {
                     when (bubbleStyle) {
                         BUBBLE_STYLE_IOS_NEW -> if (isRtl) R.drawable.item_received_ios_new_background else R.drawable.item_sent_ios_new_background
