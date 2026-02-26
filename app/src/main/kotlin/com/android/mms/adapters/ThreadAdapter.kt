@@ -606,11 +606,10 @@ class ThreadAdapter(
         }
         deleteItem.title = coloredText
         
-        popupMenu.menu.add(1, 2, 2, com.goodwy.strings.R.string.search_the_web).setIcon(R.drawable.ic_internet)
         popupMenu.menu.add(1, 3, 3, com.goodwy.commons.R.string.share).setIcon(com.goodwy.commons.R.drawable.ic_ios_share)
         popupMenu.menu.add(1, 4, 4, com.goodwy.commons.R.string.properties).setIcon(com.goodwy.commons.R.drawable.ic_info_vector)
         popupMenu.menu.add(1, 5, 5, R.string.forward_message).setIcon(R.drawable.ic_redo_vector)
-        popupMenu.menu.add(1, 6, 6, com.goodwy.commons.R.string.select_text).setIcon(R.drawable.ic_text_select)
+        popupMenu.menu.add(1, 6, 6, android.R.string.selectTextMode).setIcon(R.drawable.ic_text_select)
         popupMenu.menu.add(1, 7, 7, com.goodwy.commons.R.string.copy).setIcon(com.goodwy.commons.R.drawable.ic_copy_vector)
         val staticItem = 8
         if (numbersList.isNotEmpty()) {
@@ -627,8 +626,6 @@ class ThreadAdapter(
         popupMenu.setOnMenuItemClickListener { item ->
             when (item.itemId) {
                 1 -> askConfirmDelete(message)
-
-                2 -> activity.launchInternetSearch(text)
 
                 3 -> activity.shareTextIntent(text)
 
