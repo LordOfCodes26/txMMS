@@ -503,6 +503,12 @@ class ThreadAdapter(
                 movementMethod = LinkMovementMethod.getInstance()
 
                 setTextSize(TypedValue.COMPLEX_UNIT_PX, fontSizeMessage * fontSizeMessageMultiplier)
+                val lineSpacingExtra = TypedValue.applyDimension(
+                    TypedValue.COMPLEX_UNIT_DIP,
+                    2f,
+                    resources.displayMetrics
+                )
+                setLineSpacing(lineSpacingExtra, 1.1f)
                 setOnLongClickListener {
                     holder.viewLongClicked()
                     true
