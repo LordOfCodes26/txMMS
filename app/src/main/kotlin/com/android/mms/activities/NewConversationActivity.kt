@@ -243,6 +243,13 @@ class NewConversationActivity : SimpleActivity() {
         // Listen for chip changes to handle typed phone numbers and contact names
         binding.newConversationAddress.setOnChipsChangedListener { chips ->
             if (isUpdatingChips) return@setOnChipsChangedListener
+
+            // Keep mapping in sync with visible chips so deleted chips can be re-added later.
+            val activeChips = chips.toSet()
+            val staleKeys = chipDisplayToPhoneNumber.keys.filter { key -> !activeChips.contains(key) }
+            staleKeys.forEach { staleKey ->
+                chipDisplayToPhoneNumber.remove(staleKey)
+            }
             
             chips.forEach { chipText ->
                 // If this chip is not in our mapping, check if it's a phone number or contact name

@@ -711,11 +711,41 @@ class ContactPickerActivity : SimpleActivity() {
             if (pos in allContacts.indices) selectedContacts.add(allContacts[pos])
         }
 
+        val contactNumbersCount = HashMap<String, HashSet<String>>()
+        allContacts.forEach { contact ->
+            if (contact.contactId.isNotEmpty() && contact.phoneNumber.isNotEmpty()) {
+                val normalized = normalizePhoneNumber(contact.phoneNumber)
+                if (normalized.isNotEmpty()) {
+                    contactNumbersCount.getOrPut(contact.contactId) { HashSet() }.add(normalized)
+                }
+            }
+        }
+        val multiNumberContactIds = contactNumbersCount
+            .filterValues { it.size > 1 }
+            .keys
+
         val displayTexts = ArrayList<String>()
         val normalizedNumbers = ArrayList<String>()
+        val usedDisplayTexts = HashSet<String>()
         selectedContacts.forEach { c ->
-            displayTexts.add(if (c.name.isNotEmpty()) c.name else c.phoneNumber)
-            normalizedNumbers.add(normalizePhoneNumber(c.phoneNumber))
+            val normalizedNumber = normalizePhoneNumber(c.phoneNumber)
+            val baseName = if (c.name.isNotEmpty()) c.name else c.phoneNumber
+            val shouldShowNumberInDisplay = c.contactId.isNotEmpty() && multiNumberContactIds.contains(c.contactId)
+            val baseDisplayText = if (shouldShowNumberInDisplay && c.phoneNumber.isNotEmpty()) {
+                "$baseName (${c.phoneNumber})"
+            } else {
+                baseName
+            }
+            val uniqueDisplayText = if (!usedDisplayTexts.contains(baseDisplayText)) {
+                baseDisplayText
+            } else {
+                // Keep chip labels unique when multiple selected numbers share the same contact name.
+                if (c.phoneNumber.isNotEmpty()) "$baseDisplayText (${c.phoneNumber})" else "$baseDisplayText (${normalizedNumber})"
+            }
+
+            usedDisplayTexts.add(uniqueDisplayText)
+            displayTexts.add(uniqueDisplayText)
+            normalizedNumbers.add(normalizedNumber)
         }
 
         val resultIntent = Intent().apply {
