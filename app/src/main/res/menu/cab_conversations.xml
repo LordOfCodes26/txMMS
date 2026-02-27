@@ -78,4 +78,12 @@
         android:icon="@drawable/ic_pin_angle"
         android:title="@string/unpin_conversation"
         app:showAsAction="ifRoom" />
+    <item
+        android:id="@+id/cab_encrypt_conversations"
+        android:title="@string/encrypt"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/cab_decrypt_conversations"
+        android:title="@string/decrypt"
+        app:showAsAction="never" />
 </menu>

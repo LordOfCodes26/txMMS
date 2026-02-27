@@ -60,6 +60,7 @@ const val IS_ARCHIVE_AVAILABLE = "is_archive_available"
 const val CUSTOM_NOTIFICATIONS = "custom_notifications"
 const val IS_LAUNCHED_FROM_SHORTCUT = "is_launched_from_shortcut"
 const val KEEP_CONVERSATIONS_ARCHIVED = "keep_conversations_archived"
+const val SELECTED_CONVERSATION_PIN = "selected_conversation_pin"
 //Goodwy
 const val SIM_TO_REPLY = "sim_to_reply"
 const val SHOW_SIM_SELECTION_DIALOG = "show_sim_selection_dialog"

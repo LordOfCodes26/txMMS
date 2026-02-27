@@ -17,6 +17,7 @@ import com.goodwy.commons.views.BlurPopupMenu
 import com.goodwy.commons.views.MyRecyclerView
 import com.android.mms.BuildConfig
 import com.android.mms.R
+import com.android.mms.activities.MainActivity
 import com.android.mms.activities.SimpleActivity
 import com.android.mms.dialogs.RenameConversationDialog
 import com.android.mms.extensions.config
@@ -33,6 +34,7 @@ import com.android.mms.extensions.moveMessageToRecycleBin
 import com.android.mms.extensions.renameConversation
 import com.android.mms.extensions.updateConversationArchivedStatus
 import com.android.mms.extensions.updateLastConversationMessage
+import com.android.mms.extensions.updateConversationPins
 import com.android.mms.extensions.updateScheduledMessagesThreadId
 import com.android.mms.helpers.SWIPE_ACTION_ARCHIVE
 import com.android.mms.helpers.SWIPE_ACTION_BLOCK
@@ -101,6 +103,9 @@ class ConversationsAdapter(
             findItem(R.id.cab_mark_as_read).isVisible = selectedItems.any { !it.read }
             findItem(R.id.cab_mark_as_unread).isVisible = selectedItems.any { it.read }
             findItem(R.id.cab_archive).isVisible = archiveAvailable
+            val isPinZeroMode = activity.config.selectedConversationPin == 0
+            findItem(R.id.cab_encrypt_conversations).isVisible = isPinZeroMode
+            findItem(R.id.cab_decrypt_conversations).isVisible = !isPinZeroMode
             checkPinBtnVisibility(this)
             // Hide select_all as it doesn't make sense in a popup menu for single item
             findItem(R.id.cab_select_all).isVisible = false
@@ -152,6 +157,9 @@ class ConversationsAdapter(
             findItem(R.id.cab_mark_as_read).isVisible = selectedItems.any { !it.read }
             findItem(R.id.cab_mark_as_unread).isVisible = selectedItems.any { it.read }
             findItem(R.id.cab_archive).isVisible = archiveAvailable
+            val isPinZeroMode = activity.config.selectedConversationPin == 0
+            findItem(R.id.cab_encrypt_conversations).isVisible = isPinZeroMode
+            findItem(R.id.cab_decrypt_conversations).isVisible = !isPinZeroMode
             checkPinBtnVisibility(this)
         }
     }
@@ -197,6 +205,24 @@ class ConversationsAdapter(
             R.id.cab_mark_as_unread -> markAsUnread()
             R.id.cab_pin_conversation -> pinConversation(true)
             R.id.cab_unpin_conversation -> pinConversation(false)
+            R.id.cab_encrypt_conversations -> encryptConversations()
+            R.id.cab_decrypt_conversations -> decryptConversations()
+        }
+    }
+
+    private fun encryptConversations() {
+        val threadIds = getSelectedItems().map { it.threadId }.distinct().toLongArray()
+        if (threadIds.isEmpty()) return
+        val mainActivity = activity as? MainActivity ?: return
+        mainActivity.requestEncryptConversations(threadIds)
+    }
+
+    private fun decryptConversations() {
+        val threadIds = getSelectedItems().map { it.threadId }.distinct().toLongArray()
+        if (threadIds.isEmpty()) return
+        ensureBackgroundThread {
+            activity.updateConversationPins(threadIds, 0)
+            refreshConversationsAndFinishActMode()
         }
     }
 

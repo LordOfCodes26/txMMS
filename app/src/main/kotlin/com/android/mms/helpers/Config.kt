@@ -256,6 +256,12 @@ class Config(context: Context) : BaseConfig(context) {
             putBoolean(KEEP_CONVERSATIONS_ARCHIVED, keepConversationsArchived)
         }
 
+    var selectedConversationPin: Int
+        get() = prefs.getInt(SELECTED_CONVERSATION_PIN, 0)
+        set(selectedConversationPin) = prefs.edit {
+            putInt(SELECTED_CONVERSATION_PIN, maxOf(0, selectedConversationPin))
+        }
+
     //Goodwy
     var bubbleStyle: Int
         get() = prefs.getInt(BUBBLE_STYLE, BUBBLE_STYLE_IOS_NEW)

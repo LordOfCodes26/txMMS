@@ -71,6 +71,10 @@
     <string name="new_message">New message</string>
     <string name="mark_as_read">Mark as Read</string>
     <string name="mark_as_unread">Mark as Unread</string>
+    <string name="secure_box">Secure Box</string>
+    <string name="secret_box_app_not_found" translatable="false">Secret Box app not found. Please install it.</string>
+    <string name="encrypt">Encrypt</string>
+    <string name="decrypt">Decrypt</string>
     <string name="me">Me</string>
     <string name="enable_custom_notifications">Enable custom notifications</string>
     <string name="customize_notifications">Customize notifications</string>

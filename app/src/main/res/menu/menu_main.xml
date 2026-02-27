@@ -25,6 +25,10 @@
         android:title="@string/show_blocked_numbers"
         android:showAsAction="never" />
     <item
+        android:id="@+id/unlock_protected_contacts"
+        android:title="@string/secure_box"
+        android:showAsAction="never" />
+    <item
         android:id="@+id/settings"
         android:icon="@drawable/ic_more_horiz"
         android:title="@string/settings"

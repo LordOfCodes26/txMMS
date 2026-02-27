@@ -10,6 +10,7 @@ import android.database.sqlite.SQLiteException
 import android.graphics.Bitmap
 import android.graphics.drawable.Drawable
 import android.net.Uri
+import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.provider.ContactsContract
@@ -88,6 +89,54 @@ val Context.notificationHelper
 val Context.messagingUtils
     get() = MessagingUtils(this)
 
+private const val METHOD_SET_PIN_SCOPE = "set_conversation_pin_scope"
+private const val METHOD_SET_THREAD_PIN = "set_conversation_thread_pin"
+private const val EXTRA_PIN = "pin"
+private const val EXTRA_THREAD_IDS = "thread_ids"
+private const val EXTRA_UPDATED = "updated"
+
+private fun Context.callConversationPinApi(method: String, extras: Bundle): Bundle? {
+    return try {
+        contentResolver.call(MmsSms.CONTENT_URI, method, null, extras)
+    } catch (_: Exception) {
+        null
+    }
+}
+
+fun Context.syncConversationPinScope(): Boolean {
+    val extras = Bundle().apply {
+        putInt(EXTRA_PIN, maxOf(0, config.selectedConversationPin))
+    }
+    return callConversationPinApi(METHOD_SET_PIN_SCOPE, extras) != null
+}
+
+fun Context.setConversationPinScope(pin: Int): Boolean {
+    val sanitizedPin = maxOf(0, pin)
+    config.selectedConversationPin = sanitizedPin
+    val extras = Bundle().apply {
+        putInt(EXTRA_PIN, sanitizedPin)
+    }
+    return callConversationPinApi(METHOD_SET_PIN_SCOPE, extras) != null
+}
+
+fun Context.updateConversationPin(threadId: Long, pin: Int): Boolean {
+    return updateConversationPins(longArrayOf(threadId), pin) > 0
+}
+
+fun Context.updateConversationPins(threadIds: LongArray, pin: Int): Int {
+    val validThreadIds = threadIds.filter { it > 0L }.toLongArray()
+    if (validThreadIds.isEmpty()) {
+        return 0
+    }
+
+    val extras = Bundle().apply {
+        putLongArray(EXTRA_THREAD_IDS, validThreadIds)
+        putInt(EXTRA_PIN, maxOf(0, pin))
+    }
+    val result = callConversationPinApi(METHOD_SET_THREAD_PIN, extras) ?: return 0
+    return result.getInt(EXTRA_UPDATED, 0)
+}
+
 val Context.smsSender
     get() = SmsSender.getInstance(applicationContext as Application)
 
@@ -99,6 +148,8 @@ fun Context.getMessages(
     includeScheduledMessages: Boolean = true,
     limit: Int = MESSAGES_LIMIT,
 ): ArrayList<Message> {
+    syncConversationPinScope()
+
     val uri = Sms.CONTENT_URI
     val projection = arrayOf(
         Sms._ID,
@@ -384,6 +435,8 @@ fun Context.getConversations(
     threadId: Long? = null,
     privateContacts: ArrayList<SimpleContact> = ArrayList(),
 ): ArrayList<Conversation> {
+    syncConversationPinScope()
+
     val archiveAvailable = config.isArchiveAvailable
     val useRecycleBin = config.useRecycleBin
 

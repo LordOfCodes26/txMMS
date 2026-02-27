@@ -3,6 +3,7 @@ package com.android.mms.activities
 import android.annotation.SuppressLint
 import android.app.SearchManager
 import android.app.role.RoleManager
+import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.pm.ShortcutInfo
 import android.content.pm.ShortcutManager
@@ -11,6 +12,8 @@ import android.graphics.PorterDuff
 import android.graphics.drawable.Icon
 import android.graphics.drawable.LayerDrawable
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.provider.Telephony
 import android.speech.RecognizerIntent
 import android.telephony.PhoneNumberUtils
@@ -18,8 +21,10 @@ import android.telephony.TelephonyManager
 import android.text.TextUtils
 import android.view.Menu
 import android.view.MenuItem
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
+import androidx.activity.result.contract.ActivityResultContracts
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.content.res.AppCompatResources
@@ -35,6 +40,7 @@ import com.goodwy.commons.dialogs.PermissionRequiredDialog
 import com.goodwy.commons.extensions.*
 import com.goodwy.commons.helpers.*
 import com.goodwy.commons.views.BlurAppBarLayout
+import com.goodwy.commons.views.TwoFingerSlideGestureDetector
 import com.android.mms.BuildConfig
 import com.android.mms.R
 import com.android.mms.adapters.ConversationsAdapter
@@ -56,6 +62,13 @@ import java.util.*
 import kotlin.text.toFloat
 
 class MainActivity : SimpleActivity() {
+    companion object {
+        private const val SECRET_BOX_PACKAGE = "chonha.get.secret.number"
+        private const val SECRET_NUMBER_EXTRA = "secret_number"
+        private const val INVALID_CIPHER = -1
+        private const val MIN_SWIPE_DISTANCE = 50f
+    }
+
     override var isSearchBarEnabled = true
 
     private val MAKE_DEFAULT_APP_REQUEST = 1
@@ -73,6 +86,8 @@ class MainActivity : SimpleActivity() {
 
     private var mSearchMenuItem: MenuItem? = null
     private var mSearchView: SearchView? = null
+    private lateinit var twoFingerGestureDetector: TwoFingerSlideGestureDetector
+    private var pendingThreadIdsToEncrypt: LongArray? = null
 
     private val binding by viewBinding(ActivityMainBinding::inflate)
 
@@ -81,6 +96,7 @@ class MainActivity : SimpleActivity() {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
         initTheme()
+        setupTwoFingerSwipeGesture()
         initMVSideFrames()
         initBouncy()
         initBouncyListener()
@@ -258,6 +274,7 @@ class MainActivity : SimpleActivity() {
                     R.id.show_recycle_bin -> launchRecycleBin()
                     R.id.show_archived -> launchArchivedConversations()
                     R.id.show_blocked_numbers -> showBlockedNumbers()
+                    R.id.unlock_protected_contacts -> launchSecretBoxForUnlock()
                     R.id.settings -> launchSettings()
                     R.id.about -> launchAbout()
                     else -> return@setOnMenuItemClickListener false
@@ -400,6 +417,87 @@ class MainActivity : SimpleActivity() {
 //            getRecentsFragment()?.refreshItems()
 //        }
         initMessenger()
+    }
+
+    private fun getSecretNumberFromResult(data: Intent?): Int? {
+        if (data == null) return null
+        val asInt = data.getIntExtra(SECRET_NUMBER_EXTRA, INVALID_CIPHER)
+        if (asInt > INVALID_CIPHER) return asInt
+        val asString = data.getStringExtra(SECRET_NUMBER_EXTRA)
+        return asString?.toIntOrNull()?.takeIf { it >= 0 }
+    }
+
+    private val startSecretBoxForUnlock = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode != RESULT_OK) {
+            pendingThreadIdsToEncrypt = null
+            return@registerForActivityResult
+        }
+
+        val cipher = getSecretNumberFromResult(result.data) ?: run {
+            pendingThreadIdsToEncrypt = null
+            return@registerForActivityResult
+        }
+
+        val pendingThreadIds = pendingThreadIdsToEncrypt
+        pendingThreadIdsToEncrypt = null
+        if (pendingThreadIds != null) {
+            ensureBackgroundThread {
+                updateConversationPins(pendingThreadIds, cipher)
+                runOnUiThread {
+                    getOrCreateConversationsAdapter().finishActMode()
+                    com.android.mms.helpers.refreshConversations()
+                }
+            }
+        } else {
+            Handler(Looper.getMainLooper()).post {
+                if (!isFinishing && !isDestroyed) {
+                    setConversationPinScope(cipher)
+                    initMessenger()
+                }
+            }
+        }
+    }
+
+    private fun setupTwoFingerSwipeGesture() {
+        twoFingerGestureDetector = TwoFingerSlideGestureDetector(this,
+            object : TwoFingerSlideGestureDetector.OnTwoFingerSlideGestureListener {
+                override fun onTwoFingerSlide(
+                    firstFingerX: Float,
+                    firstFingerY: Float,
+                    secondFingerX: Float,
+                    secondFingerY: Float,
+                    avgDeltaX: Float,
+                    avgDeltaY: Float,
+                    avgDistance: Float
+                ) {
+                    if (avgDeltaY > MIN_SWIPE_DISTANCE) {
+                        launchSecretBoxForUnlock()
+                    }
+                }
+            }
+        )
+    }
+
+    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
+        ev?.let { twoFingerGestureDetector.onTouchEvent(it) }
+        return super.dispatchTouchEvent(ev)
+    }
+
+    private fun launchSecretBoxForUnlock() {
+        try {
+            startSecretBoxForUnlock.launch(Intent(SECRET_BOX_PACKAGE))
+        } catch (_: ActivityNotFoundException) {
+            toast(R.string.secret_box_app_not_found)
+        }
+    }
+
+    fun requestEncryptConversations(threadIds: LongArray) {
+        val validThreadIds = threadIds.filter { it > 0L }.distinct().toLongArray()
+        if (validThreadIds.isEmpty()) return
+        pendingThreadIdsToEncrypt = validThreadIds
+        launchSecretBoxForUnlock()
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, resultData: Intent?) {
