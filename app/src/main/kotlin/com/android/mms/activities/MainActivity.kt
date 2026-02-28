@@ -481,9 +481,12 @@ class MainActivity : SimpleActivity() {
         } else {
             Handler(Looper.getMainLooper()).post {
                 if (!isFinishing && !isDestroyed) {
-                    setConversationPinScope(cipher)
-                    initMessenger()
-                    refreshMenuItemsAndTitle()
+                    if (setConversationPinScope(cipher)) {
+                        initMessenger()
+                        refreshMenuItemsAndTitle()
+                    } else {
+                        toast(com.goodwy.commons.R.string.unknown_error_occurred)
+                    }
                 }
             }
         }
@@ -744,6 +747,22 @@ class MainActivity : SimpleActivity() {
         ensureBackgroundThread {
             val privateContacts = MyContactsContentProvider.getSimpleContacts(this, privateCursor)
             val conversations = getConversations(privateContacts = privateContacts)
+            val isSecureMode = config.selectedConversationPin > 0
+
+            if (isSecureMode) {
+                // In secure mode, show only provider-filtered conversations for selected PIN.
+                conversations.forEach { conversation ->
+                    try {
+                        conversation.messageCount = messagesDB.getThreadMessageCount(conversation.threadId)
+                    } catch (_: Exception) {
+                        conversation.messageCount = 0
+                    }
+                }
+                runOnUiThread {
+                    setupConversations(conversations)
+                }
+                return@ensureBackgroundThread
+            }
 
             conversations.forEach { clonedConversation ->
                 val threadIds = cachedConversations.map { it.threadId }

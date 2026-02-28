@@ -104,19 +104,26 @@ private fun Context.callConversationPinApi(method: String, extras: Bundle): Bund
 }
 
 fun Context.syncConversationPinScope(): Boolean {
+    val desiredPin = maxOf(0, config.selectedConversationPin)
     val extras = Bundle().apply {
-        putInt(EXTRA_PIN, maxOf(0, config.selectedConversationPin))
+        putInt(EXTRA_PIN, desiredPin)
     }
-    return callConversationPinApi(METHOD_SET_PIN_SCOPE, extras) != null
+    val result = callConversationPinApi(METHOD_SET_PIN_SCOPE, extras) ?: return false
+    val appliedPin = maxOf(0, result.getInt(EXTRA_PIN, desiredPin))
+    if (appliedPin != config.selectedConversationPin) {
+        config.selectedConversationPin = appliedPin
+    }
+    return true
 }
 
 fun Context.setConversationPinScope(pin: Int): Boolean {
     val sanitizedPin = maxOf(0, pin)
-    config.selectedConversationPin = sanitizedPin
     val extras = Bundle().apply {
         putInt(EXTRA_PIN, sanitizedPin)
     }
-    return callConversationPinApi(METHOD_SET_PIN_SCOPE, extras) != null
+    val result = callConversationPinApi(METHOD_SET_PIN_SCOPE, extras) ?: return false
+    config.selectedConversationPin = maxOf(0, result.getInt(EXTRA_PIN, sanitizedPin))
+    return true
 }
 
 fun Context.updateConversationPin(threadId: Long, pin: Int): Boolean {
