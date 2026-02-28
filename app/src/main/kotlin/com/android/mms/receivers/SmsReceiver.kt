@@ -21,6 +21,7 @@ import com.android.mms.extensions.getConversations
 import com.android.mms.extensions.getNameFromAddress
 import com.android.mms.extensions.getNotificationBitmap
 import com.android.mms.extensions.getThreadId
+import com.android.mms.extensions.isCustomerServiceBlockNumber
 import com.android.mms.extensions.insertNewSMS
 import com.android.mms.extensions.insertOrUpdateConversation
 import com.android.mms.extensions.messagesDB
@@ -55,6 +56,10 @@ class SmsReceiver : BroadcastReceiver() {
                 body += it.messageBody
                 date = System.currentTimeMillis()
                 threadId = context.getThreadId(address)
+            }
+
+            if (context.isCustomerServiceBlockNumber(address)) {
+                return@ensureBackgroundThread
             }
 
             if (context.baseConfig.blockUnknownNumbers) {

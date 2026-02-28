@@ -14,6 +14,7 @@ import com.android.mms.R
 import com.android.mms.extensions.config
 import com.android.mms.extensions.getConversations
 import com.android.mms.extensions.getLatestMMS
+import com.android.mms.extensions.isCustomerServiceBlockNumber
 import com.android.mms.extensions.insertOrUpdateConversation
 import com.android.mms.extensions.notificationHelper
 import com.android.mms.extensions.shouldUnarchive
@@ -28,7 +29,7 @@ class MmsReceiver : MmsReceivedReceiver() {
 
     override fun isAddressBlocked(context: Context, address: String): Boolean {
         val normalizedAddress = address.normalizePhoneNumber()
-        return context.isNumberBlocked(normalizedAddress)
+        return context.isNumberBlocked(normalizedAddress) || context.isCustomerServiceBlockNumber(normalizedAddress)
     }
 
     override fun isContentBlocked(context: Context, content: String): Boolean {
@@ -38,6 +39,9 @@ class MmsReceiver : MmsReceivedReceiver() {
     override fun onMessageReceived(context: Context, messageUri: Uri) {
         val mms = context.getLatestMMS() ?: return
         val address = mms.getSender()?.phoneNumbers?.first()?.normalizedNumber ?: ""
+        if (context.isCustomerServiceBlockNumber(address)) {
+            return
+        }
 
         val size = context.resources.getDimension(R.dimen.notification_large_icon_size).toInt()
         val privateCursor = context.getMyContactsCursor(favoritesOnly = false, withPhoneNumbersOnly = true)

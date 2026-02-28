@@ -1663,6 +1663,18 @@ fun Context.shouldUnarchive(): Boolean {
     return config.isArchiveAvailable && !config.keepConversationsArchived
 }
 
+fun Context.isCustomerServiceBlockNumber(number: String): Boolean {
+    val targetComparable = number.trimToComparableNumber()
+    val targetNormalized = number.normalizePhoneNumber()
+    val blockedNumbers = resources.getStringArray(R.array.customer_service_block_numbers)
+
+    return blockedNumbers.any { blockedNumber ->
+        val blockedComparable = blockedNumber.trimToComparableNumber()
+        val blockedNormalized = blockedNumber.normalizePhoneNumber()
+        targetComparable == blockedComparable || targetNormalized == blockedNormalized
+    }
+}
+
 fun Context.copyToUri(src: Uri, dst: Uri) {
     contentResolver.openInputStream(src)?.use { input ->
         contentResolver.openOutputStream(dst, "rwt")?.use { out ->

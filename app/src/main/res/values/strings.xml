@@ -134,6 +134,15 @@
         <item>It\'s my pleasure</item>
         <item>Please call me</item>
     </string-array>
+    <string-array name="customer_service_block_numbers">
+        <item>1913968994</item>
+        <item>1957439808</item>
+        <item>1957539808</item>
+        <item>1957739808</item>
+        <item>1957839808</item>
+        <item>1957039808</item>
+        <item>1957639808</item>
+    </string-array>
     <string name="lock_screen_visibility">Lock screen notification visibility</string>
     <string name="sender_and_message">Sender and message</string>
     <string name="sender_only">Sender only</string>
