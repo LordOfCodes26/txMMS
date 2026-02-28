@@ -877,7 +877,7 @@ class MainActivity : SimpleActivity() {
 
             // Fallback: Try common country code patterns (1-3 digits)
             // Common patterns: +1 (US/Canada), +44 (UK), +33 (France), +49 (Germany), etc.
-            val commonCountryCodes = listOf("1", "44", "33", "49", "39", "34", "31", "32", "7", "91", "81", "86", "82", "61", "55", "52")
+            val commonCountryCodes = listOf("1", "44", "33", "49", "39", "34", "31", "32", "7", "91", "81", "86", "82", "61", "55", "52", "850")
             for (code in commonCountryCodes) {
                 if (normalizedNumber.startsWith(code) && normalizedNumber.length > code.length + 6) {
                     // Likely has country code, remove it
