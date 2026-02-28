@@ -72,6 +72,7 @@
     <string name="mark_as_read">Mark as Read</string>
     <string name="mark_as_unread">Mark as Unread</string>
     <string name="secure_box">Secure Box</string>
+    <string name="close_secure_box">Close Secure Box</string>
     <string name="secret_box_app_not_found" translatable="false">Secret Box app not found. Please install it.</string>
     <string name="encrypt">Encrypt</string>
     <string name="decrypt">Decrypt</string>

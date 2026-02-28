@@ -110,9 +110,7 @@ class MainActivity : SimpleActivity() {
             config.initializeDefaultQuickTexts()
         }
         setupOptionsMenu()
-        refreshMenuItems()
-
-        binding.mainMenu.setTitle(getString(R.string.messages))
+        refreshMenuItemsAndTitle()
         setupEdgeToEdge(padBottomImeAndSystem = listOf(binding.conversationsList, binding.searchResultsList))
         if (config.changeColourTopBar) {
             val useSurfaceColor = isDynamicTheme() && !isSystemInDarkMode()
@@ -146,7 +144,7 @@ class MainActivity : SimpleActivity() {
         }
 
         updateMenuColors()
-        refreshMenuItems()
+        refreshMenuItemsAndTitle()
 
         getOrCreateConversationsAdapter().apply {
             if (storedPrimaryColor != getProperPrimaryColor()) {
@@ -274,7 +272,13 @@ class MainActivity : SimpleActivity() {
                     R.id.show_recycle_bin -> launchRecycleBin()
                     R.id.show_archived -> launchArchivedConversations()
                     R.id.show_blocked_numbers -> showBlockedNumbers()
-                    R.id.unlock_protected_contacts -> launchSecretBoxForUnlock()
+                    R.id.unlock_protected_contacts -> {
+                        if (config.selectedConversationPin > 0) {
+                            closeSecureBox()
+                        } else {
+                            launchSecretBoxForUnlock()
+                        }
+                    }
                     R.id.settings -> launchSettings()
                     R.id.about -> launchAbout()
                     else -> return@setOnMenuItemClickListener false
@@ -397,15 +401,22 @@ class MainActivity : SimpleActivity() {
         })
     }
 
-    private fun refreshMenuItems() {
+    private fun refreshMenuItemsAndTitle() {
         binding.mainMenu.toolbar?.menu?.apply {
             findItem(R.id.show_recycle_bin)?.isVisible = config.useRecycleBin
             findItem(R.id.show_archived)?.isVisible = config.isArchiveAvailable
             findItem(R.id.about)?.isVisible = false
+            findItem(R.id.unlock_protected_contacts)?.title =
+                if (config.selectedConversationPin > 0) getString(R.string.close_secure_box)
+                else getString(R.string.secure_box)
             findItem(R.id.show_blocked_numbers)?.title =
                 if (config.showBlockedNumbers) getString(com.goodwy.strings.R.string.hide_blocked_numbers)
                 else getString(com.goodwy.strings.R.string.show_blocked_numbers)
         }
+        binding.mainMenu.setTitle(
+            if (config.selectedConversationPin > 0) getString(R.string.secure_box)
+            else getString(R.string.messages)
+        )
     }
 
     private fun showBlockedNumbers() {
@@ -455,9 +466,16 @@ class MainActivity : SimpleActivity() {
                 if (!isFinishing && !isDestroyed) {
                     setConversationPinScope(cipher)
                     initMessenger()
+                    refreshMenuItemsAndTitle()
                 }
             }
         }
+    }
+
+    private fun closeSecureBox() {
+        setConversationPinScope(0)
+        initMessenger()
+        refreshMenuItemsAndTitle()
     }
 
     private fun setupTwoFingerSwipeGesture() {
