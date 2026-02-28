@@ -1,5 +1,7 @@
 package com.android.mms.receivers
 
+import android.Manifest
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
@@ -7,10 +9,12 @@ import android.net.Uri
 import android.os.Handler
 import android.os.Looper
 import android.provider.Telephony.Sms
+import androidx.annotation.RequiresPermission
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ProcessLifecycleOwner
 import com.goodwy.commons.extensions.getMyContactsCursor
 import com.goodwy.commons.helpers.ensureBackgroundThread
+import com.android.mms.extensions.subscriptionManagerCompat
 import com.android.mms.extensions.getMessageRecipientAddress
 import com.android.mms.extensions.getNameFromAddress
 import com.android.mms.extensions.getThreadId
@@ -22,6 +26,9 @@ import com.android.mms.helpers.refreshMessages
 
 /** Handles updating databases and states when a SMS message is sent. */
 class SmsStatusSentReceiver : SendStatusReceiver() {
+    private companion object {
+        const val ACTION_FEE_INFO_SET = "com.chonha.total.action.ACTION_FEE_INFO_SET"
+    }
 
     override fun updateAndroidDatabase(context: Context, intent: Intent, receiverResultCode: Int) {
         val messageUri: Uri? = intent.data
@@ -38,6 +45,8 @@ class SmsStatusSentReceiver : SendStatusReceiver() {
             resultCode = resultCode,
             errorCode = intent.getIntExtra(EXTRA_ERROR_CODE, NO_ERROR_CODE)
         )
+
+        maybeNotifyFeeUsage(context, intent, receiverResultCode)
     }
 
     override fun updateAppDatabase(context: Context, intent: Intent, receiverResultCode: Int) {
@@ -71,6 +80,40 @@ class SmsStatusSentReceiver : SendStatusReceiver() {
                 val recipientName = context.getNameFromAddress(address, privateCursor)
                 context.notificationHelper.showSendingFailedNotification(recipientName, threadId)
             }
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun maybeNotifyFeeUsage(context: Context, intent: Intent, receiverResultCode: Int) {
+        if (receiverResultCode != Activity.RESULT_OK) return
+
+        val partsCount = intent.getIntExtra(EXTRA_PARTS_COUNT, 1).coerceAtLeast(1)
+        val partId = intent.getIntExtra(EXTRA_PART_ID, if (partsCount == 1) 0 else 1)
+        val isLastPart = if (partsCount == 1) partId == 0 else partId == partsCount
+        if (!isLastPart) return
+
+        val subId = intent.getIntExtra(EXTRA_SUB_ID, -1)
+        val slotId = resolveSlotId(context, subId)
+        val usageDelta = -partsCount
+
+        context.sendBroadcast(
+            Intent(ACTION_FEE_INFO_SET).apply {
+                putExtra("slotId", slotId)
+                putExtra("cnt", usageDelta)
+            }
+        )
+    }
+
+    @RequiresPermission(Manifest.permission.READ_PHONE_STATE)
+    private fun resolveSlotId(context: Context, subId: Int): Int {
+        return try {
+            val slotIndex = context.subscriptionManagerCompat()
+                .activeSubscriptionInfoList
+                ?.firstOrNull { it.subscriptionId == subId }
+                ?.simSlotIndex
+            if (slotIndex == 0 || slotIndex == 1) slotIndex else 0
+        } catch (_: Exception) {
+            0
         }
     }
 }

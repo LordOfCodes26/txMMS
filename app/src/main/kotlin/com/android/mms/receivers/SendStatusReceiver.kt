@@ -27,6 +27,8 @@ abstract class SendStatusReceiver : BroadcastReceiver() {
         // Defined by platform, but no constant provided. See docs for SmsManager.sendTextMessage.
         const val EXTRA_ERROR_CODE = "errorCode"
         const val EXTRA_SUB_ID = "subId"
+        const val EXTRA_PART_ID = "partId"
+        const val EXTRA_PARTS_COUNT = "partsCount"
 
         const val NO_ERROR_CODE = -1
     }

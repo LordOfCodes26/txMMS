@@ -82,7 +82,12 @@ class SmsSender(val app: Application) {
                 PendingIntent.getBroadcast(
                     app,
                     partId,
-                    getSendStatusIntent(messageUri, subId),
+                    getSendStatusIntent(
+                        requestUri = messageUri,
+                        subId = subId,
+                        partId = partId,
+                        partsCount = messageCount
+                    ),
                     flags
                 )
             )
@@ -109,9 +114,11 @@ class SmsSender(val app: Application) {
         }
     }
 
-    private fun getSendStatusIntent(requestUri: Uri, subId: Int): Intent {
+    private fun getSendStatusIntent(requestUri: Uri, subId: Int, partId: Int, partsCount: Int): Intent {
         val intent = Intent(SendStatusReceiver.SMS_SENT_ACTION, requestUri, app, SmsStatusSentReceiver::class.java)
         intent.putExtra(SendStatusReceiver.EXTRA_SUB_ID, subId)
+        intent.putExtra(SendStatusReceiver.EXTRA_PART_ID, partId)
+        intent.putExtra(SendStatusReceiver.EXTRA_PARTS_COUNT, partsCount)
         return intent
     }
 
