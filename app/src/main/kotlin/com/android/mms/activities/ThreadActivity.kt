@@ -1146,6 +1146,7 @@ class ThreadActivity : SimpleActivity() {
                     it.performHapticFeedback()
                     binding.messageHolder.threadSelectSimIconHolder.contentDescription = currentSIMCard.label
                     toast(currentSIMCard.label)
+                    updateAvailableMessageCountForCurrentSim()
                 }
             }
 
@@ -1163,6 +1164,63 @@ class ThreadActivity : SimpleActivity() {
             } catch (e: Exception) {
                 showErrorToast(e)
             }
+        }
+        updateAvailableMessageCountForCurrentSim()
+    }
+
+    private fun updateAvailableMessageCountForCurrentSim() {
+        val slotId = getCurrentSimSlotId()
+        if (slotId == null) {
+            binding.messageHolder.threadAvailableMessageCount.beGone()
+            return
+        }
+
+        ensureBackgroundThread {
+            val smsCount = getAvailableSmsCountForSlot(slotId)
+            runOnUiThread {
+                val countView = binding.messageHolder.threadAvailableMessageCount
+                if (smsCount == null) {
+                    countView.beGone()
+                } else {
+                    countView.text = getString(R.string.available_sms_count, smsCount)
+                    countView.setTextColor(getProperTextColor())
+                    countView.beVisible()
+                }
+            }
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun getCurrentSimSlotId(): Int? {
+        val activeSIMs = subscriptionManagerCompat().activeSubscriptionInfoList ?: return null
+        if (activeSIMs.isEmpty()) return null
+
+        val selectedSubscriptionId = availableSIMCards.getOrNull(currentSIMCardIndex)?.subscriptionId
+            ?: SmsManager.getDefaultSmsSubscriptionId()
+        return activeSIMs.firstOrNull { it.subscriptionId == selectedSubscriptionId }?.simSlotIndex
+            ?: activeSIMs.firstOrNull()?.simSlotIndex
+            ?: currentSIMCardIndex
+    }
+
+    private fun getAvailableSmsCountForSlot(slotId: Int): Int? {
+        return try {
+            val allUri = Uri.parse("content://com.android.dialer.feeinfo/fee_info")
+            contentResolver.query(allUri, null, null, null, null)?.use { cursor ->
+                val slotIdColumn = cursor.getColumnIndex("slot_id")
+                val smsColumn = cursor.getColumnIndex("sms")
+                if (slotIdColumn == -1 || smsColumn == -1) {
+                    return null
+                }
+
+                while (cursor.moveToNext()) {
+                    if (cursor.getInt(slotIdColumn) == slotId) {
+                        return cursor.getInt(smsColumn)
+                    }
+                }
+                null
+            }
+        } catch (_: Exception) {
+            null
         }
     }
 

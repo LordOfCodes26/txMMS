@@ -178,6 +178,7 @@
     <string name="invalid_contact_or_number">Invalid contact or number</string>
     <string name="attachment_sized_exceeds_max_limit">Attachment size exceeds max MMS limit</string>
     <string name="sim_card_not_available">SIM card not available</string>
+    <string name="available_sms_count">%1$d</string>
     <string name="couldnt_download_mms">Couldn\'t download MMS</string>
     <!-- FAQ -->
     <string name="faq_1_title">Why does the app require access to the internet?</string>

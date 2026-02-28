@@ -253,6 +253,20 @@
             app:countdownTextSize="24sp" />
     </LinearLayout>
 
+    <com.goodwy.commons.views.MyTextView
+        android:id="@+id/threadAvailableMessageCount"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/tiny_margin"
+        android:gravity="center"
+        android:textSize="@dimen/smaller_text_size"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="@+id/threadSendMessageWrapper"
+        app:layout_constraintStart_toStartOf="@+id/threadSendMessageWrapper"
+        app:layout_constraintTop_toBottomOf="@+id/threadSendMessageWrapper"
+        tools:text="0"
+        tools:visibility="visible" />
+
 <!--    <View-->
 <!--        android:id="@+id/attachment_picker_divider"-->
 <!--        android:layout_width="match_parent"-->
