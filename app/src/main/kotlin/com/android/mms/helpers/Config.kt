@@ -323,6 +323,10 @@ class Config(context: Context) : BaseConfig(context) {
         get() = prefs.getBoolean(INIT_CALL_BLOCKING_SETUP, true)
         set(initCallBlockingSetup) = prefs.edit { putBoolean(INIT_CALL_BLOCKING_SETUP, initCallBlockingSetup) }
 
+    var blockNextFeeServiceMessage: Boolean
+        get() = prefs.getBoolean(BLOCK_NEXT_FEE_SERVICE_MESSAGE, false)
+        set(blockNextFeeServiceMessage) = prefs.edit { putBoolean(BLOCK_NEXT_FEE_SERVICE_MESSAGE, blockNextFeeServiceMessage) }
+
     //Swipe
     var swipeRightAction: Int
         get() = prefs.getInt(SWIPE_RIGHT_ACTION, SWIPE_ACTION_MARK_READ)

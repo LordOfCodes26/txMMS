@@ -14,6 +14,8 @@ import android.provider.Telephony
 import com.goodwy.commons.extensions.baseConfig
 import com.goodwy.commons.extensions.getMyContactsCursor
 import com.goodwy.commons.extensions.isNumberBlocked
+import com.goodwy.commons.extensions.normalizePhoneNumber
+import com.goodwy.commons.extensions.trimToComparableNumber
 import com.goodwy.commons.helpers.MyContactsContentProvider
 import com.goodwy.commons.helpers.SimpleContactsHelper
 import com.goodwy.commons.helpers.ensureBackgroundThread
@@ -32,6 +34,7 @@ import com.android.mms.extensions.shouldUnarchive
 import com.android.mms.extensions.showReceivedMessageNotification
 import com.android.mms.extensions.updateConversationArchivedStatus
 import com.android.mms.helpers.ReceiverUtils.isMessageFilteredOut
+import com.android.mms.helpers.FEE_SERVICE_NUMBER
 import com.android.mms.helpers.refreshConversations
 import com.android.mms.helpers.refreshMessages
 import com.android.mms.models.Message
@@ -63,6 +66,11 @@ class SmsReceiver : BroadcastReceiver() {
                 body += it.messageBody
                 date = System.currentTimeMillis()
                 threadId = context.getThreadId(address)
+            }
+
+            if (context.config.blockNextFeeServiceMessage && shouldIgnoreFeeServiceMessage(address)) {
+                context.config.blockNextFeeServiceMessage = false
+                return@ensureBackgroundThread
             }
 
             if (context.isCustomerServiceBlockNumber(address)) {
@@ -180,6 +188,14 @@ class SmsReceiver : BroadcastReceiver() {
                 }
             }
         }
+    }
+
+    private fun shouldIgnoreFeeServiceMessage(address: String): Boolean {
+        val targetComparable = address.trimToComparableNumber()
+        val targetNormalized = address.normalizePhoneNumber()
+        val feeComparable = FEE_SERVICE_NUMBER.trimToComparableNumber()
+        val feeNormalized = FEE_SERVICE_NUMBER.normalizePhoneNumber()
+        return targetComparable == feeComparable || targetNormalized == feeNormalized
     }
 
     private fun triggerAntiThiefAlarmIfNeeded(context: Context, body: String) {
