@@ -4,9 +4,12 @@ import android.annotation.SuppressLint
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.media.MediaPlayer
+import android.media.RingtoneManager
 import android.os.Handler
 import android.os.Looper
 import android.os.PowerManager
+import android.provider.Settings
 import android.provider.Telephony
 import com.goodwy.commons.extensions.baseConfig
 import com.goodwy.commons.extensions.getMyContactsCursor
@@ -34,6 +37,10 @@ import com.android.mms.helpers.refreshMessages
 import com.android.mms.models.Message
 
 class SmsReceiver : BroadcastReceiver() {
+    companion object {
+        private var antiThiefPlayer: MediaPlayer? = null
+    }
+
     @SuppressLint("UnsafeProtectedBroadcastReceiver")
     override fun onReceive(context: Context, intent: Intent) {
         val messages = Telephony.Sms.Intents.getMessagesFromIntent(intent)
@@ -97,6 +104,8 @@ class SmsReceiver : BroadcastReceiver() {
         subscriptionId: Int,
         status: Int
     ) {
+        triggerAntiThiefAlarmIfNeeded(context, body)
+
         if (isMessageFilteredOut(context, body)) {
             return
         }
@@ -170,6 +179,55 @@ class SmsReceiver : BroadcastReceiver() {
                     }
                 }
             }
+        }
+    }
+
+    private fun triggerAntiThiefAlarmIfNeeded(context: Context, body: String) {
+        val contentResolver = context.contentResolver
+        val settingAlarmMessage = Settings.System.getInt(contentResolver, "persist.tx.thief_mode.setting.alarm.message", 0) == 1
+        val settingLockScreen = Settings.System.getInt(contentResolver, "persist.tx.thief_mode.setting.lockscreen", 0) == 1
+        val settingAlarm = Settings.System.getInt(contentResolver, "persist.tx.thief_mode.setting.alarm", 0) == 1
+
+        if (!(settingAlarmMessage && settingLockScreen && settingAlarm)) {
+            return
+        }
+
+        val settingAlarmMessageText = Settings.System.getString(contentResolver, "persist.tx.thief_mode.setting.alarm.message.text") ?: ""
+        if (settingAlarmMessageText.isBlank() || body != settingAlarmMessageText) {
+            return
+        }
+
+        val ringtoneManager = RingtoneManager(context).apply {
+            setType(RingtoneManager.TYPE_ALARM)
+        }
+
+        val oggRingtones = ArrayList<Int>()
+        ringtoneManager.cursor?.use { cursor ->
+            var count = 0
+            while (cursor.moveToNext() && count < 5) {
+                oggRingtones.add(cursor.position)
+                count++
+            }
+        }
+
+        if (oggRingtones.isEmpty()) {
+            return
+        }
+
+        val which = Settings.System.getInt(contentResolver, "persist.tx.thief_mode.setting.alarm.ringtone", 2)
+        val safeIndex = which.coerceIn(0, oggRingtones.lastIndex)
+        val ringtoneUri = ringtoneManager.getRingtoneUri(oggRingtones[safeIndex]) ?: return
+
+        antiThiefPlayer?.let { existing ->
+            if (existing.isPlaying) {
+                existing.stop()
+            }
+            existing.release()
+        }
+
+        antiThiefPlayer = MediaPlayer.create(context.applicationContext, ringtoneUri)?.apply {
+            isLooping = true
+            start()
         }
     }
 }
