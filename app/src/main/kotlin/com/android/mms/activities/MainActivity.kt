@@ -88,6 +88,8 @@ class MainActivity : SimpleActivity() {
     private var mSearchView: SearchView? = null
     private lateinit var twoFingerGestureDetector: TwoFingerSlideGestureDetector
     private var pendingThreadIdsToEncrypt: LongArray? = null
+    private var shouldExitSecureModeOnResume = false
+    private var isLaunchingSecretBox = false
 
     private val binding by viewBinding(ActivityMainBinding::inflate)
 
@@ -136,6 +138,13 @@ class MainActivity : SimpleActivity() {
     @SuppressLint("UnsafeIntentLaunch")
     override fun onResume() {
         super.onResume()
+
+        if (shouldExitSecureModeOnResume) {
+            shouldExitSecureModeOnResume = false
+            if (config.selectedConversationPin > 0) {
+                closeSecureBox()
+            }
+        }
 
         if (config.needRestart || storedBackgroundColor != getProperBackgroundColor()) {
             finish()
@@ -202,6 +211,13 @@ class MainActivity : SimpleActivity() {
     override fun onPause() {
         super.onPause()
         storeStateVariables()
+    }
+
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        if (config.selectedConversationPin > 0 && !isLaunchingSecretBox) {
+            shouldExitSecureModeOnResume = true
+        }
     }
 
     override fun onDestroy() {
@@ -441,6 +457,7 @@ class MainActivity : SimpleActivity() {
     private val startSecretBoxForUnlock = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
+        isLaunchingSecretBox = false
         if (result.resultCode != RESULT_OK) {
             pendingThreadIdsToEncrypt = null
             return@registerForActivityResult
@@ -505,8 +522,10 @@ class MainActivity : SimpleActivity() {
 
     private fun launchSecretBoxForUnlock() {
         try {
+            isLaunchingSecretBox = true
             startSecretBoxForUnlock.launch(Intent(SECRET_BOX_PACKAGE))
         } catch (_: ActivityNotFoundException) {
+            isLaunchingSecretBox = false
             toast(R.string.secret_box_app_not_found)
         }
     }
