@@ -675,35 +675,47 @@ class MainActivity : SimpleActivity() {
 
     private fun getCachedConversations() {
         ensureBackgroundThread {
-            val conversations = try {
-                conversationsDB.getNonArchived().toMutableList() as ArrayList<Conversation>
-            } catch (_: Exception) {
+            // PIN-scoped mode should not render PIN=0 cached conversations first.
+            val shouldUseCached = config.selectedConversationPin == 0
+            val conversations = if (shouldUseCached) {
+                try {
+                    conversationsDB.getNonArchived().toMutableList() as ArrayList<Conversation>
+                } catch (_: Exception) {
+                    ArrayList()
+                }
+            } else {
                 ArrayList()
             }
 
-            val archived = try {
-                conversationsDB.getAllArchived()
-            } catch (_: Exception) {
+            val archived = if (shouldUseCached) {
+                try {
+                    conversationsDB.getAllArchived()
+                } catch (_: Exception) {
+                    listOf()
+                }
+            } else {
                 listOf()
             }
 
-            // Load message counts for cached conversations
-            conversations.forEach { conversation ->
-                try {
-                    conversation.messageCount = messagesDB.getThreadMessageCount(conversation.threadId)
-                } catch (_: Exception) {
-                    conversation.messageCount = 0
+            if (shouldUseCached) {
+                // Load message counts for cached conversations
+                conversations.forEach { conversation ->
+                    try {
+                        conversation.messageCount = messagesDB.getThreadMessageCount(conversation.threadId)
+                    } catch (_: Exception) {
+                        conversation.messageCount = 0
+                    }
                 }
             }
 
             runOnUiThread {
                 setupConversations(conversations, cached = true)
-                getNewConversations(
-                    (conversations + archived).toMutableList() as ArrayList<Conversation>
-                )
+                getNewConversations((conversations + archived).toMutableList() as ArrayList<Conversation>)
             }
-            conversations.forEach {
-                clearExpiredScheduledMessages(it.threadId)
+            if (shouldUseCached) {
+                conversations.forEach {
+                    clearExpiredScheduledMessages(it.threadId)
+                }
             }
         }
     }
