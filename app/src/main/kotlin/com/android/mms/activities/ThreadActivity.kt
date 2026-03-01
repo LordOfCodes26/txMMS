@@ -1204,14 +1204,18 @@ class ThreadActivity : SimpleActivity() {
     }
 
     private fun updateAvailableMessageCountForCurrentSim() {
-        val slotId = getCurrentSimSlotId()
+        val slotId = FeeInfoUtils.getCurrentSimSlotId(
+            context = this,
+            availableSIMCards = availableSIMCards,
+            currentSIMCardIndex = currentSIMCardIndex
+        )
         if (slotId == null) {
             binding.messageHolder.threadAvailableMessageCount.beGone()
             return
         }
 
         ensureBackgroundThread {
-            val smsCount = getAvailableSmsCountForSlot(slotId)
+            val smsCount = FeeInfoUtils.getAvailableSmsCountForSlot(this, slotId)
             runOnUiThread {
                 val countView = binding.messageHolder.threadAvailableMessageCount
                 if (smsCount == null) {
@@ -1222,40 +1226,6 @@ class ThreadActivity : SimpleActivity() {
                     countView.beVisible()
                 }
             }
-        }
-    }
-
-    @SuppressLint("MissingPermission")
-    private fun getCurrentSimSlotId(): Int? {
-        val activeSIMs = subscriptionManagerCompat().activeSubscriptionInfoList ?: return null
-        if (activeSIMs.isEmpty()) return null
-
-        val selectedSubscriptionId = availableSIMCards.getOrNull(currentSIMCardIndex)?.subscriptionId
-            ?: SmsManager.getDefaultSmsSubscriptionId()
-        return activeSIMs.firstOrNull { it.subscriptionId == selectedSubscriptionId }?.simSlotIndex
-            ?: activeSIMs.firstOrNull()?.simSlotIndex
-            ?: currentSIMCardIndex
-    }
-
-    private fun getAvailableSmsCountForSlot(slotId: Int): Int? {
-        return try {
-            val allUri = Uri.parse("content://com.android.dialer.feeinfo/fee_info")
-            contentResolver.query(allUri, null, null, null, null)?.use { cursor ->
-                val slotIdColumn = cursor.getColumnIndex("slot_id")
-                val smsColumn = cursor.getColumnIndex("sms")
-                if (slotIdColumn == -1 || smsColumn == -1) {
-                    return null
-                }
-
-                while (cursor.moveToNext()) {
-                    if (cursor.getInt(slotIdColumn) == slotId) {
-                        return cursor.getInt(smsColumn)
-                    }
-                }
-                null
-            }
-        } catch (_: Exception) {
-            null
         }
     }
 
