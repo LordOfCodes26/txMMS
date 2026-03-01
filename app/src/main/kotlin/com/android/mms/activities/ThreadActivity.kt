@@ -6,9 +6,12 @@ import android.annotation.SuppressLint
 import android.app.AlarmManager
 import android.app.UiModeManager
 import android.content.ActivityNotFoundException
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
 import android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
 import android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+import android.content.IntentFilter
 import android.content.res.ColorStateList
 import android.graphics.Color
 import android.media.AudioManager
@@ -120,6 +123,14 @@ class ThreadActivity : SimpleActivity() {
     private var isSpeechToTextAvailable = false
     private var expandedMessageFragment: com.android.mms.fragments.ExpandedMessageFragment? = null
     private var messageHolderHelper: MessageHolderHelper? = null
+    private var isFeeInfoReceiverRegistered = false
+    private val feeInfoReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            if (intent.action == ACTION_FEE_INFO_SET) {
+                updateAvailableMessageCountForCurrentSim()
+            }
+        }
+    }
 
     private val binding by viewBinding(ActivityThreadBinding::inflate)
 
@@ -261,6 +272,11 @@ class ThreadActivity : SimpleActivity() {
 //        binding.messageHolder.attachmentPickerHolder.setBackgroundColor(bottomBarColor)
     }
 
+    override fun onStart() {
+        super.onStart()
+        registerFeeInfoReceiverIfNeeded()
+    }
+
     override fun onPause() {
         super.onPause()
         saveDraftMessage()
@@ -270,6 +286,7 @@ class ThreadActivity : SimpleActivity() {
 
     override fun onStop() {
         super.onStop()
+        unregisterFeeInfoReceiverIfNeeded()
         saveDraftMessage()
     }
 
@@ -284,8 +301,26 @@ class ThreadActivity : SimpleActivity() {
 //    }
 
     override fun onDestroy() {
+        unregisterFeeInfoReceiverIfNeeded()
         super.onDestroy()
         bus?.unregister(this)
+    }
+
+    @SuppressLint("UnspecifiedRegisterReceiverFlag")
+    private fun registerFeeInfoReceiverIfNeeded() {
+        if (isFeeInfoReceiverRegistered) return
+        runCatching {
+            registerReceiver(feeInfoReceiver, IntentFilter(ACTION_FEE_INFO_SET))
+            isFeeInfoReceiverRegistered = true
+        }
+    }
+
+    private fun unregisterFeeInfoReceiverIfNeeded() {
+        if (!isFeeInfoReceiverRegistered) return
+        runCatching {
+            unregisterReceiver(feeInfoReceiver)
+        }
+        isFeeInfoReceiverRegistered = false
     }
 
     private fun initTheme() {
@@ -2090,6 +2125,7 @@ class ThreadActivity : SimpleActivity() {
     }
 
     companion object {
+        private const val ACTION_FEE_INFO_SET = "com.chonha.total.action.ACTION_FEE_INFO_SET"
         const val TYPE_EDIT = 14
         const val TYPE_SEND = 15
         const val TYPE_DELETE = 16
