@@ -42,6 +42,7 @@ class SettingsActivity : SimpleActivity() {
     private var blockedNumbersAtPause = -1
     private var recycleBinMessages = 0
     private var currentlyPlayingRingtone: android.media.Ringtone? = null
+    private var isRebindingSettings = false
     private val messagesFileType = "application/json"
     private val messageImportFileTypes = buildList {
         add("application/json")
@@ -241,6 +242,7 @@ class SettingsActivity : SimpleActivity() {
 
     override fun onResume() {
         super.onResume()
+        isRebindingSettings = true
         stopCurrentlyPlayingRingtone()
         setupSettingsTopAppBar()
 
@@ -390,6 +392,13 @@ class SettingsActivity : SimpleActivity() {
             }
 
             settingsMenu.toolbar?.menu?.let { updateMenuItemColors(it) }
+        }
+        isRebindingSettings = false
+    }
+
+    private fun setNeedRestartIfUserAction() {
+        if (!isRebindingSettings) {
+            config.needRestart = true
         }
     }
 
@@ -650,7 +659,7 @@ class SettingsActivity : SimpleActivity() {
                                 if (newValue == 2) com.goodwy.commons.R.drawable.squircle_bg
                                 else com.goodwy.commons.R.drawable.ic_circle_filled
                             )
-                            config.needRestart = true
+                            setNeedRestartIfUserAction()
                         }
                     }
                 }
@@ -803,7 +812,7 @@ class SettingsActivity : SimpleActivity() {
         settingsUseSpeechToText.isChecked = config.useSpeechToText
         settingsUseSpeechToText.setOnCheckedChangeListener { isChecked ->
             config.useSpeechToText = isChecked
-            config.needRestart = true
+            setNeedRestartIfUserAction()
         }
         settingsUseSpeechToTextHolder.setOnClickListener {
             settingsUseSpeechToText.toggle()
@@ -833,7 +842,7 @@ class SettingsActivity : SimpleActivity() {
         settingsShowPhoneNumber.isChecked = config.showPhoneNumber
         settingsShowPhoneNumber.setOnCheckedChangeListener { isChecked ->
             config.showPhoneNumber = isChecked
-            config.needRestart = true
+            setNeedRestartIfUserAction()
         }
         settingsShowPhoneNumberHolder.setOnClickListener {
             settingsShowPhoneNumber.toggle()
@@ -1118,7 +1127,7 @@ class SettingsActivity : SimpleActivity() {
             settingsUseSwipeToAction.isChecked = config.useSwipeToAction
             settingsUseSwipeToAction.setOnCheckedChangeListener { isChecked ->
                 config.useSwipeToAction = isChecked
-                config.needRestart = true
+                setNeedRestartIfUserAction()
                 updateSwipeToActionVisible()
             }
             settingsUseSwipeToActionHolder.setOnClickListener {
@@ -1146,7 +1155,7 @@ class SettingsActivity : SimpleActivity() {
             settingsSwipeVibration.isChecked = config.swipeVibration
             settingsSwipeVibration.setOnCheckedChangeListener { isChecked ->
                 config.swipeVibration = isChecked
-                config.needRestart = true
+                setNeedRestartIfUserAction()
             }
             settingsSwipeVibrationHolder.setOnClickListener {
                 settingsSwipeVibration.toggle()
@@ -1159,7 +1168,7 @@ class SettingsActivity : SimpleActivity() {
             settingsSwipeRipple.isChecked = config.swipeRipple
             settingsSwipeRipple.setOnCheckedChangeListener { isChecked ->
                 config.swipeRipple = isChecked
-                config.needRestart = true
+                setNeedRestartIfUserAction()
             }
             settingsSwipeRippleHolder.setOnClickListener {
                 settingsSwipeRipple.toggle()
@@ -1194,7 +1203,7 @@ class SettingsActivity : SimpleActivity() {
                 ?: throw IllegalStateException("mainBlurTarget not found")
             RadioGroupIconDialog(this@SettingsActivity, items, config.swipeRightAction, title, blurTarget = blurTarget) {
                 config.swipeRightAction = it as Int
-                config.needRestart = true
+                setNeedRestartIfUserAction()
                 settingsSwipeRightAction.text = getSwipeActionText(false)
                 settingsSkipArchiveConfirmationHolder.beVisibleIf(
                     (config.swipeLeftAction == SWIPE_ACTION_ARCHIVE || config.swipeRightAction == SWIPE_ACTION_ARCHIVE)
@@ -1240,7 +1249,7 @@ class SettingsActivity : SimpleActivity() {
                     ?: throw IllegalStateException("mainBlurTarget not found")
                 RadioGroupIconDialog(this@SettingsActivity, items, config.swipeLeftAction, title, blurTarget = blurTarget) {
                     config.swipeLeftAction = it as Int
-                    config.needRestart = true
+                    setNeedRestartIfUserAction()
                     settingsSwipeLeftAction.text = getSwipeActionText(true)
                     settingsSkipArchiveConfirmationHolder.beVisibleIf(
                         (config.swipeLeftAction == SWIPE_ACTION_ARCHIVE || config.swipeRightAction == SWIPE_ACTION_ARCHIVE)
@@ -1406,7 +1415,7 @@ class SettingsActivity : SimpleActivity() {
         settingsShowDividers.isChecked = config.useDividers
         settingsShowDividers.setOnCheckedChangeListener { isChecked ->
             config.useDividers = isChecked
-            config.needRestart = true
+            setNeedRestartIfUserAction()
         }
         settingsShowDividersHolder.setOnClickListener {
             settingsShowDividers.toggle()
@@ -1418,7 +1427,7 @@ class SettingsActivity : SimpleActivity() {
         settingsShowContactThumbnails.setOnCheckedChangeListener { isChecked ->
             config.showContactThumbnails = isChecked
             settingsContactThumbnailsSizeHolder.beVisibleIf(config.showContactThumbnails)
-            config.needRestart = true
+            setNeedRestartIfUserAction()
         }
         settingsShowContactThumbnailsHolder.setOnClickListener {
             settingsShowContactThumbnails.toggle()
@@ -1445,7 +1454,7 @@ class SettingsActivity : SimpleActivity() {
                 RadioGroupDialog(this@SettingsActivity, items, config.contactThumbnailsSize, com.goodwy.strings.R.string.contact_thumbnails_size, blurTarget = blurTarget) {
                     config.contactThumbnailsSize = it as Int
                     settingsContactThumbnailsSize.text = getContactThumbnailsSizeText()
-                    config.needRestart = true
+                    setNeedRestartIfUserAction()
                 }
             } else {
                 RxAnimation.from(settingsContactThumbnailsSizeHolder)
@@ -1470,7 +1479,7 @@ class SettingsActivity : SimpleActivity() {
         settingsRelativeDate.isChecked = config.useRelativeDate
         settingsRelativeDate.setOnCheckedChangeListener { isChecked ->
             config.useRelativeDate = isChecked
-            config.needRestart = true
+            setNeedRestartIfUserAction()
         }
         settingsRelativeDateHolder.setOnClickListener {
             settingsRelativeDate.toggle()
@@ -1481,7 +1490,7 @@ class SettingsActivity : SimpleActivity() {
         settingsUnreadAtTop.isChecked = config.unreadAtTop
         settingsUnreadAtTop.setOnCheckedChangeListener { isChecked ->
             config.unreadAtTop = isChecked
-            config.needRestart = true
+            setNeedRestartIfUserAction()
         }
         settingsUnreadAtTopHolder.setOnClickListener {
             settingsUnreadAtTop.toggle()
@@ -1504,7 +1513,7 @@ class SettingsActivity : SimpleActivity() {
             RadioGroupIconDialog(this@SettingsActivity, items, config.linesCount, com.goodwy.strings.R.string.lines_count, blurTarget = blurTarget) {
                 config.linesCount = it as Int
                 settingsLinesCount.text = it.toString()
-                config.needRestart = true
+                setNeedRestartIfUserAction()
             }
         }
     }
@@ -1522,7 +1531,7 @@ class SettingsActivity : SimpleActivity() {
             RadioGroupIconDialog(this@SettingsActivity, items, config.unreadIndicatorPosition, com.goodwy.strings.R.string.unread_indicator_position, blurTarget = blurTarget) {
                 config.unreadIndicatorPosition = it as Int
                 settingsUnreadIndicatorPosition.text = getUnreadIndicatorPositionText()
-                config.needRestart = true
+                setNeedRestartIfUserAction()
             }
         }
     }
@@ -1538,7 +1547,7 @@ class SettingsActivity : SimpleActivity() {
         settingsHideBarWhenScroll.isChecked = config.hideTopBarWhenScroll
         settingsHideBarWhenScroll.setOnCheckedChangeListener { isChecked ->
             config.hideTopBarWhenScroll = isChecked
-            config.needRestart = true
+            setNeedRestartIfUserAction()
         }
         settingsHideBarWhenScrollHolder.setOnClickListener {
             settingsHideBarWhenScroll.toggle()
@@ -1549,7 +1558,7 @@ class SettingsActivity : SimpleActivity() {
         settingsChangeColourTopBar.isChecked = config.changeColourTopBar
         settingsChangeColourTopBar.setOnCheckedChangeListener { isChecked ->
             config.changeColourTopBar = isChecked
-            config.needRestart = true
+            setNeedRestartIfUserAction()
         }
         settingsChangeColourTopBarHolder.setOnClickListener {
             settingsChangeColourTopBar.toggle()
@@ -1561,7 +1570,7 @@ class SettingsActivity : SimpleActivity() {
         settingsColoredContacts.setOnCheckedChangeListener { isChecked ->
             config.useColoredContacts = isChecked
             settingsContactColorListHolder.beVisibleIf(config.useColoredContacts)
-            config.needRestart = true
+            setNeedRestartIfUserAction()
         }
         settingsColoredContactsHolder.setOnClickListener {
             settingsColoredContacts.toggle()
@@ -1593,7 +1602,7 @@ class SettingsActivity : SimpleActivity() {
                     if (config.contactColorList != newValue) {
                         config.contactColorList = newValue
                         settingsContactColorListIcon.setImageResource(getContactsColorListIcon(config.contactColorList))
-                        config.needRestart = true
+                        setNeedRestartIfUserAction()
                     }
                 }
             }
