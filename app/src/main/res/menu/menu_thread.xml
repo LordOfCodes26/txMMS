@@ -4,11 +4,6 @@
     xmlns:tools="http://schemas.android.com/tools"
     tools:ignore="AppCompatResource,AlwaysShowAction">
     <item
-        android:id="@+id/dial_number"
-        android:icon="@drawable/ic_phone_vector"
-        android:title="@string/dial_number"
-        android:showAsAction="collapseActionView|always" />
-    <item
         android:id="@+id/conversation_details"
         android:icon="@drawable/ic_info_vector"
         android:title="@string/conversation_details"
@@ -46,7 +41,7 @@
         android:id="@+id/unarchive"
         android:icon="@drawable/ic_unarchive_vector"
         android:title="@string/unarchive"
-        android:showAsAction="ifRoom" />
+        android:showAsAction="never" />
     <item
         android:id="@+id/delete"
         android:icon="@drawable/ic_delete_outline"

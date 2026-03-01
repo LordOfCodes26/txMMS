@@ -45,7 +45,6 @@ import android.widget.Toast
 import androidx.annotation.StringRes
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.net.toUri
-import androidx.core.view.MenuItemCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -362,7 +361,7 @@ class ThreadActivity : SimpleActivity() {
             if (barContainer != null) {
                 val bottomBarLp = barContainer.layoutParams as ViewGroup.MarginLayoutParams
                 val bottomOffset = dp(3).toInt()
-                val appBarHeightPx = resources.getDimensionPixelSize(com.goodwy.commons.R.dimen.normal_app_bar_height)
+                val appBarHeightPx = resources.getDimensionPixelSize(com.goodwy.commons.R.dimen.blur_app_bar_height)
 
                 val messagesList = binding.threadMessagesList
                 if (ime.bottom > 0) {
@@ -396,6 +395,10 @@ class ThreadActivity : SimpleActivity() {
     private fun refreshMenuItems() {
         val firstPhoneNumber = participants.firstOrNull()?.phoneNumbers?.firstOrNull()?.value
         val archiveAvailable = config.isArchiveAvailable
+        val isGroupConversation = participants.size > 1 || conversation?.isGroupConversation == true
+        val isDialVisible = !isGroupConversation && participants.size == 1 && !isSpecialNumber() && !isRecycleBin
+
+        binding.threadToolbar.setActionMenuItemVisibility(R.id.dial_number, isDialVisible)
         binding.threadToolbar.menu.apply {
             findItem(R.id.delete)?.isVisible = threadItems.isNotEmpty()
             findItem(R.id.select_messages)?.isVisible = threadItems.isNotEmpty()
@@ -407,7 +410,6 @@ class ThreadActivity : SimpleActivity() {
             findItem(R.id.rename_conversation)?.isVisible = participants.size > 1 && conversation != null && !isRecycleBin
             findItem(R.id.conversation_details)?.isVisible = conversation != null && !isRecycleBin
             findItem(R.id.block_number)?.isVisible = !isRecycleBin
-            findItem(R.id.dial_number)?.isVisible = participants.size == 1 && !isSpecialNumber() && !isRecycleBin
             findItem(R.id.mark_as_unread)?.isVisible = threadItems.isNotEmpty() && !isRecycleBin
 
             // allow saving number in cases when we don't have it stored yet and it is a casual readable number
@@ -428,46 +430,62 @@ class ThreadActivity : SimpleActivity() {
         val topBarColor = getColoredMaterialStatusBarColor()
         val contrastColor = topBarColor.getContrastColor()
         val itemColor = if (baseConfig.topAppBarColorIcon) getProperPrimaryColor() else contrastColor
-        
-        val toolbar = binding.threadToolbar
-        val menu = toolbar.menu
-        for (i in 0 until menu.size()) {
+
+        // Tint icons shown in the action bar (dial + more).
+        val actionMenu = binding.threadToolbar.actionMenu
+        for (i in 0 until actionMenu.size()) {
             try {
-                menu.getItem(i)?.icon?.setTint(itemColor)
+                actionMenu.getItem(i)?.icon?.setTint(itemColor)
             } catch (_: Exception) {
             }
         }
     }
 
     private fun setupOptionsMenu() {
-        // Explicitly inflate menu to ensure it's ready (XML inflation happens asynchronously)
-        binding.threadToolbar.inflateMenu(R.menu.menu_thread)
-        // Force dial_number to show as action (like MainActivity search item) so CustomToolbar shows it in the bar
-        binding.threadToolbar.menu.findItem(R.id.dial_number)?.let { item ->
-            MenuItemCompat.setShowAsAction(item, MenuItemCompat.SHOW_AS_ACTION_ALWAYS)
-        }
+        // Match MainActivity: keep action bar lean and move thread actions under "more".
+        binding.threadToolbar.inflateMenu(R.menu.action_menu_thread)
         binding.threadToolbar.invalidateMenu()
         binding.threadToolbar.setOnMenuItemClickListener { menuItem ->
             if (participants.isEmpty()) {
                 return@setOnMenuItemClickListener true
             }
 
-            when (menuItem.itemId) {
-                R.id.block_number -> blockNumber()
-                R.id.delete -> askConfirmDelete()
-                R.id.restore -> askConfirmRestoreAll()
-                R.id.archive -> archiveConversation()
-                R.id.unarchive -> unarchiveConversation()
-                R.id.rename_conversation -> renameConversation()
-                R.id.conversation_details -> launchConversationDetails(threadId)
-                R.id.add_number_to_contact -> addNumberToContact()
-                R.id.dial_number -> dialNumber()
-                R.id.mark_as_unread -> markAsUnread()
-                R.id.select_messages -> getOrCreateThreadAdapter().startActMode()
-                else -> return@setOnMenuItemClickListener false
-            }
-            return@setOnMenuItemClickListener true
+            return@setOnMenuItemClickListener handleThreadMenuClick(menuItem)
         }
+        binding.threadToolbar.setPopupForMoreItem(
+            R.id.more,
+            R.menu.menu_thread,
+            binding.mainBlurTarget,
+            object : android.view.MenuItem.OnMenuItemClickListener {
+                override fun onMenuItemClick(item: android.view.MenuItem): Boolean {
+                    return handleThreadMenuClick(item)
+                }
+            }
+        )
+    }
+
+    private fun handleThreadMenuClick(menuItem: android.view.MenuItem): Boolean {
+        when (menuItem.itemId) {
+            R.id.block_number -> blockNumber()
+            R.id.delete -> askConfirmDelete()
+            R.id.restore -> askConfirmRestoreAll()
+            R.id.archive -> archiveConversation()
+            R.id.unarchive -> unarchiveConversation()
+            R.id.rename_conversation -> renameConversation()
+            R.id.conversation_details -> launchConversationDetails(threadId)
+            R.id.add_number_to_contact -> addNumberToContact()
+            R.id.dial_number -> {
+                val isGroupConversation = participants.size > 1 || conversation?.isGroupConversation == true
+                if (isGroupConversation || participants.isEmpty() || isRecycleBin || isSpecialNumber()) {
+                    return false
+                }
+                dialNumber()
+            }
+            R.id.mark_as_unread -> markAsUnread()
+            R.id.select_messages -> getOrCreateThreadAdapter().startActMode()
+            else -> return false
+        }
+        return true
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, resultData: Intent?) {

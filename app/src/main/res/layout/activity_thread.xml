@@ -95,7 +95,7 @@
         <com.google.android.material.appbar.AppBarLayout
             android:id="@+id/threadAppbar"
             android:layout_width="match_parent"
-            android:layout_height="@dimen/normal_app_bar_height"
+            android:layout_height="@dimen/blur_app_bar_height"
             android:paddingBottom="5dp"
             android:background="@color/transparent"
             tools:layout_behavior="com.google.android.material.appbar.AppBarLayout$ScrollingViewBehavior">
@@ -103,7 +103,7 @@
             <com.google.android.material.appbar.CollapsingToolbarLayout
                 android:id="@+id/collapsing_toolbar"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="match_parent"
                 app:contentScrim="@color/transparent"
                 app:statusBarScrim="@color/transparent"
                 app:collapsedTitleGravity="center"
@@ -114,10 +114,10 @@
                 <com.goodwy.commons.views.CustomToolbar
                     android:id="@+id/thread_toolbar"
                     android:layout_width="match_parent"
-                    android:layout_height="@dimen/tx_top_bar_toolbar_height"
+                    android:layout_height="wrap_content"
                     android:layout_marginTop="@dimen/tx_top_bar_toolbar_margin_top"
                     android:background="@color/transparent"
-                    android:gravity="bottom"
+                    android:gravity="center"
                     android:visibility="visible"
                     app:layout_collapseMode="pin"
                     app:popupTheme="@style/ThemeOverlay.AppCompat.Light" />
@@ -149,7 +149,7 @@
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
                         android:gravity="center_horizontal"
-                        android:layout_marginBottom="@dimen/small_margin"
+                        app:layout_constraintTop_toTopOf="parent"
                         app:layout_constraintBottom_toBottomOf="parent"
                         app:layout_constraintStart_toStartOf="parent"
                         app:layout_constraintEnd_toEndOf="parent"
@@ -162,6 +162,7 @@
                             android:background="@drawable/ripple_all_corners"
                             android:paddingStart="12dp"
                             android:paddingEnd="12dp"
+                            android:layout_marginTop="12dp"
                             android:maxLines="2"
                             android:gravity="center"
                             android:textSize="@dimen/tx_date_picker_title_text_size"
