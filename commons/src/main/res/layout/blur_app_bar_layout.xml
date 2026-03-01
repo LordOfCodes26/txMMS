@@ -16,7 +16,6 @@
         app:titleEnabled="true">
 
         <LinearLayout
-            android:layout_marginStart="@dimen/tx_top_bar_margin_left"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:orientation="vertical"
@@ -28,9 +27,10 @@
                 android:id="@+id/tv_title"
                 android:layout_width="wrap_content"
                 android:layout_height="@dimen/tx_top_bar_toolbar_margin_top"
-                android:layout_gravity="bottom"
+                android:layout_gravity="center|start"
                 android:gravity="center|start"
-                android:layout_marginBottom="2dp"
+                android:layout_marginStart="@dimen/tx_top_bar_margin_left"
+                android:layout_marginBottom="8dp"
                 android:textColor="@color/tx_title_text"
                 android:textSize="@dimen/tx_bigger_text_size" />
         </LinearLayout>
@@ -38,23 +38,15 @@
         <com.goodwy.commons.views.CustomToolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
-            android:layout_height="@dimen/tx_top_bar_toolbar_height"
+            android:layout_height="?attr/actionBarSize"
             android:layout_marginTop="@dimen/tx_top_bar_toolbar_margin_top"
+            android:layout_marginEnd="@dimen/small_margin"
+            android:paddingBottom="@dimen/tx_bottom_bar_icon_padding"
             android:background="@android:color/transparent"
             android:gravity="bottom"
             android:visibility="visible"
             app:layout_collapseMode="pin"
             app:popupTheme="@style/ThemeOverlay.AppCompat.Light" />
-
-        <FrameLayout
-            android:id="@+id/search_bar"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:layout_gravity="bottom|center"
-            app:cardCornerRadius="3dp"
-            android:background="#00FFFFFF">
-
-        </FrameLayout>
 
     </com.google.android.material.appbar.CollapsingToolbarLayout>
 

@@ -67,7 +67,7 @@ class BlurAppBarLayout @JvmOverloads constructor(
             val topMargin = lp?.topMargin ?: 0
             val bottomMargin = lp?.bottomMargin ?: 0
             val toolbarHeight = tb.height.takeIf { it > 0 } ?: tb.measuredHeight
-            val minHeight = (toolbarHeight + topMargin + bottomMargin).coerceAtLeast(0)
+            val minHeight = (toolbarHeight + topMargin).coerceAtLeast(0)
             if (minHeight > 0) {
                 collapsing.minimumHeight = minHeight
             } else {
