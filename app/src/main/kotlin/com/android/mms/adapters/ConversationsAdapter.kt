@@ -1,5 +1,6 @@
 package com.android.mms.adapters
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Build
 import android.os.Handler
@@ -59,6 +60,36 @@ class ConversationsAdapter(
 
     override fun getActionMenuId() = R.menu.cab_conversations
 
+    @SuppressLint("NotifyDataSetChanged")
+    override fun onActionModeCreated() {
+        // Keep select mode visuals consistent with Dialer action mode.
+        val useSurfaceColor = activity.isDynamicTheme() && !activity.isSystemInDarkMode()
+        val cabBackgroundColor = if (useSurfaceColor) {
+            activity.getSurfaceColor()
+        } else {
+            activity.getProperBackgroundColor()
+        }
+
+        val actModeBar = actMode?.customView?.parent as? View
+        actModeBar?.setBackgroundColor(cabBackgroundColor)
+
+        val toolbar = actMode?.customView as? com.goodwy.commons.views.CustomActionModeToolbar
+        toolbar?.updateTextColorForBackground(cabBackgroundColor)
+        toolbar?.updateColorsForBackground(cabBackgroundColor)
+
+        if (activity is com.goodwy.commons.activities.EdgeToEdgeActivity) {
+            activity.window.statusBarColor = cabBackgroundColor
+            activity.window.setSystemBarsAppearance(cabBackgroundColor)
+        }
+
+        notifyDataSetChanged()
+    }
+
+    @SuppressLint("NotifyDataSetChanged")
+    override fun onActionModeDestroyed() {
+        notifyDataSetChanged()
+    }
+
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         super.onBindViewHolder(holder, position)
         
@@ -71,6 +102,10 @@ class ConversationsAdapter(
     }
 
     private fun showPopupMenu(conversation: Conversation, view: View) {
+        // Safety checks to prevent crashes
+        if (activity.isDestroyed || activity.isFinishing) {
+            return
+        }
         // Select the conversation first (for compatibility with existing logic)
         val position = currentList.indexOf(conversation)
         if (position != -1) {

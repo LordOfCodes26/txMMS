@@ -42,7 +42,7 @@
             android:layout_marginRight='@dimen/big_margin'
             android:layout_alignParentRight='true'
             android:layout_centerVertical='true'
-            android:src="@drawable/ic_delete_outline"
+            android:src="@drawable/ic_cmn_delete"
             android:contentDescription="@null"/>
     </RelativeLayout>
 
@@ -209,8 +209,20 @@
                 android:layout_height="12dp"
                 android:gravity="center_vertical"
                 android:alpha="0.4"
+                android:layout_marginEnd="@dimen/small_margin"
                 android:src="@drawable/ic_chevron_right_vector"
                 android:contentDescription="@null"
+                app:layout_constraintTop_toTopOf="@+id/conversationAddress"
+                app:layout_constraintBottom_toBottomOf="@+id/conversationAddress"
+                app:layout_constraintEnd_toStartOf="@+id/conversationCheckbox" />
+
+            <com.goodwy.commons.views.MyAppCompatCheckbox
+                android:id="@+id/conversationCheckbox"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:visibility="gone"
+                android:clickable="true"
+                android:focusable="false"
                 app:layout_constraintTop_toTopOf="@+id/conversationAddress"
                 app:layout_constraintBottom_toBottomOf="@+id/conversationAddress"
                 app:layout_constraintEnd_toEndOf="parent" />

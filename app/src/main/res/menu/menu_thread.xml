@@ -44,7 +44,7 @@
         android:showAsAction="never" />
     <item
         android:id="@+id/delete"
-        android:icon="@drawable/ic_delete_outline"
+        android:icon="@drawable/ic_cmn_delete"
         android:title="@string/delete"
         android:showAsAction="never" />
 

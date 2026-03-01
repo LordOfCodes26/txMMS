@@ -299,7 +299,6 @@ class MainActivity : SimpleActivity() {
                     binding.mainMenu.toolbar?.collapseSearch()
                     isSearchOpen = false
                 }
-                binding.mainMenu.setExpanded(true)
                 getOrCreateConversationsAdapter().startActMode()
             }
 //            R.id.show_recycle_bin -> launchRecycleBin()

@@ -161,7 +161,7 @@ abstract class BaseConversationsAdapter(
             allowSingleClick = true,
             allowLongClick = true
         ) { itemView, _ ->
-            setupView(itemView, conversation)
+            setupView(itemView, conversation, holder)
         }
         bindViewHolder(holder)
     }
@@ -173,6 +173,11 @@ abstract class BaseConversationsAdapter(
             holder.itemView.isSelected = payload.selected
             val binding = ItemConversationBinding.bind(holder.itemView)
             binding.swipeView.isSelected = payload.selected
+            binding.conversationFrameSelect.isSelected = payload.selected
+            val isInActionMode = actModeCallback.isSelectable
+            binding.conversationCheckbox.beVisibleIf(isInActionMode)
+            binding.conversationCheckbox.isChecked = payload.selected
+            binding.conversationChevron.beGoneIf(isInActionMode)
         } else {
             super.onBindViewHolder(holder, position, payloads)
         }
@@ -195,19 +200,27 @@ abstract class BaseConversationsAdapter(
         }
     }
 
-    private fun setupView(view: View, conversation: Conversation) {
+    private fun setupView(view: View, conversation: Conversation, holder: ViewHolder) {
         ItemConversationBinding.bind(view).apply {
             conversationFrameSelect.setupViewBackground(activity)
+            // Ensure tapping anywhere on the visible row toggles selection in act mode.
+            conversationFrameSelect.setOnClickListener {
+                holder.viewClicked(conversation)
+            }
+            val isInActionMode = actModeCallback.isSelectable
+            val isRowSelected = selectedKeys.contains(conversation.hashCode())
             val smsDraft = drafts[conversation.threadId]
             draftIndicator.beVisibleIf(!smsDraft.isNullOrEmpty())
             draftIndicator.setTextColor(properPrimaryColor)
 
             if (activity.isDynamicTheme() && !activity.isSystemInDarkMode()) {
                 conversationFrame.setBackgroundColor(surfaceColor)
-            } else conversationFrame.setBackgroundColor(backgroundColor)
+            } else {
+                conversationFrame.setBackgroundColor(backgroundColor)
+            }
 
             draftClear.apply {
-                beVisibleIf(smsDraft != null)
+                beVisibleIf(smsDraft != null && !isInActionMode)
                 setColorFilter(properPrimaryColor)
                 setOnClickListener {
                     ensureBackgroundThread {
@@ -219,7 +232,19 @@ abstract class BaseConversationsAdapter(
 
             if (currentList.last() == conversation || !activity.config.useDividers) divider.beInvisible() else divider.beVisible()
 
-            swipeView.isSelected = selectedKeys.contains(conversation.hashCode())
+            swipeView.isSelected = isRowSelected
+            conversationFrameSelect.isSelected = isRowSelected
+            conversationCheckbox.apply {
+                beVisibleIf(isInActionMode)
+                isChecked = isRowSelected
+                setColors(textColor, properPrimaryColor, backgroundColor)
+                setOnClickListener {
+                    if (isInActionMode) {
+                        holder.itemView.performClick()
+                    }
+                }
+            }
+            conversationChevron.beGoneIf(isInActionMode)
 
             val title = conversation.title
             val displayTitle = if (conversation.messageCount > 0) {
