@@ -1088,6 +1088,18 @@ fun formatterUnicodeWrap(text: String): String {
 
 // Phone number format and location extensions
 
+private fun String.normalizeForLocationLookup(): String {
+    val normalized = this.normalizePhoneNumber()
+    if (normalized.isEmpty()) return normalized
+
+    val noPlus = normalized.removePrefix("+")
+    return when {
+        noPlus.startsWith("0095") && noPlus.length > 4 -> "0${noPlus.substring(4)}"
+        noPlus.startsWith("95") && noPlus.length > 2 -> "0${noPlus.substring(2)}"
+        else -> noPlus
+    }
+}
+
 /**
  * Extracts prefix and district from phone number using format matching and returns location from database (synchronous)
  * Uses the same format matching logic as formatting to accurately extract prefix and district code
@@ -1104,7 +1116,7 @@ fun formatterUnicodeWrap(text: String): String {
  * @return Location string (format: "City" or "City - District") if prefix found, null otherwise
  */
 fun String.getLocationByPrefix(context: Context): String? {
-    val normalizedNumber = this.normalizePhoneNumber()
+    val normalizedNumber = this.normalizeForLocationLookup()
 
     if (normalizedNumber.length < 2) {
         return null
@@ -1115,10 +1127,15 @@ fun String.getLocationByPrefix(context: Context): String? {
         val formatDao = db.PhoneNumberFormatDao()
 
         val allFormats = formatDao.getAllFormats()
-        val sortedFormats = allFormats.sortedByDescending { it.prefixLength }
+        val sortedFormats = allFormats.sortedWith(
+            compareByDescending<PhoneNumberFormat> { it.prefixLength }
+                .thenByDescending { PhoneNumberFormatHelper.getPatternSpecificity(it.districtCodePattern) }
+                .thenByDescending { it.districtCodeLength }
+        )
 
         var matchedPrefix: String? = null
         var matchedDistrictCode: String? = null
+        var matchedLocationFromFormat: String? = null
 
         for (format in sortedFormats) {
             if (normalizedNumber.length < format.prefixLength + format.districtCodeLength) {
@@ -1136,6 +1153,7 @@ fun String.getLocationByPrefix(context: Context): String? {
             if (PhoneNumberFormatHelper.matchesPattern(districtCode, format.districtCodePattern)) {
                 matchedPrefix = prefix
                 matchedDistrictCode = districtCode
+                matchedLocationFromFormat = format.description.takeIf { it.isNotBlank() }
                 break
             }
         }
@@ -1155,6 +1173,8 @@ fun String.getLocationByPrefix(context: Context): String? {
                 } else {
                     cityLocation
                 }
+            } else if (matchedLocationFromFormat != null) {
+                matchedLocationFromFormat
             } else {
                 null
             }
@@ -1201,7 +1221,7 @@ fun String.getLocationByPrefix(context: Context): String? {
  * @param callback Callback function that receives the location string (format: "City" or "City - District") or null
  */
 fun String.getLocationByPrefixAsync(context: Context, callback: (String?) -> Unit) {
-    val normalizedNumber = this.normalizePhoneNumber()
+    val normalizedNumber = this.normalizeForLocationLookup()
 
     if (normalizedNumber.length < 2) {
         callback(null)
@@ -1214,10 +1234,15 @@ fun String.getLocationByPrefixAsync(context: Context, callback: (String?) -> Uni
             val formatDao = db.PhoneNumberFormatDao()
 
             val allFormats = formatDao.getAllFormats()
-            val sortedFormats = allFormats.sortedByDescending { it.prefixLength }
+            val sortedFormats = allFormats.sortedWith(
+                compareByDescending<PhoneNumberFormat> { it.prefixLength }
+                    .thenByDescending { PhoneNumberFormatHelper.getPatternSpecificity(it.districtCodePattern) }
+                    .thenByDescending { it.districtCodeLength }
+            )
 
             var matchedPrefix: String? = null
             var matchedDistrictCode: String? = null
+            var matchedLocationFromFormat: String? = null
 
             for (format in sortedFormats) {
                 if (normalizedNumber.length < format.prefixLength + format.districtCodeLength) {
@@ -1235,6 +1260,7 @@ fun String.getLocationByPrefixAsync(context: Context, callback: (String?) -> Uni
                 if (PhoneNumberFormatHelper.matchesPattern(districtCode, format.districtCodePattern)) {
                     matchedPrefix = prefix
                     matchedDistrictCode = districtCode
+                    matchedLocationFromFormat = format.description.takeIf { it.isNotBlank() }
                     break
                 }
             }
@@ -1256,6 +1282,8 @@ fun String.getLocationByPrefixAsync(context: Context, callback: (String?) -> Uni
                     } else {
                         cityLocation
                     }
+                } else if (matchedLocationFromFormat != null) {
+                    result = matchedLocationFromFormat
                 }
             } else {
                 for (prefixLength in 4 downTo 2) {
@@ -1320,7 +1348,11 @@ fun String.formatPhoneNumberWithDistrict(context: Context): String {
         val formatDao = db.PhoneNumberFormatDao()
 
         val allFormats = formatDao.getAllFormats()
-        val sortedFormats = allFormats.sortedByDescending { it.prefixLength }
+        val sortedFormats = allFormats.sortedWith(
+            compareByDescending<PhoneNumberFormat> { it.prefixLength }
+                .thenByDescending { PhoneNumberFormatHelper.getPatternSpecificity(it.districtCodePattern) }
+                .thenByDescending { it.districtCodeLength }
+        )
 
         // Calculate maximum expected length from all formats
         // Format typically needs: prefix + district + 4 digits for NUMBER4

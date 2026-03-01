@@ -2,6 +2,7 @@ package com.goodwy.commons.dialogs
 
 import android.app.Activity
 import android.content.DialogInterface
+import android.view.Gravity
 import android.view.View
 import androidx.activity.ComponentActivity
 import androidx.appcompat.app.AlertDialog
@@ -198,6 +199,7 @@ class CustomDialogBuilder(
             val isDestroyed = (activity as? ComponentActivity)?.isDestroyed ?: false
             if (!isDestroyed) {
                 dialog.show()
+                dialog.window?.setGravity(Gravity.BOTTOM)
             }
         }
         return dialog

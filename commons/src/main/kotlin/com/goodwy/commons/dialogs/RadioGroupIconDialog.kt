@@ -1,14 +1,13 @@
 package com.goodwy.commons.dialogs
 
 import android.app.Activity
-import androidx.appcompat.app.AlertDialog
+import com.android.common.view.MDialog
 import com.goodwy.commons.R
 import com.goodwy.commons.databinding.DialogRadioGroupBinding
 import com.goodwy.commons.databinding.RadioButtonIconBinding
 import com.goodwy.commons.extensions.*
 import com.goodwy.commons.models.RadioItem
 import eightbitlab.com.blurview.BlurTarget
-import eightbitlab.com.blurview.BlurView
 
 class RadioGroupIconDialog(
     val activity: Activity,
@@ -21,7 +20,7 @@ class RadioGroupIconDialog(
     blurTarget: BlurTarget,
     val callback: (newValue: Any) -> Unit
 ) {
-    private var dialog: AlertDialog? = null
+    private var dialog: MDialog? = null
     private var wasInit = false
     private var selectedItemId = -1
 
@@ -55,16 +54,7 @@ class RadioGroupIconDialog(
             }
         }
 
-        // Setup BlurView with the provided BlurTarget
         val blurView = view.blurView
-        val decorView = activity.window.decorView
-        val windowBackground = decorView.background
-        
-        
-        blurView.setupWith(blurTarget)
-            .setFrameClearDrawable(windowBackground)
-            .setBlurRadius(16f)
-            .setBlurAutoUpdate(true)
 
         // Setup title inside BlurView
         val titleTextView = view.root.findViewById<com.goodwy.commons.views.MyTextView>(R.id.dialog_title)
@@ -106,14 +96,14 @@ class RadioGroupIconDialog(
             }
         }
 
-        val builder = activity.getAlertDialogBuilder()
-                .setOnCancelListener { cancelCallback?.invoke() }
-
-        builder.apply {
-            // Pass empty titleText to prevent setupDialogStuff from adding title outside BlurView
-            activity.setupDialogStuff(view.root, this, titleText = "") { alertDialog ->
-                dialog = alertDialog
-            }
+        activity.setupMDialogStuff(
+            view = view.root,
+            blurView = blurView,
+            blurTarget = blurTarget,
+            titleText = "",
+            cancelListener = { cancelCallback?.invoke() }
+        ) { mDialog ->
+            dialog = mDialog
         }
 
         if (selectedItemId != -1) {

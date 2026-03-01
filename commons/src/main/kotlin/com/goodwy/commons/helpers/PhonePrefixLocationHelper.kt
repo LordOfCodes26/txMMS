@@ -6,6 +6,8 @@ import com.goodwy.commons.models.PhoneDistrict
 import com.goodwy.commons.models.PhoneNumberFormat
 import com.goodwy.commons.models.PhonePrefixLocation
 import com.google.gson.Gson
+import com.google.gson.JsonElement
+import com.google.gson.annotations.SerializedName
 import com.google.gson.reflect.TypeToken
 import java.io.InputStream
 
@@ -286,6 +288,91 @@ class PhonePrefixLocationHelper(private val context: Context) {
     }
 
     /**
+     * Load location+format mappings from a single JSON file in raw folder.
+     * JSON format: [{"location": 1, "number format": "01-3XX-XXXX"}, ...]
+     *
+     * The "number format" field can contain multiple values separated by comma and/or newlines.
+     * Each parsed format is stored in phone_number_formats with description = location value.
+     */
+    fun loadUnifiedLocationFormatsFromRaw(resourceId: Int, callback: ((Int) -> Unit)? = null) {
+        ensureBackgroundThread {
+            try {
+                val inputStream: InputStream = context.resources.openRawResource(resourceId)
+                val jsonString = inputStream.bufferedReader().use { it.readText() }
+
+                val type = object : TypeToken<List<UnifiedLocationFormatData>>() {}.type
+                val records: List<UnifiedLocationFormatData> = Gson().fromJson(jsonString, type)
+
+                val phoneFormats = mutableListOf<PhoneNumberFormat>()
+                val seenPatternKeys = mutableSetOf<String>()
+                records.forEach { record ->
+                    val location = record.location?.asString?.trim().orEmpty()
+                    if (location.isEmpty()) return@forEach
+
+                    val formatTokens = record.numberFormat
+                        .split(",", "\n")
+                        .map { it.trim() }
+                        .filter { it.isNotEmpty() }
+
+                    formatTokens.forEach { rawFormat ->
+                        val normalizedFormat = rawFormat.replace(" ", "").uppercase()
+                        val sections = normalizedFormat.split("-").filter { it.isNotEmpty() }
+                        if (sections.size < 3) return@forEach
+
+                        val prefix = sections[0]
+                        val districtCodePattern = sections[1]
+                        val templateTail = sections.drop(2).joinToString("-")
+                        // Keep pattern (e.g., 3XX / 337) for matching, but use pure X placeholders in template.
+                        val districtTemplate = "X".repeat(districtCodePattern.length)
+                        val formatTemplate = "$prefix-$districtTemplate-$templateTail"
+                        val uniquePatternKey = "$prefix|$districtCodePattern"
+
+                        // Keep first mapping for a pattern to avoid later duplicate rows
+                        // overwriting location assignments.
+                        if (seenPatternKeys.contains(uniquePatternKey)) {
+                            return@forEach
+                        }
+                        seenPatternKeys.add(uniquePatternKey)
+
+                        phoneFormats.add(
+                            PhoneNumberFormat(
+                                id = null,
+                                prefix = prefix,
+                                prefixLength = prefix.length,
+                                districtCodePattern = districtCodePattern,
+                                formatTemplate = formatTemplate,
+                                districtCodeLength = districtCodePattern.length,
+                                description = location
+                            )
+                        )
+                    }
+                }
+
+                // Single-source mode: replace existing format mappings with this file's content.
+                formatDao.deleteAllFormats()
+                val inserted = if (phoneFormats.isNotEmpty()) {
+                    formatDao.insertOrUpdateFormats(phoneFormats)
+                } else {
+                    emptyList()
+                }
+
+                try {
+                    val formatter = PhoneNumberFormatManager.customFormatter
+                    if (formatter is DatabasePhoneNumberFormatter) {
+                        formatter.invalidateCache()
+                    }
+                } catch (_: Exception) {
+                }
+
+                callback?.invoke(inserted.size)
+            } catch (e: Exception) {
+                e.printStackTrace()
+                callback?.invoke(0)
+            }
+        }
+    }
+
+    /**
      * Check if formats are already loaded in the database
      */
     fun hasFormats(callback: (Boolean) -> Unit) {
@@ -322,6 +409,15 @@ class PhonePrefixLocationHelper(private val context: Context) {
         val formatTemplate: String,
         val districtCodeLength: Int,
         val description: String? = null
+    )
+
+    /**
+     * Data class for JSON parsing - unified location/format records.
+     */
+    private data class UnifiedLocationFormatData(
+        val location: JsonElement?,
+        @SerializedName("number format")
+        val numberFormat: String
     )
 }
 

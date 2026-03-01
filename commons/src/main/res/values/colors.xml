@@ -43,7 +43,7 @@
     <color name="theme_black_navigation_color">@color/theme_black_background_color</color> <!--#1b1b1b-->
 
     <!-- icon apps colors -->
-    <color name="ic_dialer">#FF15B76C</color>
+    <color name="ic_dialer">#FF38d15e</color>
     <color name="ic_contacts">#FF405B98</color>
     <color name="ic_messages">#FF0D81DE</color>
 

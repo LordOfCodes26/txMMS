@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:clipChildren="false"
+    android:clipToPadding="false">
+
+    <!-- 1. Background Image View -->
+    <ImageView
+        android:id="@+id/posterBackground"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"
+        android:contentDescription="@null" />
+
+    <!-- 2. Blur Overlay (for image backgrounds) -->
+    <View
+        android:id="@+id/posterBlurOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@android:color/transparent"
+        android:visibility="gone" />
+
+    <!-- 3. Gradient Overlay (for gradient backgrounds) -->
+    <View
+        android:id="@+id/posterGradientOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone" />
+
+    <!-- 4. Contact name TextView -->
+    <TextView
+        android:id="@+id/posterName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:textSize="48sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:textColor="@android:color/white"
+        android:shadowColor="@android:color/black"
+        android:shadowDx="0"
+        android:shadowDy="2"
+        android:shadowRadius="4"
+        android:elevation="2dp"
+        android:contentDescription="@null" />
+
+    <!-- 5. Avatar Image View (circular, 96dp) -->
+    <ImageView
+        android:id="@+id/posterAvatar"
+        android:layout_width="96dp"
+        android:layout_height="96dp"
+        android:layout_gravity="center"
+        android:scaleType="centerCrop"
+        android:background="@drawable/circle_background"
+        android:clipToOutline="true"
+        android:contentDescription="@null"
+        android:visibility="gone" />
+
+    <!-- 6. Foreground subject ImageView (must appear above name text) -->
+    <ImageView
+        android:id="@+id/posterForeground"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"
+        android:elevation="6dp"
+        android:contentDescription="@null"
+        android:visibility="gone" />
+
+</FrameLayout>

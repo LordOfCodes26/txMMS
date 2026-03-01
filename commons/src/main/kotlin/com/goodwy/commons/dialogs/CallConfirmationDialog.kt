@@ -28,6 +28,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.android.common.view.MDialog
 import com.goodwy.commons.R
 import com.goodwy.commons.activities.BaseSimpleActivity
 import com.goodwy.commons.compose.alert_dialog.*
@@ -36,24 +37,14 @@ import com.goodwy.commons.compose.theme.AppThemeSurface
 import com.goodwy.commons.databinding.DialogCallConfirmationBinding
 import com.goodwy.commons.extensions.*
 import eightbitlab.com.blurview.BlurTarget
-import eightbitlab.com.blurview.BlurView
 
 class CallConfirmationDialog(val activity: BaseSimpleActivity, private val callee: String, blurTarget: BlurTarget, private val callback: () -> Unit) {
     private var view = DialogCallConfirmationBinding.inflate(activity.layoutInflater, null, false)
+    private var dialog: MDialog? = null
 
     init {
-        // Setup BlurView with the provided BlurTarget
         val blurView = view.blurView
-        val decorView = activity.window.decorView
-        val windowBackground = decorView.background
-        
-        
-        blurView.setupWith(blurTarget)
-            .setFrameClearDrawable(windowBackground)
-            .setBlurRadius(16f)
-            .setBlurAutoUpdate(true)
 
-        // Setup title inside BlurView
         val titleTextView = view.root.findViewById<com.goodwy.commons.views.MyTextView>(R.id.dialog_title)
         val title = String.format(activity.getString(R.string.confirm_calling_person), callee)
         titleTextView?.apply {
@@ -62,42 +53,44 @@ class CallConfirmationDialog(val activity: BaseSimpleActivity, private val calle
         }
 
         view.callConfirmPhone.applyColorFilter(activity.getProperTextColor())
-        activity.getAlertDialogBuilder()
-            .apply {
-                // Pass titleText = "" to prevent setupDialogStuff from adding title outside BlurView
-                activity.setupDialogStuff(view.root, this, titleText = "") { alertDialog ->
-                    view.callConfirmPhone.apply {
-                        startAnimation(AnimationUtils.loadAnimation(activity, R.anim.shake_pulse_animation))
-                        setOnClickListener {
-                            callback.invoke()
-                            alertDialog.dismiss()
-                        }
-                    }
-
-                    val simPrimaryColor = if (activity.baseConfig.currentSIMCardIndex == 0) activity.baseConfig.simIconsColors[1] else activity.baseConfig.simIconsColors[2]
-                    val textColor = simPrimaryColor.getContrastColor()
-                    view.cancelButton.apply {
-                        val drawable = resources.getColoredDrawableWithColor(activity, R.drawable.button_gray_bg, 0xFFEB5545.toInt())
-                        background = drawable
-                        setPadding(2,2,2,2)
-                        setTextColor(textColor)
-                        setOnClickListener {
-                            alertDialog.dismiss()
-                        }
-                    }
-
-                    view.callButton.apply {
-                        val drawable = resources.getColoredDrawableWithColor(activity, R.drawable.button_gray_bg, simPrimaryColor)
-                        background = drawable
-                        setPadding(2,2,2,2)
-                        setTextColor(textColor)
-                        setOnClickListener {
-                            callback.invoke()
-                            alertDialog.dismiss()
-                        }
-                    }
+        activity.setupMDialogStuff(
+            view = view.root,
+            blurView = blurView,
+            blurTarget = blurTarget,
+            titleText = ""
+        ) { mDialog ->
+            dialog = mDialog
+            view.callConfirmPhone.apply {
+                startAnimation(AnimationUtils.loadAnimation(activity, R.anim.shake_pulse_animation))
+                setOnClickListener {
+                    callback.invoke()
+                    dialog?.dismiss()
                 }
             }
+
+            val simPrimaryColor = if (activity.baseConfig.currentSIMCardIndex == 0) activity.baseConfig.simIconsColors[1] else activity.baseConfig.simIconsColors[2]
+            val textColor = simPrimaryColor.getContrastColor()
+            view.cancelButton.apply {
+                val drawable = resources.getColoredDrawableWithColor(activity, R.drawable.button_gray_bg, 0xFFEB5545.toInt())
+                background = drawable
+                setPadding(2, 2, 2, 2)
+                setTextColor(textColor)
+                setOnClickListener {
+                    dialog?.dismiss()
+                }
+            }
+
+            view.callButton.apply {
+                val drawable = resources.getColoredDrawableWithColor(activity, R.drawable.button_gray_bg, simPrimaryColor)
+                background = drawable
+                setPadding(2, 2, 2, 2)
+                setTextColor(textColor)
+                setOnClickListener {
+                    callback.invoke()
+                    dialog?.dismiss()
+                }
+            }
+        }
     }
 }
 

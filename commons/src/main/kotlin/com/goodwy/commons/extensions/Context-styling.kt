@@ -209,6 +209,12 @@ fun getGlobalConfig(cursorLoader: CursorLoader): GlobalConfig? {
 fun Context.checkAppIconColor() {
     val appId = baseConfig.appId
     if (appId.isNotEmpty() && baseConfig.lastIconColor != baseConfig.appIconColor) {
+        if (!hasAppIconAliases(appId)) {
+            // No alias-based icon variants in this app/flavor, keep state in sync and skip toggling.
+            baseConfig.lastIconColor = baseConfig.appIconColor
+            return
+        }
+
         getAppIconColors().forEachIndexed { index, color ->
             toggleAppIconColor(appId, index, color, false)
         }
@@ -221,8 +227,18 @@ fun Context.checkAppIconColor() {
     }
 }
 
+fun Context.hasAppIconAliases(appId: String): Boolean {
+    val className = "${appId.removeSuffix(".debug")}.activities.MainActivity${appIconColorStrings.first()}"
+    return try {
+        packageManager.getActivityInfo(ComponentName(appId, className), 0)
+        true
+    } catch (_: Exception) {
+        false
+    }
+}
+
 fun Context.toggleAppIconColor(appId: String, colorIndex: Int, color: Int, enable: Boolean) {
-    val className = "${appId.removeSuffix(".debug")}.activities.SplashActivity${appIconColorStrings[colorIndex]}"
+    val className = "${appId.removeSuffix(".debug")}.activities.MainActivity${appIconColorStrings[colorIndex]}"
     val state = if (enable) PackageManager.COMPONENT_ENABLED_STATE_ENABLED else PackageManager.COMPONENT_ENABLED_STATE_DISABLED
     try {
         packageManager.setComponentEnabledSetting(ComponentName(appId, className), state, PackageManager.DONT_KILL_APP)
@@ -230,7 +246,11 @@ fun Context.toggleAppIconColor(appId: String, colorIndex: Int, color: Int, enabl
             baseConfig.lastIconColor = color
         }
     } catch (e: Exception) {
-        showErrorToast(e)
+        // Some apps/flavors do not define launcher aliases for icon variants.
+        // Treat missing components as a no-op instead of surfacing a startup error toast.
+        if (enable) {
+            baseConfig.lastIconColor = color
+        }
     }
 }
 

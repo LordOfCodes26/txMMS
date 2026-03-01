@@ -26,24 +26,30 @@ fun ComponentActivity.appLaunchedCompose(
         checkAppIconColor()
     } else if (!baseConfig.wasOrangeIconChecked) {
         baseConfig.wasOrangeIconChecked = true
-        if (baseConfig.appIconColor != APP_ICON_ORIGINAL) {
+        if (!hasAppIconAliases(appId)) {
+            baseConfig.lastIconColor = baseConfig.appIconColor
+        } else if (baseConfig.appIconColor != APP_ICON_ORIGINAL) {
             getAppIconColors().forEachIndexed { index, color ->
                 toggleAppIconColor(appId, index, color, false)
             }
 
-            val defaultClassName = "${baseConfig.appId.removeSuffix(".debug")}.activities.SplashActivity"
-            packageManager.setComponentEnabledSetting(
-                ComponentName(baseConfig.appId, defaultClassName),
-                PackageManager.COMPONENT_ENABLED_STATE_DEFAULT,
-                PackageManager.DONT_KILL_APP
-            )
+            val defaultClassName = "${baseConfig.appId.removeSuffix(".debug")}.activities.MainActivity"
+            runCatching {
+                packageManager.setComponentEnabledSetting(
+                    ComponentName(baseConfig.appId, defaultClassName),
+                    PackageManager.COMPONENT_ENABLED_STATE_DEFAULT,
+                    PackageManager.DONT_KILL_APP
+                )
+            }
 
-            val orangeClassName = "${baseConfig.appId.removeSuffix(".debug")}.activities.SplashActivity.Original"
-            packageManager.setComponentEnabledSetting(
-                ComponentName(baseConfig.appId, orangeClassName),
-                PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
-                PackageManager.DONT_KILL_APP
-            )
+            val orangeClassName = "${baseConfig.appId.removeSuffix(".debug")}.activities.MainActivity.Original"
+            runCatching {
+                packageManager.setComponentEnabledSetting(
+                    ComponentName(baseConfig.appId, orangeClassName),
+                    PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
+                    PackageManager.DONT_KILL_APP
+                )
+            }
 
             baseConfig.appIconColor = APP_ICON_ORIGINAL
             baseConfig.lastIconColor = APP_ICON_ORIGINAL

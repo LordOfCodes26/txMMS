@@ -5,6 +5,14 @@ package com.goodwy.commons.helpers
  */
 object PhoneNumberFormatHelper {
     /**
+     * Returns how specific a district pattern is.
+     * Higher values mean fewer wildcards (e.g. 58X > 5XX > XXX).
+     */
+    fun getPatternSpecificity(pattern: String): Int {
+        return pattern.count { it.uppercaseChar() != 'X' }
+    }
+
+    /**
      * Checks if a district code matches a pattern
      * Pattern examples: "4XX" matches "412", "413", etc.
      *                   "7XX" matches "712", "713", etc.
@@ -19,7 +27,7 @@ object PhoneNumberFormatHelper {
             val patternChar = pattern[i]
             val codeChar = districtCode[i]
             
-            when (patternChar) {
+            when (patternChar.uppercaseChar()) {
                 'X' -> {
                     // X matches any digit
                     if (!codeChar.isDigit()) return false
@@ -52,7 +60,7 @@ object PhoneNumberFormatHelper {
      * - X: first digit of number (for single X patterns)
      */
     fun formatNumber(template: String, prefix: String, districtCode: String, number: String): String {
-        var result = template
+        var result = template.replace('x', 'X')
         
         // Replace named placeholders first
         result = result.replace("{PREFIX}", prefix)

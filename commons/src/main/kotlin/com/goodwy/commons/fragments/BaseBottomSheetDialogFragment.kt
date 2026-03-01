@@ -10,6 +10,7 @@ import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.goodwy.commons.R
 import com.goodwy.commons.databinding.DialogBottomSheetBinding
 import com.goodwy.commons.extensions.*
+import eightbitlab.com.blurview.BlurController
 import eightbitlab.com.blurview.BlurTarget
 import eightbitlab.com.blurview.BlurView
 
@@ -49,11 +50,12 @@ abstract class BaseBottomSheetDialogFragment : BottomSheetDialogFragment() {
                 val blurView = view.findViewById<BlurView>(R.id.blurView)
                 val decorView = activity.window.decorView
                 val windowBackground = decorView.background
-                blurView.setOverlayColor(requireContext().getProperBlurOverlayColor())
-                blurView?.setupWith(blurTarget)
-                    ?.setFrameClearDrawable(windowBackground)
-                    ?.setBlurRadius(16f)
-                    ?.setBlurAutoUpdate(true)
+                blurView.clipToOutline = true
+                blurView.setupWith(blurTarget, BlurController.DEFAULT_SCALE_FACTOR, false)
+                    .setOverlayColor(requireContext().getColor(com.android.common.R.color.tx_dialog_blur_overlay))
+                    .setFrameClearDrawable(windowBackground)
+                    .setBlurRadius(10f)
+                    .setBlurAutoUpdate(true)
             }
         }
     }

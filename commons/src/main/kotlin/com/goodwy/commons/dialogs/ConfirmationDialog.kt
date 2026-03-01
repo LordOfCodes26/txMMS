@@ -1,7 +1,7 @@
 package com.goodwy.commons.dialogs
 
 import android.app.Activity
-import androidx.appcompat.app.AlertDialog
+import com.android.common.view.MDialog
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -16,12 +16,9 @@ import com.goodwy.commons.compose.alert_dialog.*
 import com.goodwy.commons.compose.extensions.MyDevices
 import com.goodwy.commons.compose.theme.AppThemeSurface
 import com.goodwy.commons.databinding.DialogMessageBinding
-import com.goodwy.commons.extensions.getAlertDialogBuilder
-import com.goodwy.commons.extensions.getProperBlurOverlayColor
 import com.goodwy.commons.extensions.getProperPrimaryColor
-import com.goodwy.commons.extensions.setupDialogStuff
+import com.goodwy.commons.extensions.setupMDialogStuff
 import eightbitlab.com.blurview.BlurTarget
-import eightbitlab.com.blurview.BlurView
 
 /**
  * A simple dialog without any view, just a messageId, a positive button and optionally a negative button
@@ -43,7 +40,7 @@ class ConfirmationDialog(
     blurTarget: BlurTarget,
     val callback: () -> Unit
 ) {
-    private var dialog: AlertDialog? = null
+    private var dialog: MDialog? = null
 
     init {
         val view = DialogMessageBinding.inflate(activity.layoutInflater, null, false)
@@ -51,15 +48,6 @@ class ConfirmationDialog(
 
         // Setup BlurView with the provided BlurTarget
         val blurView = view.blurView
-        val decorView = activity.window.decorView
-        val windowBackground = decorView.background
-        
-        
-        blurView.setupWith(blurTarget)
-            .setFrameClearDrawable(windowBackground)
-            .setBlurRadius(16f)
-            .setBlurAutoUpdate(true)
-
         // Setup custom buttons inside BlurView
         val primaryColor = activity.getProperPrimaryColor()
         
@@ -89,16 +77,14 @@ class ConfirmationDialog(
             negativeButton?.visibility = android.view.View.GONE
         }
 
-        val builder = activity.getAlertDialogBuilder()
-
-        if (!cancelOnTouchOutside) {
-            builder.setOnCancelListener { dialog?.dismiss() }
-        }
-
-        builder.apply {
-            activity.setupDialogStuff(view.root, this, titleText = dialogTitle, cancelOnTouchOutside = cancelOnTouchOutside) { alertDialog ->
-                dialog = alertDialog
-            }
+        activity.setupMDialogStuff(
+            view = view.root,
+            blurView = blurView,
+            blurTarget = blurTarget,
+            titleText = dialogTitle,
+            cancelOnTouchOutside = cancelOnTouchOutside
+        ) { mDialog ->
+            dialog = mDialog
         }
     }
 

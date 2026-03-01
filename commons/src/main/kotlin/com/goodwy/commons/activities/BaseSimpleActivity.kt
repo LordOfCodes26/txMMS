@@ -1,5 +1,6 @@
 package com.goodwy.commons.activities
 
+import android.Manifest
 import android.animation.ObjectAnimator
 import android.animation.StateListAnimator
 import android.annotation.SuppressLint
@@ -9,6 +10,7 @@ import android.app.role.RoleManager
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.graphics.BitmapFactory
 import android.graphics.Color
@@ -32,6 +34,7 @@ import androidx.activity.addCallback
 import androidx.annotation.RequiresApi
 import androidx.appcompat.widget.Toolbar
 import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.core.util.Pair
 import androidx.core.view.ViewCompat
@@ -103,7 +106,8 @@ abstract class BaseSimpleActivity : EdgeToEdgeActivity() {
         onBackPressedDispatcher.onBackPressed()
         backCallback.isEnabled = true
     }
-
+    val REQUEST_SMS_RECEIVE = 111
+    val REQUIRED_PERMISSIONS = arrayOf(Manifest.permission.READ_SMS, Manifest.permission.RECEIVE_SMS)
     override fun onCreate(savedInstanceState: Bundle?) {
         if (useDynamicTheme) {
             setTheme(getThemeId())
@@ -135,6 +139,16 @@ abstract class BaseSimpleActivity : EdgeToEdgeActivity() {
                 baseConfig.needInit = false
             }
         }
+
+
+        // Check if we have the permissions before initializing fee service
+        if (!allPermissionsGranted()) {
+            ActivityCompat.requestPermissions(this, REQUIRED_PERMISSIONS, REQUEST_SMS_RECEIVE)
+        }
+    }
+    // Check that all permissions required by this app are granted
+    fun allPermissionsGranted() = REQUIRED_PERMISSIONS.all {
+        ContextCompat.checkSelfPermission(baseContext, it) == PackageManager.PERMISSION_GRANTED
     }
 
     override fun onResume() {
@@ -830,7 +844,7 @@ abstract class BaseSimpleActivity : EdgeToEdgeActivity() {
         }
 
         funAfterSAFPermission = callback
-        val blurTarget = findViewById<eightbitlab.com.blurview.BlurTarget>(R.id.mainBlurTarget)
+        val blurTarget = findViewById<BlurTarget>(R.id.mainBlurTarget)
             ?: throw IllegalStateException("mainBlurTarget not found")
         WritePermissionDialog(this, WritePermissionDialogMode.Otg, blurTarget) {
             Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).apply {

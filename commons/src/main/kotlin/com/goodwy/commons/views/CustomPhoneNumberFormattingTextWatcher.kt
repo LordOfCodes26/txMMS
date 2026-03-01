@@ -68,48 +68,53 @@ class CustomPhoneNumberFormattingTextWatcher : TextWatcher {
             
             if (displayText != originalText) {
                 isFormatting = true
-                
-                // Get current cursor position
-                val cursorPosition = if (s is Spannable) {
-                    android.text.Selection.getSelectionStart(s) ?: s.length
-                } else {
-                    s.length
-                }
-                
-                // Normalize the text before cursor and count digits
-                val textBeforeCursor = originalText.substring(0, cursorPosition.coerceAtMost(originalText.length))
-                val normalizedBeforeCursor = textBeforeCursor.normalizePhoneNumber()
-                val digitsBeforeCursor = normalizedBeforeCursor.length
-                
-                // Replace text with display version
-                s.replace(0, s.length, displayText)
-                
-                // Update last valid text
-                lastValidText = displayText
-                
-                // Find position in display text with same number of digits before it
-                if (s is Spannable) {
-                    var newCursorPosition = 0
-                    var digitsCounted = 0
-                    
-                    for (i in displayText.indices) {
-                        if (displayText[i].isDigit()) {
-                            digitsCounted++
-                            if (digitsCounted >= digitsBeforeCursor) {
-                                newCursorPosition = i + 1
-                                break
+                try {
+                    // Get current cursor position. Selection can be -1 in some edge cases.
+                    val cursorPosition = if (s is Spannable) {
+                        (android.text.Selection.getSelectionStart(s)).coerceAtLeast(0)
+                    } else {
+                        s.length
+                    }
+
+                    // Normalize the text before cursor and count digits.
+                    val safeCursor = cursorPosition.coerceIn(0, originalText.length)
+                    val textBeforeCursor = originalText.substring(0, safeCursor)
+                    val normalizedBeforeCursor = textBeforeCursor.normalizePhoneNumber()
+                    val digitsBeforeCursor = normalizedBeforeCursor.length
+
+                    // Replace text with display version.
+                    s.replace(0, s.length, displayText)
+
+                    // Update last valid text.
+                    lastValidText = s.toString()
+
+                    // Find position in display text with same number of digits before it.
+                    if (s is Spannable) {
+                        var newCursorPosition = 0
+                        var digitsCounted = 0
+
+                        for (i in displayText.indices) {
+                            if (displayText[i].isDigit()) {
+                                digitsCounted++
+                                if (digitsCounted >= digitsBeforeCursor) {
+                                    newCursorPosition = i + 1
+                                    break
+                                }
                             }
                         }
+
+                        // If we didn't find enough digits, place cursor at end.
+                        if (digitsCounted < digitsBeforeCursor) {
+                            newCursorPosition = displayText.length
+                        }
+
+                        // Editable may be truncated by input filters; clamp to real length.
+                        val safeSelection = newCursorPosition.coerceIn(0, s.length)
+                        android.text.Selection.setSelection(s, safeSelection)
                     }
-                    
-                    // If we didn't find enough digits, place cursor at end
-                    if (digitsCounted < digitsBeforeCursor) {
-                        newCursorPosition = displayText.length
-                    }
-                    
-                    android.text.Selection.setSelection(s, newCursorPosition)
+                } finally {
+                    isFormatting = false
                 }
-                isFormatting = false
             } else {
                 // Text hasn't changed, update last valid text
                 lastValidText = originalText

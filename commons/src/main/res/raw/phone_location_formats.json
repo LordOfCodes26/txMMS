@@ -1,0 +1,866 @@
+﻿[
+    {
+        "location":  "평양시 만경대구역",
+        "number format":  "01-7XX-XXXX"
+    },
+    {
+        "location":  "평양시 평천구역",
+        "number format":  "01-4XX-XXXX"
+    },
+    {
+        "location":  "평양시 보통강구역",
+        "number format":  "01-4XX-XXXX"
+    },
+    {
+        "location":  "평양시 모란봉구역",
+        "number format":  "01-8XX-XXXX"
+    },
+    {
+        "location":  "평양시 서성구역",
+        "number format":  "01-5XX-XXXX"
+    },
+    {
+        "location":  "평양시 대성구역",
+        "number format":  "01-5XX-XXXX"
+    },
+    {
+        "location":  "평양시 화성구역",
+        "number format":  "01-5XX-XXXX"
+    },
+    {
+        "location":  "평양시 대동강구역",
+        "number format":  "01-6XX-XXXX"
+    },
+    {
+        "location":  "평양시 동대원구역",
+        "number format":  "01-6XX-XXXX"
+    },
+    {
+        "location":  "평양시 선교구역",
+        "number format":  "01-6XX-XXXX"
+    },
+    {
+        "location":  "평양시 락랑구역",
+        "number format":  "01-9XX-XXXX"
+    },
+    {
+        "location":  "평양시 룡성구역",
+        "number format":  "01-58X-XXXX,\n01-59X-XXXX,\n01-337-XXXX"
+    },
+    {
+        "location":  "평양시 은정구역",
+        "number format":  "01-338-XXXX,\n01-339-XXXX,\n01-88X-XXXX"
+    },
+    {
+        "location":  "평양시 사동구역",
+        "number format":  "01-68X-XXXX,\n01-69X-XXXX,\n01-60X-XXXX"
+    },
+    {
+        "location":  "평양시 력포구역",
+        "number format":  "01-98X-XXXX,\n01-99X-XXXX"
+    },
+    {
+        "location":  "평양시 형제산구역",
+        "number format":  "01-58X-XXXX,\n01-59X-XXXX"
+    },
+    {
+        "location":  "평양시 순안구역",
+        "number format":  "01-58X-XXXX,\n01-59X-XXXX"
+    },
+    {
+        "location":  "평양시 삼석구역",
+        "number format":  "01-50X-XXXX"
+    },
+    {
+        "location":  "평양시 강동군",
+        "number format":  "01-50X-XXXX,\n01-68X-XXXX"
+    },
+    {
+        "location":  "평양시 강남군",
+        "number format":  "01-90X-XXXX,\n01-98X-XXXX"
+    },
+    {
+        "location":  "평안남도 평성시",
+        "number format":  "021-XX-XXXX"
+    },
+    {
+        "location":  "평안남도 개천시",
+        "number format":  "0221-X-XXXX"
+    },
+    {
+        "location":  "평안남도 문덕군",
+        "number format":  "0223-X-XXXX"
+    },
+    {
+        "location":  "평안남도 문덕군 청남구",
+        "number format":  "0224-X-XXXX"
+    },
+    {
+        "location":  "평안남도 숙천군",
+        "number format":  "0225-X-XXXX"
+    },
+    {
+        "location":  "평안남도 평원군",
+        "number format":  "0226-X-XXXX"
+    },
+    {
+        "location":  "평안남도 증산군",
+        "number format":  "0227-X-XXXX"
+    },
+    {
+        "location":  "평안남도 대동군",
+        "number format":  "0228-X-XXXX"
+    },
+    {
+        "location":  "평안남도 순천시",
+        "number format":  "0231-X-XXXX"
+    },
+    {
+        "location":  "평안남도 성천군",
+        "number format":  "0233-X-XXXX"
+    },
+    {
+        "location":  "평안남도 회창군",
+        "number format":  "0234-X-XXXX"
+    },
+    {
+        "location":  "평안남도 양덕군",
+        "number format":  "0235-X-XXXX"
+    },
+    {
+        "location":  "평안남도 신양군",
+        "number format":  "0236-X-XXXX"
+    },
+    {
+        "location":  "평안남도 북창군",
+        "number format":  "0237-X-XXXX"
+    },
+    {
+        "location":  "평안남도 북창군 득장구",
+        "number format":  "0238-X-XXXX"
+    },
+    {
+        "location":  "평안남도 맹산군",
+        "number format":  "0239-X-XXXX"
+    },
+    {
+        "location":  "평안남도 녕원군",
+        "number format":  "0241-X-XXXX"
+    },
+    {
+        "location":  "평안남도 대흥군",
+        "number format":  "0242-X-XXXX"
+    },
+    {
+        "location":  "평안남도 안주시",
+        "number format":  "0243-X-XXXX"
+    },
+    {
+        "location":  "평안남도 덕천시",
+        "number format":  "0244-X-XXXX"
+    },
+    {
+        "location":  "평안남도 은산군",
+        "number format":  "0246-X-XXXX"
+    },
+    {
+        "location":  "평안북도 신의주시",
+        "number format":  "031-XX-XXXX"
+    },
+    {
+        "location":  "평안북도 룡천군",
+        "number format":  "0331-X-XXXX"
+    },
+    {
+        "location":  "평안북도 피현군",
+        "number format":  "0332-X-XXXX"
+    },
+    {
+        "location":  "평안북도 염주군",
+        "number format":  "0333-X-XXXX"
+    },
+    {
+        "location":  "평안북도 철산군",
+        "number format":  "0334-X-XXXX"
+    },
+    {
+        "location":  "평안북도 동림군",
+        "number format":  "0335-X-XXXX"
+    },
+    {
+        "location":  "평안북도 의주군",
+        "number format":  "0336-X-XXXX"
+    },
+    {
+        "location":  "평안북도 천마군",
+        "number format":  "0337-X-XXXX"
+    },
+    {
+        "location":  "평안북도 구성시",
+        "number format":  "0338-X-XXXX"
+    },
+    {
+        "location":  "평안북도 선천군",
+        "number format":  "0330-X-XXXX"
+    },
+    {
+        "location":  "평안북도 곽산군",
+        "number format":  "0341-X-XXXX"
+    },
+    {
+        "location":  "평안북도 정주시",
+        "number format":  "0342-X-XXXX"
+    },
+    {
+        "location":  "평안북도 운전군",
+        "number format":  "0344-X-XXXX"
+    },
+    {
+        "location":  "평안북도 박천군",
+        "number format":  "0345-X-XXXX"
+    },
+    {
+        "location":  "평안북도 녕변군",
+        "number format":  "0346-X-XXXX"
+    },
+    {
+        "location":  "평안북도 구장군",
+        "number format":  "0348-X-XXXX"
+    },
+    {
+        "location":  "평안북도 삭주군",
+        "number format":  "0351-X-XXXX"
+    },
+    {
+        "location":  "평안북도 대관군",
+        "number format":  "0352-X-XXXX"
+    },
+    {
+        "location":  "평안북도 창성군",
+        "number format":  "0354-X-XXXX"
+    },
+    {
+        "location":  "평안북도 벽동군",
+        "number format":  "0355-X-XXXX"
+    },
+    {
+        "location":  "평안북도 동창군",
+        "number format":  "0356-X-XXXX"
+    },
+    {
+        "location":  "평안북도 태천군",
+        "number format":  "0357-X-XXXX"
+    },
+    {
+        "location":  "평안북도 운산군",
+        "number format":  "0358-X-XXXX"
+    },
+    {
+        "location":  "평안북도 신도군",
+        "number format":  "0359-X-XXXX"
+    },
+    {
+        "location":  "황해남도 해주시",
+        "number format":  "041-XX-XXXX"
+    },
+    {
+        "location":  "황해남도 청단군",
+        "number format":  "0421-X-XXXX"
+    },
+    {
+        "location":  "황해남도 연안군",
+        "number format":  "0422-X-XXXX"
+    },
+    {
+        "location":  "황해남도 배천군",
+        "number format":  "0423-X-XXXX"
+    },
+    {
+        "location":  "황해남도 봉천군",
+        "number format":  "0424-X-XXXX"
+    },
+    {
+        "location":  "황해남도 신원군",
+        "number format":  "0425-X-XXXX"
+    },
+    {
+        "location":  "황해남도 벽성군",
+        "number format":  "0426-X-XXXX"
+    },
+    {
+        "location":  "황해남도 강령군",
+        "number format":  "0427-X-XXXX"
+    },
+    {
+        "location":  "황해남도 옹진군",
+        "number format":  "0428-X-XXXX"
+    },
+    {
+        "location":  "황해남도 태탄군",
+        "number format":  "0429-X-XXXX"
+    },
+    {
+        "location":  "황해남도 신천군",
+        "number format":  "0431-X-XXXX"
+    },
+    {
+        "location":  "황해남도 재령군",
+        "number format":  "0432-X-XXXX"
+    },
+    {
+        "location":  "황해남도 삼천군",
+        "number format":  "0433-X-XXXX"
+    },
+    {
+        "location":  "황해남도 안악군",
+        "number format":  "0434-X-XXXX"
+    },
+    {
+        "location":  "황해남도 은천군",
+        "number format":  "0435-X-XXXX"
+    },
+    {
+        "location":  "황해남도 은률군",
+        "number format":  "0436-X-XXXX"
+    },
+    {
+        "location":  "황해남도 과일군",
+        "number format":  "0437-X-XXXX"
+    },
+    {
+        "location":  "황해남도 송화군",
+        "number format":  "0438-X-XXXX"
+    },
+    {
+        "location":  "황해남도 장연군",
+        "number format":  "0439-X-XXXX"
+    },
+    {
+        "location":  "황해북도 사리원시",
+        "number format":  "051-XX-XXXX"
+    },
+    {
+        "location":  "황해북도 송림시",
+        "number format":  "0521-X-XXXX"
+    },
+    {
+        "location":  "황해북도 황주군",
+        "number format":  "0522-X-XXXX"
+    },
+    {
+        "location":  "황해북도 연탄군",
+        "number format":  "0523-X-XXXX"
+    },
+    {
+        "location":  "황해북도 봉산군",
+        "number format":  "0524-X-XXXX"
+    },
+    {
+        "location":  "황해북도 은파군",
+        "number format":  "0525-X-XXXX"
+    },
+    {
+        "location":  "황해북도 린산군",
+        "number format":  "0526-X-XXXX"
+    },
+    {
+        "location":  "황해북도 서흥군",
+        "number format":  "0527-X-XXXX"
+    },
+    {
+        "location":  "황해북도 수안군",
+        "number format":  "0528-X-XXXX"
+    },
+    {
+        "location":  "황해북도 연산군",
+        "number format":  "0529-X-XXXX"
+    },
+    {
+        "location":  "황해북도 신평군",
+        "number format":  "0530-X-XXXX"
+    },
+    {
+        "location":  "황해북도 곡산군",
+        "number format":  "0531-X-XXXX"
+    },
+    {
+        "location":  "황해북도 신계군",
+        "number format":  "0532-X-XXXX"
+    },
+    {
+        "location":  "황해북도 평산군",
+        "number format":  "0533-X-XXXX"
+    },
+    {
+        "location":  "황해북도 금천군",
+        "number format":  "0534-X-XXXX"
+    },
+    {
+        "location":  "황해북도 토산군",
+        "number format":  "0535-X-XXXX"
+    },
+    {
+        "location":  "황해북도 중화군",
+        "number format":  "0536-X-XXXX"
+    },
+    {
+        "location":  "황해북도 상원군",
+        "number format":  "0537-X-XXXX"
+    },
+    {
+        "location":  "황해북도 승호군",
+        "number format":  "0538-X-XXXX"
+    },
+    {
+        "location":  "자강도 강계시",
+        "number format":  "061-XX-XXXX"
+    },
+    {
+        "location":  "자강도 고풍군",
+        "number format":  "0622-X-XXXX"
+    },
+    {
+        "location":  "자강도 우시군",
+        "number format":  "0623-X-XXXX"
+    },
+    {
+        "location":  "자강도 초산군",
+        "number format":  "0624-X-XXXX"
+    },
+    {
+        "location":  "자강도 만포시",
+        "number format":  "0625-X-XXXX"
+    },
+    {
+        "location":  "자강도 자성군",
+        "number format":  "0627-X-XXXX"
+    },
+    {
+        "location":  "자강도 중강군",
+        "number format":  "0628-X-XXXX"
+    },
+    {
+        "location":  "자강도 송원군",
+        "number format":  "0630-X-XXXX"
+    },
+    {
+        "location":  "자강도 성간군",
+        "number format":  "0631-X-XXXX"
+    },
+    {
+        "location":  "자강도 장강군",
+        "number format":  "0632-X-XXXX"
+    },
+    {
+        "location":  "자강도 시중군",
+        "number format":  "0633-X-XXXX"
+    },
+    {
+        "location":  "자강도 위원군",
+        "number format":  "0634-X-XXXX"
+    },
+    {
+        "location":  "자강도 전천군",
+        "number format":  "0635-X-XXXX"
+    },
+    {
+        "location":  "자강도 동신군",
+        "number format":  "0636-X-XXXX"
+    },
+    {
+        "location":  "자강도 룡림군",
+        "number format":  "0637-X-XXXX"
+    },
+    {
+        "location":  "자강도 랑림군",
+        "number format":  "0638-X-XXXX"
+    },
+    {
+        "location":  "자강도 화평군",
+        "number format":  "0639-X-XXXX"
+    },
+    {
+        "location":  "자강도 희천시",
+        "number format":  "0642-X-XXXX"
+    },
+    {
+        "location":  "자강도 향산군",
+        "number format":  "0645-X-XXXX"
+    },
+    {
+        "location":  "강원도 원산시",
+        "number format":  "071-XX-XXXX"
+    },
+    {
+        "location":  "강원도 천내군",
+        "number format":  "0721-X-XXXX"
+    },
+    {
+        "location":  "강원도 문천시",
+        "number format":  "0722-X-XXXX"
+    },
+    {
+        "location":  "강원도 법동군",
+        "number format":  "0724-X-XXXX"
+    },
+    {
+        "location":  "강원도 판교군",
+        "number format":  "0725-X-XXXX"
+    },
+    {
+        "location":  "강원도 이천군",
+        "number format":  "0726-X-XXXX"
+    },
+    {
+        "location":  "강원도 철원군",
+        "number format":  "0727-X-XXXX"
+    },
+    {
+        "location":  "강원도 평강군",
+        "number format":  "0728-X-XXXX"
+    },
+    {
+        "location":  "강원도 세포군",
+        "number format":  "0729-X-XXXX"
+    },
+    {
+        "location":  "강원도 안변군",
+        "number format":  "0731-X-XXXX"
+    },
+    {
+        "location":  "강원도 고산군",
+        "number format":  "0732-X-XXXX"
+    },
+    {
+        "location":  "강원도 통천군",
+        "number format":  "0734-X-XXXX"
+    },
+    {
+        "location":  "강원도 회양군",
+        "number format":  "0735-X-XXXX"
+    },
+    {
+        "location":  "강원도 고성군",
+        "number format":  "0736-X-XXXX"
+    },
+    {
+        "location":  "강원도 금강군",
+        "number format":  "0737-X-XXXX"
+    },
+    {
+        "location":  "강원도 창도군",
+        "number format":  "0738-X-XXXX"
+    },
+    {
+        "location":  "강원도 김화군",
+        "number format":  "0739-X-XXXX"
+    },
+    {
+        "location":  "함경남도 함흥시",
+        "number format":  "081-XX-XXXX"
+    },
+    {
+        "location":  "함경남도 동흥산구역",
+        "number format":  "081-2X-XXXX,\n081-3X-XXXX"
+    },
+    {
+        "location":  "함경남도 회상구역",
+        "number format":  "081-3X-XXXX"
+    },
+    {
+        "location":  "함경남도 사포구역",
+        "number format":  "081-2X-XXXX,\n081-3X-XXXX"
+    },
+    {
+        "location":  "함경남도 성천강구역",
+        "number format":  "081-2X-XXXX,\n081-3X-XXXX"
+    },
+    {
+        "location":  "함경남도 흥남구역",
+        "number format":  "081-4X-XXXX"
+    },
+    {
+        "location":  "함경남도 해안구역",
+        "number format":  "081-5X-XXXX"
+    },
+    {
+        "location":  "함경남도 흥덕구역",
+        "number format":  "081-6X-XXXX"
+    },
+    {
+        "location":  "함경남도 함주군",
+        "number format":  "0831-X-XXXX"
+    },
+    {
+        "location":  "함경남도 정평군",
+        "number format":  "0832-X-XXXX"
+    },
+    {
+        "location":  "함경남도 금야군",
+        "number format":  "0834-X-XXXX"
+    },
+    {
+        "location":  "함경남도 요덕군",
+        "number format":  "0836-X-XXXX"
+    },
+    {
+        "location":  "함경남도 고원군",
+        "number format":  "0837-X-XXXX"
+    },
+    {
+        "location":  "함경남도 고원군수동구",
+        "number format":  "0838-X-XXXX"
+    },
+    {
+        "location":  "함경남도 영광군",
+        "number format":  "0841-X-XXXX"
+    },
+    {
+        "location":  "함경남도 신흥군",
+        "number format":  "0842-X-XXXX"
+    },
+    {
+        "location":  "함경남도 부전군",
+        "number format":  "0843-X-XXXX"
+    },
+    {
+        "location":  "함경남도 장진군",
+        "number format":  "0844-X-XXXX"
+    },
+    {
+        "location":  "함경남도 락원군",
+        "number format":  "0851-X-XXXX"
+    },
+    {
+        "location":  "함경남도 홍원군",
+        "number format":  "0852-X-XXXX"
+    },
+    {
+        "location":  "함경남도 신포시",
+        "number format":  "0853-X-XXXX"
+    },
+    {
+        "location":  "함경남도 북청군",
+        "number format":  "0855-X-XXXX"
+    },
+    {
+        "location":  "함경남도 덕성군",
+        "number format":  "0856-X-XXXX"
+    },
+    {
+        "location":  "함경남도 리원군",
+        "number format":  "0857-X-XXXX"
+    },
+    {
+        "location":  "함경남도 허천군",
+        "number format":  "0858-X-XXXX"
+    },
+    {
+        "location":  "함경남도 단천시",
+        "number format":  "0861-X-XXXX,\n0862-X-XXXX"
+    },
+    {
+        "location":  "함경남도 룡양지구",
+        "number format":  "0863-X-XXXX"
+    },
+    {
+        "location":  "함경남도 검덕지구",
+        "number format":  "0864-X-XXXX"
+    },
+    {
+        "location":  "함경남도 대흥지구",
+        "number format":  "0865-X-XXXX"
+    },
+    {
+        "location":  "함경북도 청진시",
+        "number format":  "091-XX-XXXX"
+    },
+    {
+        "location":  "함경북도 수남구역",
+        "number format":  "091-2X-XXXX"
+    },
+    {
+        "location":  "함경북도 포항구역",
+        "number format":  "091-3X-XXXX"
+    },
+    {
+        "location":  "함경북도 신암구역",
+        "number format":  "091-4X-XXXX"
+    },
+    {
+        "location":  "함경북도 청암구역",
+        "number format":  "091-5X-XXXX,\n091-6X-XXXX"
+    },
+    {
+        "location":  "함경북도 송평구역",
+        "number format":  "091-7X-XXXX"
+    },
+    {
+        "location":  "함경북도 라남구역",
+        "number format":  "091-8X-XXXX"
+    },
+    {
+        "location":  "함경북도 부윤구역",
+        "number format":  "091-9X-XXXX"
+    },
+    {
+        "location":  "함경북도 김책시",
+        "number format":  "0931-X-XXXX"
+    },
+    {
+        "location":  "함경북도 길주군",
+        "number format":  "0933-X-XXXX"
+    },
+    {
+        "location":  "함경북도 화대군",
+        "number format":  "0934-X-XXXX"
+    },
+    {
+        "location":  "함경북도 명천군",
+        "number format":  "0935-X-XXXX"
+    },
+    {
+        "location":  "함경북도 명간군",
+        "number format":  "0936-X-XXXX"
+    },
+    {
+        "location":  "함경북도 어랑군",
+        "number format":  "0937-X-XXXX"
+    },
+    {
+        "location":  "함경북도 경성군",
+        "number format":  "0938-X-XXXX"
+    },
+    {
+        "location":  "함경북도 부령군",
+        "number format":  "0941-X-XXXX"
+    },
+    {
+        "location":  "함경북도 무산군",
+        "number format":  "0942-X-XXXX"
+    },
+    {
+        "location":  "함경북도 연사군",
+        "number format":  "0943-X-XXXX"
+    },
+    {
+        "location":  "함경북도 회령시",
+        "number format":  "0944-X-XXXX"
+    },
+    {
+        "location":  "함경북도 온성군",
+        "number format":  "0946-X-XXXX"
+    },
+    {
+        "location":  "함경북도 경원군",
+        "number format":  "0947-X-XXXX"
+    },
+    {
+        "location":  "함경북도 경흥군",
+        "number format":  "0948-X-XXXX"
+    },
+    {
+        "location":  "량강도 혜산시",
+        "number format":  "109-XX-XXXX"
+    },
+    {
+        "location":  "량강도 삼지연시",
+        "number format":  "1072-X-XXXX"
+    },
+    {
+        "location":  "량강도 운흥군",
+        "number format":  "1080-X-XXXX"
+    },
+    {
+        "location":  "량강도 김형권군",
+        "number format":  "1081-X-XXXX"
+    },
+    {
+        "location":  "량강도 풍서군",
+        "number format":  "1082-X-XXXX"
+    },
+    {
+        "location":  "량강도 삼수군",
+        "number format":  "1083-X-XXXX"
+    },
+    {
+        "location":  "량강도 김정숙군",
+        "number format":  "1084-X-XXXX"
+    },
+    {
+        "location":  "량강도 김형직군",
+        "number format":  "1085-X-XXXX"
+    },
+    {
+        "location":  "량강도 보천군",
+        "number format":  "1086-X-XXXX"
+    },
+    {
+        "location":  "량강도 갑산군",
+        "number format":  "1087-X-XXXX"
+    },
+    {
+        "location":  "량강도 대홍단군",
+        "number format":  "1088-X-XXXX"
+    },
+    {
+        "location":  "량강도 백암군",
+        "number format":  "1089-X-XXXX"
+    },
+    {
+        "location":  "남포시 남포시",
+        "number format":  "119-XX-XXXX"
+    },
+    {
+        "location":  "남포시 항구구역",
+        "number format":  "119-XX-XXXX"
+    },
+    {
+        "location":  "남포시 와우도구역",
+        "number format":  "119-XX-XXXX"
+    },
+    {
+        "location":  "남포시 룡강군",
+        "number format":  "1181-X-XXXX"
+    },
+    {
+        "location":  "남포시 대안구역",
+        "number format":  "1182-X-XXXX"
+    },
+    {
+        "location":  "남포시 강서구역",
+        "number format":  "1183-X-XXXX"
+    },
+    {
+        "location":  "남포시 천리마구역",
+        "number format":  "1184-X-XXXX"
+    },
+    {
+        "location":  "남포시 온천군",
+        "number format":  "1185-X-XXXX"
+    },
+    {
+        "location":  "라선시 라진구역",
+        "number format":  "129-XX-XXXX"
+    },
+    {
+        "location":  "라선시 선봉구역",
+        "number format":  "129-XX-XXXX"
+    },
+    {
+        "location":  "개성시 개성시",
+        "number format":  "139-XX-XXXX"
+    },
+    {
+        "location":  "개성시 개풍구역",
+        "number format":  "139-XX-XXXX"
+    },
+    {
+        "location":  "개성시 판문구역",
+        "number format":  "139-XX-XXXX"
+    },
+    {
+        "location":  "개성시 장풍군",
+        "number format":  "1371-X-XXXX"
+    }
+]

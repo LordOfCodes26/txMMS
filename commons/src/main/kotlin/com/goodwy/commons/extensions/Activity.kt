@@ -18,6 +18,7 @@ import android.provider.MediaStore
 import android.speech.RecognizerIntent
 import android.telecom.PhoneAccountHandle
 import android.telecom.TelecomManager
+import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.view.Window
@@ -38,6 +39,7 @@ import androidx.biometric.auth.Class2BiometricAuthPrompt
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.FragmentActivity
+import com.android.common.view.MDialog
 import com.goodwy.commons.R
 import com.goodwy.commons.activities.BaseSimpleActivity
 import com.goodwy.commons.databinding.DialogTitleBinding
@@ -49,6 +51,7 @@ import com.goodwy.commons.helpers.MyContentProvider.MY_CONTENT_URI
 import com.goodwy.commons.models.*
 import com.goodwy.commons.views.MyTextView
 import eightbitlab.com.blurview.BlurTarget
+import eightbitlab.com.blurview.BlurView
 import java.io.*
 import java.util.Locale
 import java.util.TreeSet
@@ -64,24 +67,30 @@ fun Activity.appLaunched(appId: String) {
         checkAppIconColor()
     } else if (!baseConfig.wasOrangeIconChecked) {
         baseConfig.wasOrangeIconChecked = true
-        if (baseConfig.appIconColor != APP_ICON_ORIGINAL) {
+        if (!hasAppIconAliases(appId)) {
+            baseConfig.lastIconColor = baseConfig.appIconColor
+        } else if (baseConfig.appIconColor != APP_ICON_ORIGINAL) {
             getAppIconColors().forEachIndexed { index, color ->
                 toggleAppIconColor(appId, index, color, false)
             }
 
-            val defaultClassName = "${baseConfig.appId.removeSuffix(".debug")}.activities.SplashActivity"
-            packageManager.setComponentEnabledSetting(
-                ComponentName(baseConfig.appId, defaultClassName),
-                PackageManager.COMPONENT_ENABLED_STATE_DEFAULT,
-                PackageManager.DONT_KILL_APP
-            )
+            val defaultClassName = "${baseConfig.appId.removeSuffix(".debug")}.activities.MainActivity"
+            runCatching {
+                packageManager.setComponentEnabledSetting(
+                    ComponentName(baseConfig.appId, defaultClassName),
+                    PackageManager.COMPONENT_ENABLED_STATE_DEFAULT,
+                    PackageManager.DONT_KILL_APP
+                )
+            }
 
-            val orangeClassName = "${baseConfig.appId.removeSuffix(".debug")}.activities.SplashActivity.Original"// TODO DEFAULT THEME
-            packageManager.setComponentEnabledSetting(
-                ComponentName(baseConfig.appId, orangeClassName),
-                PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
-                PackageManager.DONT_KILL_APP
-            )
+            val orangeClassName = "${baseConfig.appId.removeSuffix(".debug")}.activities.MainActivity.Original"// TODO DEFAULT THEME
+            runCatching {
+                packageManager.setComponentEnabledSetting(
+                    ComponentName(baseConfig.appId, orangeClassName),
+                    PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
+                    PackageManager.DONT_KILL_APP
+                )
+            }
 
             baseConfig.appIconColor = APP_ICON_ORIGINAL
             baseConfig.lastIconColor = APP_ICON_ORIGINAL
@@ -1566,6 +1575,7 @@ fun Activity.setupDialogStuff(
         requestWindowFeature(Window.FEATURE_NO_TITLE)
         setCustomTitle(title?.root)
         setCanceledOnTouchOutside(cancelOnTouchOutside)
+        window?.setGravity(Gravity.BOTTOM)
         if (!isFinishing) {
             show()
         }
@@ -1583,6 +1593,60 @@ fun Activity.setupDialogStuff(
         window?.setBackgroundDrawable(bgDrawable)
         callback?.invoke(this)
     }
+}
+
+fun Activity.setupMDialogStuff(
+    view: View,
+    blurView: BlurView? = null,
+    blurTarget: BlurTarget? = null,
+    titleId: Int = 0,
+    titleText: String = "",
+    cancelOnTouchOutside: Boolean = true,
+    cancelListener: (() -> Unit)? = null,
+    callback: ((dialog: MDialog) -> Unit)? = null
+): MDialog? {
+    if (isDestroyed || isFinishing) {
+        return null
+    }
+
+    val textColor = getProperTextColor()
+    val backgroundColor = getProperBackgroundColor()
+    val primaryColor = getProperPrimaryColor()
+    if (view is ViewGroup) {
+        updateTextColors(view)
+    } else if (view is MyTextView) {
+        view.setColors(textColor, primaryColor, backgroundColor)
+    }
+
+    val dialog = MDialog(this)
+    dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+    dialog.setContentView(view)
+    dialog.setCanceledOnTouchOutside(cancelOnTouchOutside)
+    dialog.setOnDismissListener { cancelListener?.invoke() }
+    if (titleText.isNotEmpty()) {
+        dialog.setTitle(titleText)
+    } else if (titleId != 0) {
+        dialog.setTitle(titleId)
+    }
+
+    if (blurView != null && blurTarget != null) {
+        dialog.bindBlurTarget(blurView, blurTarget)
+    }
+
+    val bgDrawable = when {
+        isDynamicTheme() -> ResourcesCompat.getDrawable(resources, com.android.common.R.drawable.dialog_background_common, theme)
+        isBlackTheme() -> resources.getColoredDrawableWithColor(this, R.drawable.dialog_bg, getSurfaceColor())
+        else -> resources.getColoredDrawableWithColor(this, R.drawable.dialog_bg, baseConfig.backgroundColor)
+    }
+    dialog.window?.setBackgroundDrawable(bgDrawable)
+    dialog.window?.setGravity(Gravity.BOTTOM)
+
+    if (!isFinishing) {
+        dialog.show()
+    }
+
+    callback?.invoke(dialog)
+    return dialog
 }
 
 fun Activity.getAlertDialogBuilder() = CustomDialogBuilder(this)

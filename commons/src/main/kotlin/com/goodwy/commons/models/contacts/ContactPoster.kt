@@ -16,14 +16,15 @@ data class ContactPosterData(
     val scale: Float = 1.0f,
     val offsetX: Float = 0.0f,
     val offsetY: Float = 0.0f,
-    val textStyle: PosterTextStyle = PosterTextStyle()
+    val textStyle: ContactPosterTextStyle = ContactPosterTextStyle()
 )
 
 /**
  * Text styling configuration for the poster.
+ * Note: This is the legacy data class. For new code, use the PosterTextStyle enum from ContactPosterConfig.
  */
 @Serializable
-data class PosterTextStyle(
+data class ContactPosterTextStyle(
     val textColor: Long = 0xFFFFFFFF, // ARGB as Long
     val fontSize: Float = 48f,
     val fontWeight: Int = 700, // Font weight (400 = normal, 700 = bold)
@@ -55,7 +56,7 @@ data class ContactPoster(
             scale = scale,
             offsetX = offsetX,
             offsetY = offsetY,
-            textStyle = PosterTextStyle(
+            textStyle = ContactPosterTextStyle(
                 textColor = textColor,
                 fontSize = fontSize,
                 fontWeight = fontWeight,

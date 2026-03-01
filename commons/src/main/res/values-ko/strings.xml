@@ -314,25 +314,25 @@
         <item quantity="other">%d년 내</item>
     </plurals>
     <plurals name="seconds_before">
-        <item quantity="other">%d초 전</item>
+        <item quantity="other">%d초전</item>
     </plurals>
     <plurals name="minutes_before">
-        <item quantity="other">%d분 전</item>
+        <item quantity="other">%d분전</item>
     </plurals>
     <plurals name="hours_before">
-        <item quantity="other">%d시간 전</item>
+        <item quantity="other">%d시간전</item>
     </plurals>
     <plurals name="days_before">
-        <item quantity="other">%d일 전</item>
+        <item quantity="other">%d일전</item>
     </plurals>
     <plurals name="weeks_before">
-        <item quantity="other">%d일 전</item>
+        <item quantity="other">%d일전</item>
     </plurals>
     <plurals name="months_before">
-        <item quantity="other">%d달 전</item>
+        <item quantity="other">%d달전</item>
     </plurals>
     <plurals name="years_before">
-        <item quantity="other">%d년 전</item>
+        <item quantity="other">%d년전</item>
     </plurals>
     <plurals name="by_seconds">
         <item quantity="other">%d초간</item>
@@ -720,7 +720,7 @@
     <string name="pin_item">고정하기</string>
     <string name="unpin_item">고정 해제하기</string>
     <string name="move_to_bottom">맨 아래로 옮기기</string>
-    <string name="send_sms">SMS 보내기</string>
+    <string name="send_sms">통보문보내기</string>
     <string name="send_email">전자우편 보내기</string>
     <string name="call">전화</string>
     <string name="contact_details">주소록 세부 항목</string>
@@ -739,4 +739,10 @@
     <string name="enable_automatic_backups">자동 여벌복사 활성화</string>
     <string name="website">웨브싸이트</string>
     <string name="block_numbers">전화번호 차단</string>
+    <string name="contact_poster">Poster</string>
+    <string name="contact_avatar">Avatar</string>
+    <string name="seconds_letter">%d초</string>
+    <string name="minutes_letter">%d분</string>
+    <string name="hours_letter">%d시간</string>
+    <string name="days_letter">%d일</string>
 </resources>

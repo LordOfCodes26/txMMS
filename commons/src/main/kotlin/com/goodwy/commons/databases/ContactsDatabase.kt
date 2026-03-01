@@ -11,15 +11,19 @@ import com.goodwy.commons.helpers.Converters
 import com.goodwy.commons.helpers.FIRST_CONTACT_ID
 import com.goodwy.commons.helpers.FIRST_GROUP_ID
 import com.goodwy.commons.helpers.getEmptyLocalContact
+import com.goodwy.commons.interfaces.AvatarStyleDao
 import com.goodwy.commons.interfaces.ContactPosterDao
 import com.goodwy.commons.interfaces.ContactsDao
 import com.goodwy.commons.interfaces.GroupsDao
+import com.goodwy.commons.interfaces.PosterDao
+import com.goodwy.commons.models.contacts.AvatarStyleEntity
 import com.goodwy.commons.models.contacts.ContactPoster
 import com.goodwy.commons.models.contacts.Group
 import com.goodwy.commons.models.contacts.LocalContact
+import com.goodwy.commons.models.contacts.PosterEntity
 import java.util.concurrent.Executors
 
-@Database(entities = [LocalContact::class, Group::class, ContactPoster::class], version = 5, exportSchema = true)
+@Database(entities = [LocalContact::class, Group::class, ContactPoster::class, PosterEntity::class, AvatarStyleEntity::class], version = 7, exportSchema = true)
 @TypeConverters(Converters::class)
 abstract class ContactsDatabase : RoomDatabase() {
 
@@ -28,6 +32,10 @@ abstract class ContactsDatabase : RoomDatabase() {
     abstract fun GroupsDao(): GroupsDao
 
     abstract fun ContactPosterDao(): ContactPosterDao
+
+    abstract fun PosterDao(): PosterDao
+
+    abstract fun AvatarStyleDao(): AvatarStyleDao
 
     companion object {
         private var db: ContactsDatabase? = null
@@ -47,6 +55,8 @@ abstract class ContactsDatabase : RoomDatabase() {
                             .addMigrations(MIGRATION_2_3)
                             .addMigrations(MIGRATION_3_4)
                             .addMigrations(MIGRATION_4_5)
+                            .addMigrations(MIGRATION_5_6)
+                            .addMigrations(MIGRATION_6_7)
                             .build()
                     }
                 }
@@ -121,6 +131,51 @@ abstract class ContactsDatabase : RoomDatabase() {
                         )
                     """.trimIndent())
                     execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_contact_posters_contact_id ON contact_posters(contact_id)")
+                }
+            }
+        }
+
+        private val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.apply {
+                    execSQL("""
+                        CREATE TABLE IF NOT EXISTS poster_configs (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            contact_id INTEGER NOT NULL,
+                            background_type TEXT NOT NULL,
+                            background_uri TEXT,
+                            subject_mask_uri TEXT,
+                            gradient_colors TEXT,
+                            text_color INTEGER NOT NULL,
+                            text_style TEXT NOT NULL,
+                            name_layout_style INTEGER NOT NULL,
+                            avatar_visible INTEGER NOT NULL,
+                            updated_at INTEGER NOT NULL
+                        )
+                    """.trimIndent())
+                    execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_poster_configs_contact_id ON poster_configs(contact_id)")
+                }
+            }
+        }
+
+        private val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.apply {
+                    execSQL("""
+                        CREATE TABLE IF NOT EXISTS avatar_style_configs (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            contact_id INTEGER NOT NULL,
+                            source_type TEXT NOT NULL,
+                            font_family TEXT,
+                            font_weight INTEGER,
+                            text_color INTEGER NOT NULL,
+                            background_colors TEXT,
+                            custom_photo_uri TEXT,
+                            use_poster_subject INTEGER NOT NULL,
+                            updated_at INTEGER NOT NULL
+                        )
+                    """.trimIndent())
+                    execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_avatar_style_configs_contact_id ON avatar_style_configs(contact_id)")
                 }
             }
         }

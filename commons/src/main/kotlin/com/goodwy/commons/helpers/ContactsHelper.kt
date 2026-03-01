@@ -139,6 +139,99 @@ class ContactsHelper(val context: Context) {
         }
     }
 
+    // region Protected contacts (PIN-secured) – each contact has its own custom PIN
+
+    /**
+     * Unlocks one protected contact with its **own** PIN. After a successful unlock,
+     * that contact appears in [getContacts] results (together with normal contacts and
+     * any other contacts already unlocked in this session). Call [lockProtectedContacts]
+     * when leaving the secured screen or when the app goes to background.
+     * @param rawContactId Raw contact ID ([Contact.id])
+     * @param pin The 4-digit (or custom) PIN that was set when locking this contact
+     * @return true if the PIN was correct and this contact is now unlocked
+     */
+    fun unlockProtectedContact(rawContactId: Long, pin: String): Boolean {
+        return try {
+            val extras = android.os.Bundle().apply {
+                putLong("raw_contact_id", rawContactId)
+                putString("pin", pin)
+            }
+            val result = context.contentResolver.call(android.provider.ContactsContract.AUTHORITY_URI, "unlock", null, extras)
+            result != null && result.getBoolean("unlocked", false)
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    /**
+     * Clears unlock state for this app. After this, only normal contacts appear in queries
+     * until the user unlocks individual protected contacts again. Call when leaving the
+     * secured-contacts screen or when the app goes to background.
+     */
+    fun lockProtectedContacts() {
+        try {
+            context.contentResolver.call(android.provider.ContactsContract.AUTHORITY_URI, "lock", null, null)
+        } catch (_: Exception) { }
+    }
+
+    /**
+     * Unlocks all protected contacts whose stored PIN matches [pin].
+     * Useful before loading secure contact/call history screens.
+     * @return number of contacts unlocked for this app UID
+     */
+    fun unlockAllProtectedContactsWithPin(pin: String): Int {
+        return try {
+            val extras = android.os.Bundle().apply {
+                putString("pin", pin)
+            }
+            val result = context.contentResolver.call(android.provider.ContactsContract.AUTHORITY_URI, "unlock_all_with_pin", null, extras)
+            result?.getInt("unlocked_count", 0) ?: 0
+        } catch (_: Exception) {
+            0
+        }
+    }
+
+    /**
+     * Marks a raw contact as protected or normal. When setting protected, pass the
+     * **custom PIN** (e.g. 4 digits) for this contact. Requires WRITE_CONTACTS.
+     * @param rawContactId Raw contact ID ([Contact.id])
+     * @param protected true = lock with PIN; false = visible to everyone
+     * @param pin When [protected] is true, the custom PIN for this contact (e.g. 4 digits)
+     * @return true if the provider updated the contact
+     */
+    fun setContactProtected(rawContactId: Long, protected: Boolean, pin: String? = null): Boolean {
+        return try {
+            val extras = android.os.Bundle().apply {
+                putLong("raw_contact_id", rawContactId)
+                putBoolean("protected", protected)
+                if (protected && !pin.isNullOrEmpty()) putString("pin", pin)
+            }
+            val result = context.contentResolver.call(AUTHORITY, "set_protected", rawContactId.toString(), extras)
+            result != null && result.getBoolean("success", false)
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    /**
+     * Locks a normal contact with a **custom** PIN (e.g. 4 digits). The user chooses this
+     * PIN when locking; the same PIN is required to unlock this contact later via
+     * [unlockProtectedContact]. Use [Contact.id] as the raw contact ID. Requires WRITE_CONTACTS.
+     * @param rawContactId Raw contact ID
+     * @param pin Custom PIN for this contact (e.g. 4 digits)
+     * @return true if the contact was successfully marked as protected with this PIN
+     */
+    fun lockContactWithPin(rawContactId: Long, pin: String): Boolean =
+        setContactProtected(rawContactId, true, pin)
+
+    /**
+     * Locks a normal contact with a custom PIN. Convenience overload using [Contact.id].
+     */
+    fun lockContactWithPin(contact: Contact, pin: String): Boolean =
+        lockContactWithPin(contact.id.toLong(), pin)
+
+    // endregion
+
     private fun getContentResolverAccounts(): HashSet<ContactSource> {
         val sources = HashSet<ContactSource>()
         arrayOf(Groups.CONTENT_URI, Settings.CONTENT_URI, RawContacts.CONTENT_URI).forEach {

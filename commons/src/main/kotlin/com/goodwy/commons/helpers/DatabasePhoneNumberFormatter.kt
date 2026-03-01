@@ -98,8 +98,13 @@ class DatabasePhoneNumberFormatter(
                 return formatWithDefault(phoneNumber, normalizedNumber, countryCode)
             }
             
-            // Sort by prefix length descending to try longer prefixes first (e.g., 0219 before 021)
-            val sortedFormats = allFormats.sortedByDescending { it.prefixLength }
+            // Prefer longer prefixes and more specific district patterns first
+            // (e.g., 58X before 5XX when both match).
+            val sortedFormats = allFormats.sortedWith(
+                compareByDescending<PhoneNumberFormat> { it.prefixLength }
+                    .thenByDescending { PhoneNumberFormatHelper.getPatternSpecificity(it.districtCodePattern) }
+                    .thenByDescending { it.districtCodeLength }
+            )
             
             // Calculate maximum expected length from all formats
             // Format typically needs: prefix + district + 4 digits for NUMBER4
@@ -163,12 +168,23 @@ class DatabasePhoneNumberFormatter(
                 }
                 
                 // Format using template
-                PhoneNumberFormatHelper.formatNumber(
+                val formattedNumber = PhoneNumberFormatHelper.formatNumber(
                     matchedFormat.formatTemplate,
                     matchedPrefix,
                     matchedDistrictCode,
                     numberPart
                 )
+                // If the template could not be fully resolved (e.g. short number leaves XXXX),
+                // fall back to the original input to avoid showing placeholder characters in UI.
+                if (formattedNumber.any { it.equals('X', ignoreCase = true) }) {
+                    android.util.Log.d(
+                        "DatabasePhoneNumberFormatter",
+                        "Template unresolved for $normalizedNumber with ${matchedFormat.formatTemplate}, returning original number"
+                    )
+                    phoneNumber
+                } else {
+                    formattedNumber
+                }
             } else {
                 // No database format matched, fall back to default
                 android.util.Log.d("DatabasePhoneNumberFormatter", "No format matched for: $normalizedNumber (length=${normalizedNumber.length})")
