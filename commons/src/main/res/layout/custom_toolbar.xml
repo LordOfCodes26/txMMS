@@ -35,8 +35,8 @@
             android:ellipsize="end"
             android:gravity="start|center_vertical"
             android:maxLines="1"
-            android:textColor="@color/default_text_color"
-            android:textSize="@dimen/actionbar_text_size"
+            android:textColor="@color/tx_cardview_big_title"
+            android:textSize="@dimen/tx_cardview_big_title"
             tools:text="Toolbar Title" />
 
 

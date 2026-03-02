@@ -337,7 +337,7 @@ class ContactAvatarView @JvmOverloads constructor(
             avatarInitials.isVisible = false
             // FIT_CENTER allows the vector icon to scale up to available space.
             avatarImage.scaleType = ImageView.ScaleType.FIT_CENTER
-            val iconInset = (minOf(width, height).takeIf { it > 0 } ?: resources.displayMetrics.density.times(40f).toInt()) * 0.04f
+            val iconInset = (minOf(width, height).takeIf { it > 0 } ?: resources.displayMetrics.density.times(150f).toInt()) * 0.04f
             avatarImage.setPadding(iconInset.toInt(), iconInset.toInt(), iconInset.toInt(), iconInset.toInt())
             avatarImage.setImageResource(R.drawable.ic_person)
             avatarImage.imageTintList = ColorStateList.valueOf(Color.WHITE)
@@ -371,7 +371,7 @@ class ContactAvatarView @JvmOverloads constructor(
 
         // Calculate text size as 50% of the view size (similar to canvas-based approach)
         // This ensures the letter scales proportionally with the avatar
-        val textSizePx = size * 0.5f
+        val textSizePx = size * 0.39f
 
         // Set text size in pixels for precise control
         avatarInitials.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, textSizePx)

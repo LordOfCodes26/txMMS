@@ -34,6 +34,7 @@ abstract class MyRecyclerViewListAdapter<T>(
     protected val baseConfig = activity.baseConfig
     protected val resources = activity.resources!!
     protected val layoutInflater = activity.layoutInflater
+    protected val soldTextColor = activity.getSoldTextColor()
     protected var accentColor = activity.getProperAccentColor()
     protected var textColor = activity.getProperTextColor()
     protected var backgroundColor = activity.getProperBackgroundColor()

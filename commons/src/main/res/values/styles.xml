@@ -480,7 +480,7 @@
         <item name="android:layout_width">wrap_content</item>
         <item name="android:layout_height">wrap_content</item>
         <item name="android:textSize">@dimen/normal_text_size</item>
-        <item name="android:textColor">?attr/colorPrimary</item>
+        <item name="android:textColor">@color/tx_cardview_summary</item>
         <item name="android:textAllCaps">true</item>
         <item name="android:layout_marginTop">@dimen/activity_margin</item>
         <item name="android:layout_marginStart">36dp</item>
@@ -557,7 +557,8 @@
         <item name="android:layout_height">wrap_content</item>
         <item name="android:paddingStart">@dimen/settings_margin</item>
         <item name="android:paddingEnd">@dimen/settings_margin</item>
-        <item name="android:textSize">@dimen/bigger_text_size</item>
+        <item name="android:textSize">@dimen/tx_cardview_title_size</item>
+        <item name="android:textColor">@color/tx_cardview_title</item>
         <item name="android:layout_centerVertical">true</item>
         <item name="android:textAlignment">viewStart</item>
     </style>
@@ -567,7 +568,8 @@
         <item name="android:layout_height">wrap_content</item>
         <item name="android:paddingStart">@dimen/settings_margin</item>
         <item name="android:paddingEnd">@dimen/settings_margin</item>
-        <item name="android:textSize">@dimen/smaller_text_size</item>
+        <item name="android:textSize">@dimen/tx_cardview_subtitle_size</item>
+        <item name="android:textColor">@color/tx_cardview_summary</item>
         <item name="android:alpha">0.6</item>
     </style>
 
@@ -576,7 +578,7 @@
         <item name="android:layout_height">wrap_content</item>
         <item name="android:maxWidth">@dimen/settings_value_width</item>
         <item name="android:layout_centerVertical">true</item>
-        <item name="android:textSize">@dimen/bigger_text_size</item>
+        <item name="android:textSize">@dimen/tx_cardview_subtitle_size</item>
         <item name="android:gravity">end</item>
         <item name="android:alpha">0.6</item>
         <item name="android:textAlignment">viewEnd</item>
@@ -586,7 +588,7 @@
         <item name="android:layout_width">24dp</item>
         <item name="android:layout_height">24dp</item>
         <item name="android:padding">4dp</item>
-        <item name="android:src">@drawable/ic_chevron_right_vector</item>
+        <item name="android:src">@drawable/ic_cmn_arrow_right</item>
     </style>
 
     <style name="SettingsHolderCheckboxStyle">

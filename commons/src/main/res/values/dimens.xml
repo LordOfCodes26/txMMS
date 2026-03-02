@@ -1,15 +1,22 @@
 <resources>
+    <dimen name="_tiny_dp">-6dp</dimen>
     <dimen name="one_dp">1dp</dimen>
     <dimen name="tiny_margin">2dp</dimen>
     <dimen name="small_margin">4dp</dimen>
+    <dimen name="small_md_margin">5dp</dimen>
     <dimen name="smaller_margin">6dp</dimen>
     <dimen name="medium_margin">8dp</dimen>
+    <dimen name="medium_md_margin">9dp</dimen>
+    <dimen name="medium_normal_margin">10dp</dimen>
     <dimen name="normal_margin">12dp</dimen>
+    <dimen name="normal_activity_margin">14dp</dimen>
     <dimen name="activity_margin">16dp</dimen>
     <dimen name="larger_margin">18dp</dimen>
     <dimen name="bigger_margin">20dp</dimen>
     <dimen name="big_margin">24dp</dimen>
+    <dimen name="big_md_margin">26dp</dimen>
     <dimen name="section_margin">32dp</dimen>
+    <dimen name="section_md_margin">36dp</dimen>
     <dimen name="filter_section_margin">48dp</dimen>
     <dimen name="label_start_margin">72dp</dimen>
     <dimen name="settings_label_start_margin">20dp</dimen>
@@ -36,7 +43,8 @@
     <dimen name="colorpicker_color_width">35dp</dimen>
     <dimen name="colorpicker_color_height">70dp</dimen>
 
-    <dimen name="normal_icon_size">48dp</dimen>
+    <dimen name="call_icon_size">39dp</dimen>
+    <dimen name="normal_icon_size">45dp</dimen>
     <dimen name="medium_icon_size">@dimen/tx_toolbar_icon_size</dimen>
     <dimen name="fingerprint_size">72dp</dimen>
     <dimen name="fab_size">56dp</dimen>
@@ -69,9 +77,10 @@
     <dimen name="bigger_text_size">16sp</dimen>
     <dimen name="middle_text_size">17sp</dimen>
     <dimen name="big_text_size">18sp</dimen>
+    <dimen name="extra_big_text_size">19sp</dimen>
     <dimen name="actionbar_text_size">21sp</dimen>
-    <dimen name="extra_big_text_size">22sp</dimen>
-    <dimen name="large_text_size">30sp</dimen>
+    <dimen name="large_text_size">22sp</dimen>
+    <dimen name="extra_large_text_size">30sp</dimen>
 
     <dimen name="cab_popup_menu_min_width">168dp</dimen>
     <dimen name="cab_item_min_width">85dp</dimen>
@@ -94,6 +103,8 @@
     <dimen name="list_item_padding_vertical">8dp</dimen>
 
     <!-- Leading icon sizes -->
+    <dimen name="list_icon_size_xx_small">14dp</dimen>
+    <dimen name="list_icon_size_x_small">18dp</dimen>
     <dimen name="list_icon_size_small">24dp</dimen>
     <dimen name="list_icon_size_medium">40dp</dimen>
     <dimen name="list_icon_size_large">56dp</dimen>
@@ -136,6 +147,11 @@
     <!--Search toolbar-->
     <dimen name="search_menu_height">36dp</dimen>
 
+    <!--Recent Call Height -->
+    <dimen name="recent_call_height">67dp</dimen>
+    <dimen name="recent_call_sim_width">14dp</dimen>
+    <dimen name="recent_call_sim_height">18dp</dimen>
+    <dimen name="recent_call_info_size">18dp</dimen>
     <!--Swipe-->
     <dimen name="swipe_width">180dp</dimen>
 

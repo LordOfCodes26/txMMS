@@ -739,8 +739,8 @@
     <string name="enable_automatic_backups">자동 여벌복사 활성화</string>
     <string name="website">웨브싸이트</string>
     <string name="block_numbers">전화번호 차단</string>
-    <string name="contact_poster">Poster</string>
-    <string name="contact_avatar">Avatar</string>
+    <string name="contact_poster">주소정보</string>
+    <string name="contact_avatar">주소그림</string>
     <string name="seconds_letter">%d초</string>
     <string name="minutes_letter">%d분</string>
     <string name="hours_letter">%d시간</string>

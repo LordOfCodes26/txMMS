@@ -457,10 +457,12 @@ class SimpleContactsHelper(val context: Context) {
             textAlign = Paint.Align.CENTER
             textSize = wantedTextSize
             style = Paint.Style.FILL
+            isFakeBoldText = false
         }
 
         val xPos = canvas.width / 2f
-        val yPos = canvas.height / 2 - (textPaint.descent() + textPaint.ascent()) / 2
+        val fontMetrics = textPaint.fontMetrics
+        val yPos = canvas.height / 2f - (fontMetrics.ascent + fontMetrics.descent) / 2f
         canvas.drawText(letter, xPos, yPos, textPaint)
         
         return bitmap
