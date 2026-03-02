@@ -63,6 +63,7 @@ import com.goodwy.commons.extensions.isRTLLayout
 import com.goodwy.commons.extensions.isSystemInDarkMode
 import com.goodwy.commons.extensions.launchInternetSearch
 import com.goodwy.commons.extensions.launchSendSMSIntent
+import com.goodwy.commons.extensions.setSystemBarsAppearance
 import com.goodwy.commons.extensions.shareTextIntent
 import com.goodwy.commons.extensions.showErrorToast
 import com.goodwy.commons.extensions.usableScreenSize
@@ -209,6 +210,11 @@ class ThreadAdapter(
     }
 
     override fun actionItemPressed(id: Int) {
+        if (id == R.id.cab_select_all) {
+            selectAll()
+            return
+        }
+
         if (selectedKeys.isEmpty()) {
             return
         }
@@ -221,7 +227,6 @@ class ThreadAdapter(
             R.id.cab_select_text -> selectText()
             R.id.cab_delete -> askConfirmDelete()
             R.id.cab_restore -> askConfirmRestore()
-            R.id.cab_select_all -> selectAll()
             R.id.cab_properties -> showMessageDetails()
         }
     }
@@ -238,7 +243,27 @@ class ThreadAdapter(
         return currentList.indexOfFirst { (it as? Message)?.getSelectionKey() == key }
     }
 
-    override fun onActionModeCreated() {}
+    override fun onActionModeCreated() {
+        // Keep select mode visuals consistent with MainActivity action mode.
+        val useSurfaceColor = activity.isDynamicTheme() && !activity.isSystemInDarkMode()
+        val cabBackgroundColor = if (useSurfaceColor) {
+            activity.getSurfaceColor()
+        } else {
+            activity.getProperBackgroundColor()
+        }
+
+        val actModeBar = actMode?.customView?.parent as? View
+        actModeBar?.setBackgroundColor(cabBackgroundColor)
+
+        val toolbar = actMode?.customView as? com.goodwy.commons.views.CustomActionModeToolbar
+        toolbar?.updateTextColorForBackground(cabBackgroundColor)
+        toolbar?.updateColorsForBackground(cabBackgroundColor)
+
+        if (activity is com.goodwy.commons.activities.EdgeToEdgeActivity) {
+            activity.window.statusBarColor = cabBackgroundColor
+            activity.window.setSystemBarsAppearance(cabBackgroundColor)
+        }
+    }
 
     override fun onActionModeDestroyed() {}
 
