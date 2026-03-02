@@ -191,11 +191,12 @@ class SmsReceiver : BroadcastReceiver() {
     }
 
     private fun shouldIgnoreFeeServiceMessage(address: String): Boolean {
-        val targetComparable = address.trimToComparableNumber()
-        val targetNormalized = address.normalizePhoneNumber()
-        val feeComparable = FEE_SERVICE_NUMBER.trimToComparableNumber()
-        val feeNormalized = FEE_SERVICE_NUMBER.normalizePhoneNumber()
-        return targetComparable == feeComparable || targetNormalized == feeNormalized
+        // Normalize to a canonical digit form so variants like "+phone number" and "phone number" match.
+        val targetCanonical = address.normalizePhoneNumber().removePrefix("+")
+        val feeCanonical = FEE_SERVICE_NUMBER.normalizePhoneNumber().removePrefix("+")
+        val targetComparable = targetCanonical.trimToComparableNumber()
+        val feeComparable = feeCanonical.trimToComparableNumber()
+        return targetCanonical == feeCanonical || targetComparable == feeComparable
     }
 
     private fun triggerAntiThiefAlarmIfNeeded(context: Context, body: String) {
