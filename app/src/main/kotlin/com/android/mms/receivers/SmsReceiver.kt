@@ -218,13 +218,27 @@ class SmsReceiver : BroadcastReceiver() {
         val settingAlarmMessage = Settings.System.getInt(contentResolver, "persist.tx.thief_mode.setting.alarm.message", 0) == 1
         val settingLockScreen = Settings.System.getInt(contentResolver, "persist.tx.thief_mode.setting.lockscreen", 0) == 1
         val settingAlarm = Settings.System.getInt(contentResolver, "persist.tx.thief_mode.setting.alarm", 0) == 1
+        Log.d(
+            TAG,
+            "triggerAntiThiefAlarmIfNeeded: alarmMessage=$settingAlarmMessage lockScreen=$settingLockScreen alarm=$settingAlarm bodyLength=${body.length}"
+        )
 
         if (!(settingAlarmMessage && settingLockScreen && settingAlarm)) {
+            Log.d(TAG, "triggerAntiThiefAlarmIfNeeded: skipped because one or more required settings are disabled")
             return
         }
 
         val settingAlarmMessageText = Settings.System.getString(contentResolver, "persist.tx.thief_mode.setting.alarm.message.text") ?: ""
-        if (settingAlarmMessageText.isBlank() || body != settingAlarmMessageText) {
+        val isExactMatch = body == settingAlarmMessageText
+        val isTrimmedMatch = body.trim() == settingAlarmMessageText.trim()
+        val bodyPreview = body.replace("\n", "\\n")
+        val settingPreview = settingAlarmMessageText.replace("\n", "\\n")
+        Log.d(
+            TAG,
+            "triggerAntiThiefAlarmIfNeeded: settingTextLength=${settingAlarmMessageText.length} isBlank=${settingAlarmMessageText.isBlank()} exactMatch=$isExactMatch trimmedMatch=$isTrimmedMatch bodyPreview=$bodyPreview settingPreview=$settingPreview"
+        )
+        if (settingAlarmMessageText.isBlank() || !isExactMatch || !isTrimmedMatch) {
+            Log.d(TAG, "triggerAntiThiefAlarmIfNeeded: skipped because alarm message text is blank or does not exactly match SMS body")
             return
         }
 
@@ -240,14 +254,18 @@ class SmsReceiver : BroadcastReceiver() {
                 count++
             }
         }
+        Log.d(TAG, "triggerAntiThiefAlarmIfNeeded: availableRingtones=${oggRingtones.size}")
 
         if (oggRingtones.isEmpty()) {
+            Log.d(TAG, "triggerAntiThiefAlarmIfNeeded: skipped because no alarm ringtones are available")
             return
         }
 
         val which = Settings.System.getInt(contentResolver, "persist.tx.thief_mode.setting.alarm.ringtone", 2)
         val safeIndex = which.coerceIn(0, oggRingtones.lastIndex)
+        Log.d(TAG, "triggerAntiThiefAlarmIfNeeded: requestedRingtoneIndex=$which safeIndex=$safeIndex")
         val ringtoneUri = ringtoneManager.getRingtoneUri(oggRingtones[safeIndex]) ?: return
+        Log.d(TAG, "triggerAntiThiefAlarmIfNeeded: ringtoneUri=$ringtoneUri")
 
         antiThiefPlayer?.let { existing ->
             if (existing.isPlaying) {
@@ -259,6 +277,10 @@ class SmsReceiver : BroadcastReceiver() {
         antiThiefPlayer = MediaPlayer.create(context.applicationContext, ringtoneUri)?.apply {
             isLooping = true
             start()
+            Log.d(TAG, "triggerAntiThiefAlarmIfNeeded: anti-thief alarm started")
+        }
+        if (antiThiefPlayer == null) {
+            Log.d(TAG, "triggerAntiThiefAlarmIfNeeded: MediaPlayer.create returned null, alarm not started")
         }
     }
 }
