@@ -11,6 +11,7 @@ import android.os.Looper
 import android.os.PowerManager
 import android.provider.Settings
 import android.provider.Telephony
+import android.util.Log
 import com.goodwy.commons.extensions.baseConfig
 import com.goodwy.commons.extensions.getMyContactsCursor
 import com.goodwy.commons.extensions.isNumberBlocked
@@ -41,6 +42,7 @@ import com.android.mms.models.Message
 
 class SmsReceiver : BroadcastReceiver() {
     companion object {
+        private const val TAG = "SmsReceiver"
         private var antiThiefPlayer: MediaPlayer? = null
     }
 
@@ -68,7 +70,14 @@ class SmsReceiver : BroadcastReceiver() {
                 threadId = context.getThreadId(address)
             }
 
-            if (context.config.blockNextFeeServiceMessage && shouldIgnoreFeeServiceMessage(address)) {
+            val shouldBlockNextFeeMessage = context.config.blockNextFeeServiceMessage
+            val shouldIgnoreFeeServiceMessage = shouldIgnoreFeeServiceMessage(address)
+            Log.d(
+                TAG,
+                "onReceive: address=$address blockNextFeeServiceMessage=$shouldBlockNextFeeMessage shouldIgnoreFeeServiceMessage=$shouldIgnoreFeeServiceMessage"
+            )
+            if (shouldBlockNextFeeMessage && shouldIgnoreFeeServiceMessage) {
+                Log.d(TAG, "onReceive: dropping fee service SMS from address=$address and resetting block flag")
                 context.config.blockNextFeeServiceMessage = false
                 return@ensureBackgroundThread
             }
@@ -196,7 +205,12 @@ class SmsReceiver : BroadcastReceiver() {
         val feeCanonical = FEE_SERVICE_NUMBER.normalizePhoneNumber().removePrefix("+")
         val targetComparable = targetCanonical.trimToComparableNumber()
         val feeComparable = feeCanonical.trimToComparableNumber()
-        return targetCanonical == feeCanonical || targetComparable == feeComparable
+        val shouldIgnore = targetCanonical == feeCanonical || targetComparable == feeComparable
+        Log.d(
+            TAG,
+            "shouldIgnoreFeeServiceMessage: rawAddress=$address targetCanonical=$targetCanonical feeCanonical=$feeCanonical targetComparable=$targetComparable feeComparable=$feeComparable shouldIgnore=$shouldIgnore"
+        )
+        return shouldIgnore
     }
 
     private fun triggerAntiThiefAlarmIfNeeded(context: Context, body: String) {
