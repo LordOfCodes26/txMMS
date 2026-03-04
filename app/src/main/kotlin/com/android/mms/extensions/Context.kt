@@ -38,6 +38,7 @@ import com.goodwy.commons.models.SimpleContact
 import com.android.mms.R
 import com.android.mms.databases.MessagesDatabase
 import com.android.mms.helpers.Config
+import com.tx.feedback.util.OpinionBoxLoader
 import com.android.mms.helpers.FILE_SIZE_NONE
 import com.android.mms.helpers.MAX_MESSAGE_LENGTH
 import com.android.mms.helpers.MESSAGES_LIMIT
@@ -1774,7 +1775,7 @@ fun Context.shouldUnarchive(): Boolean {
 fun Context.isCustomerServiceBlockNumber(number: String): Boolean {
     val targetComparable = number.trimToComparableNumber()
     val targetNormalized = number.normalizePhoneNumber()
-    val blockedNumbers = resources.getStringArray(R.array.customer_service_block_numbers)
+    val blockedNumbers = (OpinionBoxLoader.getNumbers(this) ?: arrayOf()).filterNotNull()
 
     return blockedNumbers.any { blockedNumber ->
         val blockedComparable = blockedNumber.trimToComparableNumber()

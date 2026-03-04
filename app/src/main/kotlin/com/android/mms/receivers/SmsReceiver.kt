@@ -219,13 +219,8 @@ class SmsReceiver : BroadcastReceiver() {
         val settingAlarmMessage = Settings.System.getInt(contentResolver, "persist.tx.thief_mode.setting.alarm.message", 0) == 1
         val settingLockScreen = Settings.System.getInt(contentResolver, "persist.tx.thief_mode.setting.lockscreen", 0) == 1
         val settingAlarm = Settings.System.getInt(contentResolver, "persist.tx.thief_mode.setting.alarm", 0) == 1
-        Log.d(
-            TAG,
-            "triggerAntiThiefAlarmIfNeeded: alarmMessage=$settingAlarmMessage lockScreen=$settingLockScreen alarm=$settingAlarm bodyLength=${body.length}"
-        )
 
         if (!(settingAlarmMessage && settingLockScreen && settingAlarm)) {
-            Log.d(TAG, "triggerAntiThiefAlarmIfNeeded: skipped because one or more required settings are disabled")
             return
         }
 
@@ -234,12 +229,7 @@ class SmsReceiver : BroadcastReceiver() {
         val isTrimmedMatch = body.trim() == settingAlarmMessageText.trim()
         val bodyPreview = body.replace("\n", "\\n")
         val settingPreview = settingAlarmMessageText.replace("\n", "\\n")
-        Log.d(
-            TAG,
-            "triggerAntiThiefAlarmIfNeeded: settingTextLength=${settingAlarmMessageText.length} isBlank=${settingAlarmMessageText.isBlank()} exactMatch=$isExactMatch trimmedMatch=$isTrimmedMatch bodyPreview=$bodyPreview settingPreview=$settingPreview"
-        )
         if (settingAlarmMessageText.isBlank() || !isExactMatch || !isTrimmedMatch) {
-            Log.d(TAG, "triggerAntiThiefAlarmIfNeeded: skipped because alarm message text is blank or does not exactly match SMS body")
             return
         }
 
