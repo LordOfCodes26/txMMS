@@ -2,6 +2,7 @@ package com.android.mms.activities
 
 import android.Manifest
 import android.content.Intent
+import android.content.res.Configuration
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.os.Bundle
@@ -21,11 +22,14 @@ import androidx.core.view.updateLayoutParams
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.appbar.AppBarLayout
+import com.goodwy.commons.extensions.getProperAccentColor
 import com.goodwy.commons.extensions.getProperBackgroundColor
 import com.goodwy.commons.extensions.getColoredDrawableWithColor
 import com.goodwy.commons.extensions.getProperPrimaryColor
 import com.goodwy.commons.extensions.getProperTextColor
 import com.goodwy.commons.extensions.getSurfaceColor
+import com.goodwy.commons.extensions.getContrastColor
+import com.goodwy.commons.extensions.getColorStateList
 import com.goodwy.commons.extensions.isDynamicTheme
 import com.goodwy.commons.extensions.isSystemInDarkMode
 import com.goodwy.commons.views.MyRecyclerView
@@ -36,9 +40,12 @@ import com.android.common.view.MSearchView
 import com.android.common.view.MVSideFrame
 import com.android.mms.R
 import com.android.mms.adapters.ContactPickerAdapter
+import com.android.mms.extensions.setupWithContacts
 import com.android.mms.models.Contact
 import com.goodwy.commons.helpers.SimpleContactsHelper
 import com.goodwy.commons.views.BlurAppBarLayout
+import com.reddit.indicatorfastscroll.FastScrollerThumbView
+import com.reddit.indicatorfastscroll.FastScrollerView
 import eightbitlab.com.blurview.BlurTarget
 
 class ContactPickerActivity : SimpleActivity() {
@@ -99,6 +106,8 @@ class ContactPickerActivity : SimpleActivity() {
     private var filterContacts: MyTextView? = null
     private var callLogPlaceholder: View? = null
     private var contactPickerFilterBar: View? = null
+    private var contactsLetterFastscroller: FastScrollerView? = null
+    private var contactsLetterFastscrollerThumb: FastScrollerThumbView? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -269,6 +278,20 @@ class ContactPickerActivity : SimpleActivity() {
         contactAdapter = ContactPickerAdapter(this)
         contactRecyclerView?.adapter = contactAdapter
 
+        contactsLetterFastscroller = findViewById(R.id.contactsLetterFastscroller)
+        contactsLetterFastscrollerThumb = findViewById(R.id.contactsLetterFastscrollerThumb)
+        val properTextColor = getProperTextColor()
+        val properAccentColor = getProperAccentColor()
+        contactsLetterFastscroller?.apply {
+            textColor = properTextColor.getColorStateList()
+            pressedTextColor = properAccentColor
+        }
+        contactsLetterFastscrollerThumb?.apply {
+            contactsLetterFastscroller?.let { setupWithFastScroller(it) }
+            textColor = properAccentColor.getContrastColor()
+            thumbColor = properAccentColor.getColorStateList()
+        }
+
         contactRecyclerView?.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                 super.onScrolled(recyclerView, dx, dy)
@@ -370,6 +393,42 @@ class ContactPickerActivity : SimpleActivity() {
         }
     }
 
+    private fun setupLetterFastscroller(contacts: List<Contact>) {
+        if (isCallLogMode) {
+            contactsLetterFastscroller?.visibility = View.GONE
+            contactsLetterFastscrollerThumb?.visibility = View.GONE
+            return
+        }
+        val hasContacts = contacts.isNotEmpty()
+        contactsLetterFastscroller?.visibility = if (hasContacts) View.VISIBLE else View.GONE
+        contactsLetterFastscrollerThumb?.visibility = if (hasContacts) View.VISIBLE else View.GONE
+        if (!hasContacts) return
+        try {
+            val allNotEmpty = contacts.filter { (it.name.ifEmpty { it.phoneNumber }).isNotEmpty() }
+            val all = allNotEmpty.map { (it.name.ifEmpty { it.phoneNumber }).substring(0, 1) }
+            val unique: Set<String> = HashSet(all)
+            val sizeUnique = unique.size
+            if (isHighScreenSize()) {
+                if (sizeUnique > 48) contactsLetterFastscroller?.textAppearanceRes = R.style.LetterFastscrollerStyleTooTiny
+                else if (sizeUnique > 37) contactsLetterFastscroller?.textAppearanceRes = R.style.LetterFastscrollerStyleTiny
+                else contactsLetterFastscroller?.textAppearanceRes = R.style.LetterFastscrollerStyleSmall
+            } else {
+                if (sizeUnique > 36) contactsLetterFastscroller?.textAppearanceRes = R.style.LetterFastscrollerStyleTooTiny
+                else if (sizeUnique > 30) contactsLetterFastscroller?.textAppearanceRes = R.style.LetterFastscrollerStyleTiny
+                else contactsLetterFastscroller?.textAppearanceRes = R.style.LetterFastscrollerStyleSmall
+            }
+        } catch (_: Exception) { }
+        val recyclerView = contactRecyclerView ?: return
+        contactsLetterFastscroller?.setupWithContacts(recyclerView, contacts)
+    }
+
+    private fun isHighScreenSize(): Boolean {
+        return when (resources.configuration.screenLayout and Configuration.SCREENLAYOUT_LONG_MASK) {
+            Configuration.SCREENLAYOUT_LONG_NO -> false
+            else -> true
+        }
+    }
+
     /** Hides filter bar when app bar is scrolled (top item going up); shows when app bar is back at original (expanded). */
     private fun setupFilterBarScrollBehavior() {
         val bar = blurAppBarLayout ?: return
@@ -412,6 +471,7 @@ class ContactPickerActivity : SimpleActivity() {
             if (idx >= 0 && selectedPositions.contains(idx)) filteredSelected.add(i)
         }
         contactAdapter?.setItems(filteredContacts, filteredSelected)
+        setupLetterFastscroller(filteredContacts)
     }
 
     private fun checkContactsPermission(): Boolean {
@@ -528,6 +588,7 @@ class ContactPickerActivity : SimpleActivity() {
                     if (searchString.trim().isEmpty()) {
                         filteredContacts.addAll(list)
                         contactAdapter?.setItems(list, selected)
+                        setupLetterFastscroller(list)
                     } else {
                         searchListByQuery(searchString)
                     }
@@ -536,6 +597,7 @@ class ContactPickerActivity : SimpleActivity() {
                     if (list.isEmpty()) {
                         callLogPlaceholder?.visibility = View.VISIBLE
                         contactRecyclerView?.visibility = View.GONE
+                        setupLetterFastscroller(emptyList())
                     } else {
                         callLogPlaceholder?.visibility = View.GONE
                         contactRecyclerView?.visibility = View.VISIBLE
@@ -547,6 +609,7 @@ class ContactPickerActivity : SimpleActivity() {
                     callLogPlaceholder?.visibility = View.VISIBLE
                     contactRecyclerView?.visibility = View.GONE
                     contactAdapter?.setItems(emptyList(), emptySet())
+                    setupLetterFastscroller(emptyList())
                 }
             }
         }.start()
@@ -606,6 +669,7 @@ class ContactPickerActivity : SimpleActivity() {
                 if (searchString.trim().isEmpty()) {
                     filteredContacts.addAll(contactList)
                     contactAdapter?.setItems(contactList, selected)
+                    setupLetterFastscroller(contactList)
                 } else {
                     searchListByQuery(searchString)
                 }

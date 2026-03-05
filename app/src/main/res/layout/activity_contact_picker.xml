@@ -53,6 +53,25 @@
                     android:clipToPadding="false"
                     app:layout_behavior="com.google.android.material.appbar.AppBarLayout$ScrollingViewBehavior"
                     android:nestedScrollingEnabled="true" />
+
+                <com.reddit.indicatorfastscroll.FastScrollerView
+                    android:id="@+id/contactsLetterFastscroller"
+                    android:layout_width="26dp"
+                    android:layout_height="match_parent"
+                    android:layout_alignTop="@id/contactRecyclerView"
+                    android:layout_alignBottom="@id/contactRecyclerView"
+                    android:layout_alignParentEnd="true"
+                    android:paddingStart="@dimen/normal_margin"
+                    android:textAppearance="@style/LetterFastscrollerStyleSmall" />
+
+                <com.reddit.indicatorfastscroll.FastScrollerThumbView
+                    android:id="@+id/contactsLetterFastscrollerThumb"
+                    android:layout_width="@dimen/fab_size"
+                    android:layout_height="match_parent"
+                    android:layout_alignTop="@id/contactsLetterFastscroller"
+                    android:layout_alignBottom="@id/contactsLetterFastscroller"
+                    android:layout_marginEnd="@dimen/activity_margin"
+                    android:layout_toStartOf="@id/contactsLetterFastscroller" />
             </RelativeLayout>
         </eightbitlab.com.blurview.BlurTarget>
 
