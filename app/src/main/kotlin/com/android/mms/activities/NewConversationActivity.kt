@@ -27,7 +27,6 @@ import androidx.core.content.res.ResourcesCompat
 import androidx.documentfile.provider.DocumentFile
 import androidx.recyclerview.widget.RecyclerView
 import com.google.gson.Gson
-import com.reddit.indicatorfastscroll.FastScrollItemIndicator
 import com.goodwy.commons.extensions.*
 import com.goodwy.commons.helpers.*
 import com.goodwy.commons.models.PhoneNumber
@@ -45,7 +44,6 @@ import com.android.mms.models.Attachment
 import com.android.mms.models.SIMCard
 import com.android.mms.helpers.MessageHolderHelper
 import java.net.URLDecoder
-import java.util.Locale
 import java.util.Objects
 
 class NewConversationActivity : SimpleActivity() {
@@ -442,6 +440,8 @@ class NewConversationActivity : SimpleActivity() {
                 PERMISSION_READ_CONTACTS
             )
         )
+        binding.contactsLetterFastscroller.beVisibleIf(hasContacts)
+        binding.contactsLetterFastscrollerThumb.beVisibleIf(hasContacts)
 
         if (!hasContacts) {
             val placeholderText = if (hasPermission(PERMISSION_READ_CONTACTS)) {
@@ -567,18 +567,7 @@ class NewConversationActivity : SimpleActivity() {
             }
         } catch (_: Exception) { }
 
-        binding.contactsLetterFastscroller.setupWithRecyclerView(binding.contactsList, { position ->
-            try {
-                val name = contactPhonePairs[position].contact.name
-                val emoji = name.take(2)
-                val character = if (emoji.isEmoji()) emoji else if (name.isNotEmpty()) name.substring(0, 1) else ""
-                FastScrollItemIndicator.Text(
-                    character.uppercase(Locale.getDefault()).normalizeString()
-                )
-            } catch (_: Exception) {
-                FastScrollItemIndicator.Text("")
-            }
-        })
+        binding.contactsLetterFastscroller.setupWithContactPhonePairs(binding.contactsList, contactPhonePairs)
     }
 
     private fun isHighScreenSize(): Boolean {
