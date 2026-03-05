@@ -27,10 +27,12 @@ import androidx.core.content.res.ResourcesCompat
 import androidx.documentfile.provider.DocumentFile
 import androidx.recyclerview.widget.RecyclerView
 import com.google.gson.Gson
+import com.reddit.indicatorfastscroll.FastScrollItemIndicator
 import com.goodwy.commons.extensions.*
 import com.goodwy.commons.helpers.*
 import com.goodwy.commons.models.PhoneNumber
 import com.goodwy.commons.models.SimpleContact
+import com.goodwy.commons.models.contacts.Contact as CommonContact
 import com.android.mms.R
 import com.android.mms.adapters.ContactsAdapter
 import com.android.mms.adapters.ContactPhonePair
@@ -342,6 +344,7 @@ class NewConversationActivity : SimpleActivity() {
         binding.contactsLetterFastscroller.textColor = properTextColor.getColorStateList()
         binding.contactsLetterFastscroller.pressedTextColor = properAccentColor
         binding.contactsLetterFastscrollerThumb.setupWithFastScroller(binding.contactsLetterFastscroller)
+        binding.contactsLetterFastscrollerThumb.fontSize = getTextSize()
         binding.contactsLetterFastscrollerThumb.textColor = properAccentColor.getContrastColor()
         binding.contactsLetterFastscrollerThumb.thumbColor = properAccentColor.getColorStateList()
     }
@@ -550,24 +553,36 @@ class NewConversationActivity : SimpleActivity() {
     }
 
     private fun setupLetterFastscroller(contactPhonePairs: ArrayList<ContactPhonePair>) {
+        binding.contactsLetterFastscroller.setupWithRecyclerView(
+            binding.contactsList,
+            { position ->
+                try {
+                    FastScrollItemIndicator.Text(
+                        CommonContact(id = 0, firstName = contactPhonePairs[position].contact.name, contactId = 0).getFirstLetter()
+                    )
+                } catch (_: Exception) {
+                    FastScrollItemIndicator.Text("")
+                }
+            },
+            useDefaultScroller = true
+        )
+
         try {
             //Decrease the font size based on the number of letters in the letter scroller
             val allNotEmpty = contactPhonePairs.filter { it.contact.name.isNotEmpty() }
-            val all = allNotEmpty.map { it.contact.name.substring(0, 1) }
+            val all = allNotEmpty.map { CommonContact(id = 0, firstName = it.contact.name, contactId = 0).getFirstLetter() }
             val unique: Set<String> = HashSet(all)
             val sizeUnique = unique.size
             if (isHighScreenSize()) {
-                if (sizeUnique > 48) binding.contactsLetterFastscroller.textAppearanceRes = R.style.LetterFastscrollerStyleTooTiny
-                else if (sizeUnique > 37) binding.contactsLetterFastscroller.textAppearanceRes = R.style.LetterFastscrollerStyleTiny
+                if (sizeUnique > 39) binding.contactsLetterFastscroller.textAppearanceRes = R.style.LetterFastscrollerStyleTooTiny
+                else if (sizeUnique > 32) binding.contactsLetterFastscroller.textAppearanceRes = R.style.LetterFastscrollerStyleTiny
                 else binding.contactsLetterFastscroller.textAppearanceRes = R.style.LetterFastscrollerStyleSmall
             } else {
-                if (sizeUnique > 36) binding.contactsLetterFastscroller.textAppearanceRes = R.style.LetterFastscrollerStyleTooTiny
-                else if (sizeUnique > 30) binding.contactsLetterFastscroller.textAppearanceRes = R.style.LetterFastscrollerStyleTiny
+                if (sizeUnique > 49) binding.contactsLetterFastscroller.textAppearanceRes = R.style.LetterFastscrollerStyleTooTiny
+                else if (sizeUnique > 37) binding.contactsLetterFastscroller.textAppearanceRes = R.style.LetterFastscrollerStyleTiny
                 else binding.contactsLetterFastscroller.textAppearanceRes = R.style.LetterFastscrollerStyleSmall
             }
         } catch (_: Exception) { }
-
-        binding.contactsLetterFastscroller.setupWithContactPhonePairs(binding.contactsList, contactPhonePairs)
     }
 
     private fun isHighScreenSize(): Boolean {

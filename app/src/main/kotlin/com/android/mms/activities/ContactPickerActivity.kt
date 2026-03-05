@@ -21,6 +21,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updateLayoutParams
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.reddit.indicatorfastscroll.FastScrollItemIndicator
 import com.google.android.material.appbar.AppBarLayout
 import com.goodwy.commons.extensions.getProperAccentColor
 import com.goodwy.commons.extensions.getProperBackgroundColor
@@ -30,8 +31,10 @@ import com.goodwy.commons.extensions.getProperTextColor
 import com.goodwy.commons.extensions.getSurfaceColor
 import com.goodwy.commons.extensions.getContrastColor
 import com.goodwy.commons.extensions.getColorStateList
+import com.goodwy.commons.extensions.getTextSize
 import com.goodwy.commons.extensions.isDynamicTheme
 import com.goodwy.commons.extensions.isSystemInDarkMode
+import com.goodwy.commons.models.contacts.Contact as CommonContact
 import com.goodwy.commons.views.MyRecyclerView
 import com.goodwy.commons.views.MyTextView
 import com.android.common.helper.IconItem
@@ -40,7 +43,6 @@ import com.android.common.view.MSearchView
 import com.android.common.view.MVSideFrame
 import com.android.mms.R
 import com.android.mms.adapters.ContactPickerAdapter
-import com.android.mms.extensions.setupWithContacts
 import com.android.mms.models.Contact
 import com.goodwy.commons.helpers.SimpleContactsHelper
 import com.goodwy.commons.views.BlurAppBarLayout
@@ -288,6 +290,7 @@ class ContactPickerActivity : SimpleActivity() {
         }
         contactsLetterFastscrollerThumb?.apply {
             contactsLetterFastscroller?.let { setupWithFastScroller(it) }
+            fontSize = getTextSize()
             textColor = properAccentColor.getContrastColor()
             thumbColor = properAccentColor.getColorStateList()
         }
@@ -405,21 +408,32 @@ class ContactPickerActivity : SimpleActivity() {
         if (!hasContacts) return
         try {
             val allNotEmpty = contacts.filter { (it.name.ifEmpty { it.phoneNumber }).isNotEmpty() }
-            val all = allNotEmpty.map { (it.name.ifEmpty { it.phoneNumber }).substring(0, 1) }
+            val all = allNotEmpty.map { CommonContact(id = 0, firstName = it.name.ifEmpty { it.phoneNumber }, contactId = 0).getFirstLetter() }
             val unique: Set<String> = HashSet(all)
             val sizeUnique = unique.size
             if (isHighScreenSize()) {
-                if (sizeUnique > 48) contactsLetterFastscroller?.textAppearanceRes = R.style.LetterFastscrollerStyleTooTiny
-                else if (sizeUnique > 37) contactsLetterFastscroller?.textAppearanceRes = R.style.LetterFastscrollerStyleTiny
+                if (sizeUnique > 39) contactsLetterFastscroller?.textAppearanceRes = R.style.LetterFastscrollerStyleTooTiny
+                else if (sizeUnique > 32) contactsLetterFastscroller?.textAppearanceRes = R.style.LetterFastscrollerStyleTiny
                 else contactsLetterFastscroller?.textAppearanceRes = R.style.LetterFastscrollerStyleSmall
             } else {
-                if (sizeUnique > 36) contactsLetterFastscroller?.textAppearanceRes = R.style.LetterFastscrollerStyleTooTiny
-                else if (sizeUnique > 30) contactsLetterFastscroller?.textAppearanceRes = R.style.LetterFastscrollerStyleTiny
+                if (sizeUnique > 49) contactsLetterFastscroller?.textAppearanceRes = R.style.LetterFastscrollerStyleTooTiny
+                else if (sizeUnique > 37) contactsLetterFastscroller?.textAppearanceRes = R.style.LetterFastscrollerStyleTiny
                 else contactsLetterFastscroller?.textAppearanceRes = R.style.LetterFastscrollerStyleSmall
             }
         } catch (_: Exception) { }
         val recyclerView = contactRecyclerView ?: return
-        contactsLetterFastscroller?.setupWithContacts(recyclerView, contacts)
+        contactsLetterFastscroller?.setupWithRecyclerView(
+            recyclerView,
+            { position ->
+                try {
+                    val section = CommonContact(id = 0, firstName = contacts[position].name.ifEmpty { contacts[position].phoneNumber }, contactId = 0).getFirstLetter()
+                    FastScrollItemIndicator.Text(section)
+                } catch (_: Exception) {
+                    FastScrollItemIndicator.Text("")
+                }
+            },
+            useDefaultScroller = true
+        )
     }
 
     private fun isHighScreenSize(): Boolean {
