@@ -101,6 +101,8 @@ class NewConversationActivity : SimpleActivity() {
         val backgroundColor = if (useSurfaceColor) getSurfaceColor() else getProperBackgroundColor()
         setupTopAppBar(binding.newConversationAppbar, NavigationIcon.Arrow, topBarColor = backgroundColor)
         binding.newConversationHolder.setBackgroundColor(backgroundColor)
+        binding.suggestionsOverlay.setBackgroundColor(backgroundColor)
+        binding.newConversationAddress.setBackgroundColor(backgroundColor)
 
         binding.noContactsPlaceholder2.setTextColor(getProperPrimaryColor)
         binding.noContactsPlaceholder2.underlineText()
