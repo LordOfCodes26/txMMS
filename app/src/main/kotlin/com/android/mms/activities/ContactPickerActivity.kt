@@ -31,9 +31,11 @@ import com.goodwy.commons.extensions.getProperTextColor
 import com.goodwy.commons.extensions.getSurfaceColor
 import com.goodwy.commons.extensions.getContrastColor
 import com.goodwy.commons.extensions.getColorStateList
+import com.goodwy.commons.extensions.getMyContactsCursor
 import com.goodwy.commons.extensions.getTextSize
 import com.goodwy.commons.extensions.isDynamicTheme
 import com.goodwy.commons.extensions.isSystemInDarkMode
+import com.goodwy.commons.helpers.MyContactsContentProvider
 import com.goodwy.commons.models.contacts.Contact as CommonContact
 import com.goodwy.commons.views.MyRecyclerView
 import com.goodwy.commons.views.MyTextView
@@ -650,30 +652,64 @@ class ContactPickerActivity : SimpleActivity() {
             }
         }
 
-        // Use same source as NewConversationActivity: SimpleContactsHelper only includes phone/SIM contacts (excludes hidden-account "Hidden Contact N" entries)
+        // Mirror NewConversationActivity contact source + merge ordering so display order stays consistent.
         SimpleContactsHelper(this).getAvailableContacts(false) { simpleContacts ->
+            val privateCursor = getMyContactsCursor(favoritesOnly = false, withPhoneNumbersOnly = true)
+            val privateContacts = MyContactsContentProvider.getSimpleContacts(this, privateCursor)
+            val mergedContacts = ArrayList(simpleContacts)
+
+            if (privateContacts.isNotEmpty()) {
+                // Keep the same dedupe rules used in NewConversationActivity.
+                val existingPhoneNumbers = HashSet<String>()
+                val existingContactNamesWithoutPhone = HashSet<String>()
+                mergedContacts.forEach { contact ->
+                    contact.phoneNumbers.forEach { phoneNumber ->
+                        existingPhoneNumbers.add(phoneNumber.normalizedNumber)
+                    }
+                    if (contact.name.isNotEmpty() && contact.phoneNumbers.isEmpty()) {
+                        existingContactNamesWithoutPhone.add(contact.name.lowercase().trim())
+                    }
+                }
+
+                privateContacts.forEach { privateContact ->
+                    val hasMatchingPhoneNumber = privateContact.phoneNumbers.isNotEmpty() &&
+                        privateContact.phoneNumbers.any { phoneNumber ->
+                            existingPhoneNumbers.contains(phoneNumber.normalizedNumber)
+                        }
+                    val hasMatchingName = privateContact.phoneNumbers.isEmpty() &&
+                        privateContact.name.isNotEmpty() &&
+                        existingContactNamesWithoutPhone.contains(privateContact.name.lowercase().trim())
+
+                    if (!hasMatchingPhoneNumber && !hasMatchingName) {
+                        mergedContacts.add(privateContact)
+                        privateContact.phoneNumbers.forEach { phoneNumber ->
+                            existingPhoneNumbers.add(phoneNumber.normalizedNumber)
+                        }
+                        if (privateContact.name.isNotEmpty() && privateContact.phoneNumbers.isEmpty()) {
+                            existingContactNamesWithoutPhone.add(privateContact.name.lowercase().trim())
+                        }
+                    }
+                }
+                mergedContacts.sort()
+            }
+
             val contactList = ArrayList<Contact>()
             val selected = HashSet<Int>()
             var index = 0
-            for (sc in simpleContacts) {
+            for (sc in mergedContacts) {
                 val contactIdStr = sc.contactId.toString()
                 val name = sc.name
                 val org = sc.company ?: ""
                 if (sc.phoneNumbers.isEmpty()) {
-                    val key = contactNumberKey(contactIdStr, "")
-                    contactList.add(Contact(name, contactIdStr, -1, "", "", org))
+                    continue
+                }
+                for (pn in sc.phoneNumbers) {
+                    val key = contactNumberKey(contactIdStr, pn.value)
+                    contactList.add(Contact(name, contactIdStr, -1, pn.value, "", org))
                     if (alreadySelectedContactIds.contains(key)) selected.add(index)
                     index++
-                } else {
-                    for (pn in sc.phoneNumbers) {
-                        val key = contactNumberKey(contactIdStr, pn.value)
-                        contactList.add(Contact(name, contactIdStr, -1, pn.value, "", org))
-                        if (alreadySelectedContactIds.contains(key)) selected.add(index)
-                        index++
-                    }
                 }
             }
-            contactList.sortWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.name })
             runOnUiThread {
                 allContacts.clear()
                 allContacts.addAll(contactList)
