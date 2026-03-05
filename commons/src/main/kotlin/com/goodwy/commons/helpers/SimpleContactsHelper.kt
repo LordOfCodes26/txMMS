@@ -39,8 +39,8 @@ class SimpleContactsHelper(val context: Context) {
     private fun isSimOrPhoneStorage(accountName: String, accountType: String): Boolean {
         val nameLower = accountName.lowercase(Locale.getDefault())
         val typeLower = accountType.lowercase(Locale.getDefault())
-        val isPhoneStorage = (accountName.isEmpty() && accountType.isEmpty()) ||
-            (nameLower == "phone" && accountType.isEmpty())
+        val isPhoneStorage = (accountName.isBlank() && accountType.isBlank()) ||
+            (nameLower.trim() == "phone" && accountType.isBlank())
         val isSimCard = typeLower.contains("sim") || typeLower.contains("icc")
         return isPhoneStorage || isSimCard
     }
@@ -52,6 +52,8 @@ class SimpleContactsHelper(val context: Context) {
     }
 
     fun getAvailableContactsSync(favoritesOnly: Boolean, withPhoneNumbersOnly: Boolean = true): ArrayList<SimpleContact> {
+        SimpleContact.sorting = context.baseConfig.sorting
+        SimpleContact.sortingSymbolsFirst = context.baseConfig.sortingSymbolsFirst
         SimpleContact.collator = Collator.getInstance(context.sysLocale())
         val names = getContactNames(favoritesOnly)
         var allContacts = getContactPhoneNumbers(favoritesOnly)
@@ -150,6 +152,7 @@ class SimpleContactsHelper(val context: Context) {
     private fun getContactNames(favoritesOnly: Boolean): List<SimpleContact> {
         val contacts = ArrayList<SimpleContact>()
         val startNameWithSurname = context.baseConfig.startNameWithSurname
+        val ignoredContactSources = context.baseConfig.ignoredContactSources
         val uri = Data.CONTENT_URI
         val projection = arrayOf(
             Data.RAW_CONTACT_ID,
@@ -184,6 +187,14 @@ class SimpleContactsHelper(val context: Context) {
             
             // Load phone storage and SIM card contacts - use helper function
             if (!isSimOrPhoneStorage(accountName, accountType)) {
+                return@queryCursor
+            }
+            val accountIdentifier = if (accountName.isBlank() && accountType.isBlank()) {
+                ":"
+            } else {
+                "$accountName:$accountType"
+            }
+            if (ignoredContactSources.contains(accountIdentifier)) {
                 return@queryCursor
             }
             
@@ -237,6 +248,7 @@ class SimpleContactsHelper(val context: Context) {
     private fun getContactPhoneNumbers(favoritesOnly: Boolean): ArrayList<SimpleContact> {
         val contacts = ArrayList<SimpleContact>()
         val contactsMap = HashMap<Int, SimpleContact>() // Optimize: HashMap for O(1) lookup
+        val ignoredContactSources = context.baseConfig.ignoredContactSources
         val uri = Phone.CONTENT_URI
         val projection = arrayOf(
             Data.RAW_CONTACT_ID,
@@ -260,6 +272,14 @@ class SimpleContactsHelper(val context: Context) {
             
             // Load phone storage and SIM card contacts - use helper function
             if (!isSimOrPhoneStorage(accountName, accountType)) {
+                return@queryCursor
+            }
+            val accountIdentifier = if (accountName.isBlank() && accountType.isBlank()) {
+                ":"
+            } else {
+                "$accountName:$accountType"
+            }
+            if (ignoredContactSources.contains(accountIdentifier)) {
                 return@queryCursor
             }
             
