@@ -5,6 +5,7 @@ import com.goodwy.commons.extensions.normalizePhoneNumber
 import com.goodwy.commons.extensions.normalizeString
 import com.goodwy.commons.helpers.SORT_BY_FULL_NAME
 import com.goodwy.commons.helpers.SORT_DESCENDING
+import com.goodwy.commons.models.contacts.Contact
 import java.text.Collator
 
 data class SimpleContact(
@@ -21,7 +22,6 @@ data class SimpleContact(
 
     companion object {
         var sorting = -1
-        var sortingSymbolsFirst = false
         var collator: Collator? = null
     }
 
@@ -59,59 +59,26 @@ data class SimpleContact(
         val firstString = name.normalizeString()
         val secondString = other.name.normalizeString()
 
-        if (firstString.isEmpty() && secondString.isEmpty()) return 0
-        if (firstString.isEmpty()) return 1
-        if (secondString.isEmpty()) return -1
-
-        val firstCharType = getCharType(firstString.firstOrNull())
-        val secondCharType = getCharType(secondString.firstOrNull())
-
-        return if (sortingSymbolsFirst) {
-            compareWithSymbolsFirst(firstCharType, secondCharType, firstString, secondString)
+        /*return if (firstString.firstOrNull()?.isLetter() == true && secondString.firstOrNull()?.isLetter() == false) {
+            -1
+        } else if (firstString.firstOrNull()?.isLetter() == false && secondString.firstOrNull()?.isLetter() == true) {
+            1*/
+        //TODO sorting: symbols at the top
+        return if (firstString.firstOrNull()?.isLetter() == true && firstString.firstOrNull()?.isDigit() == false
+            && secondString.firstOrNull()?.isLetter() == false && secondString.firstOrNull()?.isDigit() == true) {
+            -1
+        } else if (firstString.firstOrNull()?.isLetter() == false && firstString.firstOrNull()?.isDigit() == true
+            && secondString.firstOrNull()?.isLetter() == true && secondString.firstOrNull()?.isDigit() == false) {
+            1
         } else {
-            compareWithLettersFirst(firstCharType, secondCharType, firstString, secondString)
+            if (firstString.isEmpty() && secondString.isNotEmpty()) {
+                1
+            } else if (firstString.isNotEmpty() && secondString.isEmpty()) {
+                -1
+            } else {
+                Contact.collator?.compare(firstString, secondString) ?: firstString.compareTo(secondString, true)
+            }
         }
-    }
-
-    private fun compareWithSymbolsFirst(
-        firstCharType: CharType,
-        secondCharType: CharType,
-        firstString: String,
-        secondString: String
-    ): Int {
-        return when {
-            firstCharType == CharType.LETTER && secondCharType != CharType.LETTER -> 1
-            firstCharType != CharType.LETTER && secondCharType == CharType.LETTER -> -1
-            firstCharType == CharType.DIGIT && secondCharType == CharType.SYMBOL -> 1
-            firstCharType == CharType.SYMBOL && secondCharType == CharType.DIGIT -> -1
-            else -> collator?.compare(firstString, secondString) ?: firstString.compareTo(secondString, true)
-        }
-    }
-
-    private fun compareWithLettersFirst(
-        firstCharType: CharType,
-        secondCharType: CharType,
-        firstString: String,
-        secondString: String
-    ): Int {
-        return when {
-            firstCharType == CharType.LETTER && secondCharType != CharType.LETTER -> -1
-            firstCharType != CharType.LETTER && secondCharType == CharType.LETTER -> 1
-            else -> collator?.compare(firstString, secondString) ?: firstString.compareTo(secondString, true)
-        }
-    }
-
-    private fun getCharType(char: Char?): CharType {
-        return when {
-            char == null -> CharType.SYMBOL
-            char.isLetter() -> CharType.LETTER
-            char.isDigit() -> CharType.DIGIT
-            else -> CharType.SYMBOL
-        }
-    }
-
-    private enum class CharType {
-        LETTER, DIGIT, SYMBOL
     }
 
     fun doesContainPhoneNumber(text: String, search: Boolean = false): Boolean {

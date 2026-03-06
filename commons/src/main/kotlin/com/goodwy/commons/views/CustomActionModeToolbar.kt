@@ -64,17 +64,61 @@ class CustomActionModeToolbar @JvmOverloads constructor(
     // Menu update optimization flags
     private var menuNeedsUpdate = false
     private var pendingMenuUpdate: Runnable? = null
-    
-    var navigationIcon: Drawable?
-        get() = binding?.navigationIconView?.drawable
-        set(value) {
-            binding?.navigationIconView?.apply {
-                setImageDrawable(value)
-                visibility = if (value != null) View.VISIBLE else View.GONE
-                if (value != null) {
-                    setOnClickListener(onNavigationClickListener)
+
+    // Navigation (back) icon when using MActionBar - store for getter and color updates
+    private var navigationIconDrawable: Drawable? = null
+
+    private fun navigationActionBarView(): View? = binding?.root?.findViewById(R.id.navigationIconView)
+
+    private fun navigationActionBarMenu(): Menu? {
+        val actionBar = navigationActionBarView() ?: return null
+        return runCatching {
+            val method = actionBar.javaClass.getMethod("getMenu")
+            method.invoke(actionBar) as? Menu
+        }.getOrNull()
+    }
+
+    private fun inflateNavigationIconViewMenu() {
+        binding?.navigationIconView?.inflateMenu(R.menu.cab_navigation_only)
+    }
+
+    private fun applyNavigationIconDrawable(drawable: Drawable?) {
+        navigationIconDrawable = drawable?.mutate()
+        val actionBarView = navigationActionBarView() ?: return
+        val menu = navigationActionBarMenu()
+        if (menu != null) {
+            val navItem = menu.findItem(R.id.cab_remove) ?: if (menu.size() > 0) menu.getItem(0) else null
+            if (navItem != null) {
+                if (navigationIconDrawable != null) {
+                    navItem.icon = navigationIconDrawable
                 }
+                navItem.isVisible = true
             }
+        }
+        val showNav = (menu?.size() ?: 0) > 0 || navigationIconDrawable != null
+        actionBarView.visibility = if (showNav) View.VISIBLE else View.GONE
+        bindNavigationActionBarClickListener()
+    }
+
+    private fun bindNavigationActionBarClickListener() {
+        val actionBar = navigationActionBarView() ?: return
+        runCatching {
+            val method = actionBar.javaClass.getMethod(
+                "setOnMenuItemClickListener",
+                MenuItem.OnMenuItemClickListener::class.java
+            )
+            val listener = MenuItem.OnMenuItemClickListener {
+                onNavigationClickListener?.onClick(actionBar)
+                true
+            }
+            method.invoke(actionBar, listener)
+        }
+    }
+
+    var navigationIcon: Drawable?
+        get() = navigationIconDrawable
+        set(value) {
+            applyNavigationIconDrawable(value)
         }
     
     var title: CharSequence?
@@ -94,13 +138,58 @@ class CustomActionModeToolbar @JvmOverloads constructor(
             return _menu!!
         }
     
-    var overflowIcon: Drawable?
-        get() = binding?.menuButton?.drawable
-        set(value) {
-            binding?.menuButton?.apply {
-                setImageDrawable(value)
-                visibility = if (value != null) View.VISIBLE else View.GONE
+    // Overflow (more) icon when using MActionBar
+    private var overflowIconDrawable: Drawable? = null
+
+    private fun menuActionBarView(): View? = binding?.root?.findViewById(R.id.menuButton)
+
+    private fun menuActionBarMenu(): Menu? {
+        val actionBar = menuActionBarView() ?: return null
+        return runCatching {
+            val method = actionBar.javaClass.getMethod("getMenu")
+            method.invoke(actionBar) as? Menu
+        }.getOrNull()
+    }
+
+    private fun inflateMenuActionBarMenu() {
+        binding?.menuButton?.inflateMenu(R.menu.cab_more_only)
+    }
+
+    private fun applyOverflowIcon(drawable: Drawable?) {
+        overflowIconDrawable = drawable?.mutate()
+        val actionBarView = menuActionBarView() ?: return
+        val menu = menuActionBarMenu()
+        if (menu != null) {
+            val moreItem = menu.findItem(R.id.cab_more) ?: if (menu.size() > 0) menu.getItem(0) else null
+            if (moreItem != null) {
+                if (overflowIconDrawable != null) {
+                    moreItem.icon = overflowIconDrawable
+                }
+                moreItem.isVisible = true
             }
+        }
+        bindMenuActionBarClickListener()
+    }
+
+    private fun bindMenuActionBarClickListener() {
+        val actionBar = menuActionBarView() ?: return
+        runCatching {
+            val method = actionBar.javaClass.getMethod(
+                "setOnMenuItemClickListener",
+                MenuItem.OnMenuItemClickListener::class.java
+            )
+            val listener = MenuItem.OnMenuItemClickListener {
+                showMenuPopup()
+                true
+            }
+            method.invoke(actionBar, listener)
+        }
+    }
+
+    var overflowIcon: Drawable?
+        get() = overflowIconDrawable
+        set(value) {
+            applyOverflowIcon(value)
         }
     
     init {
@@ -114,12 +203,17 @@ class CustomActionModeToolbar @JvmOverloads constructor(
         
         // Add the root view to this CustomActionModeToolbar
         addView(toolbarBinding.root)
+
+        // Inflate nav icon menu so back button can be shown inside MActionBar
+        inflateNavigationIconViewMenu()
+        // Inflate more/overflow menu so More button is inside MActionBar
+        inflateMenuActionBarMenu()
+        bindMenuActionBarClickListener()
         
         // Setup click listeners
         binding?.titleTextView?.setOnClickListener { view ->
             onTitleClickListener?.onClick(view)
         }
-        binding?.menuButton?.setOnClickListener { showMenuPopup() }
         
         // Read attributes from XML
         attrs?.let {
@@ -176,11 +270,11 @@ class CustomActionModeToolbar @JvmOverloads constructor(
     }
     
     /**
-     * Sets the click listener for the navigation icon.
+     * Sets the click listener for the navigation icon (handled via MActionBar menu item).
      */
     fun setNavigationOnClickListener(listener: OnClickListener?) {
         onNavigationClickListener = listener
-        binding?.navigationIconView?.setOnClickListener(listener)
+        bindNavigationActionBarClickListener()
     }
     
     /**
@@ -214,11 +308,13 @@ class CustomActionModeToolbar @JvmOverloads constructor(
     fun updateTextColorForBackground(backgroundColor: Int) {
         val contrastColor = backgroundColor.getContrastColor()
         binding?.titleTextView?.setTextColor(contrastColor)
-        // Also update navigation icon color if present
-        binding?.navigationIconView?.drawable?.let { drawable ->
-            val iconDrawable = drawable.mutate()
-            iconDrawable.applyColorFilter(contrastColor)
-            binding?.navigationIconView?.setImageDrawable(iconDrawable)
+        // Update navigation icon color (MActionBar menu item)
+        navigationActionBarMenu()?.findItem(R.id.cab_remove)?.let { navItem ->
+            navItem.icon?.let { drawable ->
+                val iconDrawable = drawable.mutate()
+                iconDrawable.applyColorFilter(contrastColor)
+                navItem.icon = iconDrawable
+            }
         }
     }
     
@@ -230,11 +326,13 @@ class CustomActionModeToolbar @JvmOverloads constructor(
         updateTextColorForBackground(backgroundColor)
         val contrastColor = backgroundColor.getContrastColor()
         
-        // Update menu button icon color if present
-        binding?.menuButton?.drawable?.let { drawable ->
-            val iconDrawable = drawable.mutate()
-            iconDrawable.applyColorFilter(contrastColor)
-            binding?.menuButton?.setImageDrawable(iconDrawable)
+        // Update overflow (More) MActionBar menu item icon color
+        menuActionBarMenu()?.findItem(R.id.cab_more)?.let { moreItem ->
+            moreItem.icon?.let { drawable ->
+                val iconDrawable = drawable.mutate()
+                iconDrawable.applyColorFilter(contrastColor)
+                moreItem.icon = iconDrawable
+            }
         }
         
         // Update action button icon colors if present - use cached container
@@ -368,7 +466,7 @@ class CustomActionModeToolbar @JvmOverloads constructor(
             
             // Pre-check if we need to process items
             if (menuSize == 0) {
-                binding.menuButton.visibility = View.GONE
+                menuActionBarView()?.visibility = View.GONE
                 actionButtonsContainer?.visibility = View.GONE
                 overflowItems = emptyList()
                 return
@@ -404,20 +502,19 @@ class CustomActionModeToolbar @JvmOverloads constructor(
                 actionButtonsContainer.visibility = if (actionItems.isNotEmpty()) View.VISIBLE else View.GONE
             }
             
-            // Show overflow menu button if there are overflow items
+            // Show overflow (More) MActionBar if there are overflow items
             val hasOverflowItems = overflowItemsList.isNotEmpty()
-            binding.menuButton.visibility = if (hasOverflowItems) View.VISIBLE else View.GONE
+            menuActionBarView()?.visibility = if (hasOverflowItems) View.VISIBLE else View.GONE
             
-            // Set default overflow icon if menu button is visible and no icon is set
-            if (hasOverflowItems && binding.menuButton.drawable == null) {
-                val overflowIcon = ContextCompat.getDrawable(context, R.drawable.ic_three_dots_vector)
-                overflowIcon?.let {
-                    // Use cached text color or get and cache it
+            // Set default overflow icon if visible and no custom icon is set
+            if (hasOverflowItems && overflowIconDrawable == null) {
+                val defaultIcon = ContextCompat.getDrawable(context, R.drawable.ic_three_dots_vector)
+                defaultIcon?.let {
                     if (cachedTextColor == -1) {
                         cachedTextColor = context.getProperTextColor()
                     }
                     it.applyColorFilter(cachedTextColor)
-                    binding.menuButton.setImageDrawable(it)
+                    overflowIcon = it
                 }
             }
             
@@ -534,8 +631,7 @@ class CustomActionModeToolbar @JvmOverloads constructor(
      */
     private fun showMenuPopup() {
         val menu = _menu ?: return
-        val binding = this.binding ?: return
-        val anchor = binding.menuButton
+        val anchor = menuActionBarView() ?: return
 
         // Get overflow items to show
         val visibleItems = if (overflowItems.isNotEmpty()) {

@@ -1,9 +1,12 @@
 package com.goodwy.commons.views
 
+import android.animation.AnimatorListenerAdapter
+import android.animation.ValueAnimator
 import android.content.Context
 import android.content.res.ColorStateList
 import android.graphics.drawable.Drawable
 import android.util.AttributeSet
+import android.view.ViewGroup
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.Menu
@@ -11,8 +14,10 @@ import android.view.MenuInflater
 import android.view.MenuItem
 import android.view.MotionEvent
 import android.view.View
+import android.view.animation.DecelerateInterpolator
 import android.view.inputmethod.InputMethodManager
 import android.widget.LinearLayout
+import androidx.core.view.isVisible
 import androidx.appcompat.view.menu.MenuBuilder
 import androidx.core.content.ContextCompat
 import com.goodwy.commons.R
@@ -120,7 +125,7 @@ class CustomToolbar @JvmOverloads constructor(
         val showNav = (menu?.size() ?: 0) > 0 || navigationIconDrawable != null
         actionBarView.visibility = if (showNav) View.VISIBLE else View.GONE
         bindNavigationActionBarClickListener()
-        updateTitleMargin(actionBarView.visibility == View.VISIBLE)
+//        updateTitleMargin(actionBarView.visibility == View.VISIBLE)
     }
 
     private fun onNavigationIconClicked(view: View) {
@@ -147,24 +152,6 @@ class CustomToolbar @JvmOverloads constructor(
             applyNavigationIconDrawable(value)
         }
 
-    private fun updateTitleMargin(hasNavigationIcon: Boolean) {
-        binding?.titleTextView?.let { titleView ->
-            val layoutParams = titleView.layoutParams as? android.widget.RelativeLayout.LayoutParams
-            if (layoutParams != null) {
-                val marginStart = if (hasNavigationIcon) {
-                    // Use larger margin when navigation icon is visible for better spacing
-                    // Combine activity_margin (16dp) + normal_margin (12dp) = 28dp for more padding
-                    resources.getDimensionPixelSize(com.goodwy.commons.R.dimen.activity_margin) +
-                    resources.getDimensionPixelSize(com.goodwy.commons.R.dimen.normal_margin)
-                } else {
-                    resources.getDimensionPixelSize(com.goodwy.commons.R.dimen.normal_margin)
-                }
-                layoutParams.marginStart = marginStart
-                titleView.layoutParams = layoutParams
-            }
-        }
-    }
-
     var title: CharSequence?
         get() = binding?.titleTextView?.text
         set(value) {
@@ -172,9 +159,6 @@ class CustomToolbar @JvmOverloads constructor(
                 text = value
                 visibility = if (value != null && value.isNotEmpty()) View.VISIBLE else View.GONE
             }
-            // Update title margin when title is set
-            val hasNavigationIcon = navigationActionBarView()?.visibility == View.VISIBLE
-            updateTitleMargin(hasNavigationIcon)
         }
 
     val menu: Menu
@@ -423,24 +407,69 @@ class CustomToolbar @JvmOverloads constructor(
         if (isSearchExpanded) return
 
         isSearchExpanded = true
-        binding.actionBarSearch.root.visibility = View.VISIBLE
+        val searchRoot = binding.actionBarSearch.root
+
         binding.actionBar.visibility = View.GONE
         binding.titleTextView.visibility = View.GONE
         updateSearchClearIconVisibility(binding.actionBarSearch.searchEditText.text?.toString().orEmpty())
-        // Only autofocus editable search input to avoid opening IME in read-only states.
-        if (isSearchInputEditable()) {
-            // Post focus to the next frame so it consistently works after visibility/layout updates.
-            binding.actionBarSearch.searchEditText.post {
-                focusSearchInput()
+        binding.actionBarSearch.searchBackButton.visibility = View.VISIBLE
+
+        searchRoot.visibility = View.VISIBLE
+        searchRoot.alpha = 0f
+        val params = searchRoot.layoutParams ?: return
+        params.width = 0
+        searchRoot.layoutParams = params
+
+        searchRoot.post {
+            val parentView = searchRoot.parent as? View ?: return@post
+            val targetWidth = parentView.width
+            if (targetWidth <= 0) {
+                params.width = ViewGroup.LayoutParams.MATCH_PARENT
+                searchRoot.layoutParams = params
+                searchRoot.alpha = 1f
+                searchRoot.translationX = 0f
+                if (isSearchInputEditable()) focusSearchInput()
+                onSearchExpandListener?.onClick(this@CustomToolbar)
+                return@post
+            }
+
+            // Right-to-left expansion: keep right edge anchored while width grows.
+            searchRoot.translationX = targetWidth.toFloat()
+
+            ValueAnimator.ofFloat(0f, 1f).apply {
+                duration = 250L
+                interpolator = DecelerateInterpolator()
+                addUpdateListener { anim ->
+                    val fraction = anim.animatedFraction
+                    val currentWidth = (targetWidth * fraction).toInt()
+                    (searchRoot.layoutParams)?.let { lp ->
+                        lp.width = currentWidth
+                        searchRoot.layoutParams = lp
+                    }
+                    searchRoot.alpha = fraction
+                    // translationX so right edge stays at parent width: view grows right to left
+                    searchRoot.translationX = targetWidth * (1f - fraction)
+                }
+                addListener(object : AnimatorListenerAdapter() {
+                    override fun onAnimationEnd(animation: android.animation.Animator) {
+                        (searchRoot.layoutParams)?.let { lp ->
+                            lp.width = ViewGroup.LayoutParams.MATCH_PARENT
+                            searchRoot.layoutParams = lp
+                        }
+                        searchRoot.alpha = 1f
+                        searchRoot.translationX = 0f
+                        if (isSearchInputEditable()) focusSearchInput()
+                        onSearchExpandListener?.onClick(this@CustomToolbar)
+                    }
+                })
+                start()
             }
         }
-        binding.actionBarSearch.searchBackButton.visibility = View.VISIBLE
-        onSearchExpandListener?.onClick(this)
     }
 
     fun collapseSearch() {
         val binding = binding ?: return
-        if (!isSearchExpanded && binding.actionBarSearch.root.visibility != View.VISIBLE) return
+        if (!isSearchExpanded && !binding.actionBarSearch.root.isVisible) return
 
         isSearchExpanded = false
         forceShowSearchClearButton = false
@@ -449,13 +478,75 @@ class CustomToolbar @JvmOverloads constructor(
         queryView.clearFocus()
         updateSearchClearIconVisibility("")
         binding.actionBarSearch.searchBackButton.visibility = View.GONE
-        binding.actionBarSearch.root.visibility = View.GONE
-        updateMenuDisplay()
-        binding.titleTextView.visibility =
-            if (binding.titleTextView.text?.isNotEmpty() == true) View.VISIBLE else View.GONE
+
+        val searchRoot = binding.actionBarSearch.root
+        val startWidth = searchRoot.width.coerceAtLeast(0)
 
         val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
         imm?.hideSoftInputFromWindow(windowToken, 0)
+
+        if (startWidth <= 0) {
+            searchRoot.visibility = View.GONE
+            (searchRoot.layoutParams)?.let { lp ->
+                lp.width = ViewGroup.LayoutParams.MATCH_PARENT
+                searchRoot.layoutParams = lp
+            }
+            searchRoot.alpha = 1f
+            searchRoot.translationX = 0f
+            updateMenuDisplay()
+            binding.titleTextView.visibility =
+                if (binding.titleTextView.text?.isNotEmpty() == true) View.VISIBLE else View.GONE
+            return
+        }
+
+        // Fade in title and action bar as search collapses
+        val showTitle = binding.titleTextView.text?.isNotEmpty() == true
+        if (showTitle) {
+            binding.titleTextView.visibility = View.VISIBLE
+            binding.titleTextView.alpha = 0f
+        }
+        updateMenuDisplay()
+        binding.actionBar.alpha = 0f
+        binding.actionBar.visibility = View.VISIBLE
+
+        ValueAnimator.ofFloat(1f, 0f).apply {
+            duration = 250L
+            interpolator = DecelerateInterpolator()
+            addUpdateListener { anim ->
+                val fraction = anim.animatedFraction
+                val currentWidth = (startWidth * (1f - fraction)).toInt()
+                (searchRoot.layoutParams)?.let { lp ->
+                    lp.width = currentWidth
+                    searchRoot.layoutParams = lp
+                }
+                searchRoot.alpha = 1f - fraction
+                // Reverse of expand: keep right edge anchored while collapsing.
+                searchRoot.translationX = startWidth * fraction
+                searchRoot.requestLayout()
+                // Fade in toolbar content as search shrinks
+                val contentAlpha = fraction
+                binding.actionBar.alpha = contentAlpha
+                if (showTitle) binding.titleTextView.alpha = contentAlpha
+            }
+            addListener(object : AnimatorListenerAdapter() {
+                override fun onAnimationEnd(animation: android.animation.Animator) {
+                    searchRoot.visibility = View.GONE
+                    (searchRoot.layoutParams)?.let { lp ->
+                        lp.width = ViewGroup.LayoutParams.MATCH_PARENT
+                        searchRoot.layoutParams = lp
+                    }
+                    searchRoot.alpha = 1f
+                    searchRoot.translationX = 0f
+                    binding.actionBar.alpha = 1f
+                    if (showTitle) binding.titleTextView.alpha = 1f
+                    updateMenuDisplay()
+                    if (!showTitle) {
+                        binding.titleTextView.visibility = View.GONE
+                    }
+                }
+            })
+            start()
+        }
     }
 
     fun getSearchText(): String {
@@ -570,10 +661,6 @@ class CustomToolbar @JvmOverloads constructor(
     }
 
     fun getActionBar() = binding?.actionBar
-    fun setActionBarVisibility(visible: Boolean) {
-        val toolbarBinding = binding ?: return
-        toolbarBinding.actionBar.visibility = if (visible) View.VISIBLE else View.GONE
-    }
 
     private fun getLiveActionBarMenu(): Menu? {
         val actionBar = binding?.actionBar ?: return null

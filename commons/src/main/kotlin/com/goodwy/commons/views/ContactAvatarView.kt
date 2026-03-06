@@ -56,6 +56,9 @@ class ContactAvatarView @JvmOverloads constructor(
     // Current Glide request for memory leak prevention
     private var currentImageRequest: Any? = null
 
+    // True when showing default ic_person icon (no initials) so we can update padding in onSizeChanged
+    private var showingDefaultPersonIcon: Boolean = false
+
     // Thumbnail size for performance optimization
     private val THUMBNAIL_SIZE = 200
 
@@ -114,6 +117,8 @@ class ContactAvatarView @JvmOverloads constructor(
     fun bind(source: AvatarSource) {
         // Clear previous image request to prevent memory leaks
         clearImageRequest()
+        showingDefaultPersonIcon = false
+        avatarImage.setPadding(0, 0, 0, 0)
 
         when (source) {
             is AvatarSource.Poster -> bindPoster(source.subjectUri)
@@ -336,6 +341,7 @@ class ContactAvatarView @JvmOverloads constructor(
 
         if (monogramChar != null) {
             // Show initials when a valid first letter exists.
+            showingDefaultPersonIcon = false
             avatarImage.isVisible = false
             avatarInitials.isVisible = true
 
@@ -348,6 +354,7 @@ class ContactAvatarView @JvmOverloads constructor(
             avatarImage.imageTintList = null
         } else {
             // Default avatar style: show person icon when initials are missing.
+            showingDefaultPersonIcon = true
             avatarImage.layoutParams = FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT,
@@ -357,12 +364,11 @@ class ContactAvatarView @JvmOverloads constructor(
             avatarInitials.isVisible = false
             // FIT_CENTER allows the vector icon to scale up to available space.
             avatarImage.scaleType = ImageView.ScaleType.FIT_CENTER
-            val iconInset = (minOf(width, height).takeIf { it > 0 } ?: resources.displayMetrics.density.times(150f).toInt()) * 0.04f
-            avatarImage.setPadding(iconInset.toInt(), iconInset.toInt(), iconInset.toInt(), iconInset.toInt())
             avatarImage.setImageResource(R.drawable.ic_person)
             avatarImage.imageTintList = ColorStateList.valueOf(Color.WHITE)
             // Show only icon over monogram-like gradient background.
             avatarImage.background = null
+            applyDefaultIconInset()
         }
         
         // Update text size to scale with avatar size
@@ -375,6 +381,18 @@ class ContactAvatarView @JvmOverloads constructor(
     private fun extractFirstMonogramCharacter(value: String): String? {
         val firstChar = value.trim().firstOrNull { it.isLetter() } ?: return null
         return firstChar.uppercaseChar().toString()
+    }
+
+    /**
+     * Applies padding to the default ic_person icon so it scales consistently with avatar size.
+     * Uses actual view dimensions so the icon size is the same for all avatars regardless of bind order.
+     */
+    private fun applyDefaultIconInset() {
+        if (!showingDefaultPersonIcon) return
+        val size = minOf(width, height)
+        if (size <= 0) return
+        val iconInset = (size * 0.04f).toInt()
+        avatarImage.setPadding(iconInset, iconInset, iconInset, iconInset)
     }
     
     /**
@@ -424,6 +442,10 @@ class ContactAvatarView @JvmOverloads constructor(
         super.onSizeChanged(w, h, oldw, oldh)
         // Invalidate outline to update circular clipping
         invalidateOutline()
+        // Update default ic_person icon padding so it's consistent across all avatars
+        if (showingDefaultPersonIcon) {
+            applyDefaultIconInset()
+        }
         // Update monogram text size if visible (avatar size may have changed)
         if (avatarInitials.isVisible) {
             updateMonogramTextSize()
