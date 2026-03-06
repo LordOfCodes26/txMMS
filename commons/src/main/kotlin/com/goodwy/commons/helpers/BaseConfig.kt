@@ -768,7 +768,7 @@ open class BaseConfig(val context: Context) {
         set(textCursorColor) = prefs.edit { putInt(TEXT_CURSOR_COLOR, textCursorColor) }
 
     var linesCount: Int
-        get() = prefs.getInt(LINES_COUNT, 2)
+        get() = prefs.getInt(LINES_COUNT, 1)
         set(linesCount) = prefs.edit { putInt(LINES_COUNT, linesCount) }
 
     var showBlockedNumbers: Boolean

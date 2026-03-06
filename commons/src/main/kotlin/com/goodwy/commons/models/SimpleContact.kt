@@ -23,6 +23,11 @@ data class SimpleContact(
     companion object {
         var sorting = -1
         var collator: Collator? = null
+        private const val SORT_CAT_SYMBOL = 0
+        private const val SORT_CAT_KOREAN = 1
+        private const val SORT_CAT_ENGLISH = 2
+        private const val SORT_CAT_OTHER = 3
+        private const val SORT_CAT_NUMBER = 4
     }
 
     override fun hashCode(): Int {
@@ -58,27 +63,41 @@ data class SimpleContact(
     private fun compareByFullName(other: SimpleContact): Int {
         val firstString = name.normalizeString()
         val secondString = other.name.normalizeString()
-
-        /*return if (firstString.firstOrNull()?.isLetter() == true && secondString.firstOrNull()?.isLetter() == false) {
-            -1
-        } else if (firstString.firstOrNull()?.isLetter() == false && secondString.firstOrNull()?.isLetter() == true) {
-            1*/
-        //TODO sorting: symbols at the top
-        return if (firstString.firstOrNull()?.isLetter() == true && firstString.firstOrNull()?.isDigit() == false
-            && secondString.firstOrNull()?.isLetter() == false && secondString.firstOrNull()?.isDigit() == true) {
-            -1
-        } else if (firstString.firstOrNull()?.isLetter() == false && firstString.firstOrNull()?.isDigit() == true
-            && secondString.firstOrNull()?.isLetter() == true && secondString.firstOrNull()?.isDigit() == false) {
-            1
-        } else {
-            if (firstString.isEmpty() && secondString.isNotEmpty()) {
-                1
-            } else if (firstString.isNotEmpty() && secondString.isEmpty()) {
-                -1
-            } else {
+        if (firstString.isEmpty() && secondString.isEmpty()) return 0
+        if (firstString.isEmpty()) return 1
+        if (secondString.isEmpty()) return -1
+        // Same order as Contacts app: symbols, Korean, English, other, numbers (Korean alphabet first, then English)
+        val cat1 = getSortCategory(firstString.first())
+        val cat2 = getSortCategory(secondString.first())
+        val categoryCompare = cat1.compareTo(cat2)
+        if (categoryCompare != 0) return categoryCompare
+        return when (cat1) {
+            SORT_CAT_SYMBOL, SORT_CAT_OTHER, SORT_CAT_NUMBER ->
+                firstString.compareTo(secondString, true)
+            else ->
                 Contact.collator?.compare(firstString, secondString) ?: firstString.compareTo(secondString, true)
-            }
         }
+    }
+
+    /** Sort category for fixed order: symbols, Korean, English, other (e.g. ASCII), numbers at last. Matches Contact.getSortCategory. */
+    private fun getSortCategory(char: Char): Int {
+        return when {
+            char.isDigit() -> SORT_CAT_NUMBER
+            !char.isLetter() -> SORT_CAT_SYMBOL
+            isHangul(char) -> SORT_CAT_KOREAN
+            isLatinLetter(char) -> SORT_CAT_ENGLISH
+            else -> SORT_CAT_OTHER
+        }
+    }
+
+    private fun isHangul(c: Char): Boolean {
+        val code = c.code
+        return (code in 0xAC00..0xD7A3) || (code in 0x1100..0x11FF) || (code in 0x3130..0x318F)
+    }
+
+    private fun isLatinLetter(c: Char): Boolean {
+        val code = c.code
+        return (code in 0x41..0x5A) || (code in 0x61..0x7A)
     }
 
     fun doesContainPhoneNumber(text: String, search: Boolean = false): Boolean {

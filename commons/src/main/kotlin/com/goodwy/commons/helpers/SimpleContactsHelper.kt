@@ -23,6 +23,7 @@ import com.goodwy.commons.R
 import com.goodwy.commons.extensions.*
 import com.goodwy.commons.models.PhoneNumber
 import com.goodwy.commons.models.SimpleContact
+import com.goodwy.commons.models.contacts.Contact
 import com.goodwy.commons.models.contacts.Organization as MyOrganization
 import android.graphics.Bitmap
 import java.text.Collator
@@ -143,6 +144,8 @@ class SimpleContactsHelper(val context: Context) {
             }
         }
 
+        // Use same locale-aware collator as Contacts app so fast scroll shows Korean (then English) order
+        Contact.collator = Collator.getInstance(context.sysLocale() ?: Locale.getDefault())
         allContacts.sort()
         return allContacts
     }
