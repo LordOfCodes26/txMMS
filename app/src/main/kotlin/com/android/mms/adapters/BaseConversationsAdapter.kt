@@ -2,6 +2,7 @@ package com.android.mms.adapters
 
 import android.annotation.SuppressLint
 import android.graphics.Typeface
+import android.provider.Telephony
 import android.os.Parcelable
 import android.text.format.DateUtils
 import android.util.TypedValue
@@ -14,6 +15,7 @@ import com.behaviorule.arturdumchev.library.pixels
 import com.bumptech.glide.Glide
 import com.qtalk.recyclerviewfastscroller.RecyclerViewFastScroller
 import com.goodwy.commons.adapters.MyRecyclerViewListAdapter
+import com.goodwy.commons.extensions.adjustAlpha
 import com.goodwy.commons.extensions.applyColorFilter
 import com.goodwy.commons.models.RecyclerSelectionPayload
 import com.goodwy.commons.extensions.beGone
@@ -45,10 +47,13 @@ import com.android.mms.extensions.deleteSmsDraft
 import com.android.mms.extensions.getAllDrafts
 import com.android.mms.helpers.*
 import com.android.mms.models.Conversation
+import com.android.mms.models.ConversationListItem
+import com.android.mms.databinding.ItemConversationDateHeaderBinding
 import me.thanel.swipeactionview.SwipeActionView
 import me.thanel.swipeactionview.SwipeDirection
 import me.thanel.swipeactionview.SwipeGestureListener
 import kotlin.time.Duration.Companion.days
+import java.util.Calendar
 import kotlin.time.Duration.Companion.minutes
 
 @Suppress("LeakingThis")
@@ -59,17 +64,19 @@ abstract class BaseConversationsAdapter(
     itemClick: (Any) -> Unit,
     var isArchived: Boolean = false,
     var isRecycleBin: Boolean = false,
-) : MyRecyclerViewListAdapter<Conversation>(
+) : MyRecyclerViewListAdapter<ConversationListItem>(
     activity = activity,
     recyclerView = recyclerView,
-    diffUtil = ConversationDiffCallback(),
-    itemClick = itemClick,
+    diffUtil = ConversationListItemDiffCallback(),
+    itemClick = { listItem -> if (listItem is ConversationListItem.ConversationItem) itemClick(listItem.conversation) },
     onRefresh = onRefresh
 ),
     RecyclerViewFastScroller.OnPopupTextUpdate {
 
     companion object {
         private const val MAX_UNREAD_BADGE_COUNT = 99
+        private const val VIEW_TYPE_DATE_HEADER = 0
+        private const val VIEW_TYPE_CONVERSATION = 1
     }
 
     private var fontSize = activity.getTextSize()
@@ -104,7 +111,41 @@ abstract class BaseConversationsAdapter(
         commitCallback: (() -> Unit)? = null,
     ) {
         saveRecyclerViewState()
-        submitList(newConversations.toList(), commitCallback)
+        submitList(groupConversationsByDateSections(newConversations), commitCallback)
+    }
+
+    private fun groupConversationsByDateSections(conversations: List<Conversation>): List<ConversationListItem> {
+        if (conversations.isEmpty()) return emptyList()
+        val todayStart = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+        val yesterdayStart = (todayStart.clone() as Calendar).apply { add(Calendar.DAY_OF_YEAR, -1) }
+        val todayStartMillis = todayStart.timeInMillis
+        val yesterdayStartMillis = yesterdayStart.timeInMillis
+        val result = mutableListOf<ConversationListItem>()
+        var lastSection: String? = null
+        for (conv in conversations) {
+            val dateMillis = conv.date * 1000L
+            val section = when {
+                dateMillis >= todayStartMillis -> ConversationListItem.SECTION_TODAY
+                dateMillis >= yesterdayStartMillis -> ConversationListItem.SECTION_YESTERDAY
+                else -> ConversationListItem.SECTION_BEFORE
+            }
+            if (section != lastSection) {
+                val sectionTimestamp = when (section) {
+                    ConversationListItem.SECTION_TODAY -> todayStartMillis
+                    ConversationListItem.SECTION_YESTERDAY -> yesterdayStartMillis
+                    else -> dateMillis
+                }
+                result += ConversationListItem.DateHeader(timestamp = sectionTimestamp, dayCode = section)
+                lastSection = section
+            }
+            result += ConversationListItem.ConversationItem(conv)
+        }
+        return result
     }
 
     @SuppressLint("NotifyDataSetChanged")
@@ -121,75 +162,106 @@ abstract class BaseConversationsAdapter(
         }
     }
 
-    override fun getSelectableItemCount() = itemCount
+    override fun getSelectableItemCount() = currentList.count { it is ConversationListItem.ConversationItem }
 
-    protected fun getSelectedItems() = currentList.filter {
-        selectedKeys.contains(it.hashCode())
-    } as ArrayList<Conversation>
+    protected fun getSelectedItems(): ArrayList<Conversation> = currentList
+        .filterIsInstance<ConversationListItem.ConversationItem>()
+        .filter { selectedKeys.contains(it.conversation.hashCode()) }
+        .map { it.conversation } as ArrayList<Conversation>
 
-    override fun getIsItemSelectable(position: Int) = true
+    override fun getIsItemSelectable(position: Int) = currentList.getOrNull(position) is ConversationListItem.ConversationItem
 
-    override fun getItemSelectionKey(position: Int) = currentList.getOrNull(position)?.hashCode()
+    override fun getItemSelectionKey(position: Int): Int? =
+        (currentList.getOrNull(position) as? ConversationListItem.ConversationItem)?.conversation?.hashCode()
 
-    override fun getItemKeyPosition(key: Int) = currentList.indexOfFirst { it.hashCode() == key }
+    override fun getItemKeyPosition(key: Int) = currentList.indexOfFirst {
+        (it as? ConversationListItem.ConversationItem)?.conversation?.hashCode() == key
+    }
+
+    protected fun getConversationAt(position: Int): Conversation? =
+        (currentList.getOrNull(position) as? ConversationListItem.ConversationItem)?.conversation
 
     override fun onActionModeCreated() {}
 
     override fun onActionModeDestroyed() {}
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-        val binding = ItemConversationBinding.inflate(layoutInflater, parent, false)
-        return createViewHolder(binding.root)
+    override fun getItemViewType(position: Int): Int = when (currentList[position]) {
+        is ConversationListItem.DateHeader -> VIEW_TYPE_DATE_HEADER
+        is ConversationListItem.ConversationItem -> VIEW_TYPE_CONVERSATION
+    }
+
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder = when (viewType) {
+        VIEW_TYPE_DATE_HEADER -> createViewHolder(
+            ItemConversationDateHeaderBinding.inflate(layoutInflater, parent, false).root
+        )
+        else -> createViewHolder(ItemConversationBinding.inflate(layoutInflater, parent, false).root)
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        //Add a bottom margin for the last element so that it does not block the floating button
-        if (position == currentList.lastIndex){
-            val params = holder.itemView.layoutParams as RecyclerView.LayoutParams
-            val margin = activity.resources.getDimension(com.goodwy.commons.R.dimen.shortcut_size).toInt()
-            params.bottomMargin = margin
-            holder.itemView.layoutParams = params
-        } else {
-            val params = holder.itemView.layoutParams as RecyclerView.LayoutParams
-            params.bottomMargin = 0
-            holder.itemView.layoutParams = params
-        }
-
-        val conversation = getItem(position)
-        holder.bindView(
-            conversation,
-            allowSingleClick = true,
-            allowLongClick = true
-        ) { itemView, _ ->
-            setupView(itemView, conversation, holder)
+        when (val item = currentList[position]) {
+            is ConversationListItem.DateHeader -> {
+                ItemConversationDateHeaderBinding.bind(holder.itemView).dateTextView.apply {
+                    setTextColor(textColor.adjustAlpha(0.7f))
+                    setTextSize(TypedValue.COMPLEX_UNIT_PX, fontSize * 0.76f)
+                    text = when (item.dayCode) {
+                        ConversationListItem.SECTION_TODAY -> activity.getString(R.string.today)
+                        ConversationListItem.SECTION_YESTERDAY -> activity.getString(R.string.yesterday)
+                        else -> activity.getString(R.string.previous)
+                    }
+                }
+                val params = holder.itemView.layoutParams as? RecyclerView.LayoutParams
+                params?.bottomMargin = 0
+            }
+            is ConversationListItem.ConversationItem -> {
+                val conversation = item.conversation
+                if (position == currentList.lastIndex) {
+                    val params = holder.itemView.layoutParams as RecyclerView.LayoutParams
+                    params.bottomMargin = activity.resources.getDimension(com.goodwy.commons.R.dimen.shortcut_size).toInt()
+                    holder.itemView.layoutParams = params
+                } else {
+                    val params = holder.itemView.layoutParams as RecyclerView.LayoutParams
+                    params.bottomMargin = 0
+                    holder.itemView.layoutParams = params
+                }
+                holder.bindView(
+                    item,
+                    allowSingleClick = true,
+                    allowLongClick = true
+                ) { itemView, _ ->
+                    setupView(itemView, conversation, holder)
+                }
+            }
         }
         bindViewHolder(holder)
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int, payloads: MutableList<Any>) {
         val payload = payloads.firstOrNull()
-        if (payload is RecyclerSelectionPayload) {
-            // Update both itemView and swipeView selection state
+        if (payload is RecyclerSelectionPayload && currentList.getOrNull(position) is ConversationListItem.ConversationItem) {
             holder.itemView.isSelected = payload.selected
-            val binding = ItemConversationBinding.bind(holder.itemView)
-            binding.swipeView.isSelected = payload.selected
-            binding.conversationFrameSelect.isSelected = payload.selected
-            val isInActionMode = actModeCallback.isSelectable
-            binding.conversationCheckbox.beVisibleIf(isInActionMode)
-            binding.conversationCheckbox.isChecked = payload.selected
-            binding.conversationChevron.beGoneIf(isInActionMode)
+            try {
+                val binding = ItemConversationBinding.bind(holder.itemView)
+                binding.swipeView.isSelected = payload.selected
+                binding.conversationFrameSelect.isSelected = payload.selected
+                val isInActionMode = actModeCallback.isSelectable
+                binding.conversationCheckbox.beVisibleIf(isInActionMode)
+                binding.conversationCheckbox.isChecked = payload.selected
+                binding.conversationChevron.beGoneIf(isInActionMode)
+            } catch (_: Exception) { }
         } else {
             super.onBindViewHolder(holder, position, payloads)
         }
     }
 
-    override fun getItemId(position: Int) = getItem(position).threadId
+    override fun getItemId(position: Int): Long = currentList[position].getItemId()
 
     override fun onViewRecycled(holder: ViewHolder) {
         super.onViewRecycled(holder)
         if (!activity.isDestroyed && !activity.isFinishing) {
-            val itemView = ItemConversationBinding.bind(holder.itemView)
-            Glide.with(activity).clear(itemView.conversationImage)
+            try {
+                val itemView = ItemConversationBinding.bind(holder.itemView)
+                Glide.with(activity).clear(itemView.conversationImage)
+            } catch (_: Exception) { }
         }
     }
 
@@ -205,13 +277,33 @@ abstract class BaseConversationsAdapter(
             conversationFrameSelect.setupViewBackground(activity)
             // Ensure tapping anywhere on the visible row toggles selection in act mode.
             conversationFrameSelect.setOnClickListener {
-                holder.viewClicked(conversation)
+                holder.viewClicked(ConversationListItem.ConversationItem(conversation))
             }
             val isInActionMode = actModeCallback.isSelectable
             val isRowSelected = selectedKeys.contains(conversation.hashCode())
             val smsDraft = drafts[conversation.threadId]
             draftIndicator.beVisibleIf(!smsDraft.isNullOrEmpty())
             draftIndicator.setTextColor(properPrimaryColor)
+
+            // Sent/received type icon (txDial item_recents_type logic): sent = ic_cmn_out, received = ic_cmn_in, draft/other = nothing (lastMessageType set on background when loading list)
+            val lastMessageType = conversation.lastMessageType
+            when {
+                smsDraft != null -> conversationMessageType.beGone()
+                lastMessageType == Telephony.Sms.MESSAGE_TYPE_INBOX -> {
+                    conversationMessageType.setImageResource(R.drawable.ic_cmn_in)
+                    conversationMessageType.beVisible()
+                    conversationMessageType.applyColorFilter(textColor)
+                }
+                lastMessageType == Telephony.Sms.MESSAGE_TYPE_SENT ||
+                    lastMessageType == Telephony.Sms.MESSAGE_TYPE_OUTBOX ||
+                    lastMessageType == Telephony.Sms.MESSAGE_TYPE_FAILED ||
+                    lastMessageType == Telephony.Sms.MESSAGE_TYPE_QUEUED -> {
+                    conversationMessageType.setImageResource(R.drawable.ic_cmn_out)
+                    conversationMessageType.beVisible()
+                    conversationMessageType.applyColorFilter(textColor)
+                }
+                else -> conversationMessageType.beGone()
+            }
 
             if (activity.isDynamicTheme() && !activity.isSystemInDarkMode()) {
                 conversationFrame.setBackgroundColor(surfaceColor)
@@ -230,7 +322,8 @@ abstract class BaseConversationsAdapter(
                 }
             }
 
-            if (currentList.last() == conversation || !activity.config.useDividers) divider.beInvisible() else divider.beVisible()
+            val isLastConversation = holder.bindingAdapterPosition == currentList.indexOfLast { it is ConversationListItem.ConversationItem }
+            if (isLastConversation || !activity.config.useDividers) divider.beInvisible() else divider.beVisible()
 
             swipeView.isSelected = isRowSelected
             conversationFrameSelect.isSelected = isRowSelected
@@ -458,8 +551,15 @@ abstract class BaseConversationsAdapter(
         } else "No date"
     }
 
-//    override fun onChange(position: Int) = currentList.getOrNull(position)?.title ?: ""
-    override fun onChange(position: Int) = formatConversationDate(currentList.getOrNull(position)?.date)
+    override fun onChange(position: Int): String = when (val item = currentList.getOrNull(position)) {
+        is ConversationListItem.ConversationItem -> formatConversationDate(item.conversation.date)
+        is ConversationListItem.DateHeader -> when (item.dayCode) {
+            ConversationListItem.SECTION_TODAY -> activity.getString(R.string.today)
+            ConversationListItem.SECTION_YESTERDAY -> activity.getString(R.string.yesterday)
+            else -> activity.getString(R.string.previous)
+        }
+        null -> ""
+    }
 
     private fun saveRecyclerViewState() {
         recyclerViewState = recyclerView.layoutManager?.onSaveInstanceState()
@@ -469,14 +569,18 @@ abstract class BaseConversationsAdapter(
         recyclerView.layoutManager?.onRestoreInstanceState(recyclerViewState)
     }
 
-    private class ConversationDiffCallback : DiffUtil.ItemCallback<Conversation>() {
-        override fun areItemsTheSame(oldItem: Conversation, newItem: Conversation): Boolean {
-            return Conversation.areItemsTheSame(oldItem, newItem)
-        }
+    private class ConversationListItemDiffCallback : DiffUtil.ItemCallback<ConversationListItem>() {
+        override fun areItemsTheSame(oldItem: ConversationListItem, newItem: ConversationListItem): Boolean =
+            oldItem.getItemId() == newItem.getItemId()
 
-        override fun areContentsTheSame(oldItem: Conversation, newItem: Conversation): Boolean {
-            return Conversation.areContentsTheSame(oldItem, newItem)
-        }
+        override fun areContentsTheSame(oldItem: ConversationListItem, newItem: ConversationListItem): Boolean =
+            when {
+                oldItem is ConversationListItem.DateHeader && newItem is ConversationListItem.DateHeader ->
+                    oldItem.timestamp == newItem.timestamp && oldItem.dayCode == newItem.dayCode
+                oldItem is ConversationListItem.ConversationItem && newItem is ConversationListItem.ConversationItem ->
+                    Conversation.areContentsTheSame(oldItem.conversation, newItem.conversation)
+                else -> false
+            }
     }
 
     abstract fun swipedLeft(conversation: Conversation)
@@ -505,3 +609,6 @@ abstract class BaseConversationsAdapter(
         }
     }
 }
+
+
+

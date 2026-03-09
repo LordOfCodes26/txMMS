@@ -26,6 +26,7 @@ import com.android.mms.helpers.SWIPE_ACTION_MESSAGE
 import com.android.mms.helpers.refreshConversations
 import com.android.mms.messaging.isShortCodeWithLetters
 import com.android.mms.models.Conversation
+import com.android.mms.models.ConversationListItem
 
 class ArchivedConversationsAdapter(
     activity: SimpleActivity, recyclerView: MyRecyclerView, onRefresh: () -> Unit, itemClick: (Any) -> Unit,
@@ -67,7 +68,10 @@ class ArchivedConversationsAdapter(
             return
         }
 
-        val conversationsToRemove = currentList.filter { selectedKeys.contains(it.hashCode()) } as ArrayList<Conversation>
+        val conversationsToRemove = currentList
+            .filterIsInstance<ConversationListItem.ConversationItem>()
+            .filter { selectedKeys.contains(it.conversation.hashCode()) }
+            .map { it.conversation } as ArrayList<Conversation>
         conversationsToRemove.forEach {
             activity.deleteConversation(it.threadId)
             activity.notificationManager.cancel(it.threadId.hashCode())
@@ -82,7 +86,10 @@ class ArchivedConversationsAdapter(
         }
 
         ensureBackgroundThread {
-            val conversationsToUnarchive = currentList.filter { selectedKeys.contains(it.hashCode()) } as ArrayList<Conversation>
+            val conversationsToUnarchive = currentList
+            .filterIsInstance<ConversationListItem.ConversationItem>()
+            .filter { selectedKeys.contains(it.conversation.hashCode()) }
+            .map { it.conversation } as ArrayList<Conversation>
             conversationsToUnarchive.forEach {
                 activity.updateConversationArchivedStatus(it.threadId, false)
             }
@@ -92,14 +99,17 @@ class ArchivedConversationsAdapter(
     }
 
     private fun removeConversationsFromList(removedConversations: List<Conversation>) {
+        val toRemoveSet = removedConversations.toSet()
         val newList = try {
-            currentList.toMutableList().apply { removeAll(removedConversations) }
+            currentList.toMutableList().apply {
+                removeAll { it is ConversationListItem.ConversationItem && (it as ConversationListItem.ConversationItem).conversation in toRemoveSet }
+            }
         } catch (ignored: Exception) {
             currentList.toMutableList()
         }
 
         activity.runOnUiThread {
-            if (newList.none { selectedKeys.contains(it.hashCode()) }) {
+            if (newList.none { it is ConversationListItem.ConversationItem && selectedKeys.contains((it as ConversationListItem.ConversationItem).conversation.hashCode()) }) {
                 refreshConversations()
                 finishActMode()
             } else {
@@ -145,8 +155,11 @@ class ArchivedConversationsAdapter(
     }
 
     private fun swipedRemoveConversationsFromList(removedConversations: List<Conversation>) {
+        val toRemoveSet = removedConversations.toSet()
         val newList = try {
-            currentList.toMutableList().apply { removeAll(removedConversations) }
+            currentList.toMutableList().apply {
+                removeAll { it is ConversationListItem.ConversationItem && (it as ConversationListItem.ConversationItem).conversation in toRemoveSet }
+            }
         } catch (ignored: Exception) {
             currentList.toMutableList()
         }
@@ -187,8 +200,11 @@ class ArchivedConversationsAdapter(
             activity.notificationManager.cancel(it.threadId.hashCode())
         }
 
+        val toRemoveSet = conversationsToRemove.toSet()
         val newList = try {
-            currentList.toMutableList().apply { removeAll(conversationsToRemove) }
+            currentList.toMutableList().apply {
+                removeAll { it is ConversationListItem.ConversationItem && (it as ConversationListItem.ConversationItem).conversation in toRemoveSet }
+            }
         } catch (ignored: Exception) {
             currentList.toMutableList()
         }
@@ -219,7 +235,7 @@ class ArchivedConversationsAdapter(
     }
 
     private fun swipedSMS(conversation: Conversation) {
-        itemClick.invoke(conversation)
+        itemClick.invoke(ConversationListItem.ConversationItem(conversation))
     }
 
     private fun swipedCall(conversation: Conversation) {

@@ -23,6 +23,7 @@ import com.android.mms.helpers.generateRandomId
 import com.android.mms.helpers.refreshConversations
 import com.android.mms.messaging.cancelScheduleSendPendingIntent
 import com.android.mms.models.Conversation
+import com.android.mms.models.ConversationListItem
 import com.android.mms.models.Message
 import kotlin.collections.forEach
 
@@ -66,7 +67,10 @@ class RecycleBinConversationsAdapter(
             return
         }
 
-        val conversationsToRemove = currentList.filter { selectedKeys.contains(it.hashCode()) } as ArrayList<Conversation>
+        val conversationsToRemove = currentList
+            .filterIsInstance<ConversationListItem.ConversationItem>()
+            .filter { selectedKeys.contains(it.conversation.hashCode()) }
+            .map { it.conversation } as ArrayList<Conversation>
         conversationsToRemove.forEach {
             // You need to delete only the messages from the recycle bin, not the entire conversation
             //activity.deleteConversation(it.threadId)
@@ -98,7 +102,10 @@ class RecycleBinConversationsAdapter(
             return
         }
 
-        val conversationsToRemove = currentList.filter { selectedKeys.contains(it.hashCode()) } as ArrayList<Conversation>
+        val conversationsToRemove = currentList
+            .filterIsInstance<ConversationListItem.ConversationItem>()
+            .filter { selectedKeys.contains(it.conversation.hashCode()) }
+            .map { it.conversation } as ArrayList<Conversation>
         conversationsToRemove.forEach {
             activity.restoreAllMessagesFromRecycleBinForConversation(it.threadId)
         }
@@ -107,14 +114,17 @@ class RecycleBinConversationsAdapter(
     }
 
     private fun removeConversationsFromList(removedConversations: List<Conversation>) {
+        val toRemoveSet = removedConversations.toSet()
         val newList = try {
-            currentList.toMutableList().apply { removeAll(removedConversations) }
+            currentList.toMutableList().apply {
+                removeAll { it is ConversationListItem.ConversationItem && (it as ConversationListItem.ConversationItem).conversation in toRemoveSet }
+            }
         } catch (_: Exception) {
             currentList.toMutableList()
         }
 
         activity.runOnUiThread {
-            if (newList.none { selectedKeys.contains(it.hashCode()) }) {
+            if (newList.none { it is ConversationListItem.ConversationItem && selectedKeys.contains((it as ConversationListItem.ConversationItem).conversation.hashCode()) }) {
                 refreshConversations()
                 finishActMode()
             } else {

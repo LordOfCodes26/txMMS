@@ -728,12 +728,13 @@ class MainActivity : SimpleActivity() {
             }
 
             if (shouldUseCached) {
-                // Load message counts for cached conversations
+                // Load message counts only; lastMessageType already set from getNonArchived/getAllArchived snippet query
                 conversations.forEach { conversation ->
                     try {
                         conversation.messageCount = messagesDB.getThreadMessageCount(conversation.threadId)
                     } catch (_: Exception) {
                         conversation.messageCount = 0
+                        conversation.lastMessageType = null
                     }
                 }
             }
@@ -762,8 +763,10 @@ class MainActivity : SimpleActivity() {
                 conversations.forEach { conversation ->
                     try {
                         conversation.messageCount = messagesDB.getThreadMessageCount(conversation.threadId)
+                        conversation.lastMessageType = messagesDB.getLastMessageType(conversation.threadId)
                     } catch (_: Exception) {
                         conversation.messageCount = 0
+                        conversation.lastMessageType = null
                     }
                 }
                 runOnUiThread {
@@ -829,12 +832,13 @@ class MainActivity : SimpleActivity() {
             }
 
             val allConversations = conversationsDB.getNonArchived() as ArrayList<Conversation>
-            // Load message counts for all conversations
+            // Load message counts only; lastMessageType already set from getNonArchived snippet query
             allConversations.forEach { conversation ->
                 try {
                     conversation.messageCount = messagesDB.getThreadMessageCount(conversation.threadId)
                 } catch (_: Exception) {
                     conversation.messageCount = 0
+                    conversation.lastMessageType = null
                 }
             }
             runOnUiThread {

@@ -47,6 +47,7 @@ import com.android.mms.helpers.refreshConversations
 import com.android.mms.messaging.cancelScheduleSendPendingIntent
 import com.android.mms.messaging.isShortCodeWithLetters
 import com.android.mms.models.Conversation
+import com.android.mms.models.ConversationListItem
 import com.android.mms.models.Message
 
 class ConversationsAdapter(
@@ -92,11 +93,11 @@ class ConversationsAdapter(
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         super.onBindViewHolder(holder, position)
-        
-        // Override long-click to show popup menu instead of action mode
-        val conversation = getItem(position)
+        val conversation = getConversationAt(position)
         holder.itemView.setOnLongClickListener {
-            showPopupMenu(conversation, holder.itemView)
+            if (conversation != null) {
+                showPopupMenu(conversation, holder.itemView)
+            }
             true
         }
     }
@@ -107,8 +108,8 @@ class ConversationsAdapter(
             return
         }
         // Select the conversation first (for compatibility with existing logic)
-        val position = currentList.indexOf(conversation)
-        if (position != -1) {
+        val position = getItemKeyPosition(conversation.hashCode())
+        if (position >= 0) {
             selectedKeys.clear()
             selectedKeys.add(conversation.hashCode())
         }
@@ -299,7 +300,10 @@ class ConversationsAdapter(
                 }
             }
         } else {
-            val newList = currentList.toMutableList().apply { removeAll(numbersToBlock) }
+            val toRemoveSet = numbersToBlock.toSet()
+            val newList = currentList.toMutableList().apply {
+                removeAll { it is ConversationListItem.ConversationItem && (it as ConversationListItem.ConversationItem).conversation in toRemoveSet }
+            }
             ensureBackgroundThread {
                 //mark read
                 numbersToBlock.filter { conversation -> !conversation.read }.forEach {
@@ -394,15 +398,18 @@ class ConversationsAdapter(
             activity.notificationManager.cancel(it.threadId.hashCode())
         }
 
+        val toRemoveSet = conversationsToRemove.toSet()
         val newList = try {
-            currentList.toMutableList().apply { removeAll(conversationsToRemove) }
+            currentList.toMutableList().apply {
+                removeAll { it is ConversationListItem.ConversationItem && (it as ConversationListItem.ConversationItem).conversation in toRemoveSet }
+            }
         } catch (_: Exception) {
             currentList.toMutableList()
         }
 
         val selectedHashCodes = conversationsToArchive.map { it.hashCode() }.toSet()
         activity.runOnUiThread {
-            if (newList.none { selectedHashCodes.contains(it.hashCode()) }) {
+            if (newList.none { it is ConversationListItem.ConversationItem && selectedHashCodes.contains((it as ConversationListItem.ConversationItem).conversation.hashCode()) }) {
                 refreshConversations()
                 finishActMode()
             } else {
@@ -432,15 +439,18 @@ class ConversationsAdapter(
             }
         }
 
+        val toRemoveSet = conversationsToRemove.toSet()
         val newList = try {
-            currentList.toMutableList().apply { removeAll(conversationsToRemove) }
+            currentList.toMutableList().apply {
+                removeAll { it is ConversationListItem.ConversationItem && (it as ConversationListItem.ConversationItem).conversation in toRemoveSet }
+            }
         } catch (_: Exception) {
             currentList.toMutableList()
         }
 
         val selectedHashCodes = conversationsToDelete.map { it.hashCode() }.toSet()
         activity.runOnUiThread {
-            if (newList.none { selectedHashCodes.contains(it.hashCode()) }) {
+            if (newList.none { it is ConversationListItem.ConversationItem && selectedHashCodes.contains((it as ConversationListItem.ConversationItem).conversation.hashCode()) }) {
                 refreshConversations()
                 finishActMode()
             } else {
@@ -460,9 +470,13 @@ class ConversationsAdapter(
                 val updatedConv = activity.renameConversation(conversation, newTitle = it)
                 activity.runOnUiThread {
                     finishActMode()
-                    currentList.toMutableList().apply {
-                        set(indexOf(conversation), updatedConv)
-                        updateConversations(this as ArrayList<Conversation>)
+                    val newList = currentList.toMutableList()
+                    val idx = newList.indexOfFirst { it is ConversationListItem.ConversationItem && (it as ConversationListItem.ConversationItem).conversation.threadId == conversation.threadId }
+                    if (idx >= 0) {
+                        newList[idx] = ConversationListItem.ConversationItem(updatedConv)
+                        submitList(newList)
+                    } else {
+                        refreshConversations()
                     }
                 }
             }
@@ -474,8 +488,10 @@ class ConversationsAdapter(
             return
         }
 
-        val conversationsMarkedAsRead =
-            currentList.filter { selectedKeys.contains(it.hashCode()) } as ArrayList<Conversation>
+        val conversationsMarkedAsRead = currentList
+            .filterIsInstance<ConversationListItem.ConversationItem>()
+            .filter { selectedKeys.contains(it.conversation.hashCode()) }
+            .map { it.conversation } as ArrayList<Conversation>
         ensureBackgroundThread {
             conversationsMarkedAsRead.filter { conversation -> !conversation.read }.forEach {
                 activity.conversationsDB.markRead(it.threadId)
@@ -491,8 +507,10 @@ class ConversationsAdapter(
             return
         }
 
-        val conversationsMarkedAsUnread =
-            currentList.filter { selectedKeys.contains(it.hashCode()) } as ArrayList<Conversation>
+        val conversationsMarkedAsUnread = currentList
+            .filterIsInstance<ConversationListItem.ConversationItem>()
+            .filter { selectedKeys.contains(it.conversation.hashCode()) }
+            .map { it.conversation } as ArrayList<Conversation>
         ensureBackgroundThread {
             conversationsMarkedAsUnread.filter { conversation -> conversation.read }.forEach {
                 activity.conversationsDB.markUnread(it.threadId)
@@ -597,8 +615,11 @@ class ConversationsAdapter(
             activity.notificationManager.cancel(it.threadId.hashCode())
         }
 
+        val toRemoveSet = conversationsToArchive.toSet()
         val newList = try {
-            currentList.toMutableList().apply { removeAll(conversationsToArchive) }
+            currentList.toMutableList().apply {
+                removeAll { it is ConversationListItem.ConversationItem && (it as ConversationListItem.ConversationItem).conversation in toRemoveSet }
+            }
         } catch (_: Exception) {
             currentList.toMutableList()
         }
@@ -650,8 +671,11 @@ class ConversationsAdapter(
             }
         }
 
+        val toRemoveSet = conversationsToRemove.toSet()
         val newList = try {
-            currentList.toMutableList().apply { removeAll(conversationsToRemove) }
+            currentList.toMutableList().apply {
+                removeAll { it is ConversationListItem.ConversationItem && (it as ConversationListItem.ConversationItem).conversation in toRemoveSet }
+            }
         } catch (_: Exception) {
             currentList.toMutableList()
         }
@@ -726,7 +750,7 @@ class ConversationsAdapter(
     }
 
     private fun swipedSMS(conversation: Conversation) {
-        itemClick.invoke(conversation)
+        itemClick.invoke(ConversationListItem.ConversationItem(conversation))
     }
 
     private fun swipedCall(conversation: Conversation) {

@@ -104,11 +104,34 @@
                 tools:text="John"
                 tools:ignore="RtlSymmetry" />
 
+            <ImageView
+                android:id="@+id/conversationMessageType"
+                android:layout_width="@dimen/list_icon_size_xx_small"
+                android:layout_height="@dimen/list_icon_size_xx_small"
+                android:layout_marginStart="@dimen/normal_margin"
+                android:layout_marginBottom="@dimen/medium_margin"
+                android:alpha="0.6"
+                android:contentDescription="@null"
+                android:scaleType="fitCenter"
+                android:visibility="gone"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toEndOf="@+id/conversationImage"
+                app:layout_constraintTop_toBottomOf="@+id/conversationAddress"
+                tools:src="@drawable/ic_cmn_out"
+                tools:visibility="visible" />
+
+            <androidx.constraintlayout.widget.Barrier
+                android:id="@+id/conversationMessageTypeBarrier"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:barrierDirection="end"
+                app:constraint_referenced_ids="conversationImage,conversationMessageType" />
+
             <TextView
                 android:id="@+id/draftIndicator"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="@dimen/normal_margin"
+                android:layout_marginStart="@dimen/small_margin"
                 android:layout_marginBottom="@dimen/medium_margin"
                 android:ellipsize="end"
                 android:maxLines="1"
@@ -119,7 +142,7 @@
                 android:textStyle="italic"
                 app:layout_constraintTop_toBottomOf="@+id/conversationAddress"
                 app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintStart_toEndOf="@+id/conversationImage"
+                app:layout_constraintStart_toEndOf="@+id/conversationMessageTypeBarrier"
                 tools:ignore="RtlSymmetry"/>
 
             <TextView

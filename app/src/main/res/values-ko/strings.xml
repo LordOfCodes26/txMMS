@@ -73,6 +73,10 @@
     <string name="restore_whole_conversation_confirmation">이 대화의 모든 통보문을 복원하시겠습니까?</string>
     <string name="archive_confirmation">%s을 보관하시겠습니까?</string>
     <string name="restore_confirmation">%s을 복원하시겠습니까?</string>
+    <!-- Conversation list date sections -->
+    <string name="today">오늘</string>
+    <string name="yesterday">어제</string>
+    <string name="previous">이전</string>
     <string name="blocked_keywords">차단된 단어</string>
     <string name="keyword">단어</string>
     <string name="manage_blocked_keywords">차단한 검색어</string>

@@ -27,6 +27,10 @@ data class Conversation(
     @Ignore
     var messageCount: Int = 0
 
+    /** Last message type (Telephony.Sms.MESSAGE_TYPE_*) for sent/received icon; set on background when loading list. */
+    @Ignore
+    var lastMessageType: Int? = null
+
     companion object {
         fun areItemsTheSame(old: Conversation, new: Conversation): Boolean {
             return old.threadId == new.threadId
@@ -47,7 +51,8 @@ data class Conversation(
                 old.unreadCount == new.unreadCount &&
                 old.isCompany == new.isCompany &&
                 old.isBlocked == new.isBlocked &&
-                old.messageCount == new.messageCount
+                old.messageCount == new.messageCount &&
+                old.lastMessageType == new.lastMessageType
         }
     }
 }
