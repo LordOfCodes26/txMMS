@@ -12,14 +12,12 @@ import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.widget.FrameLayout
 import android.widget.ImageView
-import androidx.compose.ui.unit.dp
 import androidx.core.view.children
+import com.google.android.flexbox.FlexboxLayout
 import com.google.android.material.chip.Chip
-import com.google.android.material.chip.ChipGroup
+import android.view.ViewGroup
 import com.goodwy.commons.R
 import com.goodwy.commons.extensions.adjustAlpha
-import com.goodwy.commons.extensions.getContrastColor
-import com.google.android.material.chip.ChipDrawable
 
 class ChipsInputView @JvmOverloads constructor(
     context: Context,
@@ -27,13 +25,14 @@ class ChipsInputView @JvmOverloads constructor(
     defStyleAttr: Int = 0
 ) : FrameLayout(context, attrs, defStyleAttr) {
 
-    private val chipGroup: ChipGroup
+    private val flexContainer: FlexboxLayout
     private val editText: MyEditText
     private val clearButton: ImageView
     private val addressBookButton: ImageView
     private val speechToTextButton: ImageView
 
     private val chips = mutableListOf<String>()
+    private var placeholderHint: String = ""
     private var onTextChangedListener: ((String) -> Unit)? = null
     private var onChipsChangedListener: ((List<String>) -> Unit)? = null
     private var onChipAddedListener: ((String) -> Boolean)? = null
@@ -41,7 +40,8 @@ class ChipsInputView @JvmOverloads constructor(
     var hint: String
         get() = editText.hint?.toString() ?: ""
         set(value) {
-            editText.hint = value
+            placeholderHint = value
+            updatePlaceholderVisibility()
         }
 
     val currentText: String
@@ -54,7 +54,7 @@ class ChipsInputView @JvmOverloads constructor(
         val inflater = LayoutInflater.from(context)
         val rootView = inflater.inflate(R.layout.view_chips_input, this, true)
 
-        chipGroup = rootView.findViewById(R.id.chips_group)
+        flexContainer = rootView.findViewById(R.id.chips_flex_container)
         editText = rootView.findViewById(R.id.chips_edit_text)
         clearButton = rootView.findViewById(R.id.chips_clear_button)
         addressBookButton = rootView.findViewById(R.id.chips_address_book_button)
@@ -63,6 +63,7 @@ class ChipsInputView @JvmOverloads constructor(
         setupEditText()
         setupButtons()
         updateButtonsVisibility("")
+        updatePlaceholderVisibility()
     }
 
     private fun setupEditText() {
@@ -71,6 +72,21 @@ class ChipsInputView @JvmOverloads constructor(
                 (event != null && event.keyCode == KeyEvent.KEYCODE_ENTER && event.action == KeyEvent.ACTION_DOWN)) {
                 addChipFromText()
                 true
+            } else {
+                false
+            }
+        }
+
+        // Backspace with empty field removes the last chip (tag-style behavior)
+        editText.setOnKeyListener { _, keyCode, event ->
+            if (keyCode == KeyEvent.KEYCODE_DEL && event.action == KeyEvent.ACTION_DOWN) {
+                val text = editText.text?.toString() ?: ""
+                if (text.isEmpty() && chips.isNotEmpty()) {
+                    removeChip(chips.last())
+                    true
+                } else {
+                    false
+                }
             } else {
                 false
             }
@@ -92,6 +108,7 @@ class ChipsInputView @JvmOverloads constructor(
                 } else {
                     onTextChangedListener?.invoke(text)
                     updateButtonsVisibility(text)
+                    updatePlaceholderVisibility()
                 }
             }
 
@@ -133,6 +150,7 @@ class ChipsInputView @JvmOverloads constructor(
         
         onChipsChangedListener?.invoke(chips.toList())
         updateButtonsVisibility(editText.text?.toString() ?: "")
+        updatePlaceholderVisibility()
         return true
     }
 
@@ -149,15 +167,20 @@ class ChipsInputView @JvmOverloads constructor(
         val index = chips.indexOf(text)
         if (index >= 0) {
             chips.removeAt(index)
-            chipGroup.removeViewAt(index)
+            flexContainer.removeViewAt(index)
             onChipsChangedListener?.invoke(chips.toList())
+            updatePlaceholderVisibility()
         }
     }
 
     fun clearChips() {
         chips.clear()
-        chipGroup.removeAllViews()
+        // Remove only chip views; keep the trailing edit wrapper (last child)
+        while (flexContainer.childCount > 1) {
+            flexContainer.removeViewAt(0)
+        }
         onChipsChangedListener?.invoke(emptyList())
+        updatePlaceholderVisibility()
     }
 
     fun clearText() {
@@ -199,11 +222,10 @@ class ChipsInputView @JvmOverloads constructor(
     fun setColors(textColor: Int, accentColor: Int, backgroundColor: Int) {
         editText.setColors(textColor, accentColor, backgroundColor)
         
-        val contrastColor = accentColor.getContrastColor()
         val chipBackgroundColor = accentColor.adjustAlpha(0.2f)
         
-        // Update existing chips
-        chipGroup.children.forEach { view ->
+        // Update existing chips (flexContainer also has the edit wrapper as last child)
+        flexContainer.children.forEach { view ->
             if (view is Chip) {
                 view.chipBackgroundColor = ColorStateList.valueOf(chipBackgroundColor)
                 view.setTextColor(textColor)
@@ -243,7 +265,19 @@ class ChipsInputView @JvmOverloads constructor(
             removeChip(text)
         }
 
-        chipGroup.addView(chip)
+        val chipMargin = context.resources.getDimensionPixelSize(R.dimen.tiny_margin)
+        val params = FlexboxLayout.LayoutParams(
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        ).apply {
+            marginEnd = chipMargin
+            bottomMargin = chipMargin
+        }
+        chip.layoutParams = params
+
+        // Insert chip before the trailing edit wrapper (iPhone-style: chips then text input)
+        val insertIndex = (flexContainer.childCount - 1).coerceAtLeast(0)
+        flexContainer.addView(chip, insertIndex)
     }
 
     private fun updateButtonsVisibility(text: String) {
@@ -251,6 +285,11 @@ class ChipsInputView @JvmOverloads constructor(
         clearButton.visibility = if (hasText) View.VISIBLE else View.GONE
         addressBookButton.visibility = if (!hasText) View.VISIBLE else View.GONE
         speechToTextButton.visibility = View.GONE
+    }
+
+    private fun updatePlaceholderVisibility() {
+        val hasContent = chips.isNotEmpty() || currentText.isNotEmpty()
+        editText.hint = if (hasContent) "" else placeholderHint
     }
 
     fun getEditText(): MyEditText = editText

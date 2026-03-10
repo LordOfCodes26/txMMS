@@ -1,88 +1,107 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:orientation="vertical">
+    android:layout_height="wrap_content">
 
-    <com.google.android.material.chip.ChipGroup
-        android:id="@+id/chips_group"
+    <ScrollView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginStart="@dimen/activity_margin"
-        android:layout_marginEnd="@dimen/activity_margin"
-        android:layout_marginTop="@dimen/tiny_margin"
-        android:layout_marginBottom="@dimen/tiny_margin"
-        app:chipSpacingHorizontal="@dimen/tiny_margin"
-        app:chipSpacingVertical="@dimen/tiny_margin" />
+        android:maxHeight="120dp"
+        android:fillViewport="false"
+        android:overScrollMode="ifContentScrolls">
 
-    <RelativeLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="@dimen/activity_margin"
-        android:layout_marginEnd="@dimen/activity_margin"
-        android:layout_marginBottom="@dimen/small_margin">
-
-        <com.goodwy.commons.views.MyEditText
-            android:id="@+id/chips_edit_text"
+        <com.google.android.flexbox.FlexboxLayout
+            android:id="@+id/chips_flex_container"
             android:layout_width="match_parent"
-            android:layout_height="36dp"
+            android:layout_height="wrap_content"
             android:background="@drawable/search_bg"
-            android:gravity="center_vertical"
-            android:hint=""
-            android:inputType="text"
-            android:paddingStart="@dimen/normal_margin"
-            android:paddingEnd="32dp"
-            android:textSize="@dimen/bigger_text_size"
-            android:textCursorDrawable="@null" />
+            android:paddingStart="@dimen/activity_margin"
+            android:paddingEnd="12dp"
+            android:paddingTop="@dimen/tiny_margin"
+            android:paddingBottom="@dimen/small_margin"
+            app:flexWrap="wrap"
+            app:flexDirection="row"
+            app:alignItems="center"
+            app:alignContent="flex_start">
+
+            <!-- Trailing text input: chips appear to its left (iPhone-style) -->
+            <RelativeLayout
+                android:id="@+id/chips_edit_wrapper"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:minWidth="80dp"
+                app:layout_flexGrow="1"
+                app:layout_flexShrink="0">
+
+                <com.goodwy.commons.views.MyEditText
+                    android:id="@+id/chips_edit_text"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/search_bg_flat"
+                    android:gravity="center_vertical"
+                    android:hint=""
+                    android:inputType="text"
+                    android:paddingStart="@dimen/normal_margin"
+                    android:paddingEnd="32dp"
+                    android:textSize="@dimen/bigger_text_size"
+                    android:textCursorDrawable="@null" />
+
+                <ImageView
+                    android:id="@+id/chips_clear_button"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignTop="@+id/chips_edit_text"
+                    android:layout_alignBottom="@+id/chips_edit_text"
+                    android:layout_alignEnd="@+id/chips_edit_text"
+                    android:layout_marginEnd="@dimen/medium_margin"
+                    android:background="?selectableItemBackgroundBorderless"
+                    android:alpha="0.4"
+                    android:contentDescription="@string/delete"
+                    android:src="@drawable/ic_clear_round"
+                    android:visibility="gone"
+                    android:padding="@dimen/tiny_margin"
+                    tools:tint="@color/dark_grey" />
+
+            </RelativeLayout>
+
+        </com.google.android.flexbox.FlexboxLayout>
+    </ScrollView>
+
+    <!-- Buttons at top right -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|end"
+        android:orientation="horizontal"
+        android:paddingTop="@dimen/tiny_margin"
+        android:paddingEnd="@dimen/activity_margin"
+        android:gravity="center_vertical">
 
         <ImageView
             android:id="@+id/chips_address_book_button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_alignTop="@+id/chips_edit_text"
-            android:layout_alignBottom="@+id/chips_edit_text"
-            android:layout_alignEnd="@+id/chips_edit_text"
-            android:layout_marginEnd="@dimen/medium_margin"
             android:background="?selectableItemBackgroundBorderless"
             android:alpha="0.4"
             android:contentDescription="@string/search_contacts"
             android:src="@drawable/ic_people_vector"
             android:visibility="visible"
+            android:padding="@dimen/tiny_margin"
             tools:tint="@color/dark_grey" />
 
         <ImageView
             android:id="@+id/chips_speech_to_text_button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_alignTop="@+id/chips_edit_text"
-            android:layout_alignBottom="@+id/chips_edit_text"
-            android:layout_alignEnd="@+id/chips_edit_text"
-            android:layout_marginEnd="@dimen/medium_margin"
             android:background="?selectableItemBackgroundBorderless"
             android:alpha="0.4"
             android:contentDescription="@string/delete"
             android:src="@drawable/ic_microphone_vector"
             android:visibility="gone"
+            android:padding="@dimen/tiny_margin"
             tools:tint="@color/dark_grey" />
 
-        <ImageView
-            android:id="@+id/chips_clear_button"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_alignTop="@+id/chips_edit_text"
-            android:layout_alignBottom="@+id/chips_edit_text"
-            android:layout_alignEnd="@+id/chips_edit_text"
-            android:layout_marginEnd="@dimen/medium_margin"
-            android:background="?selectableItemBackgroundBorderless"
-            android:alpha="0.4"
-            android:contentDescription="@string/delete"
-            android:src="@drawable/ic_clear_round"
-            android:visibility="gone"
-            tools:tint="@color/dark_grey" />
-
-    </RelativeLayout>
-
-</LinearLayout>
-
+    </LinearLayout>
+</FrameLayout>
