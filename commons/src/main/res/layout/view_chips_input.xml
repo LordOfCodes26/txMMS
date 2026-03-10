@@ -5,11 +5,13 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content">
 
-    <ScrollView
+    <!-- MaxHeightScrollView clamps height so chips/text scroll instead of expanding the screen -->
+    <com.goodwy.commons.views.MaxHeightScrollView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:maxHeight="120dp"
         android:fillViewport="false"
+        android:scrollbars="vertical"
         android:overScrollMode="ifContentScrolls">
 
         <com.google.android.flexbox.FlexboxLayout
@@ -67,7 +69,7 @@
             </RelativeLayout>
 
         </com.google.android.flexbox.FlexboxLayout>
-    </ScrollView>
+    </com.goodwy.commons.views.MaxHeightScrollView>
 
     <!-- Buttons at top right -->
     <LinearLayout
