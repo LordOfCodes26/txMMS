@@ -2,6 +2,11 @@
     <dimen name="_tiny_dp">-6dp</dimen>
     <dimen name="one_dp">1dp</dimen>
     <dimen name="tiny_margin">2dp</dimen>
+    <!-- ChipsInputView: compact row height (Material Chip ignores small paddings — we use TextView+icon row) -->
+    <dimen name="chips_input_chip_row_height">30dp</dimen>
+    <dimen name="chips_input_chip_text_size">12sp</dimen>
+    <dimen name="chips_input_chip_icon_size">14dp</dimen>
+    <dimen name="chips_input_chip_pad_h">8dp</dimen>
     <dimen name="small_margin">4dp</dimen>
     <dimen name="small_md_margin">5dp</dimen>
     <dimen name="smaller_margin">6dp</dimen>

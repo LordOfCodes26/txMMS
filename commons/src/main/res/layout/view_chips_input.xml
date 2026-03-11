@@ -21,11 +21,11 @@
             android:background="@drawable/search_bg"
             android:paddingStart="@dimen/activity_margin"
             android:paddingEnd="12dp"
-            android:paddingTop="@dimen/tiny_margin"
+            android:paddingTop="@dimen/small_margin"
             android:paddingBottom="@dimen/small_margin"
             app:flexWrap="wrap"
             app:flexDirection="row"
-            app:alignItems="center"
+            app:alignItems="flex_start"
             app:alignContent="flex_start">
 
             <!-- Trailing text input: chips appear to its left (iPhone-style) -->

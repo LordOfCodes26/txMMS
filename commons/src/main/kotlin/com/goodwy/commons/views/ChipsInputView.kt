@@ -4,18 +4,22 @@ import android.content.Context
 import android.content.res.ColorStateList
 import android.graphics.drawable.GradientDrawable
 import android.text.Editable
+import android.text.TextUtils
 import android.text.TextWatcher
 import android.util.AttributeSet
+import android.util.TypedValue
+import android.view.Gravity
 import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import android.widget.FrameLayout
 import android.widget.ImageView
+import android.widget.LinearLayout
+import android.widget.TextView
 import androidx.core.view.children
 import com.google.android.flexbox.FlexboxLayout
-import com.google.android.material.chip.Chip
-import android.view.ViewGroup
 import com.goodwy.commons.R
 import com.goodwy.commons.extensions.adjustAlpha
 
@@ -36,6 +40,9 @@ class ChipsInputView @JvmOverloads constructor(
     private var onTextChangedListener: ((String) -> Unit)? = null
     private var onChipsChangedListener: ((List<String>) -> Unit)? = null
     private var onChipAddedListener: ((String) -> Boolean)? = null
+
+    /** Marks flex children that are our compact chip rows (not Material Chip — full control over height). */
+    private val chipRowMarker = Any()
 
     var hint: String
         get() = editText.hint?.toString() ?: ""
@@ -68,7 +75,7 @@ class ChipsInputView @JvmOverloads constructor(
 
     private fun setupEditText() {
         editText.setOnEditorActionListener { _, actionId, event ->
-            if (actionId == EditorInfo.IME_ACTION_DONE || 
+            if (actionId == EditorInfo.IME_ACTION_DONE ||
                 (event != null && event.keyCode == KeyEvent.KEYCODE_ENTER && event.action == KeyEvent.ACTION_DOWN)) {
                 addChipFromText()
                 true
@@ -77,7 +84,6 @@ class ChipsInputView @JvmOverloads constructor(
             }
         }
 
-        // Backspace with empty field removes the last chip (tag-style behavior)
         editText.setOnKeyListener { _, keyCode, event ->
             if (keyCode == KeyEvent.KEYCODE_DEL && event.action == KeyEvent.ACTION_DOWN) {
                 val text = editText.text?.toString() ?: ""
@@ -97,8 +103,6 @@ class ChipsInputView @JvmOverloads constructor(
 
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
                 val text = s?.toString() ?: ""
-                
-                // Check for comma or semicolon to add chip
                 if (text.endsWith(",") || text.endsWith(";")) {
                     val trimmed = text.dropLast(1).trim()
                     if (trimmed.isNotEmpty()) {
@@ -121,33 +125,18 @@ class ChipsInputView @JvmOverloads constructor(
             editText.setText("")
             editText.requestFocus()
         }
-
-        addressBookButton.setOnClickListener {
-            // Handled by setAddressBookButtonClickListener
-        }
-
-        speechToTextButton.setOnClickListener {
-            // Handled by setSpeechToTextButtonClickListener
-        }
+        addressBookButton.setOnClickListener {}
+        speechToTextButton.setOnClickListener {}
     }
 
     fun addChip(text: String): Boolean {
         val trimmed = text.trim()
-        if (trimmed.isEmpty()) {
-            return false
-        }
-        
-        // Allow duplicates but check if already exists
-        if (chips.contains(trimmed)) {
-            return false
-        }
+        if (trimmed.isEmpty()) return false
+        if (chips.contains(trimmed)) return false
 
         chips.add(trimmed)
         createChipView(trimmed)
-        
-        // Call onChipAddedListener for validation
         onChipAddedListener?.invoke(trimmed)
-        
         onChipsChangedListener?.invoke(chips.toList())
         updateButtonsVisibility(editText.text?.toString() ?: "")
         updatePlaceholderVisibility()
@@ -156,10 +145,8 @@ class ChipsInputView @JvmOverloads constructor(
 
     private fun addChipFromText() {
         val text = editText.text?.toString()?.trim() ?: ""
-        if (text.isNotEmpty()) {
-            if (addChip(text)) {
-                editText.setText("")
-            }
+        if (text.isNotEmpty() && addChip(text)) {
+            editText.setText("")
         }
     }
 
@@ -175,7 +162,6 @@ class ChipsInputView @JvmOverloads constructor(
 
     fun clearChips() {
         chips.clear()
-        // Remove only chip views; keep the trailing edit wrapper (last child)
         while (flexContainer.childCount > 1) {
             flexContainer.removeViewAt(0)
         }
@@ -221,15 +207,15 @@ class ChipsInputView @JvmOverloads constructor(
 
     fun setColors(textColor: Int, accentColor: Int, backgroundColor: Int) {
         editText.setColors(textColor, accentColor, backgroundColor)
-        
+
         val chipBackgroundColor = accentColor.adjustAlpha(0.2f)
-        
-        // Update existing chips (flexContainer also has the edit wrapper as last child)
+        val closeTint = textColor.adjustAlpha(0.6f)
+
         flexContainer.children.forEach { view ->
-            if (view is Chip) {
-                view.chipBackgroundColor = ColorStateList.valueOf(chipBackgroundColor)
-                view.setTextColor(textColor)
-                view.chipIconTint = ColorStateList.valueOf(textColor)
+            if (view.tag === chipRowMarker && view is LinearLayout) {
+                (view.background as? GradientDrawable)?.setColor(chipBackgroundColor)
+                (view.getChildAt(0) as? TextView)?.setTextColor(textColor)
+                (view.getChildAt(1) as? ImageView)?.imageTintList = ColorStateList.valueOf(closeTint)
             }
         }
 
@@ -239,45 +225,70 @@ class ChipsInputView @JvmOverloads constructor(
     }
 
     private fun createChipView(text: String) {
-        val chip = Chip(context)
-        chip.text = text
-        chip.isCloseIconVisible = true
-        chip.isClickable = false
-        chip.isCheckable = false
-        
-        // Set colors if they've been set
+        val res = context.resources
         val textColor = editText.currentTextColor
-        val accentColor = context.getColor(com.goodwy.commons.R.color.color_primary)
+        val accentColor = context.getColor(R.color.color_primary)
         val chipBackgroundColor = accentColor.adjustAlpha(0.1f)
 
-        val shapeDrawable = GradientDrawable().apply {
-            shape = GradientDrawable.RECTANGLE
-            cornerRadius = 60f
-        }
-        chip.background = shapeDrawable
-        chip.chipBackgroundColor = ColorStateList.valueOf(chipBackgroundColor)
-        chip.chipStrokeWidth = 0f
-        chip.setTextColor(textColor)
-        chip.chipIconTint = ColorStateList.valueOf(textColor)
-        chip.closeIconTint = ColorStateList.valueOf(textColor.adjustAlpha(0.6f))
+        val rowHeight = res.getDimensionPixelSize(R.dimen.chips_input_chip_row_height)
+        val padH = res.getDimensionPixelSize(R.dimen.chips_input_chip_pad_h)
+        val iconSize = res.getDimensionPixelSize(R.dimen.chips_input_chip_icon_size)
 
-        chip.setOnCloseIconClickListener {
-            removeChip(text)
+        val row = LinearLayout(context).apply {
+            tag = chipRowMarker
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = rowHeight / 2f
+                setColor(chipBackgroundColor)
+            }
+            setPadding(padH, 0, padH, 0)
         }
 
-        val chipMargin = context.resources.getDimensionPixelSize(R.dimen.tiny_margin)
-        val params = FlexboxLayout.LayoutParams(
+        val tv = TextView(context).apply {
+            this.text = text
+            setTextColor(textColor)
+            setTextSize(TypedValue.COMPLEX_UNIT_PX, res.getDimension(R.dimen.chips_input_chip_text_size))
+            setSingleLine(true)
+            ellipsize = TextUtils.TruncateAt.END
+            includeFontPadding = false
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            ).apply { gravity = Gravity.CENTER_VERTICAL }
+        }
+
+        val close = ImageView(context).apply {
+            setImageResource(R.drawable.ic_clear_round)
+            imageTintList = ColorStateList.valueOf(textColor.adjustAlpha(0.6f))
+            scaleType = ImageView.ScaleType.CENTER_INSIDE
+            layoutParams = LinearLayout.LayoutParams(iconSize, iconSize).apply {
+                marginStart = res.getDimensionPixelSize(R.dimen.tiny_margin)
+                gravity = Gravity.CENTER_VERTICAL
+            }
+            val out = TypedValue()
+            if (context.theme.resolveAttribute(android.R.attr.selectableItemBackgroundBorderless, out, true)) {
+                setBackgroundResource(out.resourceId)
+            }
+            setOnClickListener { removeChip(text) }
+            contentDescription = context.getString(R.string.delete)
+        }
+
+        row.addView(tv)
+        row.addView(close)
+
+        val chipMarginH = res.getDimensionPixelSize(R.dimen.small_margin)
+        row.layoutParams = FlexboxLayout.LayoutParams(
             ViewGroup.LayoutParams.WRAP_CONTENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT
+            rowHeight
         ).apply {
-            marginEnd = chipMargin
-            bottomMargin = chipMargin
+            marginEnd = chipMarginH
+            bottomMargin = chipMarginH
         }
-        chip.layoutParams = params
 
-        // Insert chip before the trailing edit wrapper (iPhone-style: chips then text input)
         val insertIndex = (flexContainer.childCount - 1).coerceAtLeast(0)
-        flexContainer.addView(chip, insertIndex)
+        flexContainer.addView(row, insertIndex)
     }
 
     private fun updateButtonsVisibility(text: String) {
@@ -297,4 +308,3 @@ class ChipsInputView @JvmOverloads constructor(
     fun getAddressBookButton(): ImageView = addressBookButton
     fun getSpeechToTextButton(): ImageView = speechToTextButton
 }
-
