@@ -124,6 +124,7 @@
     </plurals>
     <string name="thread_title_multiple_format">%1$s %2$s</string>
     <string name="new_conversation">새 통보문</string>
+    <string name="recipients_hint">수신자 :</string>
     <string name="add_contact_or_number">주소록 또는 전화번호 추가…</string>
     <string name="select_contacts">주소 선택</string>
     <string name="call_log">통화기록</string>

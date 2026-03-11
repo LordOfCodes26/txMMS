@@ -87,7 +87,7 @@ class NewConversationActivity : SimpleActivity() {
 
         window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE)
         binding.newConversationAddress.requestEditTextFocus()
-        binding.newConversationAddress.hint = getString(R.string.add_contact_or_number)
+        binding.newConversationAddress.hint = getString(R.string.recipients_hint)
 
         // READ_CONTACTS permission is not mandatory, but without it we won't be able to show any suggestions during typing
         handlePermission(PERMISSION_READ_CONTACTS) {

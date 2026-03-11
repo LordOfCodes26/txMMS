@@ -32,6 +32,7 @@
     </plurals>
     <string name="thread_title_multiple_format">%1$s %2$s</string>
     <string name="new_conversation">新的对话</string>
+    <string name="recipients_hint">收件人：</string>
     <string name="add_contact_or_number">添加联系人或者号码…</string>
     <string name="select_contacts">选择联系人</string>
     <string name="call_log">通话记录</string>
