@@ -28,26 +28,32 @@
             app:alignItems="flex_start"
             app:alignContent="flex_start">
 
-            <!-- Trailing text input: chips appear to its left (iPhone-style) -->
+            <!-- Trailing text input: chips appear to its left (iPhone-style).
+                 When remaining space is less than minWidth, wrapper wraps to next line. -->
             <RelativeLayout
                 android:id="@+id/chips_edit_wrapper"
                 android:layout_width="0dp"
-                android:layout_height="36dp"
-                android:minWidth="80dp"
+                android:layout_height="wrap_content"
+                android:minHeight="36dp"
                 app:layout_flexGrow="1"
-                app:layout_flexShrink="0">
+                app:layout_flexShrink="0"
+                app:layout_minWidth="100dp">
 
                 <com.goodwy.commons.views.MyEditText
                     android:id="@+id/chips_edit_text"
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_centerVertical="true"
+                    android:minWidth="80dp"
+                    android:minHeight="36dp"
                     android:background="@drawable/search_bg_flat"
                     android:gravity="center_vertical"
                     android:hint=""
-                    android:inputType="text"
+                    android:inputType="text|textMultiLine"
+                    android:maxLines="4"
                     android:paddingStart="@dimen/normal_margin"
-                    android:paddingEnd="32dp"
-                    android:textSize="@dimen/bigger_text_size"
+                    android:paddingEnd="@dimen/section_margin"
+                    android:textSize="@dimen/normal_text_size"
                     android:textCursorDrawable="@null" />
 
                 <ImageView
@@ -55,8 +61,8 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_alignTop="@+id/chips_edit_text"
-                    android:layout_alignBottom="@+id/chips_edit_text"
                     android:layout_alignEnd="@+id/chips_edit_text"
+                    android:layout_marginStart="@dimen/small_margin"
                     android:layout_marginEnd="@dimen/medium_margin"
                     android:background="?selectableItemBackgroundBorderless"
                     android:alpha="0.4"
