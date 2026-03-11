@@ -1200,9 +1200,9 @@ class NewConversationActivity : SimpleActivity() {
                 systemPreferredSimIdx ?: 0
             }
 
-            binding.messageHolder.threadSelectSimIcon.background.applyColorFilter(
-                resources.getColor(com.goodwy.commons.R.color.activated_item_foreground, theme)
-            )
+//            binding.messageHolder.threadSelectSimIcon.background.applyColorFilter(
+//                resources.getColor(com.goodwy.commons.R.color.activated_item_foreground, theme)
+//            )
             binding.messageHolder.threadSelectSimIcon.applyColorFilter(getProperTextColor())
             binding.messageHolder.threadSelectSimIconHolder.beVisibleIf(!config.showSimSelectionDialog)
             binding.messageHolder.threadSelectSimNumber.beVisible()

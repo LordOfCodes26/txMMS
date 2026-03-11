@@ -15,7 +15,7 @@
 
         <eightbitlab.com.blurview.BlurTarget
             android:id="@+id/mainBlurTarget"
-            android:background="@color/tx_common_bg"
+            android:background="@color/bottom_tabs_light_background"
             android:layout_width="match_parent"
             android:layout_height="match_parent">
             <androidx.constraintlayout.widget.ConstraintLayout

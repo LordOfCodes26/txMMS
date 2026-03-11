@@ -261,7 +261,7 @@ class MessageHolderHelper(
         } else if (isSpeechToTextAvailable) {
             com.goodwy.commons.R.drawable.ic_microphone_vector
         } else {
-            R.drawable.ic_send_vector
+            com.android.common.R.drawable.ic_cmn_sms_send
         }
         ResourcesCompat.getDrawable(activity.resources, drawableResId, activity.theme)?.apply {
             applyColorFilter(activity.getProperPrimaryColor().getContrastColor())
