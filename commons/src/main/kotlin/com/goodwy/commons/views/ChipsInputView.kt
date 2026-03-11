@@ -30,6 +30,7 @@ class ChipsInputView @JvmOverloads constructor(
 ) : FrameLayout(context, attrs, defStyleAttr) {
 
     private val flexContainer: FlexboxLayout
+    private val chipsScrollView: MaxHeightScrollView?
     private val editText: MyEditText
     private val clearButton: ImageView
     private val addressBookButton: ImageView
@@ -62,6 +63,7 @@ class ChipsInputView @JvmOverloads constructor(
         val rootView = inflater.inflate(R.layout.view_chips_input, this, true)
 
         flexContainer = rootView.findViewById(R.id.chips_flex_container)
+        chipsScrollView = flexContainer.parent as? MaxHeightScrollView
         editText = rootView.findViewById(R.id.chips_edit_text)
         clearButton = rootView.findViewById(R.id.chips_clear_button)
         addressBookButton = rootView.findViewById(R.id.chips_address_book_button)
@@ -136,6 +138,7 @@ class ChipsInputView @JvmOverloads constructor(
 
         chips.add(trimmed)
         createChipView(trimmed)
+        scrollToBottom()
         onChipAddedListener?.invoke(trimmed)
         onChipsChangedListener?.invoke(chips.toList())
         updateButtonsVisibility(editText.text?.toString() ?: "")
@@ -301,6 +304,10 @@ class ChipsInputView @JvmOverloads constructor(
     private fun updatePlaceholderVisibility() {
         val hasContent = chips.isNotEmpty() || currentText.isNotEmpty()
         editText.hint = if (hasContent) "" else placeholderHint
+    }
+
+    private fun scrollToBottom() {
+        chipsScrollView?.post { chipsScrollView?.fullScroll(View.FOCUS_DOWN) }
     }
 
     fun getEditText(): MyEditText = editText
