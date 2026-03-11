@@ -464,7 +464,16 @@ fun Context.getConversations(
         projection += Threads.ARCHIVED
     }
 
-    var selection = "${Threads.MESSAGE_COUNT} > 0"
+    val draftThreadIds = try {
+        draftsDB.getAll().map { it.threadId }
+    } catch (_: Exception) {
+        emptyList()
+    }
+    var selection = if (draftThreadIds.isNotEmpty()) {
+        "(${Threads.MESSAGE_COUNT} > 0 OR ${Threads._ID} IN (${draftThreadIds.joinToString(",")}))"
+    } else {
+        "${Threads.MESSAGE_COUNT} > 0"
+    }
     var selectionArgs = arrayOf<String>()
     if (threadId != null) {
         selection += " AND ${Threads._ID} = ?"

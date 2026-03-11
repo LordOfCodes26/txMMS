@@ -43,8 +43,10 @@ import com.android.mms.helpers.*
 import com.android.mms.messaging.isShortCodeWithLetters
 import com.android.mms.messaging.sendMessageCompat
 import com.android.mms.models.Attachment
+import com.android.mms.models.Events
 import com.android.mms.models.SIMCard
 import com.android.mms.helpers.MessageHolderHelper
+import org.greenrobot.eventbus.EventBus
 import java.net.URLDecoder
 import java.util.Objects
 
@@ -1302,6 +1304,45 @@ class NewConversationActivity : SimpleActivity() {
         }
 
         return userPreferredSimIdx ?: systemPreferredSimIdx ?: 0
+    }
+
+    override fun onPause() {
+        super.onPause()
+        saveNewConversationDraft()
+    }
+
+    override fun onStop() {
+        super.onStop()
+        saveNewConversationDraft()
+    }
+
+    private fun saveNewConversationDraft() {
+        val chips = binding.newConversationAddress.allChips
+        val messageText = binding.messageHolder.threadTypeMessage.text?.toString()?.trim() ?: ""
+        val hasChips = chips.isNotEmpty()
+        val hasMessage = messageText.isNotEmpty()
+
+        if (hasChips && hasMessage) {
+            val allNumbers = mutableListOf<String>()
+            chips.forEach { chip ->
+                if (chip.isNotEmpty()) {
+                    val phoneNumber = chipDisplayToPhoneNumber[chip]
+                        ?: chip.normalizePhoneNumber().takeIf { it.length >= 3 && it.all { c -> c.isDigit() } }
+                    if (phoneNumber != null && phoneNumber.isNotEmpty() && !allNumbers.contains(phoneNumber)) {
+                        allNumbers.add(phoneNumber)
+                    }
+                }
+            }
+            if (allNumbers.isNotEmpty()) {
+                val threadId = getThreadId(allNumbers.toSet())
+                if (threadId > 0) {
+                    ensureBackgroundThread {
+                        saveSmsDraft(messageText, threadId)
+                        runOnUiThread { EventBus.getDefault().post(Events.RefreshConversations()) }
+                    }
+                }
+            }
+        }
     }
 
     override fun onBackPressedCompat(): Boolean {
