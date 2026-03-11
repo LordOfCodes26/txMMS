@@ -72,6 +72,7 @@ import com.android.mms.dialogs.InvalidNumberDialog
 import com.android.mms.dialogs.RenameConversationDialog
 import com.android.mms.dialogs.ScheduleMessageDialog
 import com.android.mms.extensions.*
+import com.android.mms.extensions.getDisplayNumberWithoutCountryCode
 import com.android.common.view.MVSideFrame
 import com.android.mms.helpers.*
 import com.android.mms.messaging.*
@@ -1089,10 +1090,19 @@ class ThreadActivity : SimpleActivity() {
         val textColor = getProperTextColor()
         val title = conversation?.title
         // For multiple participants always show "first user's name or phone and N others" in sender_name_large/sender_name
-        val threadTitle = if (participants.size > 1) {
+        var threadTitle = if (participants.size > 1) {
             participants.getThreadTitle(this@ThreadActivity)
         } else {
             if (!title.isNullOrEmpty()) title else participants.getThreadTitle(this@ThreadActivity)
+        }
+        // Hide country code prefix (e.g. +850) when displaying raw phone number not in contacts
+        if (participants.size == 1) {
+            val phoneNumber = participants.first().phoneNumbers.firstOrNull()?.normalizedNumber ?: ""
+            val normalizedTitle = threadTitle.normalizePhoneNumber()
+            val normalizedPhone = phoneNumber.normalizePhoneNumber()
+            if (phoneNumber.isNotEmpty() && (normalizedTitle == normalizedPhone || threadTitle == phoneNumber)) {
+                threadTitle = getDisplayNumberWithoutCountryCode(phoneNumber)
+            }
         }
         val threadSubtitle = participants.getThreadSubtitle(this@ThreadActivity)
         threadToolbar.title = ""
@@ -2253,10 +2263,19 @@ class ThreadActivity : SimpleActivity() {
         
         val title = conversation?.title
         // Match setupThreadTitle(): for multiple participants use "Name and N others", else use conversation title or getThreadTitle
-        val threadTitle = if (participants.size > 1) {
+        var threadTitle = if (participants.size > 1) {
             participants.getThreadTitle(this@ThreadActivity)
         } else {
             if (!title.isNullOrEmpty()) title else participants.getThreadTitle(this@ThreadActivity)
+        }
+        // Hide country code prefix (e.g. +850) when displaying raw phone number not in contacts
+        if (participants.size == 1) {
+            val phoneNumber = participants.first().phoneNumbers.firstOrNull()?.normalizedNumber ?: ""
+            val normalizedTitle = threadTitle.normalizePhoneNumber()
+            val normalizedPhone = phoneNumber.normalizePhoneNumber()
+            if (phoneNumber.isNotEmpty() && (normalizedTitle == normalizedPhone || threadTitle == phoneNumber)) {
+                threadTitle = getDisplayNumberWithoutCountryCode(phoneNumber)
+            }
         }
         val threadSubtitle = participants.getThreadSubtitle(this@ThreadActivity)
         fragment.updateThreadTitle(

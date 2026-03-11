@@ -25,6 +25,7 @@ import com.goodwy.commons.extensions.beInvisible
 import com.goodwy.commons.extensions.beInvisibleIf
 import com.goodwy.commons.extensions.beVisible
 import com.goodwy.commons.extensions.beVisibleIf
+import com.goodwy.commons.extensions.normalizePhoneNumber
 import com.goodwy.commons.extensions.formatDateOrTime
 import com.goodwy.commons.extensions.getContrastColor
 import com.goodwy.commons.extensions.getTextSize
@@ -44,6 +45,7 @@ import com.android.mms.R
 import com.android.mms.activities.SimpleActivity
 import com.android.mms.databinding.ItemConversationBinding
 import com.android.mms.extensions.config
+import com.android.mms.extensions.getDisplayNumberWithoutCountryCode
 import com.android.mms.extensions.deleteSmsDraft
 import com.android.mms.extensions.getAllDrafts
 import com.android.mms.helpers.*
@@ -355,8 +357,20 @@ abstract class BaseConversationsAdapter(
             // conversationChevron.beGoneIf(isInActionMode)
             val colorRed = resources.getColor(R.color.red_call, activity.theme)
             val title = conversation.title
+            // Hide country code prefix (e.g. +850) when displaying raw phone number not in contacts
+            val titleForDisplay = if (!conversation.isGroupConversation) {
+                val normalizedTitle = title.normalizePhoneNumber()
+                val normalizedPhone = conversation.phoneNumber.normalizePhoneNumber()
+                if (normalizedTitle == normalizedPhone || title == conversation.phoneNumber) {
+                    activity.getDisplayNumberWithoutCountryCode(conversation.phoneNumber)
+                } else {
+                    title
+                }
+            } else {
+                title
+            }
             conversationAddress.apply {
-                text = title
+                text = titleForDisplay
                 setTextSize(TypedValue.COMPLEX_UNIT_PX, fontSize )
                 if(!conversation.read || conversation.isBlocked) setTextColor(colorRed) else setTextColor(textColor)
             }
