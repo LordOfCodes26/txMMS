@@ -74,7 +74,7 @@ class ContactsAdapter(
         
         ItemContactWithNumberBinding.bind(view).apply {
             divider.apply {
-                beInvisibleIf(getLastItem() == contactPhonePair || !baseConfig.useDividers)
+                beInvisibleIf(!baseConfig.useDividers)
                 setBackgroundColor(textColor)
             }
 

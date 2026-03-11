@@ -1107,6 +1107,7 @@
     <string name="translation_chinese_tw">Chinese (Traditional)</string>
 
     <!-- Pro comparison (shown in the deprecated free apps) -->
+    <string name="now">now</string>
     <string name="why_upgrade">Get the Pro version now!</string>
     <string name="why_upgrade_basic_version">Basic</string>
     <string name="why_upgrade_pro_version">Pro</string>

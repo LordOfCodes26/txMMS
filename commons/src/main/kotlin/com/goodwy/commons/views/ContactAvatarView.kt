@@ -8,6 +8,7 @@ import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.util.AttributeSet
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.Gravity
 import android.view.ViewOutlineProvider
@@ -391,7 +392,7 @@ class ContactAvatarView @JvmOverloads constructor(
         if (!showingDefaultPersonIcon) return
         val size = minOf(width, height)
         if (size <= 0) return
-        val iconInset = (size * 0.04f).toInt()
+        val iconInset = (size * 0.1f).toInt()
         avatarImage.setPadding(iconInset, iconInset, iconInset, iconInset)
     }
     
@@ -409,8 +410,8 @@ class ContactAvatarView @JvmOverloads constructor(
 
         // Calculate text size as 50% of the view size (similar to canvas-based approach)
         // This ensures the letter scales proportionally with the avatar
-        val textSizePx = size * 0.39f
-
+        val textSizePx = size * 0.6f
+        Log.d("updateMonogramTextSize = ", "updateMonogramTextSize = {$textSizePx}")
         // Set text size in pixels for precise control
         avatarInitials.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, textSizePx)
     }

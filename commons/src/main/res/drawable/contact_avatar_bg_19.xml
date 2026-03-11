@@ -4,19 +4,19 @@
     android:height="615dp"
     android:viewportWidth="615"
     android:viewportHeight="615">
-  <path
-      android:pathData="M307.5,307.5m-307.5,0a307.5,307.5 0,1 1,615 0a307.5,307.5 0,1 1,-615 0">
-    <aapt:attr name="android:fillColor">
-      <gradient
-          android:startX="307.5"
-          android:startY="615"
-          android:endX="307.5"
-          android:endY="0"
-          android:type="linear">
-        <item android:offset="0.15" android:color="#FF1C2C72"/>
-        <item android:offset="0.49" android:color="#FF3F5096"/>
-        <item android:offset="0.85" android:color="#FF6C7CC1"/>
-      </gradient>
-    </aapt:attr>
-  </path>
+    <path
+        android:pathData="M307.5,307.5m-307.5,0a307.5,307.5 0,1 1,615 0a307.5,307.5 0,1 1,-615 0">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="307.5"
+                android:startY="615"
+                android:endX="307.5"
+                android:endY="0"
+                android:type="linear">
+                <item android:offset="0.15" android:color="#FF1C2C72"/>
+                <item android:offset="0.49" android:color="#FF3F5096"/>
+                <item android:offset="0.85" android:color="#FF6C7CC1"/>
+            </gradient>
+        </aapt:attr>
+    </path>
 </vector>

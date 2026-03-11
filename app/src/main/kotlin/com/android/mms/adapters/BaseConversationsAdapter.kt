@@ -5,6 +5,7 @@ import android.graphics.Typeface
 import android.provider.Telephony
 import android.os.Parcelable
 import android.text.format.DateUtils
+import android.util.Log
 import android.util.TypedValue
 import android.view.View
 import android.view.ViewGroup
@@ -49,11 +50,21 @@ import com.android.mms.helpers.*
 import com.android.mms.models.Conversation
 import com.android.mms.models.ConversationListItem
 import com.android.mms.databinding.ItemConversationDateHeaderBinding
+import com.goodwy.commons.extensions.getAvatarDrawableIndexForName
+import com.goodwy.commons.extensions.getProperBackgroundColor
+import com.goodwy.commons.extensions.getSurfaceColor
+import com.goodwy.commons.extensions.getTextSizeSmall
+import com.goodwy.commons.helpers.AvatarSource
+import com.goodwy.commons.helpers.MonogramGenerator
+import com.goodwy.commons.views.ContactAvatarView
 import me.thanel.swipeactionview.SwipeActionView
 import me.thanel.swipeactionview.SwipeDirection
 import me.thanel.swipeactionview.SwipeGestureListener
 import kotlin.time.Duration.Companion.days
 import java.util.Calendar
+import java.util.Locale
+import kotlin.collections.get
+import kotlin.math.abs
 import kotlin.time.Duration.Companion.minutes
 
 @Suppress("LeakingThis")
@@ -80,6 +91,7 @@ abstract class BaseConversationsAdapter(
     }
 
     private var fontSize = activity.getTextSize()
+    var smallFontSize: Float = activity.getTextSizeSmall()
     private var drafts = HashMap<Long, String>()
     private var showContactThumbnails = activity.config.showContactThumbnails
 
@@ -201,8 +213,9 @@ abstract class BaseConversationsAdapter(
         when (val item = currentList[position]) {
             is ConversationListItem.DateHeader -> {
                 ItemConversationDateHeaderBinding.bind(holder.itemView).dateTextView.apply {
-                    setTextColor(textColor.adjustAlpha(0.7f))
-                    setTextSize(TypedValue.COMPLEX_UNIT_PX, fontSize * 0.76f)
+                    alpha = 0.8f
+                    setTextColor(textColor)
+                    setTextSize(TypedValue.COMPLEX_UNIT_PX, smallFontSize)
                     text = when (item.dayCode) {
                         ConversationListItem.SECTION_TODAY -> activity.getString(R.string.today)
                         ConversationListItem.SECTION_YESTERDAY -> activity.getString(R.string.yesterday)
@@ -246,7 +259,7 @@ abstract class BaseConversationsAdapter(
                 val isInActionMode = actModeCallback.isSelectable
                 binding.conversationCheckbox.beVisibleIf(isInActionMode)
                 binding.conversationCheckbox.isChecked = payload.selected
-                binding.conversationChevron.beGoneIf(isInActionMode)
+                // binding.conversationChevron.beGoneIf(isInActionMode)
             } catch (_: Exception) { }
         } else {
             super.onBindViewHolder(holder, position, payloads)
@@ -274,6 +287,9 @@ abstract class BaseConversationsAdapter(
 
     private fun setupView(view: View, conversation: Conversation, holder: ViewHolder) {
         ItemConversationBinding.bind(view).apply {
+            val useSurfaceColor = activity.isDynamicTheme() && !activity.isSystemInDarkMode()
+            val backgroundColor = if (useSurfaceColor) activity.getSurfaceColor() else activity.getProperBackgroundColor()
+            conversationFrame.setBackgroundColor(backgroundColor)
             conversationFrameSelect.setupViewBackground(activity)
             // Ensure tapping anywhere on the visible row toggles selection in act mode.
             conversationFrameSelect.setOnClickListener {
@@ -282,9 +298,16 @@ abstract class BaseConversationsAdapter(
             val isInActionMode = actModeCallback.isSelectable
             val isRowSelected = selectedKeys.contains(conversation.hashCode())
             val smsDraft = drafts[conversation.threadId]
-            draftIndicator.beVisibleIf(!smsDraft.isNullOrEmpty())
-            draftIndicator.setTextColor(properPrimaryColor)
-
+            // SMS Draft Configuration
+            if (smsDraft != null) {
+                conversationDraft.beVisible()
+                conversationDraft.apply {
+                    setTextColor(resources.getColor(R.color.red_call))
+                    setTextSize(TypedValue.COMPLEX_UNIT_PX, smallFontSize)
+                }
+            } else {
+                conversationDraft.beGone()
+            }
             // Sent/received type icon (txDial item_recents_type logic): sent = ic_cmn_out, received = ic_cmn_in, draft/other = nothing (lastMessageType set on background when loading list)
             val lastMessageType = conversation.lastMessageType
             when {
@@ -292,7 +315,6 @@ abstract class BaseConversationsAdapter(
                 lastMessageType == Telephony.Sms.MESSAGE_TYPE_INBOX -> {
                     conversationMessageType.setImageResource(R.drawable.ic_cmn_in)
                     conversationMessageType.beVisible()
-                    conversationMessageType.applyColorFilter(textColor)
                 }
                 lastMessageType == Telephony.Sms.MESSAGE_TYPE_SENT ||
                     lastMessageType == Telephony.Sms.MESSAGE_TYPE_OUTBOX ||
@@ -300,30 +322,23 @@ abstract class BaseConversationsAdapter(
                     lastMessageType == Telephony.Sms.MESSAGE_TYPE_QUEUED -> {
                     conversationMessageType.setImageResource(R.drawable.ic_cmn_out)
                     conversationMessageType.beVisible()
-                    conversationMessageType.applyColorFilter(textColor)
                 }
                 else -> conversationMessageType.beGone()
             }
 
-            if (activity.isDynamicTheme() && !activity.isSystemInDarkMode()) {
-                conversationFrame.setBackgroundColor(surfaceColor)
-            } else {
-                conversationFrame.setBackgroundColor(backgroundColor)
-            }
-
-            draftClear.apply {
-                beVisibleIf(smsDraft != null && !isInActionMode)
-                setColorFilter(properPrimaryColor)
-                setOnClickListener {
-                    ensureBackgroundThread {
-                        context.deleteSmsDraft(conversation.threadId)
-                        updateDrafts()
-                    }
-                }
-            }
-
-            val isLastConversation = holder.bindingAdapterPosition == currentList.indexOfLast { it is ConversationListItem.ConversationItem }
-            if (isLastConversation || !activity.config.useDividers) divider.beInvisible() else divider.beVisible()
+//            draftClear.apply {
+//                beVisibleIf(smsDraft != null && !isInActionMode)
+//                setColorFilter(properPrimaryColor)
+//                setOnClickListener {
+//                    ensureBackgroundThread {
+//                        context.deleteSmsDraft(conversation.threadId)
+//                        updateDrafts()
+//                    }
+//                }
+//            }
+            // val isLastConversation = holder.bindingAdapterPosition == currentList.indexOfLast { it is ConversationListItem.ConversationItem }
+            if (!activity.config.useDividers) divider.beInvisible() else divider.beVisible()
+            divider.setBackgroundColor(textColor)
 
             swipeView.isSelected = isRowSelected
             conversationFrameSelect.isSelected = isRowSelected
@@ -337,97 +352,87 @@ abstract class BaseConversationsAdapter(
                     }
                 }
             }
-            conversationChevron.beGoneIf(isInActionMode)
-
+            // conversationChevron.beGoneIf(isInActionMode)
+            val colorRed = resources.getColor(R.color.red_call, activity.theme)
             val title = conversation.title
-            val displayTitle = if (conversation.messageCount > 0) {
-                "$title (${conversation.messageCount})"
-            } else {
-                title
-            }
             conversationAddress.apply {
-                text = displayTitle
-                setTextSize(TypedValue.COMPLEX_UNIT_PX, fontSize * 1.2f)
+                text = title
+                setTextSize(TypedValue.COMPLEX_UNIT_PX, fontSize )
+                if(!conversation.read || conversation.isBlocked) setTextColor(colorRed) else setTextColor(textColor)
+            }
+            if (conversation.messageCount > 1) {
+                conversationAddressCount.beVisible()
+                conversationAddressCount.apply {
+                    text = "(${conversation.messageCount})"
+                    alpha = 0.8f
+                    setTextSize(TypedValue.COMPLEX_UNIT_PX, smallFontSize)
+                    if(!conversation.read || conversation.isBlocked) setTextColor(colorRed) else setTextColor(textColor)
+                }
+            } else {
+                conversationAddressCount.beGone()
             }
 
             conversationBodyShort.apply {
                 text = smsDraft ?: conversation.snippet
-                setTextSize(TypedValue.COMPLEX_UNIT_PX, fontSize * 0.9f)
-                maxLines = activity.config.linesCount
+                alpha = 0.8f
+                setTextSize(TypedValue.COMPLEX_UNIT_PX, smallFontSize)
             }
-
             conversationDate.apply {
-                text = formatConversationDate(conversation.date)
-                setTextSize(TypedValue.COMPLEX_UNIT_PX, fontSize * 0.8f)
+                text = formatConversationDate(conversation)
+                alpha = 0.8f
+                setTextSize(TypedValue.COMPLEX_UNIT_PX, smallFontSize)
             }
-
-            val isUnread = !conversation.read
-            val style = if (isUnread) {
-                conversationBodyShort.alpha = 1f
-                if (conversation.isScheduled) Typeface.BOLD_ITALIC else Typeface.BOLD
-            } else {
-                conversationBodyShort.alpha = 0.7f
-                if (conversation.isScheduled) Typeface.ITALIC else Typeface.NORMAL
-            }
-            conversationAddress.setTypeface(null, style)
-            conversationBodyShort.setTypeface(null, style)
-            conversationDate.setTypeface(null, style)
-
 
             if (conversation.isBlocked) {
-                val colorRed = resources.getColor(R.color.red_call, activity.theme)
-                conversationChevron.applyColorFilter(colorRed)
-                arrayListOf(conversationAddress, conversationBodyShort, conversationDate).forEach {
+                arrayListOf(conversationBodyShort, conversationDate).forEach {
                     it.setTextColor(colorRed)
                 }
             } else {
-                conversationChevron.applyColorFilter(textColor)
-                arrayListOf(conversationAddress, conversationBodyShort, conversationDate).forEach {
+                arrayListOf(conversationBodyShort, conversationDate).forEach {
                     it.setTextColor(textColor)
                 }
             }
 
-            if (activity.config.unreadIndicatorPosition == UNREAD_INDICATOR_START) {
-                unreadCountBadge.beGone()
-                unreadIndicator.beInvisibleIf(!isUnread)
-                unreadIndicator.setColorFilter(properPrimaryColor)
-                pinIndicator.beVisibleIf(activity.config.pinnedConversations.contains(conversation.threadId.toString()))
-                pinIndicator.applyColorFilter(properPrimaryColor)
-            } else {
-                unreadIndicator.beGone()
-                setupBadgeCount(unreadCountBadge, isUnread, conversation.unreadCount)
-                pinIndicator.beVisibleIf(
-                    activity.config.pinnedConversations.contains(conversation.threadId.toString())
-                        && conversation.read
-                )
-                pinIndicator.applyColorFilter(properPrimaryColor)
-            }
+//            if (activity.config.unreadIndicatorPosition == UNREAD_INDICATOR_START) {
+//                unreadCountBadge.beGone()
+//                unreadIndicator.beInvisibleIf(!isUnread)
+//                unreadIndicator.setColorFilter(properPrimaryColor)
+//                pinIndicator.beVisibleIf(activity.config.pinnedConversations.contains(conversation.threadId.toString()))
+//                pinIndicator.applyColorFilter(properPrimaryColor)
+//            } else {
+//                unreadIndicator.beGone()
+//                setupBadgeCount(unreadCountBadge, isUnread, conversation.unreadCount)
+//                pinIndicator.beVisibleIf(
+//                    activity.config.pinnedConversations.contains(conversation.threadId.toString())
+//                        && conversation.read
+//                )
+//                pinIndicator.applyColorFilter(properPrimaryColor)
+//            }
 
-            divider.setBackgroundColor(textColor)
             conversationImage.beGoneIf(!showContactThumbnails)
             if (showContactThumbnails) {
-                val size = (root.context.pixels(com.goodwy.commons.R.dimen.normal_icon_size) * contactThumbnailsSize).toInt()
+                val size = (root.context.pixels(com.goodwy.commons.R.dimen.call_icon_size) * contactThumbnailsSize).toInt()
                 conversationImage.setHeightAndWidth(size)
-                if ((title == conversation.phoneNumber || conversation.isCompany) && conversation.photoUri == "") {
-                    val drawable =
-                        if (conversation.isCompany) SimpleContactsHelper(activity).getColoredCompanyIcon(conversation.title)
-                        else SimpleContactsHelper(activity).getColoredContactIcon(conversation.title)
-                    conversationImage.setImageDrawable(drawable)
-                } else {
-                    // at group conversations we use an icon as the placeholder, not any letter
-                    val placeholder = if (conversation.isGroupConversation) {
-                        SimpleContactsHelper(activity).getColoredGroupIcon(title)
-                    } else {
-                        null
-                    }
-
-                    SimpleContactsHelper(activity).loadContactImage(
-                        path = conversation.photoUri,
-                        imageView = conversationImage,
-                        placeholderName = title,
-                        placeholderImage = placeholder
-                    )
-                }
+                bindContactAvatar(conversationImage, conversation)
+//                if ((title == conversation.phoneNumber || conversation.isCompany) && conversation.photoUri == "") {
+//                    val drawable =
+//                        if (conversation.isCompany) SimpleContactsHelper(activity).getColoredCompanyIcon(conversation.title)
+//                        else SimpleContactsHelper(activity).getColoredContactIcon(conversation.title)
+//                    conversationImage.setImageDrawable(drawable)
+//                } else {
+//                    // at group conversations we use an icon as the placeholder, not any letter
+//                    val placeholder = if (conversation.isGroupConversation) {
+//                        SimpleContactsHelper(activity).getColoredGroupIcon(title)
+//                    } else {
+//                        null
+//                    }
+//                    SimpleContactsHelper(activity).loadContactImage(
+//                        path = conversation.photoUri,
+//                        imageView = conversationImage,
+//                        placeholderName = title,
+//                        placeholderImage = null
+//                    )
+//                }
             }
 
             //swipe
@@ -516,6 +521,41 @@ abstract class BaseConversationsAdapter(
         }
     }
 
+    private fun bindContactAvatar(avatarView: ContactAvatarView, conversation: Conversation) {
+        val isUnsavedMessage = conversation.threadId <= 0 || conversation.phoneNumber == conversation.title
+        if (isUnsavedMessage) {
+            // Force default avatar style (ic_person) for unsaved-number recents.
+            avatarView.bind(
+                AvatarSource.Monogram(
+                    initials = "",
+                    gradientColors = MonogramGenerator.generateGradientColors(conversation.phoneNumber),
+                    drawableIndex = activity.getAvatarDrawableIndexForName(conversation.phoneNumber).takeIf { it >= 0 }
+                )
+            )
+            return
+        }
+
+        val avatarSeed = conversation.title.ifEmpty { conversation.phoneNumber }
+        val drawableIndex = activity.getAvatarDrawableIndexForName(avatarSeed).takeIf { it >= 0 }
+        val shouldUsePhoto = !activity.isDestroyed &&
+            !activity.isFinishing &&
+            conversation.photoUri.isNotBlank() &&
+            !conversation.isGroupConversation &&
+            conversation.phoneNumber != conversation.title
+
+        avatarView.bind(
+            if (shouldUsePhoto) {
+                AvatarSource.Photo(conversation.photoUri)
+            } else {
+                AvatarSource.Monogram(
+                    initials = MonogramGenerator.generateInitials(avatarSeed),
+                    gradientColors = MonogramGenerator.generateGradientColors(avatarSeed),
+                    drawableIndex = drawableIndex
+                )
+            }
+        )
+    }
+
     private fun setupBadgeCount(view: TextView, isUnread: Boolean, count: Int) {
         view.apply {
             beInvisibleIf(!isUnread)
@@ -531,28 +571,80 @@ abstract class BaseConversationsAdapter(
         }
     }
 
-    private fun formatConversationDate(date: Int?): String {
-        return if (date != null) {
-            if (activity.config.useRelativeDate) {
-                DateUtils.getRelativeDateTimeString(
-                    activity,
-                    date * 1000L,
-                    1.minutes.inWholeMilliseconds,
-                    2.days.inWholeMilliseconds,
-                    0,
-                )
-            } else {
-                (date * 1000L).formatDateOrTime(
-                    context = activity,
-                    hideTimeOnOtherDays = true,
-                    showCurrentYear = false
-                )
-            }.toString()
-        } else "No date"
+    private fun getSectionDayCodeForPosition(position: Int): String? {
+        if (position !in currentList.indices) return null
+        for (index in position downTo 0) {
+            val item = currentList[index]
+            if (item is ConversationListItem.DateHeader) {
+                return item.dayCode
+            }
+        }
+        return null
+    }
+    private fun formatConversationDate(conversation: Conversation): String {
+//        val primaryText = when (sectionDayCode) {
+//            ConversationListItem.SECTION_TODAY -> {
+//                val now = System.currentTimeMillis()
+//                if (abs(now - (conversation?.date ?: 0)) < DateUtils.MINUTE_IN_MILLIS) {
+//                    resources.getString(com.goodwy.commons.R.string.now)
+//                } else {
+//                    conversation?.date
+//                }
+//            }
+//            ConversationListItem.SECTION_YESTERDAY -> activity.getString(R.string.yesterday)
+//            ConversationListItem.SECTION_BEFORE -> conversation?.date
+//            else -> conversation?.date
+//        }
+//        val langType = activity.resources.configuration.locales[0]?.language ?: Locale.getDefault().language
+//        return primaryText.toString()
+//        val normalizedPrimaryText = Converters.normalizeRelativeTextForKorean(primaryText.toString(), langType)
+//        return normalizedPrimaryText
+        val primaryText = if (activity.config.useRelativeDate) {
+            DateUtils.getRelativeDateTimeString(
+                activity,
+                conversation.date * 1000L,
+                1.minutes.inWholeMilliseconds,
+                2.days.inWholeMilliseconds,
+                0,
+            )
+        } else {
+            (conversation.date * 1000L).formatDateOrTime(
+                context = activity,
+                hideTimeOnOtherDays = true,
+                showCurrentYear = false,
+                useShamsi = true
+            )
+        }.toString()
+        val normalizedPrimaryText = normalizeRelativeTextForKorean(primaryText)
+        return normalizedPrimaryText
+    }
+
+    private fun normalizeRelativeTextForKorean(text: String): String {
+        val language = activity.resources.configuration.locales[0]?.language ?: Locale.getDefault().language
+        if (language != Locale.KOREAN.language) return text
+
+        val koreanCompact = text
+            .replace("분 전", "분전")
+            .replace("시간 전", "시간전")
+            .replace("일 전", "일전")
+            .replace("주 전", "주전")
+            .replace("개월 전", "개월전")
+            .replace("년 전", "년전")
+
+        return koreanCompact
+            .replace(Regex("""(\d+)\s*min\.?\s*ago""", RegexOption.IGNORE_CASE), "$1분전")
+            .replace(Regex("""(\d+)\s*mins\.?\s*ago""", RegexOption.IGNORE_CASE), "$1분전")
+            .replace(Regex("""(\d+)\s*hr\.?\s*ago""", RegexOption.IGNORE_CASE), "$1시간전")
+            .replace(Regex("""(\d+)\s*hrs\.?\s*ago""", RegexOption.IGNORE_CASE), "$1시간전")
+            .replace(Regex("""(\d+)\s*hour[s]?\s*ago""", RegexOption.IGNORE_CASE), "$1시간전")
+            .replace(Regex("""(\d+)\s*day[s]?\s*ago""", RegexOption.IGNORE_CASE), "$1일전")
+            .replace(Regex("""(\d+)\s*week[s]?\s*ago""", RegexOption.IGNORE_CASE), "$1주전")
+            .replace(Regex("""(\d+)\s*month[s]?\s*ago""", RegexOption.IGNORE_CASE), "$1개월전")
+            .replace(Regex("""(\d+)\s*year[s]?\s*ago""", RegexOption.IGNORE_CASE), "$1년전")
     }
 
     override fun onChange(position: Int): String = when (val item = currentList.getOrNull(position)) {
-        is ConversationListItem.ConversationItem -> formatConversationDate(item.conversation.date)
+        is ConversationListItem.ConversationItem -> formatConversationDate(item.conversation)
         is ConversationListItem.DateHeader -> when (item.dayCode) {
             ConversationListItem.SECTION_TODAY -> activity.getString(R.string.today)
             ConversationListItem.SECTION_YESTERDAY -> activity.getString(R.string.yesterday)
@@ -609,6 +701,4 @@ abstract class BaseConversationsAdapter(
         }
     }
 }
-
-
 

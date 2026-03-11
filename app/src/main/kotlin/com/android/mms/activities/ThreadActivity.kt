@@ -1131,20 +1131,20 @@ class ThreadActivity : SimpleActivity() {
                         senderNameLarge.text = threadTitle
                         senderNameLarge.setTextColor(textColor)
                     }
-                    senderNumberLarge.beGoneIf(threadSubtitle.isEmpty() || threadTitle == threadSubtitle || participants.size > 1)
-                    senderNumberLarge.text = threadSubtitle
-                    senderNumberLarge.setTextColor(textColor)
+//                    senderNumberLarge.beGoneIf(threadSubtitle.isEmpty() || threadTitle == threadSubtitle || participants.size > 1)
+//                    senderNumberLarge.text = threadSubtitle
+//                    senderNumberLarge.setTextColor(textColor)
                     arrayOf(
                         // senderPhotoLarge,
                         senderNameLarge,
-                        senderNumberLarge
+//                        senderNumberLarge
                     ).forEach {
                         it.setOnClickListener {
                             if (conversation != null) launchConversationDetails(threadId)
                         }
                     }
                     senderNameLarge.setOnLongClickListener { copyToClipboard(senderNameLarge.value); true }
-                    senderNumberLarge.setOnLongClickListener { copyToClipboard(senderNumberLarge.value); true }
+//                    senderNumberLarge.setOnLongClickListener { copyToClipboard(senderNumberLarge.value); true }
                 }
             }
         }
@@ -1177,9 +1177,9 @@ class ThreadActivity : SimpleActivity() {
             }
 
             currentSIMCardIndex = getProperSimIndex(availableSIMs, numbers)
-            binding.messageHolder.threadSelectSimIcon.background.applyColorFilter(
-                resources.getColor(com.goodwy.commons.R.color.activated_item_foreground, theme)
-            )
+//            binding.messageHolder.threadSelectSimIcon.background.applyColorFilter(
+//                resources.getColor(com.goodwy.commons.R.color.activated_item_foreground, theme)
+//            )
             binding.messageHolder.threadSelectSimIcon.applyColorFilter(getProperTextColor())
             binding.messageHolder.threadSelectSimIconHolder.beVisibleIf(!config.showSimSelectionDialog)
             binding.messageHolder.threadSelectSimNumber.beVisible()

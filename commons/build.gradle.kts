@@ -163,5 +163,4 @@ dependencies {
 
     // add tx common library
     api(files("libs/common.aar"))
-    implementation(files("libs/AndroidLiquidGlassView.aar"))
 }

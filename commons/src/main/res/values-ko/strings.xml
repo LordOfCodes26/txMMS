@@ -526,6 +526,7 @@
     <string name="faq_6_title_commons">응용프로그람 아이콘이 사라졌습니다. 어떻게 해야 합니까?</string>
     <string name="faq_7_title_commons">응용프로그람 결제를 완료했는데 응용프로그람을 내리적재 받을수 없습니다. 어떻게 해야 합니까?</string>
     <string name="faq_7_text_commons">응용프로그람의 결제는 봉사기가 관리합니다. 때때로 봉사기의 체계에서 오유가 발생할수도 있습니다. 응용프로그람의 완충을 지우고, 다시 내리적재 받아보시기 바랍니다.</string>
+    <string name="now">지금</string>
     <string name="why_upgrade">지금 Pro 판본으로 갱신해보십시오!</string>
     <string name="why_upgrade_basic_version">일반</string>
     <string name="why_upgrade_no_ads">광고 없음</string>

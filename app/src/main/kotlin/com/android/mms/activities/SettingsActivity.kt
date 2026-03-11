@@ -302,7 +302,7 @@ class SettingsActivity : SimpleActivity() {
         setupUseRelativeDate()
         setupUnreadAtTop()
         setupLinesCount()
-        setupUnreadIndicatorPosition()
+//        setupUnreadIndicatorPosition()
         setupHideTopBarWhenScroll()
         setupChangeColourTopBarWhenScroll()
         // Hide "Change top bar colour when scrolling" option
@@ -1518,30 +1518,30 @@ class SettingsActivity : SimpleActivity() {
         }
     }
 
-    private fun setupUnreadIndicatorPosition() = binding.apply {
-        settingsUnreadIndicatorPosition.text = getUnreadIndicatorPositionText()
-        settingsUnreadIndicatorPositionHolder.setOnClickListener {
-            val items = arrayListOf(
-                RadioItem(UNREAD_INDICATOR_START, getString(com.goodwy.strings.R.string.start), icon = R.drawable.ic_unread_start),
-                RadioItem(UNREAD_INDICATOR_END, getString(com.goodwy.strings.R.string.end), icon = R.drawable.ic_unread_end)
-            )
+//    private fun setupUnreadIndicatorPosition() = binding.apply {
+//        settingsUnreadIndicatorPosition.text = getUnreadIndicatorPositionText()
+//        settingsUnreadIndicatorPositionHolder.setOnClickListener {
+//            val items = arrayListOf(
+//                RadioItem(UNREAD_INDICATOR_START, getString(com.goodwy.strings.R.string.start), icon = R.drawable.ic_unread_start),
+//                RadioItem(UNREAD_INDICATOR_END, getString(com.goodwy.strings.R.string.end), icon = R.drawable.ic_unread_end)
+//            )
 
-            val blurTarget = findViewById<BlurTarget>(R.id.mainBlurTarget)
-                ?: throw IllegalStateException("mainBlurTarget not found")
-            RadioGroupIconDialog(this@SettingsActivity, items, config.unreadIndicatorPosition, com.goodwy.strings.R.string.unread_indicator_position, blurTarget = blurTarget) {
-                config.unreadIndicatorPosition = it as Int
-                settingsUnreadIndicatorPosition.text = getUnreadIndicatorPositionText()
-                setNeedRestartIfUserAction()
-            }
-        }
-    }
+//            val blurTarget = findViewById<BlurTarget>(R.id.mainBlurTarget)
+//                ?: throw IllegalStateException("mainBlurTarget not found")
+//            RadioGroupIconDialog(this@SettingsActivity, items, config.unreadIndicatorPosition, com.goodwy.strings.R.string.unread_indicator_position, blurTarget = blurTarget) {
+//                config.unreadIndicatorPosition = it as Int
+//                settingsUnreadIndicatorPosition.text = getUnreadIndicatorPositionText()
+//                setNeedRestartIfUserAction()
+//            }
+//        }
+//    }
 
-    private fun getUnreadIndicatorPositionText() = getString(
-        when (config.unreadIndicatorPosition) {
-            UNREAD_INDICATOR_START -> com.goodwy.strings.R.string.start
-            else -> com.goodwy.strings.R.string.end
-        }
-    )
+//    private fun getUnreadIndicatorPositionText() = getString(
+//        when (config.unreadIndicatorPosition) {
+//            UNREAD_INDICATOR_START -> com.goodwy.strings.R.string.start
+//            else -> com.goodwy.strings.R.string.end
+//        }
+//    )
 
     private fun setupHideTopBarWhenScroll() = binding.apply {
         settingsHideBarWhenScroll.isChecked = config.hideTopBarWhenScroll

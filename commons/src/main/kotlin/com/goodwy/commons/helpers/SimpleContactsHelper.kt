@@ -393,7 +393,7 @@ class SimpleContactsHelper(val context: Context) {
     fun loadContactImage(path: String, imageView: ImageView, placeholderName: String, placeholderImage: Drawable? = null, letter: Boolean = true) {
         // Generate placeholder only if not provided
         val placeholder = placeholderImage ?: run {
-            val letterOrIcon = if (letter) getContactLetterIcon(placeholderName) else getContactIconBg(placeholderName)
+            val letterOrIcon = if (placeholderName.isNotBlank() && placeholderName.isNotEmpty()) getContactLetterIcon(placeholderName) else getContactIconBg(placeholderName)
             letterOrIcon.toDrawable(context.resources)
         }
 
@@ -403,12 +403,10 @@ class SimpleContactsHelper(val context: Context) {
             .error(placeholder)
             .centerCrop()
             .circleCrop()
-            // Add signature to help with cache invalidation when contact photos are updated
-            // Using the photo URI as signature key ensures different URIs are cached separately
             .signature(if (path.isNotEmpty()) ObjectKey(path) else ObjectKey(placeholderName))
 
         Glide.with(context)
-            .load(path)
+            .load("")
             .transition(DrawableTransitionOptions.withCrossFade())
             .placeholder(placeholder)
             .apply(options)

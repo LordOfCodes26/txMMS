@@ -43,7 +43,7 @@
     <dimen name="colorpicker_color_width">35dp</dimen>
     <dimen name="colorpicker_color_height">70dp</dimen>
 
-    <dimen name="call_icon_size">39dp</dimen>
+    <dimen name="call_icon_size">43dp</dimen>
     <dimen name="normal_icon_size">45dp</dimen>
     <dimen name="medium_icon_size">@dimen/tx_toolbar_icon_size</dimen>
     <dimen name="fingerprint_size">72dp</dimen>
@@ -104,7 +104,8 @@
     <dimen name="list_item_padding_vertical">8dp</dimen>
 
     <!-- Leading icon sizes -->
-    <dimen name="list_icon_size_xx_small">14dp</dimen>
+    <dimen name="list_icon_size_xxx_small">10dp</dimen>
+    <dimen name="list_icon_size_xx_small">11dp</dimen>
     <dimen name="list_icon_size_x_small">18dp</dimen>
     <dimen name="list_icon_size_small">24dp</dimen>
     <dimen name="list_icon_size_medium">40dp</dimen>

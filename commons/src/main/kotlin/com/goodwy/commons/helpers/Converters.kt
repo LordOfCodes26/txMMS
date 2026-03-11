@@ -10,6 +10,7 @@ import com.goodwy.commons.models.contacts.Email
 import com.goodwy.commons.models.contacts.Event
 import com.goodwy.commons.models.contacts.IM
 import com.goodwy.commons.models.contacts.PhoneNumberConverter
+import java.util.Locale
 
 class Converters {
     private val gson = Gson()
@@ -108,4 +109,28 @@ class Converters {
     @TypeConverter
     fun relationListToJson(list: ArrayList<ContactRelation>): String = gson.toJson(list)
 
+    fun normalizeRelativeTextForKorean(text: String, languageType: String): String {
+        if (languageType != Locale.KOREAN.language) return text
+
+        val koreanCompact = text
+            .replace("분 전", "분전")
+            .replace("시간 전", "시간전")
+            .replace("일 전", "일전")
+            .replace("주 전", "주전")
+            .replace("개월 전", "개월전")
+            .replace("년 전", "년전")
+
+        return koreanCompact
+            .replace(Regex("""(\d+)\s*min\.?\s*ago""", RegexOption.IGNORE_CASE), "$1분전")
+            .replace(Regex("""(\d+)\s*mins\.?\s*ago""", RegexOption.IGNORE_CASE), "$1분전")
+            .replace(Regex("""(\d+)\s*hr\.?\s*ago""", RegexOption.IGNORE_CASE), "$1시간전")
+            .replace(Regex("""(\d+)\s*hrs\.?\s*ago""", RegexOption.IGNORE_CASE), "$1시간전")
+            .replace(Regex("""(\d+)\s*hour[s]?\s*ago""", RegexOption.IGNORE_CASE), "$1시간전")
+            .replace(Regex("""(\d+)\s*day[s]?\s*ago""", RegexOption.IGNORE_CASE), "$1일전")
+            .replace(Regex("""(\d+)\s*week[s]?\s*ago""", RegexOption.IGNORE_CASE), "$1주전")
+            .replace(Regex("""(\d+)\s*month[s]?\s*ago""", RegexOption.IGNORE_CASE), "$1개월전")
+            .replace(Regex("""(\d+)\s*year[s]?\s*ago""", RegexOption.IGNORE_CASE), "$1년전")
+    }
+
+    companion object
 }

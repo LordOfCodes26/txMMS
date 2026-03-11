@@ -55,189 +55,239 @@
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/conversationFrameSelect"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:background="@color/theme_black_background_color"
-            android:paddingStart="@dimen/smaller_margin"
-            android:paddingEnd="@dimen/activity_margin">
+            android:layout_height="wrap_content"
+            android:minHeight="@dimen/recent_call_height"
+            android:paddingHorizontal="@dimen/bigger_margin">
 
-            <ImageView
-                android:id="@+id/unreadIndicator"
-                android:layout_width="15dp"
-                android:layout_height="15dp"
-                android:layout_centerVertical="true"
-                android:src="@drawable/ic_oval"
-                android:contentDescription="@null"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="@+id/conversationImage"
-                app:layout_constraintBottom_toBottomOf="@+id/conversationImage" />
+<!--            <ImageView-->
+<!--                android:id="@+id/unreadIndicator"-->
+<!--                android:layout_width="15dp"-->
+<!--                android:layout_height="15dp"-->
+<!--                android:layout_centerVertical="true"-->
+<!--                android:src="@drawable/ic_oval"-->
+<!--                android:contentDescription="@null"-->
+<!--                android:visibility="gone"-->
+<!--                app:layout_constraintStart_toStartOf="parent"-->
+<!--                app:layout_constraintTop_toTopOf="@+id/conversationImage"-->
+<!--                app:layout_constraintBottom_toBottomOf="@+id/conversationImage" />-->
 
-            <ImageView
+            <com.goodwy.commons.views.ContactAvatarView
                 android:id="@+id/conversationImage"
-                android:layout_width="@dimen/normal_icon_size"
-                android:layout_height="@dimen/normal_icon_size"
-                android:layout_centerVertical="true"
-                android:layout_marginStart="5dp"
-                android:layout_marginTop="@dimen/medium_margin"
-                android:layout_marginBottom="@dimen/medium_margin"
+                android:layout_width="@dimen/call_icon_size"
+                android:layout_height="@dimen/call_icon_size"
+                android:layout_marginEnd="@dimen/normal_margin"
                 android:contentDescription="@null"
-                app:layout_goneMarginStart="@dimen/medium_margin"
-                app:layout_constraintStart_toEndOf="@+id/unreadIndicator"
-                app:layout_constraintTop_toTopOf="parent"
                 app:layout_constraintBottom_toBottomOf="parent"
-                tools:src="@drawable/ic_sms_messenger" />
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
 
-            <TextView
+<!--            <ImageView-->
+<!--                android:id="@+id/conversationImage"-->
+<!--                android:layout_width="@dimen/normal_icon_size"-->
+<!--                android:layout_height="@dimen/normal_icon_size"-->
+<!--                android:layout_centerVertical="true"-->
+<!--                android:layout_marginStart="5dp"-->
+<!--                android:layout_marginTop="@dimen/medium_margin"-->
+<!--                android:layout_marginBottom="@dimen/medium_margin"-->
+<!--                android:contentDescription="@null"-->
+<!--                app:layout_goneMarginStart="@dimen/medium_margin"-->
+<!--                app:layout_constraintStart_toEndOf="@+id/unreadIndicator"-->
+<!--                app:layout_constraintTop_toTopOf="parent"-->
+<!--                app:layout_constraintBottom_toBottomOf="parent"-->
+<!--                tools:src="@drawable/ic_sms_messenger" />-->
+
+<!--            <TextView-->
+<!--                android:id="@+id/item_recents_name"-->
+<!--                android:layout_width="wrap_content"-->
+<!--                android:layout_height="wrap_content"-->
+<!--                android:layout_marginStart="@dimen/medium_normal_margin"-->
+<!--                android:layout_marginTop="@dimen/smaller_margin"-->
+<!--                android:ellipsize="end"-->
+<!--                android:maxLines="1"-->
+<!--                android:textAlignment="viewStart"-->
+<!--                android:textDirection="firstStrongLtr"-->
+<!--                android:textSize="@dimen/medium_text_size"-->
+<!--                app:layout_constraintBottom_toTopOf="@+id/item_recents_type"-->
+<!--                app:layout_constraintStart_toEndOf="@+id/item_recents_image"-->
+<!--                app:layout_constraintTop_toTopOf="parent"-->
+<!--                tools:text="Item Recent Name"-->
+<!--                tools:ignore="PrivateResource" />-->
+
+            <com.goodwy.commons.views.MyTextView
                 android:id="@+id/conversationAddress"
-                android:layout_width="0dp"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/medium_margin"
-                android:layout_marginStart="@dimen/normal_margin"
+                android:layout_marginStart="@dimen/medium_normal_margin"
+                android:layout_marginTop="@dimen/normal_margin"
                 android:ellipsize="end"
                 android:maxLines="1"
-                android:paddingEnd="@dimen/medium_margin"
-                android:textSize="@dimen/big_text_size"
-                android:textDirection="locale"
                 android:textAlignment="viewStart"
-                app:layout_constraintEnd_toStartOf="@+id/conversationDate"
+                android:textDirection="firstStrongLtr"
+                android:textSize="@dimen/medium_text_size"
                 app:layout_constraintStart_toEndOf="@+id/conversationImage"
                 app:layout_constraintTop_toTopOf="parent"
                 tools:text="John"
                 tools:ignore="RtlSymmetry" />
 
+            <com.goodwy.commons.views.MyTextView
+                android:id="@+id/conversationAddressCount"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/small_margin"
+                android:layout_marginBottom="@dimen/tiny_margin"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textAlignment="viewStart"
+                android:textDirection="firstStrongLtr"
+                android:textSize="@dimen/smaller_text_size"
+                app:layout_constraintBottom_toBottomOf="@id/conversationAddress"
+                app:layout_constraintHorizontal_bias="0.0"
+                app:layout_constraintStart_toEndOf="@+id/conversationAddress"
+                tools:text="(10)" />
+
+            <com.goodwy.commons.views.MyTextView
+                android:id="@+id/conversationDraft"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="@dimen/small_margin"
+                android:alpha="0.8"
+                android:gravity="center_vertical"
+                android:textSize="@dimen/smaller_text_size"
+                android:text="@string/draft"
+                android:textColor="@color/red_call"
+                app:layout_constraintBottom_toBottomOf="@id/conversationAddress"
+                app:layout_constraintHorizontal_bias="0.0"
+                app:layout_constraintEnd_toEndOf="parent"
+                tools:text="초고" />
+
             <ImageView
                 android:id="@+id/conversationMessageType"
                 android:layout_width="@dimen/list_icon_size_xx_small"
                 android:layout_height="@dimen/list_icon_size_xx_small"
-                android:layout_marginStart="@dimen/normal_margin"
-                android:layout_marginBottom="@dimen/medium_margin"
+                android:layout_marginTop="@dimen/normal_margin"
                 android:alpha="0.6"
                 android:contentDescription="@null"
                 android:scaleType="fitCenter"
-                android:visibility="gone"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintStart_toEndOf="@+id/conversationImage"
-                app:layout_constraintTop_toBottomOf="@+id/conversationAddress"
-                tools:src="@drawable/ic_cmn_out"
-                tools:visibility="visible" />
+                app:layout_constraintTop_toBottomOf="@id/conversationAddress"
+                app:layout_constraintStart_toStartOf="@+id/conversationAddress"
+                tools:src="@drawable/ic_cmn_out" />
 
             <androidx.constraintlayout.widget.Barrier
                 android:id="@+id/conversationMessageTypeBarrier"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                app:barrierDirection="end"
-                app:constraint_referenced_ids="conversationImage,conversationMessageType" />
+                app:barrierDirection="start"
+                app:constraint_referenced_ids="conversationMessageType" />
 
-            <TextView
-                android:id="@+id/draftIndicator"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="@dimen/small_margin"
-                android:layout_marginBottom="@dimen/medium_margin"
-                android:ellipsize="end"
-                android:maxLines="1"
-                android:paddingEnd="@dimen/small_margin"
-                android:text="@string/draft"
-                android:textColor="@color/color_primary"
-                android:textSize="@dimen/normal_text_size"
-                android:textStyle="italic"
-                app:layout_constraintTop_toBottomOf="@+id/conversationAddress"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintStart_toEndOf="@+id/conversationMessageTypeBarrier"
-                tools:ignore="RtlSymmetry"/>
+<!--            <TextView-->
+<!--                android:id="@+id/draftIndicator"-->
+<!--                android:layout_width="wrap_content"-->
+<!--                android:layout_height="wrap_content"-->
+<!--                android:layout_marginStart="@dimen/small_margin"-->
+<!--                android:layout_marginBottom="@dimen/medium_margin"-->
+<!--                android:ellipsize="end"-->
+<!--                android:maxLines="1"-->
+<!--                android:paddingEnd="@dimen/small_margin"-->
+<!--                android:text="@string/draft"-->
+<!--                android:textColor="@color/color_primary"-->
+<!--                android:textSize="@dimen/normal_text_size"-->
+<!--                android:textStyle="italic"-->
+<!--                app:layout_constraintTop_toBottomOf="@+id/conversationAddress"-->
+<!--                app:layout_constraintBottom_toBottomOf="parent"-->
+<!--                app:layout_constraintStart_toEndOf="@+id/conversationMessageTypeBarrier"-->
+<!--                tools:ignore="RtlSymmetry"/>-->
 
-            <TextView
+            <com.goodwy.commons.views.MyTextView
                 android:id="@+id/conversationBodyShort"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="@dimen/medium_margin"
+                android:layout_marginStart="@dimen/larger_margin"
+                android:layout_marginEnd="@dimen/section_margin"
+                android:layout_marginTop="@dimen/medium_md_margin"
                 android:ellipsize="end"
-                android:maxLines="2"
-                android:paddingEnd="@dimen/activity_margin"
-                android:textSize="@dimen/normal_text_size"
-                android:textDirection="locale"
-                android:textAlignment="viewStart"
-                app:layout_goneMarginStart="@dimen/normal_margin"
-                app:layout_constraintTop_toBottomOf="@+id/conversationAddress"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toStartOf="@+id/draftClear"
-                app:layout_constraintStart_toEndOf="@+id/draftIndicator"
+                android:maxLines="1"
+                android:textSize="@dimen/smaller_text_size"
+                app:layout_constraintTop_toBottomOf="@id/conversationAddress"
+                app:layout_constraintEnd_toStartOf="@id/conversationDate"
+                app:layout_constraintStart_toEndOf="@id/conversationMessageTypeBarrier"
                 tools:text="Hey buddy!"
                 tools:ignore="RtlSymmetry" />
 
-            <ImageView
-                android:id="@+id/draftClear"
-                android:layout_width="@dimen/pin_icon_size"
-                android:layout_height="@dimen/pin_icon_size"
-                android:layout_marginBottom="-2dp"
-                android:layout_marginEnd="24dp"
-                android:src="@drawable/ic_cross_vector"
-                android:background="?selectableItemBackgroundBorderless"
-                android:contentDescription="@null"
-                app:layout_constraintTop_toTopOf="@+id/conversationBodyShort"
-                app:layout_constraintBottom_toBottomOf="@+id/conversationBodyShort"
-                app:layout_constraintStart_toEndOf="@+id/conversationBodyShort"
-                app:layout_constraintEnd_toEndOf="parent" />
+<!--            <ImageView-->
+<!--                android:id="@+id/draftClear"-->
+<!--                android:layout_width="@dimen/pin_icon_size"-->
+<!--                android:layout_height="@dimen/pin_icon_size"-->
+<!--                android:layout_marginBottom="-2dp"-->
+<!--                android:layout_marginEnd="24dp"-->
+<!--                android:src="@drawable/ic_cross_vector"-->
+<!--                android:background="?selectableItemBackgroundBorderless"-->
+<!--                android:contentDescription="@null"-->
+<!--                android:visibility="gone"-->
+<!--                app:layout_constraintTop_toTopOf="@+id/conversationBodyShort"-->
+<!--                app:layout_constraintBottom_toBottomOf="@+id/conversationBodyShort"-->
+<!--                app:layout_constraintStart_toEndOf="@+id/conversationBodyShort"-->
+<!--                app:layout_constraintEnd_toEndOf="parent" />-->
 
-            <ImageView
-                android:id="@+id/pinIndicator"
-                android:layout_width="@dimen/pin_icon_size"
-                android:layout_height="@dimen/pin_icon_size"
-                android:layout_marginBottom="-2dp"
-                android:contentDescription="@null"
-                android:src="@drawable/ic_pin_angle_filled"
-                app:layout_constraintTop_toTopOf="@+id/conversationBodyShort"
-                app:layout_constraintBottom_toBottomOf="@+id/conversationBodyShort"
-                app:layout_constraintEnd_toEndOf="parent" />
+<!--            <ImageView-->
+<!--                android:id="@+id/pinIndicator"-->
+<!--                android:layout_width="@dimen/pin_icon_size"-->
+<!--                android:layout_height="@dimen/pin_icon_size"-->
+<!--                android:layout_marginBottom="-2dp"-->
+<!--                android:contentDescription="@null"-->
+<!--                android:src="@drawable/ic_pin_angle_filled"-->
+<!--                android:visibility="gone"-->
+<!--                app:layout_constraintTop_toTopOf="@+id/conversationBodyShort"-->
+<!--                app:layout_constraintBottom_toBottomOf="@+id/conversationBodyShort"-->
+<!--                app:layout_constraintEnd_toEndOf="parent" />-->
 
-            <TextView
-                android:id="@+id/unreadCountBadge"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:minWidth="19dp"
-                android:minHeight="19dp"
-                android:layout_marginBottom="-2dp"
-                android:gravity="center"
-                android:paddingVertical="@dimen/tiny_margin"
-                android:paddingHorizontal="@dimen/smaller_margin"
-                android:textSize="12dp"
-                android:textColor="@color/white"
-                android:textStyle="bold"
-                android:background="@drawable/tab_background"
-                android:visibility="gone"
-                android:includeFontPadding="false"
-                app:layout_constraintTop_toTopOf="@+id/conversationBodyShort"
-                app:layout_constraintBottom_toBottomOf="@+id/conversationBodyShort"
-                app:layout_constraintEnd_toEndOf="parent"
-                tools:visibility="visible"
-                tools:backgroundTint="@color/primary"
-                tools:text="8"
-                tools:ignore="SpUsage" />
+<!--            <TextView-->
+<!--                android:id="@+id/unreadCountBadge"-->
+<!--                android:layout_width="wrap_content"-->
+<!--                android:layout_height="wrap_content"-->
+<!--                android:minWidth="19dp"-->
+<!--                android:minHeight="19dp"-->
+<!--                android:layout_marginBottom="-2dp"-->
+<!--                android:gravity="center"-->
+<!--                android:paddingVertical="@dimen/tiny_margin"-->
+<!--                android:paddingHorizontal="@dimen/smaller_margin"-->
+<!--                android:textSize="12dp"-->
+<!--                android:textColor="@color/white"-->
+<!--                android:textStyle="bold"-->
+<!--                android:background="@drawable/tab_background"-->
+<!--                android:visibility="gone"-->
+<!--                android:includeFontPadding="false"-->
+<!--                app:layout_constraintTop_toTopOf="@+id/conversationBodyShort"-->
+<!--                app:layout_constraintBottom_toBottomOf="@+id/conversationBodyShort"-->
+<!--                app:layout_constraintEnd_toEndOf="parent"-->
+<!--                tools:backgroundTint="@color/primary"-->
+<!--                tools:text="8"-->
+<!--                tools:ignore="SpUsage" />-->
 
-            <TextView
+            <com.goodwy.commons.views.MyTextView
                 android:id="@+id/conversationDate"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:alpha="0.4"
+                android:layout_marginTop="@dimen/medium_md_margin"
+                android:layout_marginEnd="@dimen/small_margin"
+                android:alpha="0.6"
                 android:gravity="center_vertical"
-                android:paddingHorizontal="@dimen/medium_margin"
                 android:textSize="@dimen/smaller_text_size"
-                app:layout_constraintTop_toTopOf="@+id/conversationAddress"
-                app:layout_constraintBottom_toBottomOf="@+id/conversationAddress"
-                app:layout_constraintEnd_toStartOf="@+id/conversationChevron"
+                app:layout_constraintTop_toBottomOf="@id/conversationAddress"
+                app:layout_constraintEnd_toEndOf="parent"
                 tools:text="13:30" />
 
-            <ImageView
-                android:id="@+id/conversationChevron"
-                android:layout_width="12dp"
-                android:layout_height="12dp"
-                android:gravity="center_vertical"
-                android:alpha="0.4"
-                android:layout_marginEnd="@dimen/small_margin"
-                android:src="@drawable/ic_chevron_right_vector"
-                android:contentDescription="@null"
-                app:layout_constraintTop_toTopOf="@+id/conversationAddress"
-                app:layout_constraintBottom_toBottomOf="@+id/conversationAddress"
-                app:layout_constraintEnd_toStartOf="@+id/conversationCheckbox" />
+<!--            <ImageView-->
+<!--                android:id="@+id/conversationChevron"-->
+<!--                android:layout_width="12dp"-->
+<!--                android:layout_height="12dp"-->
+<!--                android:gravity="center_vertical"-->
+<!--                android:alpha="0.4"-->
+<!--                android:layout_marginEnd="@dimen/small_margin"-->
+<!--                android:src="@drawable/ic_chevron_right_vector"-->
+<!--                android:contentDescription="@null"-->
+<!--                app:layout_constraintTop_toTopOf="@+id/conversationAddress"-->
+<!--                app:layout_constraintBottom_toBottomOf="@+id/conversationAddress"-->
+<!--                app:layout_constraintEnd_toStartOf="@+id/conversationCheckbox" />-->
 
             <com.goodwy.commons.views.MyAppCompatCheckbox
                 android:id="@+id/conversationCheckbox"
@@ -254,12 +304,13 @@
                 android:id="@+id/divider"
                 android:layout_width="0dp"
                 android:layout_height="1px"
+                android:layout_marginEnd="@dimen/smaller_margin"
                 android:background="@drawable/divider_settings"
                 android:alpha="0.2"
                 android:contentDescription="@null"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintStart_toStartOf="@+id/conversationAddress"
-                app:layout_constraintEnd_toEndOf="parent"/>
+                app:layout_constraintEnd_toEndOf="@id/conversationDate"/>
         </androidx.constraintlayout.widget.ConstraintLayout>
     </FrameLayout>
 </me.thanel.swipeactionview.SwipeActionView>

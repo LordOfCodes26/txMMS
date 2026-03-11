@@ -65,7 +65,7 @@ class MessageHolderHelper(
             threadSendMessage.applyColorFilter(properPrimaryColor.getContrastColor())
             threadAddAttachment.applyColorFilter(textColor)
             threadAddAttachment.background.applyColorFilter(surfaceColor)
-            threadTypeMessageHolder.background.applyColorFilter(surfaceColor)
+            // threadTypeMessageHolder.background.applyColorFilter(surfaceColor)
 
             threadCharacterCounter.beVisibleIf(threadTypeMessage.value.isNotEmpty() && activity.config.showCharacterCounter)
             threadCharacterCounter.backgroundTintList = activity.getProperBackgroundColor().getColorStateList()

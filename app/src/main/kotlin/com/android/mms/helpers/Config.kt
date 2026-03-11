@@ -291,9 +291,9 @@ class Config(context: Context) : BaseConfig(context) {
         get() = prefs.getBoolean(UNREAD_AT_TOP, false)
         set(unreadAtTop) = prefs.edit { putBoolean(UNREAD_AT_TOP, unreadAtTop) }
 
-    var unreadIndicatorPosition: Int
-        get() = prefs.getInt(UNREAD_INDICATOR_POSITION, UNREAD_INDICATOR_END)
-        set(unreadIndicatorPosition) = prefs.edit { putInt(UNREAD_INDICATOR_POSITION, unreadIndicatorPosition) }
+//    var unreadIndicatorPosition: Int
+//        get() = prefs.getInt(UNREAD_INDICATOR_POSITION, UNREAD_INDICATOR_END)
+//        set(unreadIndicatorPosition) = prefs.edit { putInt(UNREAD_INDICATOR_POSITION, unreadIndicatorPosition) }
 
     var showSimSelectionDialog: Boolean
         get() = prefs.getBoolean(SHOW_SIM_SELECTION_DIALOG, false)
