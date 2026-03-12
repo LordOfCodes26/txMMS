@@ -3,26 +3,24 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content">
+    android:layout_height="wrap_content"
+    android:background="@drawable/popup_menu_rounded_bg"
+    android:paddingHorizontal="@dimen/medium_normal_margin"
+    android:paddingVertical="@dimen/smaller_margin">
 
     <!-- MaxHeightScrollView clamps height so chips/text scroll instead of expanding the screen -->
     <com.goodwy.commons.views.MaxHeightScrollView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:maxHeight="120dp"
-        android:fillViewport="false"
-        android:scrollbars="vertical"
+        android:maxHeight="@dimen/contact_grid_item_max_size"
+        android:fillViewport="true"
+        android:scrollbars="none"
         android:overScrollMode="ifContentScrolls">
 
         <com.google.android.flexbox.FlexboxLayout
             android:id="@+id/chips_flex_container"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@drawable/search_bg"
-            android:paddingStart="@dimen/activity_margin"
-            android:paddingEnd="12dp"
-            android:paddingTop="@dimen/small_margin"
-            android:paddingBottom="@dimen/small_margin"
             app:flexWrap="wrap"
             app:flexDirection="row"
             app:alignItems="flex_start"
@@ -34,25 +32,23 @@
                 android:id="@+id/chips_edit_wrapper"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:minHeight="36dp"
+                android:minHeight="@dimen/tx_cardview_icon_size"
                 app:layout_flexGrow="1"
                 app:layout_flexShrink="0"
                 app:layout_minWidth="100dp">
 
                 <com.goodwy.commons.views.MyEditText
                     android:id="@+id/chips_edit_text"
-                    android:layout_width="match_parent"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_centerVertical="true"
-                    android:minWidth="80dp"
-                    android:minHeight="36dp"
+                    android:minWidth="@dimen/line_color_picker_height"
+                    android:minHeight="@dimen/tx_cardview_icon_size"
                     android:background="@drawable/search_bg_flat"
                     android:gravity="center_vertical"
                     android:hint=""
                     android:inputType="text|textMultiLine"
-                    android:maxLines="4"
-                    android:paddingStart="@dimen/normal_margin"
-                    android:paddingEnd="@dimen/section_margin"
+                    android:maxLines="2"
                     android:textSize="@dimen/normal_text_size"
                     android:textCursorDrawable="@null" />
 
@@ -69,7 +65,6 @@
                     android:contentDescription="@string/delete"
                     android:src="@drawable/ic_clear_round"
                     android:visibility="gone"
-                    android:padding="@dimen/tiny_margin"
                     tools:tint="@color/dark_grey" />
 
             </RelativeLayout>
@@ -83,18 +78,15 @@
         android:layout_height="wrap_content"
         android:layout_gravity="top|end"
         android:orientation="horizontal"
-        android:paddingTop="@dimen/tiny_margin"
-        android:paddingEnd="@dimen/activity_margin"
         android:gravity="center_vertical">
 
         <ImageView
             android:id="@+id/chips_address_book_button"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_width="@dimen/tx_cardview_icon_size"
+            android:layout_height="@dimen/tx_cardview_icon_size"
             android:background="?selectableItemBackgroundBorderless"
-            android:alpha="0.4"
             android:contentDescription="@string/search_contacts"
-            android:src="@drawable/ic_people_vector"
+            android:src="@drawable/ic_cmn_contact_add"
             android:visibility="visible"
             android:padding="@dimen/tiny_margin"
             tools:tint="@color/dark_grey" />

@@ -513,6 +513,11 @@
             응용프로그람 판본이 유효하지 않습니다. 원본을 설치해주십시오. <a href="%s">here</a>.
         ]]>
     </string>
+    <string name="clock_short">시간설정</string>
+    <string name="gallery_short">그림</string>
+    <string name="voice_short">록음</string>
+    <string name="camera_short">사진촬영</string>
+    <string name="choose_emoji">그림기호</string>
     <string name="frequently_asked_questions">자주 묻는 질문</string>
     <string name="faq_1_title_commons">보조도구목록에 이 응용프로그람이 표시되지 않으면 어떻게 해야 합니까?</string>
     <string name="faq_1_text_commons">응용프로그람을 SD카드에 설치했기 때문인 가능성이 큽니다. 앤드로이드 체계제한으로 SD카드에 설치한 응용프로그람은 보조도구을 사용할수 없습니다. 이런 경우에는 보조도구을 사용하시려면 내부 기억기로 응용프로그람을 옮기는 방법밖에는 없습니다.</string>

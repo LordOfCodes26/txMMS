@@ -1,325 +1,325 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:paddingVertical="@dimen/medium_margin">
+    android:orientation="vertical"
+    android:background="@color/md_grey_100"
+    android:paddingVertical="@dimen/smaller_margin">
 
-    <androidx.constraintlayout.helper.widget.Flow
-        android:id="@+id/choose_wrapper"
+<!--    <androidx.constraintlayout.helper.widget.Flow-->
+<!--        android:id="@+id/choose_first_wrapper"-->
+<!--        android:layout_width="match_parent"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        app:constraint_referenced_ids="choose_photo,choose_emoji,choose_text,choose_contact"-->
+<!--        app:flow_verticalGap="@dimen/medium_margin"-->
+<!--        app:flow_wrapMode="aligned"-->
+<!--        app:layout_constraintEnd_toEndOf="parent"-->
+<!--        app:layout_constraintStart_toStartOf="parent"-->
+<!--        app:layout_constraintTop_toTopOf="parent"/>-->
+
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        app:constraint_referenced_ids="choose_photo,choose_video,take_photo,record_video,record_audio,pick_file,pick_contact,schedule_message,pick_quick_text"
-        app:flow_verticalGap="@dimen/small_margin"
-        app:flow_wrapMode="aligned"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        android:layout_marginVertical="@dimen/tiny_margin"
+        android:baselineAligned="false"
+        android:orientation="horizontal"
+        android:weightSum="4">
 
-    <LinearLayout
-        android:id="@+id/choose_photo"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:background="?selectableItemBackgroundBorderless"
-        android:orientation="vertical"
-        android:contentDescription="@string/gallery_short">
-
-        <androidx.appcompat.widget.AppCompatImageView
-            android:id="@+id/choose_photo_icon"
-            android:layout_width="40dp"
-            android:layout_height="30dp"
-            android:layout_gravity="center"
-            android:background="@drawable/attach_button_background"
-            android:backgroundTint="@color/white"
-            android:contentDescription="@string/gallery_short"
-            android:src="@drawable/ic_gallery_icon" />
-
-        <androidx.appcompat.widget.AppCompatTextView
-            android:id="@+id/choose_photo_text"
-            android:layout_width="@dimen/attach_text_width"
+        <LinearLayout
+            android:id="@+id/choose_photo"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:layout_marginTop="@dimen/small_margin"
-            android:ellipsize="end"
-            android:maxLines="1"
-            android:text="@string/gallery_short"
-            android:textAlignment="center"
-            android:textColor="@color/default_text_color"
-            android:textSize="@dimen/small_text_size"
-            android:visibility="gone" />
+            android:layout_weight="1"
+            android:background="?selectableItemBackgroundBorderless"
+            android:orientation="vertical"
+            android:contentDescription="@string/clock_short">
+
+            <ImageView
+                android:id="@+id/choose_photo_icon"
+                android:layout_width="@dimen/chips_input_chip_row_height"
+                android:layout_height="@dimen/chips_input_chip_row_height"
+                android:layout_margin="@dimen/medium_md_margin"
+                android:contentDescription="@null"
+                android:paddingHorizontal="@dimen/zero"
+                android:layout_gravity="center_horizontal"
+                android:src="@drawable/ic_sms_extra_clock"
+                app:rippleColor="?attr/colorControlHighlight" />
+
+            <androidx.appcompat.widget.AppCompatTextView
+                android:id="@+id/choose_photo_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:layout_marginTop="@dimen/small_margin"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="@string/clock_short"
+                android:textAlignment="center"
+                android:textColor="@color/default_text_color"
+                android:textSize="@dimen/normal_text_size"
+                android:visibility="visible" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/choose_emoji"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="?selectableItemBackgroundBorderless"
+            android:orientation="vertical"
+            android:contentDescription="@string/choose_emoji">
+            
+            <ImageView
+                android:id="@+id/choose_emoji_icon"
+                android:layout_width="@dimen/chips_input_chip_row_height"
+                android:layout_height="@dimen/chips_input_chip_row_height"
+                android:layout_margin="@dimen/medium_md_margin"
+                android:paddingHorizontal="@dimen/zero"
+                android:layout_gravity="center_horizontal"
+                android:src="@drawable/ic_sms_extra_emoji"
+                app:rippleColor="?attr/colorControlHighlight" />
+
+            <androidx.appcompat.widget.AppCompatTextView
+                android:id="@+id/choose_emoji_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:layout_marginTop="@dimen/small_margin"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="@string/choose_emoji"
+                android:textAlignment="center"
+                android:textColor="@color/default_text_color"
+                android:textSize="@dimen/normal_text_size"
+                android:visibility="visible" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/choose_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="?selectableItemBackgroundBorderless"
+            android:orientation="vertical"
+            android:contentDescription="@string/quick_texts">
+
+            <ImageView
+                android:id="@+id/choose_text_icon"
+                android:layout_width="@dimen/chips_input_chip_row_height"
+                android:layout_height="@dimen/chips_input_chip_row_height"
+                android:layout_margin="@dimen/medium_md_margin"
+                android:paddingHorizontal="@dimen/zero"
+                android:layout_gravity="center_horizontal"
+                android:src="@drawable/ic_sms_extra_word"
+                app:rippleColor="?attr/colorControlHighlight" />
+
+            <androidx.appcompat.widget.AppCompatTextView
+                android:id="@+id/choose_text_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:layout_marginTop="@dimen/small_margin"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="@string/quick_texts"
+                android:textAlignment="center"
+                android:textColor="@color/default_text_color"
+                android:textSize="@dimen/normal_text_size"
+                android:visibility="visible" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/choose_contact"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="?selectableItemBackgroundBorderless"
+            android:orientation="vertical"
+            android:contentDescription="@string/contacts_tab">
+            <ImageView
+                android:id="@+id/choose_contact_icon"
+                android:layout_width="@dimen/chips_input_chip_row_height"
+                android:layout_height="@dimen/chips_input_chip_row_height"
+                android:layout_margin="@dimen/medium_md_margin"
+                android:paddingHorizontal="@dimen/zero"
+                android:layout_gravity="center_horizontal"
+                android:src="@drawable/ic_sms_extra_contact"
+                app:rippleColor="?attr/colorControlHighlight" />
+
+            <androidx.appcompat.widget.AppCompatTextView
+                android:id="@+id/choose_contact_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:layout_marginTop="@dimen/small_margin"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="@string/contacts_tab"
+                android:textAlignment="center"
+                android:textColor="@color/default_text_color"
+                android:textSize="@dimen/normal_text_size"
+                android:visibility="visible" />
+        </LinearLayout>
+
     </LinearLayout>
 
-    <LinearLayout
-        android:id="@+id/choose_video"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:background="?selectableItemBackgroundBorderless"
-        android:orientation="vertical"
-        android:contentDescription="@string/choose_video"
-        android:visibility="gone">
 
-        <androidx.appcompat.widget.AppCompatImageView
-            android:id="@+id/choose_video_icon"
-            android:layout_width="40dp"
-            android:layout_height="30dp"
-            android:layout_gravity="center"
-            android:background="@drawable/attach_button_background"
-            android:backgroundTint="@color/md_purple_500"
-            android:contentDescription="@string/choose_video"
-            android:padding="@dimen/small_margin"
-            android:src="@drawable/ic_video_camera_vector" />
-
-        <androidx.appcompat.widget.AppCompatTextView
-            android:id="@+id/choose_video_text"
-            android:layout_width="@dimen/attach_text_width"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:layout_marginTop="@dimen/small_margin"
-            android:ellipsize="end"
-            android:maxLines="1"
-            android:text="@string/choose_video"
-            android:textAlignment="center"
-            android:textColor="@color/default_text_color"
-            android:textSize="@dimen/small_text_size"
-            android:visibility="gone" />
-    </LinearLayout>
+<!--    <androidx.constraintlayout.helper.widget.Flow-->
+<!--        android:id="@+id/choose_second_wrapper"-->
+<!--        android:layout_width="match_parent"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        app:constraint_referenced_ids="choose_image,choose_voice,choose_camera,choose_title"-->
+<!--        app:flow_verticalGap="@dimen/small_margin"-->
+<!--        app:flow_wrapMode="aligned"-->
+<!--        app:layout_constraintEnd_toEndOf="parent"-->
+<!--        app:layout_constraintStart_toStartOf="parent"-->
+<!--        app:layout_constraintTop_toBottomOf="@id/choose_first_wrapper"-->
+<!--        app:layout_constraintBottom_toBottomOf="parent"/>-->
 
     <LinearLayout
-        android:id="@+id/take_photo"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="?selectableItemBackgroundBorderless"
-        android:orientation="vertical"
-        android:contentDescription="@string/take_photo">
+        android:layout_marginVertical="@dimen/tiny_margin"
+        android:baselineAligned="false"
+        android:orientation="horizontal"
+        android:weightSum="4">
 
-        <androidx.appcompat.widget.AppCompatImageView
-            android:id="@+id/take_photo_icon"
-            android:layout_width="40dp"
-            android:layout_height="30dp"
-            android:layout_gravity="center"
-            android:background="@drawable/attach_button_background"
-            android:backgroundTint="@color/md_blue_500"
-            android:padding="@dimen/tiny_margin"
-            android:contentDescription="@string/take_photo"
-            android:src="@drawable/ic_camera_vector" />
-
-        <androidx.appcompat.widget.AppCompatTextView
-            android:id="@+id/take_photo_text"
-            android:layout_width="@dimen/attach_text_width"
+        <LinearLayout
+            android:id="@+id/choose_image"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:layout_marginTop="@dimen/small_margin"
-            android:ellipsize="end"
-            android:maxLines="1"
-            android:text="@string/take_photo"
-            android:textAlignment="center"
-            android:textColor="@color/default_text_color"
-            android:textSize="@dimen/small_text_size"
-            android:visibility="gone" />
+            android:layout_weight="1"
+            android:background="?selectableItemBackgroundBorderless"
+            android:orientation="vertical"
+            android:contentDescription="@string/gallery_short">
+            <ImageView
+                android:id="@+id/choose_image_icon"
+                android:layout_width="@dimen/chips_input_chip_row_height"
+                android:layout_height="@dimen/chips_input_chip_row_height"
+                android:layout_margin="@dimen/medium_md_margin"
+                android:paddingHorizontal="@dimen/zero"
+                android:layout_gravity="center_horizontal"
+                android:src="@drawable/ic_sms_extra_image"
+                app:rippleColor="?attr/colorControlHighlight" />
+
+            <androidx.appcompat.widget.AppCompatTextView
+                android:id="@+id/choose_image_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:layout_marginTop="@dimen/small_margin"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="@string/gallery_short"
+                android:textAlignment="center"
+                android:textColor="@color/default_text_color"
+                android:textSize="@dimen/normal_text_size"
+                android:visibility="visible" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/choose_voice"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="?selectableItemBackgroundBorderless"
+            android:orientation="vertical"
+            android:contentDescription="@string/voice_short">
+            <ImageView
+                android:id="@+id/choose_voice_icon"
+                android:layout_width="@dimen/chips_input_chip_row_height"
+                android:layout_height="@dimen/chips_input_chip_row_height"
+                android:layout_margin="@dimen/medium_md_margin"
+                android:paddingHorizontal="@dimen/zero"
+                android:layout_gravity="center_horizontal"
+                android:src="@drawable/ic_sms_extra_mic"
+                app:rippleColor="?attr/colorControlHighlight" />
+
+            <androidx.appcompat.widget.AppCompatTextView
+                android:id="@+id/choose_voice_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:layout_marginTop="@dimen/small_margin"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="@string/voice_short"
+                android:textAlignment="center"
+                android:textColor="@color/default_text_color"
+                android:textSize="@dimen/normal_text_size"
+                android:visibility="visible" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/choose_camera"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="?selectableItemBackgroundBorderless"
+            android:orientation="vertical"
+            android:contentDescription="@string/camera_short">
+            <ImageView
+                android:id="@+id/choose_camera_icon"
+                android:layout_width="@dimen/chips_input_chip_row_height"
+                android:layout_height="@dimen/chips_input_chip_row_height"
+                android:layout_margin="@dimen/medium_md_margin"
+                android:paddingHorizontal="@dimen/zero"
+                android:layout_gravity="center_horizontal"
+                android:src="@drawable/ic_sms_extra_camera"
+                app:rippleColor="?attr/colorControlHighlight" />
+
+            <androidx.appcompat.widget.AppCompatTextView
+                android:id="@+id/choose_camera_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:layout_marginTop="@dimen/small_margin"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="@string/camera_short"
+                android:textAlignment="center"
+                android:textColor="@color/default_text_color"
+                android:textSize="@dimen/normal_text_size"
+                android:visibility="visible" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/choose_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="?selectableItemBackgroundBorderless"
+            android:orientation="vertical"
+            android:contentDescription="@string/title">
+            <ImageView
+                android:id="@+id/choose_title_icon"
+                android:layout_width="@dimen/chips_input_chip_row_height"
+                android:layout_height="@dimen/chips_input_chip_row_height"
+                android:layout_margin="@dimen/medium_md_margin"
+                android:paddingHorizontal="@dimen/zero"
+                android:layout_gravity="center_horizontal"
+                android:gravity="center_horizontal"
+                android:src="@drawable/ic_sms_extra_title"
+                app:rippleColor="?attr/colorControlHighlight" />
+
+            <androidx.appcompat.widget.AppCompatTextView
+                android:id="@+id/choose_title_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:layout_marginTop="@dimen/small_margin"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="@string/title"
+                android:textAlignment="center"
+                android:textColor="@color/default_text_color"
+                android:textSize="@dimen/normal_text_size"
+                android:visibility="visible" />
+        </LinearLayout>
+
     </LinearLayout>
 
-    <LinearLayout
-        android:id="@+id/record_video"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:background="?selectableItemBackgroundBorderless"
-        android:orientation="vertical"
-        android:contentDescription="@string/record_video">
 
-        <androidx.appcompat.widget.AppCompatImageView
-            android:id="@+id/record_video_icon"
-            android:layout_width="40dp"
-            android:layout_height="30dp"
-            android:layout_gravity="center"
-            android:background="@drawable/attach_button_background"
-            android:backgroundTint="@color/red_missed"
-            android:padding="@dimen/small_margin"
-            android:contentDescription="@string/record_video"
-            android:src="@drawable/ic_videocam_vector" />
 
-        <androidx.appcompat.widget.AppCompatTextView
-            android:id="@+id/record_video_text"
-            android:layout_width="@dimen/attach_text_width"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:layout_marginTop="@dimen/small_margin"
-            android:ellipsize="end"
-            android:maxLines="1"
-            android:text="@string/record_video"
-            android:textAlignment="center"
-            android:textColor="@color/default_text_color"
-            android:textSize="@dimen/small_text_size"
-            android:visibility="gone" />
-    </LinearLayout>
-
-    <LinearLayout
-        android:id="@+id/record_audio"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:background="?selectableItemBackgroundBorderless"
-        android:orientation="vertical"
-        android:contentDescription="@string/record_audio">
-
-        <androidx.appcompat.widget.AppCompatImageView
-            android:id="@+id/record_audio_icon"
-            android:layout_width="40dp"
-            android:layout_height="30dp"
-            android:layout_gravity="center"
-            android:background="@drawable/attach_button_background"
-            android:backgroundTint="@color/ic_dialer"
-            android:padding="@dimen/small_margin"
-            android:contentDescription="@string/record_audio"
-            android:src="@drawable/ic_microphone_vector" />
-
-        <androidx.appcompat.widget.AppCompatTextView
-            android:id="@+id/record_audio_text"
-            android:layout_width="@dimen/attach_text_width"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:layout_marginTop="@dimen/small_margin"
-            android:ellipsize="end"
-            android:maxLines="1"
-            android:text="@string/record_audio"
-            android:textAlignment="center"
-            android:textColor="@color/default_text_color"
-            android:textSize="@dimen/small_text_size"
-            android:visibility="gone" />
-    </LinearLayout>
-
-    <LinearLayout
-        android:id="@+id/pick_file"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:background="?selectableItemBackgroundBorderless"
-        android:orientation="vertical"
-        android:contentDescription="@string/choose_file">
-
-        <androidx.appcompat.widget.AppCompatImageView
-            android:id="@+id/pick_file_icon"
-            android:layout_width="40dp"
-            android:layout_height="30dp"
-            android:layout_gravity="center"
-            android:background="@drawable/attach_button_background"
-            android:backgroundTint="@color/white"
-            android:padding="@dimen/small_margin"
-            android:contentDescription="@string/choose_file"
-            android:src="@drawable/ic_document_vector"
-            app:tint="@color/ic_messages" />
-
-        <androidx.appcompat.widget.AppCompatTextView
-            android:id="@+id/pick_file_text"
-            android:layout_width="@dimen/attach_text_width"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:layout_marginTop="@dimen/small_margin"
-            android:ellipsize="end"
-            android:maxLines="1"
-            android:text="@string/choose_file"
-            android:textAlignment="center"
-            android:textColor="@color/default_text_color"
-            android:textSize="@dimen/small_text_size"
-            android:visibility="gone" />
-    </LinearLayout>
-
-    <LinearLayout
-        android:id="@+id/pick_contact"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:background="?selectableItemBackgroundBorderless"
-        android:orientation="vertical"
-        android:contentDescription="@string/choose_contact">
-
-        <androidx.appcompat.widget.AppCompatImageView
-            android:id="@+id/pick_contact_icon"
-            android:layout_width="40dp"
-            android:layout_height="30dp"
-            android:layout_gravity="center"
-            android:background="@drawable/attach_button_background"
-            android:backgroundTint="@color/ic_contacts"
-            android:contentDescription="@string/choose_contact"
-            android:src="@drawable/ic_contacts_icon" />
-
-        <androidx.appcompat.widget.AppCompatTextView
-            android:id="@+id/pick_contact_text"
-            android:layout_width="@dimen/attach_text_width"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:layout_marginTop="@dimen/small_margin"
-            android:ellipsize="end"
-            android:maxLines="1"
-            android:text="@string/choose_contact"
-            android:textAlignment="center"
-            android:textColor="@color/default_text_color"
-            android:textSize="@dimen/small_text_size"
-            android:visibility="gone" />
-    </LinearLayout>
-
-    <LinearLayout
-        android:id="@+id/schedule_message"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:background="?selectableItemBackgroundBorderless"
-        android:orientation="vertical"
-        android:contentDescription="@string/schedule_message">
-
-        <androidx.appcompat.widget.AppCompatImageView
-            android:id="@+id/schedule_message_icon"
-            android:layout_width="40dp"
-            android:layout_height="30dp"
-            android:layout_gravity="center"
-            android:background="@drawable/attach_button_background"
-            android:backgroundTint="@color/ic_messages"
-            android:padding="@dimen/small_margin"
-            android:contentDescription="@string/schedule_message"
-            android:src="@drawable/ic_clock_vector" />
-
-        <androidx.appcompat.widget.AppCompatTextView
-            android:id="@+id/schedule_message_text"
-            android:layout_width="@dimen/attach_text_width"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:layout_marginTop="@dimen/small_margin"
-            android:ellipsize="end"
-            android:maxLines="1"
-            android:text="@string/schedule_message"
-            android:textAlignment="center"
-            android:textColor="@color/default_text_color"
-            android:textSize="@dimen/small_text_size"
-            android:visibility="gone" />
-    </LinearLayout>
-
-    <LinearLayout
-        android:id="@+id/pick_quick_text"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:background="?selectableItemBackgroundBorderless"
-        android:orientation="vertical"
-        android:contentDescription="@string/quick_texts">
-
-        <androidx.appcompat.widget.AppCompatImageView
-            android:id="@+id/pick_quick_text_icon"
-            android:layout_width="40dp"
-            android:layout_height="30dp"
-            android:layout_gravity="center"
-            android:background="@drawable/attach_button_background"
-            android:backgroundTint="@color/white"
-            android:padding="@dimen/small_margin"
-            android:contentDescription="@string/quick_texts"
-            android:src="@drawable/ic_document_vector"
-            app:tint="@color/ic_messages" />
-
-        <androidx.appcompat.widget.AppCompatTextView
-            android:id="@+id/pick_quick_text_text"
-            android:layout_width="@dimen/attach_text_width"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:layout_marginTop="@dimen/small_margin"
-            android:ellipsize="end"
-            android:maxLines="1"
-            android:text="@string/quick_texts"
-            android:textAlignment="center"
-            android:textColor="@color/default_text_color"
-            android:textSize="@dimen/small_text_size"
-            android:visibility="gone" />
-    </LinearLayout>
-</androidx.constraintlayout.widget.ConstraintLayout>
+</LinearLayout>

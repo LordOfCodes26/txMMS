@@ -167,47 +167,47 @@ class MessageHolderHelper(
                 else com.goodwy.commons.R.color.white
             ).map { ResourcesCompat.getColor(activity.resources, it, activity.theme) }
 
-            arrayOf(
-                choosePhotoIcon,
-                chooseVideoIcon,
-                takePhotoIcon,
-                recordVideoIcon,
-                recordAudioIcon,
-                pickFileIcon,
-                pickContactIcon,
-                scheduleMessageIcon,
-                pickQuickTextIcon
-            ).forEachIndexed { index, icon ->
-                val iconColor = buttonColors[index]
-                icon.background.applyColorFilter(iconColor)
-                if (index != 0 && index != 2 && index != 5 && index != 8) icon.applyColorFilter(iconColor.getContrastColor())
-                if (index == 5 || index == 8) icon.applyColorFilter(ResourcesCompat.getColor(activity.resources, com.goodwy.commons.R.color.ic_messages, activity.theme))
-            }
+//            arrayOf(
+//                choosePhotoIcon,
+//                chooseVideoIcon,
+//                takePhotoIcon,
+//                recordVideoIcon,
+//                recordAudioIcon,
+//                pickFileIcon,
+//                pickContactIcon,
+//                scheduleMessageIcon,
+//                pickQuickTextIcon
+//            ).forEachIndexed { index, icon ->
+//                val iconColor = buttonColors[index]
+//                icon.background.applyColorFilter(iconColor)
+//                if (index != 0 && index != 2 && index != 5 && index != 8) icon.applyColorFilter(iconColor.getContrastColor())
+//                if (index == 5 || index == 8) icon.applyColorFilter(ResourcesCompat.getColor(activity.resources, com.goodwy.commons.R.color.ic_messages, activity.theme))
+//            }
 
-            val textColor = activity.getProperTextColor()
-            arrayOf(
-                choosePhotoText,
-                chooseVideoText,
-                takePhotoText,
-                recordVideoText,
-                recordAudioText,
-                pickFileText,
-                pickContactText,
-                scheduleMessageText,
-                pickQuickTextText
-            ).forEach { it.setTextColor(textColor) }
+//            val textColor = activity.getProperTextColor()
+//            arrayOf(
+//                choosePhotoText,
+//                chooseVideoText,
+//                takePhotoText,
+//                recordVideoText,
+//                recordAudioText,
+//                pickFileText,
+//                pickContactText,
+//                scheduleMessageText,
+//                pickQuickTextText
+//            ).forEach { it.setTextColor(textColor) }
 
-            choosePhoto.setOnClickListener { onChoosePhoto() }
-            chooseVideo.setOnClickListener { onChooseVideo() }
-            takePhoto.setOnClickListener { onTakePhoto() }
-            recordVideo.setOnClickListener { onRecordVideo() }
-            recordAudio.setOnClickListener { onRecordAudio() }
-            pickFile.setOnClickListener { onPickFile() }
-            pickContact.setOnClickListener { onPickContact() }
-            scheduleMessage.setOnClickListener {
-                onScheduleMessage?.invoke() ?: activity.toast(com.goodwy.commons.R.string.unknown_error_occurred)
-            }
-            pickQuickText.setOnClickListener { onPickQuickText() }
+//            choosePhoto.setOnClickListener { onChoosePhoto() }
+//            chooseVideo.setOnClickListener { onChooseVideo() }
+//            takePhoto.setOnClickListener { onTakePhoto() }
+//            recordVideo.setOnClickListener { onRecordVideo() }
+//            recordAudio.setOnClickListener { onRecordAudio() }
+//            pickFile.setOnClickListener { onPickFile() }
+//            pickContact.setOnClickListener { onPickContact() }
+//            scheduleMessage.setOnClickListener {
+//                onScheduleMessage?.invoke() ?: activity.toast(com.goodwy.commons.R.string.unknown_error_occurred)
+//            }
+//            pickQuickText.setOnClickListener { onPickQuickText() }
         }
     }
 
@@ -263,10 +263,11 @@ class MessageHolderHelper(
         } else {
             com.android.common.R.drawable.ic_cmn_sms_send
         }
-        ResourcesCompat.getDrawable(activity.resources, drawableResId, activity.theme)?.apply {
-            applyColorFilter(activity.getProperPrimaryColor().getContrastColor())
-            binding.threadSendMessage.setImageDrawable(this)
-        }
+        binding.threadSendMessage.applyColorFilter(activity.getProperPrimaryColor().getContrastColor())
+//        ResourcesCompat.getDrawable(activity.resources, drawableResId, activity.theme)?.apply {
+//            applyColorFilter(activity.getProperPrimaryColor().getContrastColor())
+//            binding.threadSendMessage.setImageDrawable(this)
+//        }
     }
     
     fun setScheduledMessage(scheduled: Boolean) {

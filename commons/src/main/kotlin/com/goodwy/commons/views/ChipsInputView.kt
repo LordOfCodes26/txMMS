@@ -22,6 +22,7 @@ import androidx.core.view.children
 import com.google.android.flexbox.FlexboxLayout
 import com.goodwy.commons.R
 import com.goodwy.commons.extensions.adjustAlpha
+import com.goodwy.commons.extensions.getTextSizeSmall
 
 class ChipsInputView @JvmOverloads constructor(
     context: Context,
@@ -42,6 +43,7 @@ class ChipsInputView @JvmOverloads constructor(
     private var onChipsChangedListener: ((List<String>) -> Unit)? = null
     private var onChipAddedListener: ((String) -> Boolean)? = null
 
+    private var smallFontSize = context.getTextSizeSmall()
     /** Marks flex children that are our compact chip rows (not Material Chip — full control over height). */
     private val chipRowMarker = Any()
 
@@ -230,13 +232,10 @@ class ChipsInputView @JvmOverloads constructor(
     private fun createChipView(text: String) {
         val res = context.resources
         val textColor = editText.currentTextColor
-        val accentColor = context.getColor(R.color.color_primary)
-        val chipBackgroundColor = accentColor.adjustAlpha(0.1f)
 
         val rowHeight = res.getDimensionPixelSize(R.dimen.chips_input_chip_row_height)
         val padH = res.getDimensionPixelSize(R.dimen.chips_input_chip_pad_h)
         val iconSize = res.getDimensionPixelSize(R.dimen.chips_input_chip_icon_size)
-
         val row = LinearLayout(context).apply {
             tag = chipRowMarker
             orientation = LinearLayout.HORIZONTAL
@@ -244,7 +243,7 @@ class ChipsInputView @JvmOverloads constructor(
             background = GradientDrawable().apply {
                 shape = GradientDrawable.RECTANGLE
                 cornerRadius = rowHeight / 2f
-                setColor(chipBackgroundColor)
+                setColor(textColor.adjustAlpha(0.2f))
             }
             setPadding(padH, 0, padH, 0)
         }
@@ -252,7 +251,7 @@ class ChipsInputView @JvmOverloads constructor(
         val tv = TextView(context).apply {
             this.text = text
             setTextColor(textColor)
-            setTextSize(TypedValue.COMPLEX_UNIT_PX, res.getDimension(R.dimen.chips_input_chip_text_size))
+            setTextSize(TypedValue.COMPLEX_UNIT_PX, smallFontSize)
             setSingleLine(true)
             ellipsize = TextUtils.TruncateAt.END
             includeFontPadding = false
