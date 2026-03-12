@@ -299,7 +299,7 @@ const val MOBILE = "MOBILE"
 const val HANGOUTS = "Hangouts"
 const val QQ = "QQ"
 const val JABBER = "Jabber"
-
+const val GROUP = "GROUP"
 // licenses
 internal const val LICENSE_KOTLIN = 1L
 const val LICENSE_SUBSAMPLING = 2L

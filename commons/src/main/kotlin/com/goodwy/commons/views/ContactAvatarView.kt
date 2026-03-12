@@ -28,6 +28,7 @@ import com.bumptech.glide.load.engine.GlideException
 import com.bumptech.glide.request.RequestOptions
 import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.target.Target
+import com.goodwy.commons.helpers.GROUP
 
 /**
  * Custom view for displaying contact avatars with support for multiple sources.
@@ -305,8 +306,10 @@ class ContactAvatarView @JvmOverloads constructor(
      * @param drawableIndex The index (0-26) for the avatar gradient drawable resource
      */
     private fun bindMonogram(initials: String, gradientColors: List<Int>, drawableIndex: Int? = null) {
-        val monogramChar = extractFirstMonogramCharacter(initials)
 
+        val monogramChar = if (initials == GROUP) GROUP else {
+            extractFirstMonogramCharacter(initials)
+        }
         // Use drawable resource if drawableIndex is provided, otherwise use programmatic gradient
         if (drawableIndex != null) {
             // Convert drawableIndex to resource number (1-27)
@@ -339,8 +342,27 @@ class ContactAvatarView @JvmOverloads constructor(
         
         // Clear any background from initials TextView to avoid double rendering
         avatarInitials.background = null
-
-        if (monogramChar != null) {
+        if (monogramChar == GROUP || monogramChar == null) {
+            // Default avatar style: show person icon when initials are missing.
+            showingDefaultPersonIcon = true
+            avatarImage.layoutParams = FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                Gravity.CENTER
+            )
+            avatarImage.isVisible = true
+            avatarInitials.isVisible = false
+            // FIT_CENTER allows the vector icon to scale up to available space.
+            avatarImage.scaleType = ImageView.ScaleType.FIT_CENTER
+            avatarImage.setImageResource(if(monogramChar == GROUP) {
+                com.android.common.R.drawable.ic_cmn_contact_group
+            } else R.drawable.ic_person)
+            avatarImage.imageTintList = ColorStateList.valueOf(Color.WHITE)
+            // Show only icon over monogram-like gradient background.
+            avatarImage.background = null
+            applyDefaultIconInset()
+        }
+        else if (monogramChar != null) {
             // Show initials when a valid first letter exists.
             showingDefaultPersonIcon = false
             avatarImage.isVisible = false
@@ -353,23 +375,6 @@ class ContactAvatarView @JvmOverloads constructor(
             // Clear previously used default icon state.
             avatarImage.setImageDrawable(null)
             avatarImage.imageTintList = null
-        } else {
-            // Default avatar style: show person icon when initials are missing.
-            showingDefaultPersonIcon = true
-            avatarImage.layoutParams = FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                Gravity.CENTER
-            )
-            avatarImage.isVisible = true
-            avatarInitials.isVisible = false
-            // FIT_CENTER allows the vector icon to scale up to available space.
-            avatarImage.scaleType = ImageView.ScaleType.FIT_CENTER
-            avatarImage.setImageResource(R.drawable.ic_person)
-            avatarImage.imageTintList = ColorStateList.valueOf(Color.WHITE)
-            // Show only icon over monogram-like gradient background.
-            avatarImage.background = null
-            applyDefaultIconInset()
         }
         
         // Update text size to scale with avatar size

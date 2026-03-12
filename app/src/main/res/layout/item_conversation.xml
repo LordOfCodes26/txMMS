@@ -113,37 +113,45 @@
 <!--                tools:text="Item Recent Name"-->
 <!--                tools:ignore="PrivateResource" />-->
 
-            <com.goodwy.commons.views.MyTextView
-                android:id="@+id/conversationAddress"
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:id="@+id/conversationHolder"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="@dimen/medium_normal_margin"
+                android:layout_marginEnd="@dimen/activity_margin"
                 android:layout_marginTop="@dimen/normal_margin"
-                android:ellipsize="end"
-                android:maxLines="1"
-                android:textAlignment="viewStart"
-                android:textDirection="firstStrongLtr"
-                android:textSize="@dimen/medium_text_size"
+                android:orientation="horizontal"
+                android:gravity="start|bottom"
+                android:layout_gravity="start|bottom"
                 app:layout_constraintStart_toEndOf="@+id/conversationImage"
-                app:layout_constraintTop_toTopOf="parent"
-                tools:text="John"
-                tools:ignore="RtlSymmetry" />
+                app:layout_constraintEnd_toStartOf="@+id/conversationDraft"
+                app:layout_constraintTop_toTopOf="parent">
 
-            <com.goodwy.commons.views.MyTextView
-                android:id="@+id/conversationAddressCount"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="@dimen/small_margin"
-                android:layout_marginBottom="@dimen/tiny_margin"
-                android:ellipsize="end"
-                android:maxLines="1"
-                android:textAlignment="viewStart"
-                android:textDirection="firstStrongLtr"
-                android:textSize="@dimen/smaller_text_size"
-                app:layout_constraintBottom_toBottomOf="@id/conversationAddress"
-                app:layout_constraintHorizontal_bias="0.0"
-                app:layout_constraintStart_toEndOf="@+id/conversationAddress"
-                tools:text="(10)" />
+                <com.goodwy.commons.views.MyTextView
+                    android:id="@+id/conversationAddress"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:textAlignment="viewStart"
+                    android:textDirection="firstStrongLtr"
+                    android:textSize="@dimen/medium_text_size"
+                    tools:text="John" />
+
+                <com.goodwy.commons.views.MyTextView
+                    android:id="@+id/conversationAddressCount"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="@dimen/small_margin"
+                    android:layout_marginTop="@dimen/tiny_margin"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:textAlignment="viewStart"
+                    android:textDirection="firstStrongLtr"
+                    android:textSize="@dimen/smaller_text_size"
+                    tools:text="(10)" />
+
+            </LinearLayout>
 
             <com.goodwy.commons.views.MyTextView
                 android:id="@+id/conversationDraft"
@@ -155,7 +163,7 @@
                 android:textSize="@dimen/smaller_text_size"
                 android:text="@string/draft"
                 android:textColor="@color/red_call"
-                app:layout_constraintBottom_toBottomOf="@id/conversationAddress"
+                app:layout_constraintBottom_toBottomOf="@id/conversationHolder"
                 app:layout_constraintHorizontal_bias="0.0"
                 app:layout_constraintEnd_toEndOf="parent"
                 tools:text="초고" />
@@ -168,8 +176,8 @@
                 android:alpha="0.6"
                 android:contentDescription="@null"
                 android:scaleType="fitCenter"
-                app:layout_constraintTop_toBottomOf="@id/conversationAddress"
-                app:layout_constraintStart_toStartOf="@+id/conversationAddress"
+                app:layout_constraintTop_toBottomOf="@id/conversationHolder"
+                app:layout_constraintStart_toStartOf="@+id/conversationHolder"
                 tools:src="@drawable/ic_cmn_out" />
 
             <androidx.constraintlayout.widget.Barrier
@@ -207,7 +215,7 @@
                 android:ellipsize="end"
                 android:maxLines="1"
                 android:textSize="@dimen/smaller_text_size"
-                app:layout_constraintTop_toBottomOf="@id/conversationAddress"
+                app:layout_constraintTop_toBottomOf="@id/conversationHolder"
                 app:layout_constraintEnd_toStartOf="@id/conversationDate"
                 app:layout_constraintStart_toEndOf="@id/conversationMessageTypeBarrier"
                 tools:text="Hey buddy!"
@@ -272,7 +280,7 @@
                 android:alpha="0.6"
                 android:gravity="center_vertical"
                 android:textSize="@dimen/smaller_text_size"
-                app:layout_constraintTop_toBottomOf="@id/conversationAddress"
+                app:layout_constraintTop_toBottomOf="@id/conversationHolder"
                 app:layout_constraintEnd_toEndOf="parent"
                 tools:text="13:30" />
 
@@ -296,8 +304,8 @@
                 android:visibility="gone"
                 android:clickable="true"
                 android:focusable="false"
-                app:layout_constraintTop_toTopOf="@+id/conversationAddress"
-                app:layout_constraintBottom_toBottomOf="@+id/conversationAddress"
+                app:layout_constraintTop_toTopOf="@+id/conversationHolder"
+                app:layout_constraintBottom_toBottomOf="@+id/conversationHolder"
                 app:layout_constraintEnd_toEndOf="parent" />
 
             <ImageView
@@ -309,7 +317,7 @@
                 android:alpha="0.2"
                 android:contentDescription="@null"
                 app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintStart_toStartOf="@+id/conversationAddress"
+                app:layout_constraintStart_toStartOf="@+id/conversationHolder"
                 app:layout_constraintEnd_toEndOf="@id/conversationDate"/>
         </androidx.constraintlayout.widget.ConstraintLayout>
     </FrameLayout>

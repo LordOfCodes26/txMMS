@@ -57,6 +57,7 @@ import com.goodwy.commons.extensions.getProperBackgroundColor
 import com.goodwy.commons.extensions.getSurfaceColor
 import com.goodwy.commons.extensions.getTextSizeSmall
 import com.goodwy.commons.helpers.AvatarSource
+import com.goodwy.commons.helpers.GROUP
 import com.goodwy.commons.helpers.MonogramGenerator
 import com.goodwy.commons.views.ContactAvatarView
 import me.thanel.swipeactionview.SwipeActionView
@@ -301,10 +302,11 @@ abstract class BaseConversationsAdapter(
             val isRowSelected = selectedKeys.contains(conversation.hashCode())
             val smsDraft = drafts[conversation.threadId]
             // SMS Draft Configuration
+            val colorRed = resources.getColor(R.color.red_call, activity.theme)
             if (smsDraft != null) {
                 conversationDraft.beVisible()
                 conversationDraft.apply {
-                    setTextColor(resources.getColor(R.color.red_call))
+                    setTextColor(colorRed)
                     setTextSize(TypedValue.COMPLEX_UNIT_PX, smallFontSize)
                 }
             } else {
@@ -355,7 +357,6 @@ abstract class BaseConversationsAdapter(
                 }
             }
             // conversationChevron.beGoneIf(isInActionMode)
-            val colorRed = resources.getColor(R.color.red_call, activity.theme)
             val title = conversation.title
             // Hide country code prefix (e.g. +850) when displaying raw phone number not in contacts
             val titleForDisplay = if (!conversation.isGroupConversation) {
@@ -560,6 +561,12 @@ abstract class BaseConversationsAdapter(
         avatarView.bind(
             if (shouldUsePhoto) {
                 AvatarSource.Photo(conversation.photoUri)
+            } else if (conversation.isGroupConversation) {
+                AvatarSource.Monogram(
+                    initials = GROUP,
+                    gradientColors = MonogramGenerator.generateGradientColors(conversation.phoneNumber),
+                    drawableIndex = activity.getAvatarDrawableIndexForName(conversation.phoneNumber).takeIf { it >= 0 }
+                )
             } else {
                 AvatarSource.Monogram(
                     initials = MonogramGenerator.generateInitials(avatarSeed),
