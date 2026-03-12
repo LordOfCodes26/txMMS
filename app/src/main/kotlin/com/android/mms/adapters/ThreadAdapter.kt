@@ -49,6 +49,7 @@ import com.goodwy.commons.extensions.beVisible
 import com.goodwy.commons.extensions.beVisibleIf
 import com.goodwy.commons.extensions.copyToClipboard
 import com.goodwy.commons.extensions.formatDateOrTime
+import com.goodwy.commons.extensions.formatTime
 import com.goodwy.commons.extensions.getContrastColor
 import com.goodwy.commons.extensions.getLetterBackgroundColors
 import com.goodwy.commons.extensions.getPopupMenuTheme
@@ -80,9 +81,6 @@ import com.android.mms.databinding.ItemAttachmentImageBinding
 import com.android.mms.databinding.ItemAttachmentVcardBinding
 import com.android.mms.databinding.ItemMessageBinding
 import com.android.mms.databinding.ItemThreadDateTimeBinding
-import com.android.mms.databinding.ItemThreadErrorBinding
-import com.android.mms.databinding.ItemThreadSendingBinding
-import com.android.mms.databinding.ItemThreadSuccessBinding
 import com.android.mms.dialogs.DeleteConfirmationDialog
 import com.android.mms.dialogs.MessageDetailsDialog
 import com.android.mms.dialogs.SelectTextDialog
@@ -109,9 +107,6 @@ import com.android.mms.helpers.EXTRA_VCARD_URI
 import com.android.mms.helpers.THREAD_DATE_TIME
 import com.android.mms.helpers.THREAD_RECEIVED_MESSAGE
 import com.android.mms.helpers.THREAD_SENT_MESSAGE
-import com.android.mms.helpers.THREAD_SENT_MESSAGE_ERROR
-import com.android.mms.helpers.THREAD_SENT_MESSAGE_SENDING
-import com.android.mms.helpers.THREAD_SENT_MESSAGE_SENT
 import com.android.mms.helpers.getBubbleDrawableOption
 import com.android.mms.helpers.generateStableId
 import com.android.mms.helpers.setupDocumentPreview
@@ -120,9 +115,6 @@ import com.android.mms.models.Attachment
 import com.android.mms.models.Message
 import com.android.mms.models.ThreadItem
 import com.android.mms.models.ThreadItem.ThreadDateTime
-import com.android.mms.models.ThreadItem.ThreadError
-import com.android.mms.models.ThreadItem.ThreadSending
-import com.android.mms.models.ThreadItem.ThreadSent
 import java.util.Locale
 import kotlin.math.abs
 
@@ -270,9 +262,6 @@ class ThreadAdapter(
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val binding = when (viewType) {
             THREAD_DATE_TIME -> ItemThreadDateTimeBinding.inflate(layoutInflater, parent, false)
-            THREAD_SENT_MESSAGE_ERROR -> ItemThreadErrorBinding.inflate(layoutInflater, parent, false)
-            THREAD_SENT_MESSAGE_SENT -> ItemThreadSuccessBinding.inflate(layoutInflater, parent, false)
-            THREAD_SENT_MESSAGE_SENDING -> ItemThreadSendingBinding.inflate(layoutInflater, parent, false)
             else -> ItemMessageBinding.inflate(layoutInflater, parent, false)
         }
 
@@ -281,15 +270,13 @@ class ThreadAdapter(
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val item = getItem(position)
-        val isClickable = item is ThreadError || item is Message
+        val isClickable = item is Message
         val isLongClickable = item is Message
         holder.bindView(item, isClickable, isLongClickable) { itemView, _ ->
             when (item) {
                 is ThreadDateTime -> setupDateTime(itemView, item)
-                is ThreadError -> setupThreadError(itemView)
-                is ThreadSent -> setupThreadSuccess(itemView, item.delivered)
-                is ThreadSending -> setupThreadSending(itemView)
                 is Message -> setupView(holder, itemView, item)
+                else -> { /* ThreadError, ThreadSent, ThreadSending now shown in message bubble */ }
             }
         }
         bindViewHolder(holder)
@@ -303,19 +290,15 @@ class ThreadAdapter(
                 val key = (item.date.toLong() shl SIM_BITS) or sim
                 generateStableId(THREAD_DATE_TIME, key)
             }
-            is ThreadError -> generateStableId(THREAD_SENT_MESSAGE_ERROR, item.messageId)
-            is ThreadSending -> generateStableId(THREAD_SENT_MESSAGE_SENDING, item.messageId)
-            is ThreadSent -> generateStableId(THREAD_SENT_MESSAGE_SENT, item.messageId)
+            else -> 0L
         }
     }
 
     override fun getItemViewType(position: Int): Int {
         return when (val item = getItem(position)) {
             is ThreadDateTime -> THREAD_DATE_TIME
-            is ThreadError -> THREAD_SENT_MESSAGE_ERROR
-            is ThreadSent -> THREAD_SENT_MESSAGE_SENT
-            is ThreadSending -> THREAD_SENT_MESSAGE_SENDING
             is Message -> if (item.isReceivedMessage()) THREAD_RECEIVED_MESSAGE else THREAD_SENT_MESSAGE
+            else -> THREAD_SENT_MESSAGE
         }
     }
 
@@ -517,7 +500,8 @@ class ThreadAdapter(
     private fun setupView(holder: ViewHolder, view: View, message: Message) {
         ItemMessageBinding.bind(view).apply {
             threadMessageHolder.isSelected = selectedKeys.contains(message.getSelectionKey())
-            threadMessageBodyWrapper.beVisibleIf(message.body.isNotEmpty())
+            // Show body wrapper when we have body or attachments (time+SIM is always shown in wrapper)
+            threadMessageBodyWrapper.beVisibleIf(message.body.isNotEmpty() || message.attachment?.attachments?.isNotEmpty() == true)
             threadMessageBody.apply {
                 val spannable = SpannableString(message.body)
                 Linkify.addLinks(spannable, Linkify.ALL)
@@ -547,6 +531,8 @@ class ThreadAdapter(
                     }
                     
                     if (message.isScheduled) {
+                        holder.viewClicked(message)
+                    } else if (message.type == android.provider.Telephony.Sms.MESSAGE_TYPE_FAILED) {
                         holder.viewClicked(message)
                     } else {
                         when (context.config.actionOnMessageClickSetting) {
@@ -803,6 +789,8 @@ class ThreadAdapter(
                 setLinkTextColor(contrastColorReceived)
             }
 
+            setupMessageTimeSim(messageBinding, message, contrastColorReceived)
+
             if (isGroupChat && message.body.isNotEmpty() && message.isReceivedMessage()) {
                 threadMessageSenderName.apply {
                     beVisible()
@@ -908,6 +896,8 @@ class ThreadAdapter(
                     applyDrawablePadding(bubbleDrawable)
                 }
             }
+            setupMessageTimeSim(messageBinding, message, contrastColorReceived)
+
             threadMessageBody.apply {
                 setTextColor(contrastColorReceived)
                 setLinkTextColor(contrastColorReceived)
@@ -1023,55 +1013,117 @@ class ThreadAdapter(
         parent.addView(attachmentView)
     }
 
+    @SuppressLint("MissingPermission")
+    private fun setupMessageTimeSim(
+        messageBinding: ItemMessageBinding,
+        message: Message,
+        textColor: Int
+    ) {
+        val timeStr = (message.date * 1000L).formatTime(activity)
+        messageBinding.threadMessageTime.apply {
+            text = timeStr
+            setTextColor(textColor)
+            setTextSize(TypedValue.COMPLEX_UNIT_PX, fontSizeSmall)
+        }
+        val holder = messageBinding.threadMessageTimeSimHolder
+        val isReceived = message.isReceivedMessage()
+        // Received: bottom-left, order HH:mm, SIM icon. Sent: bottom-right, order status, SIM, HH:mm
+        (holder.layoutParams as? android.widget.LinearLayout.LayoutParams)?.gravity =
+            if (isReceived) android.view.Gravity.START else android.view.Gravity.END
+        if (isReceived) {
+            // Reorder for received: time first, then sim (order: HH:mm, SIM icon)
+            holder.removeView(messageBinding.threadMessageTime)
+            holder.removeView(messageBinding.threadMessageSimIcon)
+            holder.addView(messageBinding.threadMessageTime)
+            holder.addView(messageBinding.threadMessageSimIcon)
+            messageBinding.threadMessageSimIcon.updateLayoutParams<android.widget.LinearLayout.LayoutParams> {
+                marginStart = resources.getDimensionPixelSize(com.goodwy.commons.R.dimen.small_margin)
+                marginEnd = 0
+            }
+        } else {
+            // Sent: order status, sim, time - ensure correct order after possible recycle from received
+            holder.removeView(messageBinding.threadMessageTime)
+            holder.removeView(messageBinding.threadMessageSimIcon)
+            holder.addView(messageBinding.threadMessageSimIcon, holder.indexOfChild(messageBinding.threadMessageStatusIcon) + 1)
+            holder.addView(messageBinding.threadMessageTime)
+            messageBinding.threadMessageSimIcon.updateLayoutParams<android.widget.LinearLayout.LayoutParams> {
+                marginStart = 0
+                marginEnd = resources.getDimensionPixelSize(com.goodwy.commons.R.dimen.small_margin)
+            }
+        }
+        // Status icon for sent messages: error | sending | sent/delivered
+        if (isReceived) {
+            messageBinding.threadMessageStatusIcon.beGone()
+        } else {
+            messageBinding.threadMessageStatusIcon.apply {
+                when (message.type) {
+                    android.provider.Telephony.Sms.MESSAGE_TYPE_FAILED -> {
+                        setImageResource(com.android.common.R.drawable.ic_cmn_info)
+                        applyColorFilter(ResourcesCompat.getColor(resources, com.goodwy.commons.R.color.theme_dark_red_primary_color, activity.theme))
+                        contentDescription = activity.getString(R.string.message_not_sent_touch_retry)
+                        beVisible()
+                    }
+                    android.provider.Telephony.Sms.MESSAGE_TYPE_OUTBOX -> {
+                        setImageResource(com.android.common.R.drawable.ic_cmn_clock)
+                        applyColorFilter(textColor)
+                        contentDescription = activity.getString(R.string.sending)
+                        beVisible()
+                    }
+                    android.provider.Telephony.Sms.MESSAGE_TYPE_SENT -> {
+                        val isDelivered = message.status == android.provider.Telephony.Sms.STATUS_COMPLETE
+                        setImageResource(if (isDelivered) R.drawable.ic_check_double_vector else com.goodwy.commons.R.drawable.ic_check_vector)
+                        applyColorFilter(textColor)
+                        contentDescription = activity.getString(if (isDelivered) R.string.delivered else R.string.sent)
+                        beVisible()
+                    }
+                    else -> beGone()
+                }
+            }
+        }
+        val simIndex = if (hasMultipleSIMCards && message.subscriptionId != -1) {
+            activity.subscriptionManagerCompat().activeSubscriptionInfoList
+                ?.indexOfFirst { it.subscriptionId == message.subscriptionId }
+                ?.takeIf { it >= 0 }
+        } else null
+        messageBinding.threadMessageSimIcon.apply {
+            if (simIndex != null) {
+                val simId = simIndex + 1
+                val simRes = when (simId) {
+                    1 -> R.drawable.ic_sim_one
+                    2 -> R.drawable.ic_sim_two
+                    else -> R.drawable.ic_sim_vector
+                }
+                setImageResource(simRes)
+                val simColor = if (!activity.config.colorSimIcons) textColor
+                else {
+                    if (simId in 1..4) activity.config.simIconsColors[simId] else activity.config.simIconsColors[0]
+                }
+                applyColorFilter(simColor)
+                beVisible()
+            } else {
+                beGone()
+            }
+        }
+    }
+
     private fun setupDateTime(view: View, dateTime: ThreadDateTime) {
         ItemThreadDateTimeBinding.bind(view).apply {
             threadDateTime.apply {
+                // Show only MM.DD at the top of date group (time is in each bubble)
                 text = (dateTime.date * 1000L).formatDateOrTime(
                     context = context,
-                    hideTimeOnOtherDays = false,
-                    showCurrentYear = false
+                    hideTimeOnOtherDays = true,
+                    showCurrentYear = false,
+                    hideTodaysDate = false,
+                    dateFormat = "MM.dd"
                 )
                 setTextSize(TypedValue.COMPLEX_UNIT_PX, fontSizeSmall)
             }
             threadDateTime.setTextColor(textColor)
 
-            threadSimIcon.beVisibleIf(hasMultipleSIMCards)
-            threadSimNumber.beVisibleIf(hasMultipleSIMCards)
-            if (hasMultipleSIMCards) {
-                val simColor = if (!activity.config.colorSimIcons) textColor
-                else {
-                    when (dateTime.simID) {
-                        "1" -> activity.config.simIconsColors[1]
-                        "2" -> activity.config.simIconsColors[2]
-                        "3" -> activity.config.simIconsColors[3]
-                        "4" -> activity.config.simIconsColors[4]
-                        else -> activity.config.simIconsColors[0]
-                    }
-                }
-
-                threadSimNumber.text = dateTime.simID
-                threadSimNumber.setTextColor(simColor.getContrastColor())
-                threadSimIcon.applyColorFilter(simColor)
-            }
-        }
-    }
-
-    private fun setupThreadSuccess(view: View, isDelivered: Boolean) {
-        ItemThreadSuccessBinding.bind(view).apply {
-            threadSuccess.setImageResource(if (isDelivered) R.drawable.ic_check_double_vector else com.goodwy.commons.R.drawable.ic_check_vector)
-            threadSuccess.applyColorFilter(textColor)
-        }
-    }
-
-    private fun setupThreadError(view: View) {
-        val binding = ItemThreadErrorBinding.bind(view)
-        binding.threadError.setTextSize(TypedValue.COMPLEX_UNIT_PX, fontSize - 4)
-    }
-
-    private fun setupThreadSending(view: View) {
-        ItemThreadSendingBinding.bind(view).threadSending.apply {
-            setTextSize(TypedValue.COMPLEX_UNIT_PX, fontSize)
-            setTextColor(textColor)
+            // SIM info is now shown in each message bubble; hide from date header
+            threadSimIcon.beGone()
+            threadSimNumber.beGone()
         }
     }
 
@@ -1093,25 +1145,21 @@ private class ThreadItemDiffCallback : DiffUtil.ItemCallback<ThreadItem>() {
     override fun areItemsTheSame(oldItem: ThreadItem, newItem: ThreadItem): Boolean {
         if (oldItem::class.java != newItem::class.java) return false
         return when (oldItem) {
-            is ThreadError -> oldItem.messageId == (newItem as ThreadError).messageId
-            is ThreadSent -> oldItem.messageId == (newItem as ThreadSent).messageId
-            is ThreadSending -> oldItem.messageId == (newItem as ThreadSending).messageId
             is Message -> Message.areItemsTheSame(oldItem, newItem as Message)
             is ThreadDateTime -> {
                 val new = newItem as ThreadDateTime
                 oldItem.date == new.date && oldItem.simID == new.simID
             }
+            else -> true
         }
     }
 
     override fun areContentsTheSame(oldItem: ThreadItem, newItem: ThreadItem): Boolean {
         if (oldItem::class.java != newItem::class.java) return false
         return when (oldItem) {
-            is ThreadSending -> true
             is ThreadDateTime -> oldItem.simID == (newItem as ThreadDateTime).simID
-            is ThreadError -> oldItem.messageText == (newItem as ThreadError).messageText
-            is ThreadSent -> oldItem.delivered == (newItem as ThreadSent).delivered
             is Message -> Message.areContentsTheSame(oldItem, newItem as Message)
+            else -> true
         }
     }
 }

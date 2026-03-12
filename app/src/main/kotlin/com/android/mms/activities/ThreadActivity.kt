@@ -78,9 +78,6 @@ import com.android.mms.helpers.*
 import com.android.mms.messaging.*
 import com.android.mms.models.*
 import com.android.mms.models.ThreadItem.ThreadDateTime
-import com.android.mms.models.ThreadItem.ThreadError
-import com.android.mms.models.ThreadItem.ThreadSending
-import com.android.mms.models.ThreadItem.ThreadSent
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
@@ -764,9 +761,9 @@ class ThreadActivity : SimpleActivity() {
     private fun handleItemClick(any: Any) {
         when {
             any is Message && any.isScheduled -> showScheduledMessageInfo(any)
-            any is ThreadError -> {
-                binding.messageHolder.threadTypeMessage.setText(any.messageText)
-                messageToResend = any.messageId
+            any is Message && any.type == Telephony.Sms.MESSAGE_TYPE_FAILED -> {
+                binding.messageHolder.threadTypeMessage.setText(any.body)
+                messageToResend = any.id
             }
         }
     }
@@ -1442,30 +1439,22 @@ class ThreadActivity : SimpleActivity() {
             subscriptionIdToSimId[subscriptionInfo.subscriptionId] = "${index + 1}"
         }
 
-        var prevDateTime = 0
-        var prevSIMId = -2
+        var prevDateDay = -1 // track calendar day (yyyyMMdd) to show date header only on date change
         var hadUnreadItems = false
         val cnt = messages.size
         for (i in 0 until cnt) {
             val message = messages.getOrNull(i) ?: continue
-            // do not show the date/time above every message, only if the difference between the 2 messages is at least MIN_DATE_TIME_DIFF_SECS,
-            // or if the message is sent from a different SIM
-            val isSentFromDifferentKnownSIM =
-                prevSIMId != -1 && message.subscriptionId != -1 && prevSIMId != message.subscriptionId
-            if (message.date - prevDateTime > MIN_DATE_TIME_DIFF_SECS || isSentFromDifferentKnownSIM) {
+            // Show date header (MM.DD) only for the first message of each calendar day
+            val cal = java.util.Calendar.getInstance(java.util.Locale.ENGLISH)
+            cal.timeInMillis = message.date * 1000L
+            val messageDateDay = cal.get(java.util.Calendar.YEAR) * 10000 +
+                (cal.get(java.util.Calendar.MONTH) + 1) * 100 + cal.get(java.util.Calendar.DAY_OF_MONTH)
+            if (messageDateDay != prevDateDay) {
                 val simCardID = subscriptionIdToSimId[message.subscriptionId] ?: "?"
                 items.add(ThreadDateTime(message.date, simCardID))
-                prevDateTime = message.date
+                prevDateDay = messageDateDay
             }
             items.add(message)
-
-            if (message.type == Telephony.Sms.MESSAGE_TYPE_FAILED) {
-                items.add(ThreadError(message.id, message.body))
-            }
-
-            if (message.type == Telephony.Sms.MESSAGE_TYPE_OUTBOX) {
-                items.add(ThreadSending(message.id))
-            }
 
             if (!message.read) {
                 hadUnreadItems = true
@@ -1473,15 +1462,6 @@ class ThreadActivity : SimpleActivity() {
                 conversationsDB.markRead(threadId)
             }
 
-            if (i == cnt - 1 && (message.type == Telephony.Sms.MESSAGE_TYPE_SENT)) {
-                items.add(
-                    ThreadSent(
-                        messageId = message.id,
-                        delivered = message.status == Telephony.Sms.STATUS_COMPLETE
-                    )
-                )
-            }
-            prevSIMId = message.subscriptionId
         }
 
         if (hadUnreadItems) {

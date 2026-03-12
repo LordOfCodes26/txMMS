@@ -7,6 +7,7 @@
     <string name="delete_after_copy">알림에서 번호를 복사한후 통보문 삭제</string>
     <string name="sound_on_out_going_messages">통보문을 보낼때 소리가 납니다.</string>
     <string name="delivered">전송됨</string>
+    <string name="sent">전송됨</string>
     <string name="failed">실패한</string>
     <string name="pending">보류중</string>
     <string name="message_type">통보문 류형</string>
