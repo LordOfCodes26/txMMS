@@ -27,7 +27,7 @@ class QuickTextSelectionDialog(
         
         blurView.setOverlayColor(activity.getProperBlurOverlayColor())
         blurView.setupWith(blurTarget)
-            .setFrameClearDrawable(windowBackground)
+            // .setFrameClearDrawable(windowBackground)
             .setBlurRadius(5f)
             .setBlurAutoUpdate(true)
 

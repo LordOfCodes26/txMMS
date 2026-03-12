@@ -118,10 +118,10 @@
             android:id="@+id/threadAddAttachment"
             android:layout_width="@dimen/medium_icon_size"
             android:layout_height="@dimen/medium_icon_size"
-            android:background="@drawable/popup_menu_rounded_bg"
+            android:background="@drawable/thread_background"
             android:contentDescription="@string/attachment"
-            android:padding="@dimen/small_margin"
-            android:src="@drawable/ic_plus_vector" />
+            android:src="@drawable/ic_cmn_circle_add"
+            android:alpha="0.8"/>
     </LinearLayout>
 
     <com.goodwy.commons.views.MyEditText

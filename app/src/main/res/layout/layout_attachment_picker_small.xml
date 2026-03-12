@@ -27,18 +27,18 @@
         android:weightSum="4">
 
         <LinearLayout
-            android:id="@+id/choose_photo"
-            android:layout_width="wrap_content"
+            android:id="@+id/choose_clock"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:background="?selectableItemBackgroundBorderless"
             android:orientation="vertical"
             android:contentDescription="@string/clock_short">
 
             <ImageView
-                android:id="@+id/choose_photo_icon"
+                android:id="@+id/choose_clock_icon"
                 android:layout_width="@dimen/chips_input_chip_row_height"
                 android:layout_height="@dimen/chips_input_chip_row_height"
+                android:background="?selectableItemBackgroundBorderless"
                 android:layout_margin="@dimen/medium_md_margin"
                 android:contentDescription="@null"
                 android:paddingHorizontal="@dimen/zero"
@@ -47,7 +47,7 @@
                 app:rippleColor="?attr/colorControlHighlight" />
 
             <androidx.appcompat.widget.AppCompatTextView
-                android:id="@+id/choose_photo_text"
+                android:id="@+id/choose_clock_text"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
@@ -63,10 +63,9 @@
 
         <LinearLayout
             android:id="@+id/choose_emoji"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:background="?selectableItemBackgroundBorderless"
             android:orientation="vertical"
             android:contentDescription="@string/choose_emoji">
             
@@ -74,7 +73,9 @@
                 android:id="@+id/choose_emoji_icon"
                 android:layout_width="@dimen/chips_input_chip_row_height"
                 android:layout_height="@dimen/chips_input_chip_row_height"
+                android:background="?selectableItemBackgroundBorderless"
                 android:layout_margin="@dimen/medium_md_margin"
+                android:contentDescription="@null"
                 android:paddingHorizontal="@dimen/zero"
                 android:layout_gravity="center_horizontal"
                 android:src="@drawable/ic_sms_extra_emoji"
@@ -97,10 +98,9 @@
 
         <LinearLayout
             android:id="@+id/choose_text"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:background="?selectableItemBackgroundBorderless"
             android:orientation="vertical"
             android:contentDescription="@string/quick_texts">
 
@@ -108,7 +108,9 @@
                 android:id="@+id/choose_text_icon"
                 android:layout_width="@dimen/chips_input_chip_row_height"
                 android:layout_height="@dimen/chips_input_chip_row_height"
+                android:background="?selectableItemBackgroundBorderless"
                 android:layout_margin="@dimen/medium_md_margin"
+                android:contentDescription="@null"
                 android:paddingHorizontal="@dimen/zero"
                 android:layout_gravity="center_horizontal"
                 android:src="@drawable/ic_sms_extra_word"
@@ -131,10 +133,9 @@
 
         <LinearLayout
             android:id="@+id/choose_contact"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:background="?selectableItemBackgroundBorderless"
             android:orientation="vertical"
             android:contentDescription="@string/contacts_tab">
             <ImageView
@@ -142,6 +143,8 @@
                 android:layout_width="@dimen/chips_input_chip_row_height"
                 android:layout_height="@dimen/chips_input_chip_row_height"
                 android:layout_margin="@dimen/medium_md_margin"
+                android:background="?selectableItemBackgroundBorderless"
+                android:contentDescription="@null"
                 android:paddingHorizontal="@dimen/zero"
                 android:layout_gravity="center_horizontal"
                 android:src="@drawable/ic_sms_extra_contact"
@@ -163,7 +166,6 @@
         </LinearLayout>
 
     </LinearLayout>
-
 
 <!--    <androidx.constraintlayout.helper.widget.Flow-->
 <!--        android:id="@+id/choose_second_wrapper"-->
@@ -187,10 +189,9 @@
 
         <LinearLayout
             android:id="@+id/choose_image"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:background="?selectableItemBackgroundBorderless"
             android:orientation="vertical"
             android:contentDescription="@string/gallery_short">
             <ImageView
@@ -198,6 +199,8 @@
                 android:layout_width="@dimen/chips_input_chip_row_height"
                 android:layout_height="@dimen/chips_input_chip_row_height"
                 android:layout_margin="@dimen/medium_md_margin"
+                android:background="?selectableItemBackgroundBorderless"
+                android:contentDescription="@null"
                 android:paddingHorizontal="@dimen/zero"
                 android:layout_gravity="center_horizontal"
                 android:src="@drawable/ic_sms_extra_image"
@@ -220,10 +223,9 @@
 
         <LinearLayout
             android:id="@+id/choose_voice"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:background="?selectableItemBackgroundBorderless"
             android:orientation="vertical"
             android:contentDescription="@string/voice_short">
             <ImageView
@@ -231,6 +233,8 @@
                 android:layout_width="@dimen/chips_input_chip_row_height"
                 android:layout_height="@dimen/chips_input_chip_row_height"
                 android:layout_margin="@dimen/medium_md_margin"
+                android:background="?selectableItemBackgroundBorderless"
+                android:contentDescription="@null"
                 android:paddingHorizontal="@dimen/zero"
                 android:layout_gravity="center_horizontal"
                 android:src="@drawable/ic_sms_extra_mic"
@@ -253,10 +257,9 @@
 
         <LinearLayout
             android:id="@+id/choose_camera"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:background="?selectableItemBackgroundBorderless"
             android:orientation="vertical"
             android:contentDescription="@string/camera_short">
             <ImageView
@@ -264,6 +267,8 @@
                 android:layout_width="@dimen/chips_input_chip_row_height"
                 android:layout_height="@dimen/chips_input_chip_row_height"
                 android:layout_margin="@dimen/medium_md_margin"
+                android:background="?selectableItemBackgroundBorderless"
+                android:contentDescription="@null"
                 android:paddingHorizontal="@dimen/zero"
                 android:layout_gravity="center_horizontal"
                 android:src="@drawable/ic_sms_extra_camera"
@@ -286,10 +291,9 @@
 
         <LinearLayout
             android:id="@+id/choose_title"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:background="?selectableItemBackgroundBorderless"
             android:orientation="vertical"
             android:contentDescription="@string/title">
             <ImageView
@@ -297,6 +301,8 @@
                 android:layout_width="@dimen/chips_input_chip_row_height"
                 android:layout_height="@dimen/chips_input_chip_row_height"
                 android:layout_margin="@dimen/medium_md_margin"
+                android:background="?selectableItemBackgroundBorderless"
+                android:contentDescription="@null"
                 android:paddingHorizontal="@dimen/zero"
                 android:layout_gravity="center_horizontal"
                 android:gravity="center_horizontal"
@@ -319,7 +325,5 @@
         </LinearLayout>
 
     </LinearLayout>
-
-
 
 </LinearLayout>

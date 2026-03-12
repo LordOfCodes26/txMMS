@@ -12,7 +12,7 @@
     <com.goodwy.commons.views.MaxHeightScrollView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:maxHeight="@dimen/contact_grid_item_max_size"
+        android:maxHeight="@dimen/two_line_list_item_min_height"
         android:fillViewport="true"
         android:scrollbars="none"
         android:overScrollMode="ifContentScrolls">
@@ -32,7 +32,6 @@
                 android:id="@+id/chips_edit_wrapper"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:minHeight="@dimen/tx_cardview_icon_size"
                 app:layout_flexGrow="1"
                 app:layout_flexShrink="0"
                 app:layout_minWidth="100dp">
@@ -42,8 +41,8 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_centerVertical="true"
-                    android:minWidth="@dimen/line_color_picker_height"
                     android:minHeight="@dimen/tx_cardview_icon_size"
+                    android:minWidth="@dimen/line_color_picker_height"
                     android:background="@drawable/search_bg_flat"
                     android:gravity="center_vertical"
                     android:hint=""

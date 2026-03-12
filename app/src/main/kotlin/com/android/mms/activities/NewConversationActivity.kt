@@ -104,7 +104,7 @@ class NewConversationActivity : SimpleActivity() {
         setupTopAppBar(binding.newConversationAppbar, NavigationIcon.Arrow, topBarColor = backgroundColor)
         binding.newConversationHolder.setBackgroundColor(backgroundColor)
         binding.suggestionsOverlay.setBackgroundColor(backgroundColor)
-        binding.newConversationAddress.setBackgroundColor(backgroundColor)
+//        binding.newConversationAddress.setBackgroundColor(backgroundColor)
 
         binding.noContactsPlaceholder2.setTextColor(getProperPrimaryColor)
         binding.noContactsPlaceholder2.underlineText()
@@ -226,8 +226,8 @@ class NewConversationActivity : SimpleActivity() {
         val properAccentColor = getProperAccentColor()
         
         binding.newConversationAddress.setColors(properTextColor, properAccentColor, surfaceColor)
-        binding.newConversationAddress.getEditText().setBackgroundResource(com.goodwy.commons.R.drawable.search_bg)
-        binding.newConversationAddress.getEditText().backgroundTintList = ColorStateList.valueOf(surfaceColor)
+//        binding.newConversationAddress.getEditText().setBackgroundResource(com.goodwy.commons.R.drawable.search_bg)
+//        binding.newConversationAddress.getEditText().backgroundTintList = ColorStateList.valueOf(surfaceColor)
         
         // Listen for chip addition to validate newly added chips
         binding.newConversationAddress.setOnChipAddedListener { chipText ->

@@ -306,7 +306,7 @@ class ChipsInputView @JvmOverloads constructor(
     }
 
     private fun scrollToBottom() {
-        chipsScrollView?.post { chipsScrollView?.fullScroll(View.FOCUS_DOWN) }
+        chipsScrollView?.post { chipsScrollView.fullScroll(View.FOCUS_DOWN) }
     }
 
     fun getEditText(): MyEditText = editText

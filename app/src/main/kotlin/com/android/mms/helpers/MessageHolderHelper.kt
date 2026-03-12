@@ -168,15 +168,14 @@ class MessageHolderHelper(
             ).map { ResourcesCompat.getColor(activity.resources, it, activity.theme) }
 
 //            arrayOf(
-//                choosePhotoIcon,
-//                chooseVideoIcon,
-//                takePhotoIcon,
-//                recordVideoIcon,
-//                recordAudioIcon,
-//                pickFileIcon,
-//                pickContactIcon,
-//                scheduleMessageIcon,
-//                pickQuickTextIcon
+//                chooseClockIcon,
+//                chooseEmojiIcon,
+//                chooseTextIcon,
+//                chooseContactIcon,
+//                chooseImageIcon,
+//                chooseVoiceIcon,
+//                chooseCameraIcon,
+//                chooseTitleIcon
 //            ).forEachIndexed { index, icon ->
 //                val iconColor = buttonColors[index]
 //                icon.background.applyColorFilter(iconColor)
@@ -184,30 +183,36 @@ class MessageHolderHelper(
 //                if (index == 5 || index == 8) icon.applyColorFilter(ResourcesCompat.getColor(activity.resources, com.goodwy.commons.R.color.ic_messages, activity.theme))
 //            }
 
-//            val textColor = activity.getProperTextColor()
-//            arrayOf(
-//                choosePhotoText,
-//                chooseVideoText,
-//                takePhotoText,
-//                recordVideoText,
-//                recordAudioText,
-//                pickFileText,
-//                pickContactText,
-//                scheduleMessageText,
-//                pickQuickTextText
-//            ).forEach { it.setTextColor(textColor) }
-
-//            choosePhoto.setOnClickListener { onChoosePhoto() }
-//            chooseVideo.setOnClickListener { onChooseVideo() }
-//            takePhoto.setOnClickListener { onTakePhoto() }
-//            recordVideo.setOnClickListener { onRecordVideo() }
-//            recordAudio.setOnClickListener { onRecordAudio() }
+            val textColor = activity.getProperTextColor()
+            arrayOf(
+                chooseClockText,
+                chooseEmojiText,
+                chooseTextText,
+                chooseContactText,
+                chooseImageText,
+                chooseVoiceText,
+                chooseCameraText,
+                chooseTitleText
+            ).forEach { it.setTextColor(textColor) }
+//            chooseClock
+//            chooseEmoji
+//            chooseText
+//            chooseContact
+//            chooseImage
+//            chooseVoice
+//            chooseCamera
+//            chooseTitle
+            chooseImage.setOnClickListener { onChoosePhoto() }
+            chooseEmoji.setOnClickListener { onChooseVideo() }
+            chooseCamera.setOnClickListener { onTakePhoto() }
+            chooseCamera.setOnClickListener { onRecordVideo() }
+            chooseVoice.setOnClickListener { onRecordAudio() }
 //            pickFile.setOnClickListener { onPickFile() }
-//            pickContact.setOnClickListener { onPickContact() }
-//            scheduleMessage.setOnClickListener {
-//                onScheduleMessage?.invoke() ?: activity.toast(com.goodwy.commons.R.string.unknown_error_occurred)
-//            }
-//            pickQuickText.setOnClickListener { onPickQuickText() }
+            chooseContact.setOnClickListener { onPickContact() }
+            chooseTitle.setOnClickListener {
+                onScheduleMessage?.invoke() ?: activity.toast(com.goodwy.commons.R.string.unknown_error_occurred)
+            }
+            chooseText.setOnClickListener { onPickQuickText() }
         }
     }
 
