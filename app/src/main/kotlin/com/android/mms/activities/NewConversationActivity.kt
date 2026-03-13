@@ -26,6 +26,9 @@ import android.view.animation.OvershootInterpolator
 import android.view.inputmethod.EditorInfo
 import android.widget.Toast
 import androidx.core.content.res.ResourcesCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updateLayoutParams
 import androidx.documentfile.provider.DocumentFile
 import androidx.recyclerview.widget.RecyclerView
@@ -85,7 +88,13 @@ class NewConversationActivity : SimpleActivity() {
         window.navigationBarColor = Color.TRANSPARENT
         window.statusBarColor = Color.TRANSPARENT
 
-        setupEdgeToEdge(padBottomImeAndSystem = listOf(binding.contactsList, binding.messageHolder.root))
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        setupEdgeToEdge(
+            padBottomImeAndSystem = listOf(binding.contactsList),
+            animateIme = true
+        )
+        setupMessageHolderKeyboardSpacing()
+        binding.root.post { ViewCompat.requestApplyInsets(binding.root) }
         setupTitleScrollAnimation()
 //        setupMaterialScrollListener(
 //            scrollingView = binding.contactsList,
@@ -172,6 +181,38 @@ class NewConversationActivity : SimpleActivity() {
             val h = if (height > 0) height else 1
             binding.newConversationAppbar.titleView?.scaleX = (1 + 0.8f * verticalOffset / h)
             binding.newConversationAppbar.titleView?.scaleY = (1 + 0.8f * verticalOffset / h)
+        }
+    }
+
+    /**
+     * Add space between the message holder and screen bottom / keyboard,
+     * matching ThreadActivity behavior (makeSystemBarsToTransparent + setupEdgeToEdge).
+     */
+    private fun setupMessageHolderKeyboardSpacing() {
+        val barContainer = binding.messageHolder.root
+        val extraSpaceDp = 8
+        val extraSpacePx = (extraSpaceDp * resources.displayMetrics.density).toInt()
+        val bottomOffsetDp = 3
+        val bottomOffsetPx = (bottomOffsetDp * resources.displayMetrics.density).toInt()
+
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
+            val imeAndSystem = insets.getInsets(
+                WindowInsetsCompat.Type.ime() or WindowInsetsCompat.Type.systemBars()
+            )
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            val imeBottom = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
+            val bottomMargin = if (imeBottom > 0) {
+                imeAndSystem.bottom + extraSpacePx
+            } else {
+                // Match ThreadActivity: setupEdgeToEdge pads for system bars + small offset
+                systemBars.bottom + bottomOffsetPx
+            }
+            val lp = barContainer.layoutParams as? ViewGroup.MarginLayoutParams
+            if (lp != null) {
+                lp.bottomMargin = bottomMargin
+                barContainer.layoutParams = lp
+            }
+            insets
         }
     }
 

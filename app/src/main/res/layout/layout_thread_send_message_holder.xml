@@ -4,8 +4,8 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/message_holder"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:paddingBottom="@dimen/tx_cardview_margin_bottom">
+    android:layout_height="match_parent"
+    android:paddingBottom="@dimen/normal_margin">
 
     <RelativeLayout
         android:id="@+id/scheduled_message_holder"
@@ -263,6 +263,8 @@
         android:layout_height="wrap_content"
         android:visibility="gone"
         tools:visibility="visible"
+        android:background="@color/md_grey_100"
+        android:layout_marginTop="@dimen/tx_cardview_margin_bottom"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent">
