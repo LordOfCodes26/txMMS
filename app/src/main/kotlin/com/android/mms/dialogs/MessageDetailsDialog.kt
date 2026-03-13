@@ -32,7 +32,7 @@ class MessageDetailsDialog(val activity: BaseSimpleActivity, val message: Messag
 
         blurView?.setOverlayColor(activity.getProperBlurOverlayColor())
         blurView?.setupWith(blurTarget)
-            // ?.setFrameClearDrawable(windowBackground)
+            ?.setFrameClearDrawable(windowBackground)
             ?.setBlurRadius(5f)
             ?.setBlurAutoUpdate(true)
 

@@ -4,6 +4,6 @@
     android:id="@+id/date_text_view"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginHorizontal="@dimen/activity_margin"
-    android:layout_marginVertical="@dimen/small_margin"
+    android:layout_marginHorizontal="@dimen/larger_margin"
+    android:layout_marginVertical="@dimen/tiny_margin"
     tools:text="Today" />

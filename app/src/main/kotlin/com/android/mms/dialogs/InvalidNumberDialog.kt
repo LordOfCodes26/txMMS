@@ -22,7 +22,7 @@ class InvalidNumberDialog(val activity: BaseSimpleActivity, val text: String,
 
         blurView?.setOverlayColor(activity.getProperBlurOverlayColor())
         blurView?.setupWith(blurTarget)
-            // ?.setFrameClearDrawable(windowBackground)
+            ?.setFrameClearDrawable(windowBackground)
             ?.setBlurRadius(5f)
             ?.setBlurAutoUpdate(true)
 
