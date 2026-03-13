@@ -8,12 +8,13 @@
     android:paddingHorizontal="@dimen/medium_normal_margin"
     android:paddingVertical="@dimen/smaller_margin">
 
-    <!-- MaxHeightScrollView clamps height so chips/text scroll instead of expanding the screen -->
+    <!-- MaxHeightScrollView clamps height so chips/text scroll instead of expanding the screen.
+         fillViewport=false so chips_edit_wrapper stays compact when empty (no stretch to viewport). -->
     <com.goodwy.commons.views.MaxHeightScrollView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:maxHeight="@dimen/two_line_list_item_min_height"
-        android:fillViewport="true"
+        android:fillViewport="false"
         android:scrollbars="none"
         android:overScrollMode="ifContentScrolls">
 
@@ -31,19 +32,20 @@
             <RelativeLayout
                 android:id="@+id/chips_edit_wrapper"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="@dimen/chips_input_chip_row_height"
                 app:layout_flexGrow="1"
                 app:layout_flexShrink="0"
-                app:layout_minWidth="100dp">
+                app:layout_minWidth="100dp"
+                app:layout_alignSelf="flex_start">
 
                 <com.goodwy.commons.views.MyEditText
                     android:id="@+id/chips_edit_text"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/chips_input_chip_row_height"
                     android:layout_centerVertical="true"
-                    android:minHeight="@dimen/tx_cardview_icon_size"
                     android:minWidth="@dimen/line_color_picker_height"
-                    android:background="@drawable/search_bg_flat"
+                    android:minLines="1"
+                    android:background="@android:color/transparent"
                     android:gravity="center_vertical"
                     android:hint=""
                     android:inputType="text|textMultiLine"
@@ -71,13 +73,15 @@
         </com.google.android.flexbox.FlexboxLayout>
     </com.goodwy.commons.views.MaxHeightScrollView>
 
-    <!-- Buttons at top right -->
+    <!-- Buttons at top right - clickable=false so touches pass through to edit text below -->
     <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="top|end"
         android:orientation="horizontal"
-        android:gravity="center_vertical">
+        android:gravity="center_vertical"
+        android:clickable="false"
+        android:focusable="false">
 
         <ImageView
             android:id="@+id/chips_address_book_button"
