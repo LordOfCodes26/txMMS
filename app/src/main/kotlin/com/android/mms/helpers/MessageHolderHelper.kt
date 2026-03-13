@@ -217,6 +217,9 @@ class MessageHolderHelper(
 //            chooseVoice
 //            chooseCamera
 //            chooseTitle
+            chooseClock.setOnClickListener {
+                onScheduleMessage?.invoke() ?: activity.toast(com.goodwy.commons.R.string.unknown_error_occurred)
+            }
             chooseImage.setOnClickListener { onChoosePhoto() }
             chooseEmoji.setOnClickListener { onChooseVideo() }
             chooseCamera.setOnClickListener { onTakePhoto() }

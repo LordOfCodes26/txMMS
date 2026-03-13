@@ -1689,6 +1689,7 @@ fun Context.createTemporaryThread(
     message: Message,
     threadId: Long = generateRandomId(),
     cachedConv: Conversation?,
+    onComplete: (() -> Unit)? = null,
 ) {
     val simpleContactHelper = SimpleContactsHelper(this)
     val privateCursor = getMyContactsCursor(favoritesOnly = false, withPhoneNumbersOnly = true)
@@ -1744,6 +1745,7 @@ fun Context.createTemporaryThread(
         } catch (e: Exception) {
             e.printStackTrace()
         }
+        onComplete?.invoke()
     }
 }
 

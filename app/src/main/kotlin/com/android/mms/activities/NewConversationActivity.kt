@@ -1,6 +1,7 @@
 package com.android.mms.activities
 
 import android.annotation.SuppressLint
+import android.app.AlarmManager
 import android.content.Intent
 import android.graphics.Color
 import android.content.res.ColorStateList
@@ -10,12 +11,18 @@ import android.media.AudioManager
 import android.net.Uri
 import android.os.Bundle
 import android.provider.ContactsContract
+import android.provider.Telephony.Sms.MESSAGE_TYPE_QUEUED
+import android.provider.Telephony.Sms.STATUS_NONE
 import android.provider.DocumentsContract
 import android.provider.MediaStore
 import android.speech.RecognizerIntent
 import android.telephony.SmsManager
 import android.telephony.SmsMessage
 import android.telephony.SubscriptionInfo
+import android.text.format.DateUtils
+import android.text.format.DateUtils.FORMAT_NO_YEAR
+import android.text.format.DateUtils.FORMAT_SHOW_DATE
+import android.text.format.DateUtils.FORMAT_SHOW_TIME
 import android.text.TextUtils
 import android.util.Log
 import android.view.KeyEvent
@@ -34,6 +41,7 @@ import androidx.documentfile.provider.DocumentFile
 import androidx.recyclerview.widget.RecyclerView
 import com.google.gson.Gson
 import com.reddit.indicatorfastscroll.FastScrollItemIndicator
+import com.goodwy.commons.dialogs.PermissionRequiredDialog
 import com.goodwy.commons.extensions.*
 import com.goodwy.commons.helpers.*
 import com.goodwy.commons.models.PhoneNumber
@@ -44,15 +52,22 @@ import com.android.mms.adapters.ContactsAdapter
 import com.android.mms.adapters.ContactPhonePair
 import com.android.mms.databinding.ActivityNewConversationBinding
 import com.android.mms.databinding.ItemSuggestedContactBinding
+import com.android.mms.dialogs.ScheduleMessageDialog
 import com.android.mms.extensions.*
 import com.android.mms.helpers.*
+import com.android.mms.messaging.isLongMmsMessage
 import com.android.mms.messaging.isShortCodeWithLetters
+import com.android.mms.messaging.scheduleMessage
 import com.android.mms.messaging.sendMessageCompat
 import com.android.mms.models.Attachment
+import com.android.mms.models.Message
+import com.android.mms.models.MessageAttachment
 import com.android.mms.models.Events
 import com.android.mms.models.SIMCard
+import com.android.mms.BuildConfig
 import com.android.mms.helpers.MessageHolderHelper
 import org.greenrobot.eventbus.EventBus
+import org.joda.time.DateTime
 import java.net.URLDecoder
 import java.util.Objects
 
@@ -70,6 +85,8 @@ class NewConversationActivity : SimpleActivity() {
     private var isUpdatingChips = false
     private val availableSIMCards = ArrayList<SIMCard>()
     private var currentSIMCardIndex = 0
+    private var scheduledDateTime = DateTime.now().plusMinutes(5)
+    private var isScheduledMessage = false
 
     private val binding by viewBinding(ActivityNewConversationBinding::inflate)
     
@@ -255,7 +272,7 @@ class NewConversationActivity : SimpleActivity() {
                 onRecordAudio = { launchCaptureAudioIntent() },
                 onPickFile = { launchGetContentIntent(arrayOf("*/*"), MessageHolderHelper.PICK_DOCUMENT_INTENT) },
                 onPickContact = { launchPickContactIntent() },
-                onScheduleMessage = null,
+                onScheduleMessage = { launchScheduleSendDialog() },
                 onPickQuickText = {
                     val blurTarget = findViewById<eightbitlab.com.blurview.BlurTarget>(R.id.mainBlurTarget)
                         ?: throw IllegalStateException("mainBlurTarget not found")
@@ -267,7 +284,8 @@ class NewConversationActivity : SimpleActivity() {
             
             messageHolderHelper?.hideAttachmentPicker()
         }
-        
+        setupScheduleSendUi()
+
         // Handle forwarded messages from Intent.ACTION_SEND or Intent.ACTION_SEND_MULTIPLE
         handleForwardedMessage()
     }
@@ -923,7 +941,7 @@ class NewConversationActivity : SimpleActivity() {
     
     private fun sendMessageAndNavigate(text: String, subscriptionId: Int?, attachments: List<Attachment>) {
         hideKeyboard()
-        
+
         val chips = binding.newConversationAddress.allChips
         val allNumbers = mutableListOf<String>()
         chips.forEach { chip ->
@@ -994,6 +1012,15 @@ class NewConversationActivity : SimpleActivity() {
         
         if (allNumbers.isEmpty()) {
             toast(R.string.empty_destination_address, length = Toast.LENGTH_SHORT)
+            return
+        }
+
+        if (isScheduledMessage) {
+            val finalSubscriptionId = subscriptionId
+                ?: availableSIMCards.getOrNull(currentSIMCardIndex)?.subscriptionId
+                ?: messageHolderHelper?.getSubscriptionIdForNumbers(allNumbers)
+                ?: SmsManager.getDefaultSmsSubscriptionId()
+            sendScheduledMessage(text, finalSubscriptionId, allNumbers)
             return
         }
         
@@ -1113,6 +1140,161 @@ class NewConversationActivity : SimpleActivity() {
         }
     }
 
+    private fun askForExactAlarmPermissionIfNeeded(callback: () -> Unit = {}) {
+        if (isSPlus()) {
+            val alarmManager: AlarmManager = getSystemService(AlarmManager::class.java)
+            if (alarmManager.canScheduleExactAlarms()) {
+                callback()
+            } else {
+                val blurTarget = findViewById<eightbitlab.com.blurview.BlurTarget>(R.id.mainBlurTarget)
+                    ?: throw IllegalStateException("mainBlurTarget not found")
+                PermissionRequiredDialog(
+                    activity = this,
+                    textId = com.goodwy.commons.R.string.allow_alarm_scheduled_messages,
+                    blurTarget = blurTarget,
+                    positiveActionCallback = {
+                        openRequestExactAlarmSettings(BuildConfig.APPLICATION_ID)
+                    },
+                )
+            }
+        } else {
+            callback()
+        }
+    }
+
+    private fun launchScheduleSendDialog(originalDateTime: DateTime? = null) {
+        askForExactAlarmPermissionIfNeeded {
+            val blurTarget = findViewById<eightbitlab.com.blurview.BlurTarget>(R.id.mainBlurTarget)
+                ?: throw IllegalStateException("mainBlurTarget not found")
+            ScheduleMessageDialog(this, originalDateTime ?: scheduledDateTime, blurTarget) { newDateTime ->
+                if (newDateTime != null) {
+                    scheduledDateTime = newDateTime
+                    showScheduleMessageDialog()
+                }
+            }
+        }
+    }
+
+    private fun setupScheduleSendUi() = binding.messageHolder.apply {
+        val textColor = getProperTextColor()
+        scheduledMessageHolder.background.applyColorFilter(getProperPrimaryColor().darkenColor())
+        scheduledMessageIcon.applyColorFilter(textColor)
+        scheduledMessageButton.setTextColor(textColor)
+        scheduledMessagePress.setOnClickListener {
+            launchScheduleSendDialog(scheduledDateTime)
+        }
+        discardScheduledMessage.apply {
+            applyColorFilter(textColor)
+            setOnClickListener {
+                hideScheduleSendUi()
+            }
+        }
+    }
+
+    private fun showScheduleMessageDialog() {
+        isScheduledMessage = true
+        messageHolderHelper?.setScheduledMessage(true)
+        messageHolderHelper?.updateSendButtonDrawable()
+        binding.messageHolder.scheduledMessageHolder.beVisible()
+        val dateTime = scheduledDateTime
+        val millis = dateTime.millis
+        binding.messageHolder.scheduledMessageButton.text =
+            if (dateTime.yearOfCentury().get() > DateTime.now().yearOfCentury().get()) {
+                millis.formatDate(this)
+            } else {
+                val flags = FORMAT_SHOW_TIME or FORMAT_SHOW_DATE or FORMAT_NO_YEAR
+                DateUtils.formatDateTime(this, millis, flags)
+            }
+    }
+
+    private fun hideScheduleSendUi() {
+        isScheduledMessage = false
+        messageHolderHelper?.setScheduledMessage(false)
+        messageHolderHelper?.updateSendButtonDrawable()
+        binding.messageHolder.scheduledMessageHolder.beGone()
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun sendScheduledMessage(text: String, subscriptionId: Int, allNumbers: List<String>) {
+        val processedText = removeDiacriticsIfNeeded(text)
+        if (scheduledDateTime.millis < System.currentTimeMillis() + 1000L) {
+            toast(R.string.must_pick_time_in_the_future)
+            launchScheduleSendDialog(scheduledDateTime)
+            return
+        }
+        try {
+            ensureBackgroundThread {
+                val messageId = generateRandomId()
+                val participants = getParticipantsFromNumbers(allNumbers)
+                val message = buildScheduledMessage(processedText, subscriptionId, messageId, participants)
+                scheduleMessage(message)
+                messagesDB.insertOrUpdate(message)
+                createTemporaryThread(message, message.threadId, null) {
+                    runOnUiThread {
+                        messageHolderHelper?.clearMessage()
+                        hideScheduleSendUi()
+                        val numbersString = allNumbers.joinToString(";")
+                        val displayName = if (allNumbers.size == 1) allNumbers[0] else "${allNumbers.size} recipients"
+                        launchThreadActivity(numbersString, displayName, body = "", threadId = message.threadId)
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            showErrorToast(e.localizedMessage ?: getString(com.goodwy.commons.R.string.unknown_error_occurred))
+        }
+    }
+
+    private fun getParticipantsFromNumbers(numbers: List<String>): ArrayList<SimpleContact> {
+        val participants = ArrayList<SimpleContact>()
+        numbers.forEach { number ->
+            val name = getDisplayTextForPhoneNumber(number)
+            val phoneNumber = PhoneNumber(number, 0, "", number)
+            participants.add(
+                SimpleContact(
+                    rawId = 0,
+                    contactId = 0,
+                    name = name,
+                    photoUri = "",
+                    phoneNumbers = arrayListOf(phoneNumber),
+                    birthdays = ArrayList(),
+                    anniversaries = ArrayList()
+                )
+            )
+        }
+        return participants
+    }
+
+    private fun buildScheduledMessage(
+        text: String,
+        subscriptionId: Int,
+        messageId: Long,
+        participants: ArrayList<SimpleContact>
+    ): Message {
+        val threadId = messageId
+        val isGroupMms = participants.size > 1 && config.sendGroupMessageMMS
+        val isLongMms = isLongMmsMessage(text)
+        val hasAttachments = messageHolderHelper?.getAttachmentSelections()?.isNotEmpty() == true
+        val isMMS = hasAttachments || isGroupMms || isLongMms
+        val attachments = messageHolderHelper?.buildMessageAttachments(messageId) ?: ArrayList()
+        return Message(
+            id = messageId,
+            body = text,
+            type = MESSAGE_TYPE_QUEUED,
+            status = STATUS_NONE,
+            participants = participants,
+            date = (scheduledDateTime.millis / 1000).toInt(),
+            read = false,
+            threadId = threadId,
+            isMMS = isMMS,
+            attachment = MessageAttachment(messageId, text, attachments),
+            senderPhoneNumber = "",
+            senderName = "",
+            senderPhotoUri = "",
+            subscriptionId = subscriptionId,
+            isScheduled = true
+        )
+    }
+
     private fun handleForwardedMessage() {
         if (intent.action == Intent.ACTION_SEND || intent.action == Intent.ACTION_SEND_MULTIPLE) {
             // Handle text
@@ -1140,13 +1322,13 @@ class NewConversationActivity : SimpleActivity() {
         }
     }
     
-    private fun launchThreadActivity(phoneNumber: String, name: String, body: String = "", photoUri: String = "") {
+    private fun launchThreadActivity(phoneNumber: String, name: String, body: String = "", photoUri: String = "", threadId: Long? = null) {
         hideKeyboard()
 //        val text = intent.getStringExtra(Intent.EXTRA_TEXT) ?: intent.getStringExtra("sms_body") ?: ""
         val numbers = phoneNumber.split(";").toSet()
         val number = if (numbers.size == 1) phoneNumber else Gson().toJson(numbers)
         Intent(this, ThreadActivity::class.java).apply {
-            putExtra(THREAD_ID, getThreadId(numbers))
+            putExtra(THREAD_ID, threadId ?: getThreadId(numbers))
             putExtra(THREAD_TITLE, name)
             putExtra(THREAD_TEXT, body.ifEmpty { intent.getStringExtra(Intent.EXTRA_TEXT) })
             putExtra(THREAD_NUMBER, number)
