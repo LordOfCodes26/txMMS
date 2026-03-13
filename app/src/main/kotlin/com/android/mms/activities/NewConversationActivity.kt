@@ -1363,23 +1363,23 @@ class NewConversationActivity : SimpleActivity() {
         Log.d(debugTag, "updateAvailableMessageCountForCurrentSim: resolved slotId=$slotId")
         if (slotId == null) {
             Log.d(debugTag, "updateAvailableMessageCountForCurrentSim: slotId is null, hiding view")
-//            binding.messageHolder.threadAvailableMessageCount.beGone()
+             binding.messageHolder.threadAvailableMessageCount.beGone()
             return
         }
 
         ensureBackgroundThread {
             val smsCount = FeeInfoUtils.getAvailableSmsCountForSlot(this, slotId)
             Log.d(debugTag, "updateAvailableMessageCountForCurrentSim: slotId=$slotId, smsCount=$smsCount")
-//            runOnUiThread {
-//                val countView = binding.messageHolder.threadAvailableMessageCount
-//                if (smsCount == null) {
-//                    countView.beGone()
-//                } else {
-//                    countView.text = getString(R.string.available_sms_count, smsCount)
-//                    countView.setTextColor(getProperTextColor())
-//                    countView.beVisible()
-//                }
-//            }
+            runOnUiThread {
+                val countView = binding.messageHolder.threadAvailableMessageCount
+                countView.setTextColor(getProperTextColor())
+                if (smsCount == null) {
+                   countView.beGone()
+                } else {
+                    countView.text = getString(R.string.available_sms_count, smsCount)
+                    countView.beVisible()
+                }
+            }
         }
     }
 

@@ -187,18 +187,21 @@
         tools:textColor="@color/bw_30"
         tools:visibility="visible" />
 
-<!--    <com.goodwy.commons.views.MyTextView-->
-<!--        android:id="@+id/threadAvailableMessageCount"-->
-<!--        android:layout_width="wrap_content"-->
-<!--        android:layout_height="wrap_content"-->
-<!--        android:gravity="center"-->
-<!--        android:textSize="@dimen/smaller_text_size"-->
-<!--        android:visibility="gone"-->
-<!--        app:layout_constraintEnd_toEndOf="@+id/threadSelectSimIconHolder"-->
-<!--        app:layout_constraintStart_toStartOf="@+id/threadSelectSimIconHolder"-->
-<!--        app:layout_constraintTop_toBottomOf="@id/thread_select_sim_number"-->
-<!--        tools:text="0"-->
-<!--        tools:visibility="visible" />-->
+    <com.goodwy.commons.views.MyTextView
+        android:id="@+id/threadAvailableMessageCount"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:elevation="6dp"
+        android:gravity="center"
+        android:layout_marginBottom="@dimen/small_margin"
+        android:layout_marginEnd="@dimen/tiny_margin"
+        android:textColor="@color/default_text_color"
+        android:textSize="@dimen/tiny_text_size"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="@id/threadSendMessageWrapper"
+        app:layout_constraintEnd_toEndOf="@id/threadSendMessageWrapper"
+        tools:text="0"
+        tools:visibility="visible" />
 
     <com.goodwy.commons.views.MyTextView
         android:id="@+id/threadCharacterCounter"
@@ -219,8 +222,8 @@
 
     <LinearLayout
         android:id="@+id/threadSendMessageWrapper"
-        android:layout_width="@dimen/chips_input_chip_row_height"
-        android:layout_height="@dimen/medium_icon_size"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:layout_marginEnd="@dimen/normal_margin"
         android:clipChildren="false"
