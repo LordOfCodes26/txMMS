@@ -154,7 +154,7 @@
 
             </LinearLayout>
 
-            <com.goodwy.commons.views.MyTextView
+            <TextView
                 android:id="@+id/conversationDraft"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
