@@ -933,6 +933,9 @@ class ThreadActivity : SimpleActivity() {
             onExpandMessage = { showExpandedMessageFragment() },
             onTextChanged = { 
                 messageToResend = null
+            },
+            onHideAttachmentPickerRequested = {
+                isAttachmentPickerVisible = false
             }
         )
         
@@ -945,6 +948,8 @@ class ThreadActivity : SimpleActivity() {
                     isAttachmentPickerVisible = false
                     messageHolderHelper?.hideAttachmentPicker()
                 } else {
+                    hideKeyboard()
+                    threadTypeMessage.clearFocus()
                     isAttachmentPickerVisible = true
                     messageHolderHelper?.showAttachmentPicker()
                 }

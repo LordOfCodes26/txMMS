@@ -185,7 +185,10 @@ class NewConversationActivity : SimpleActivity() {
                 sendMessageAndNavigate(text, subscriptionId, attachments)
             },
             onSpeechToText = { speechToText() },
-            onExpandMessage = { showExpandedMessageFragment() }
+            onExpandMessage = { showExpandedMessageFragment() },
+            onHideAttachmentPickerRequested = {
+                isAttachmentPickerVisible = false
+            }
         )
         
         messageHolderHelper?.setup(isSpeechToTextAvailable)
@@ -196,6 +199,8 @@ class NewConversationActivity : SimpleActivity() {
                     isAttachmentPickerVisible = false
                     messageHolderHelper?.hideAttachmentPicker()
                 } else {
+                    hideKeyboard()
+                    threadTypeMessage.clearFocus()
                     isAttachmentPickerVisible = true
                     messageHolderHelper?.showAttachmentPicker()
                 }

@@ -11,9 +11,11 @@ import android.telephony.SmsMessage
 import android.telephony.SubscriptionInfo
 import android.util.TypedValue
 import android.view.KeyEvent
+import android.view.ViewGroup
 import android.view.animation.OvershootInterpolator
 import android.view.inputmethod.EditorInfo
 import android.widget.Toast
+import androidx.core.view.updateLayoutParams
 import androidx.core.content.res.ResourcesCompat
 import com.goodwy.commons.activities.BaseSimpleActivity
 import com.android.mms.R
@@ -34,7 +36,8 @@ class MessageHolderHelper(
     private val onSendMessage: (text: String, subscriptionId: Int?, attachments: List<Attachment>) -> Unit,
     private val onSpeechToText: () -> Unit = {},
     private val onExpandMessage: (() -> Unit)? = null,
-    private val onTextChanged: ((String) -> Unit)? = null
+    private val onTextChanged: ((String) -> Unit)? = null,
+    private val onHideAttachmentPickerRequested: (() -> Unit)? = null
 ) {
     private var isCountdownActive = false
     private var isSpeechToTextAvailable = false
@@ -87,6 +90,14 @@ class MessageHolderHelper(
                 applyColorFilter(textColor)
                 setOnClickListener {
                     onExpandMessage?.invoke()
+                }
+            }
+
+            threadTypeMessage.setOnFocusChangeListener { _, hasFocus ->
+                if (hasFocus) {
+                    onHideAttachmentPickerRequested?.invoke()
+                    hideAttachmentPicker()
+                    activity.showKeyboard(threadTypeMessage)
                 }
             }
 
@@ -455,6 +466,10 @@ class MessageHolderHelper(
     }
 
     fun showAttachmentPicker() {
+        val keyboardHeight = activity.config.keyboardHeight
+        binding.attachmentPickerHolder.updateLayoutParams<ViewGroup.LayoutParams> {
+            height = keyboardHeight
+        }
         binding.attachmentPickerHolder.showWithAnimation()
         animateAttachmentButton(rotation = -135f)
     }
