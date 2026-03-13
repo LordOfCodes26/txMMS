@@ -3,7 +3,6 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/message_holder"
-    android:background="@android:color/transparent"
     android:layout_width="match_parent"
     android:layout_height="wrap_content">
 
@@ -128,7 +127,7 @@
         android:id="@+id/threadTypeMessage"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:background="@drawable/popup_menu_rounded_bg"
+        android:background="@drawable/popup_menu_bg_you"
         android:gravity="center_vertical"
         android:hint="@string/type_a_message"
         android:inputType="textCapSentences|textMultiLine"

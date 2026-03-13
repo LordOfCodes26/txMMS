@@ -252,9 +252,9 @@ class ThreadActivity : SimpleActivity() {
             markThreadMessagesRead(threadId)
         }
 
-//        val bottomBarColor = getBottomBarColor()
+        val bottomBarColor = getBottomBarColor()
 //        binding.shortCodeHolder.root.setBackgroundColor(bottomBarColor)
-//        binding.messageHolder.attachmentPickerHolder.setBackgroundColor(bottomBarColor)
+        binding.messageHolder.attachmentPickerHolder.setBackgroundColor(bottomBarColor)
     }
 
     override fun onStart() {
@@ -990,7 +990,7 @@ class ThreadActivity : SimpleActivity() {
         val surfaceColor = if (useSurfaceColor) getProperBackgroundColor() else getSurfaceColor()
 
         binding.messageHolder.apply {
-            threadMessagesFastscroller.updateColors(getProperAccentColor())
+            threadMessagesFastscroller.updateColors(surfaceColor)
             threadAddAttachment.applyColorFilter(textColor)
             threadAddAttachment.background.applyColorFilter(surfaceColor)
         }
