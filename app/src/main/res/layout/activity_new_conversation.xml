@@ -23,6 +23,8 @@
         android:id="@+id/new_conversation_holder"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:clipChildren="false"
+        android:clipToPadding="false"
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
         <com.goodwy.commons.views.MyTextView

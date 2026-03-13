@@ -1,6 +1,7 @@
 package com.android.mms.helpers
 
 import android.annotation.SuppressLint
+import android.graphics.drawable.GradientDrawable
 import android.content.Intent
 import android.media.AudioManager
 import android.net.Uri
@@ -65,7 +66,7 @@ class MessageHolderHelper(
         val surfaceColor = if (useSurfaceColor) activity.getProperBackgroundColor() else activity.getSurfaceColor()
 
         binding.apply {
-            threadSendMessage.applyColorFilter(properPrimaryColor.getContrastColor())
+            threadSendMessage.applyColorFilter(textColor)
             threadAddAttachment.applyColorFilter(textColor)
             threadAddAttachment.background.applyColorFilter(surfaceColor)
             // threadTypeMessageHolder.background.applyColorFilter(surfaceColor)
@@ -82,7 +83,10 @@ class MessageHolderHelper(
                 }
             }
 
-            threadSendMessage.backgroundTintList = properPrimaryColor.getColorStateList()
+            (ResourcesCompat.getDrawable(activity.resources, R.drawable.thread_send_message_circle_border, activity.theme)?.mutate() as? GradientDrawable)?.let { drawable ->
+                drawable.setStroke((activity.resources.displayMetrics.density).toInt(), textColor)
+                threadSendMessage.background = drawable
+            }
             threadSendMessageWrapper.isClickable = false
             threadSendMessageCountdown.beGone()
 
@@ -279,7 +283,7 @@ class MessageHolderHelper(
         } else {
             com.android.common.R.drawable.ic_cmn_sms_send
         }
-        binding.threadSendMessage.applyColorFilter(activity.getProperPrimaryColor().getContrastColor())
+        binding.threadSendMessage.applyColorFilter(activity.getProperTextColor())
 //        ResourcesCompat.getDrawable(activity.resources, drawableResId, activity.theme)?.apply {
 //            applyColorFilter(activity.getProperPrimaryColor().getContrastColor())
 //            binding.threadSendMessage.setImageDrawable(this)

@@ -5,6 +5,8 @@
     android:id="@+id/message_holder"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:clipChildren="false"
+    android:clipToPadding="false"
     android:paddingBottom="@dimen/normal_margin">
 
     <RelativeLayout
@@ -221,6 +223,8 @@
         android:layout_height="@dimen/medium_icon_size"
         android:orientation="horizontal"
         android:layout_marginEnd="@dimen/normal_margin"
+        android:clipChildren="false"
+        android:clipToPadding="false"
         android:background="?selectableItemBackgroundBorderless"
         app:layout_constraintBottom_toBottomOf="@id/threadAddAttachmentHolder"
         app:layout_constraintEnd_toEndOf="parent" >
@@ -232,9 +236,10 @@
             android:layout_gravity="center"
             android:foregroundGravity="center"
             android:alpha="0.9"
-            android:background="@drawable/thread_background"
+            android:background="@drawable/thread_send_message_circle_border"
             android:clickable="false"
             android:contentDescription="@string/ok"
+            android:layout_marginStart="@dimen/small_margin"
             android:padding="@dimen/smaller_margin"
             android:src="@drawable/ic_cmn_sms_send" />
 
