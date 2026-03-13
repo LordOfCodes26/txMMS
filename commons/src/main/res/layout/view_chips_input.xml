@@ -19,7 +19,7 @@
 
         <com.google.android.flexbox.FlexboxLayout
             android:id="@+id/chips_flex_container"
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             app:flexWrap="wrap"
             app:flexDirection="row"
