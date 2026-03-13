@@ -362,8 +362,14 @@ class ThreadActivity : SimpleActivity() {
                 val appBarHeightPx = resources.getDimensionPixelSize(com.goodwy.commons.R.dimen.blur_app_bar_height)
 
                 val messagesList = binding.threadMessagesList
-                if (ime.bottom > 0) {
-                    messagesList.setPadding(0, appBarHeightPx, 0, dp(50) + navHeight + ime.bottom)
+                // When keyboard is open OR attachment picker is shown, add extra bottom padding so message bubbles move up
+                val extraBottomPadding = when {
+                    ime.bottom > 0 -> ime.bottom
+                    isAttachmentPickerVisible -> config.keyboardHeight + 24
+                    else -> 0
+                }
+                if (extraBottomPadding > 0) {
+                    messagesList.setPadding(0, appBarHeightPx, 0, dp(50) + navHeight + extraBottomPadding)
                     messagesList.scrollToPosition((messagesList.adapter?.itemCount ?: 1) - 1)
                 } else {
                     // Don't add navHeight to margin: setupEdgeToEdge already pads barContainer bottom.
@@ -936,6 +942,7 @@ class ThreadActivity : SimpleActivity() {
             },
             onHideAttachmentPickerRequested = {
                 isAttachmentPickerVisible = false
+                binding.root.post { ViewCompat.requestApplyInsets(binding.root) }
             }
         )
         
@@ -954,6 +961,8 @@ class ThreadActivity : SimpleActivity() {
                     messageHolderHelper?.showAttachmentPicker()
                 }
                 threadTypeMessage.requestApplyInsets()
+                // Re-apply window insets so message bubbles move up when attachment picker is shown
+                binding.root.post { ViewCompat.requestApplyInsets(binding.root) }
             }
 
             if (intent.extras?.containsKey(THREAD_ATTACHMENT_URI) == true) {
