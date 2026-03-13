@@ -206,8 +206,8 @@ class SettingsActivity : SimpleActivity() {
     private fun initBouncyListener() {
         binding.settingsMenu.setupOffsetListener { verticalOffset, height ->
             val h = if (height > 0) height else 1
-            binding.settingsMenu.titleView?.scaleX = (1 + 0.7f * verticalOffset / h)
-            binding.settingsMenu.titleView?.scaleY = (1 + 0.7f * verticalOffset / h)
+            binding.settingsMenu.titleView?.scaleX = (1 + 0.8f * verticalOffset / h)
+            binding.settingsMenu.titleView?.scaleY = (1 + 0.8f * verticalOffset / h)
         }
     }
 

@@ -91,8 +91,8 @@ class MessageBubblePickerActivity : SimpleActivity() {
     private fun initBouncyListener() {
         binding.bubblePickerAppbar.setupOffsetListener { verticalOffset, height ->
             val h = if (height > 0) height else 1
-            binding.bubblePickerAppbar.titleView?.scaleX = (1 + 0.7f * verticalOffset / h)
-            binding.bubblePickerAppbar.titleView?.scaleY = (1 + 0.7f * verticalOffset / h)
+            binding.bubblePickerAppbar.titleView?.scaleX = (1 + 0.8f * verticalOffset / h)
+            binding.bubblePickerAppbar.titleView?.scaleY = (1 + 0.8f * verticalOffset / h)
         }
     }
 

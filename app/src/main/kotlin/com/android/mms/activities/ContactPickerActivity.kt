@@ -211,8 +211,8 @@ class ContactPickerActivity : SimpleActivity() {
     private fun initBouncyListener() {
         blurAppBarLayout?.setupOffsetListener { verticalOffset, height ->
             val h = if (height > 0) height else 1
-            blurAppBarLayout?.titleView?.scaleX = (1 + 0.7f * verticalOffset / h)
-            blurAppBarLayout?.titleView?.scaleY = (1 + 0.7f * verticalOffset / h)
+            blurAppBarLayout?.titleView?.scaleX = (1 + 0.8f * verticalOffset / h)
+            blurAppBarLayout?.titleView?.scaleY = (1 + 0.8f * verticalOffset / h)
         }
     }
 

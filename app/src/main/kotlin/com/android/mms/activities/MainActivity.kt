@@ -588,8 +588,8 @@ class MainActivity : SimpleActivity() {
     private fun initBouncyListener() {
         binding.mainMenu.setupOffsetListener { verticalOffset, height ->
             val h = if (height > 0) height else 1
-            binding.mainMenu.titleView?.scaleX = (1 + 0.7f * verticalOffset / h)
-            binding.mainMenu.titleView?.scaleY = (1 + 0.7f * verticalOffset / h)
+            binding.mainMenu.titleView?.scaleX = (1 + 0.8f * verticalOffset / h)
+            binding.mainMenu.titleView?.scaleY = (1 + 0.8f * verticalOffset / h)
         }
     }
 

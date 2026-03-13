@@ -2,6 +2,7 @@ package com.android.mms.activities
 
 import android.annotation.SuppressLint
 import android.content.Intent
+import android.graphics.Color
 import android.content.res.ColorStateList
 import android.content.res.Configuration
 import android.graphics.drawable.LayerDrawable
@@ -19,11 +20,13 @@ import android.text.TextUtils
 import android.util.Log
 import android.view.KeyEvent
 import android.view.View
+import android.view.ViewGroup
 import android.view.WindowManager
 import android.view.animation.OvershootInterpolator
 import android.view.inputmethod.EditorInfo
 import android.widget.Toast
 import androidx.core.content.res.ResourcesCompat
+import androidx.core.view.updateLayoutParams
 import androidx.documentfile.provider.DocumentFile
 import androidx.recyclerview.widget.RecyclerView
 import com.google.gson.Gson
@@ -78,8 +81,12 @@ class NewConversationActivity : SimpleActivity() {
         setContentView(binding.root)
         title = getString(R.string.new_conversation)
         updateTextColors(binding.newConversationHolder)
+        // Match ContactPickerActivity: transparent status/nav bars
+        window.navigationBarColor = Color.TRANSPARENT
+        window.statusBarColor = Color.TRANSPARENT
 
         setupEdgeToEdge(padBottomImeAndSystem = listOf(binding.contactsList, binding.messageHolder.root))
+        setupTitleScrollAnimation()
 //        setupMaterialScrollListener(
 //            scrollingView = binding.contactsList,
 //            topAppBar = binding.newConversationAppbar
@@ -99,9 +106,43 @@ class NewConversationActivity : SimpleActivity() {
         super.onResume()
         val getProperPrimaryColor = getProperPrimaryColor()
 
+        // Match ContactPickerActivity: transparent status/nav bars, same background logic
+        @Suppress("DEPRECATION")
+        if (isSystemInDarkMode()) {
+            window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+        } else {
+            @Suppress("DEPRECATION")
+            window.decorView.systemUiVisibility = (
+                View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                    or View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
+                    or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
+            )
+        }
         val useSurfaceColor = isDynamicTheme() && !isSystemInDarkMode()
         val backgroundColor = if (useSurfaceColor) getSurfaceColor() else getProperBackgroundColor()
-        setupTopAppBar(binding.newConversationAppbar, NavigationIcon.Arrow, topBarColor = backgroundColor)
+        // Match ContactPickerActivity: BlurAppBarLayout with same setupTopBarNavigation pattern
+        binding.root.setBackgroundColor(backgroundColor)
+        binding.newConversationAppbar.setTitle(getString(R.string.new_conversation))
+        binding.newConversationAppbar.titleView?.apply {
+            setTextColor(getProperTextColor())
+            setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, getTextSize())
+        }
+        binding.newConversationAppbar.titleView?.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+            marginStart = (64 * resources.displayMetrics.density).toInt()
+        }
+        binding.newConversationAppbar.toolbar?.apply {
+            val textColor = getProperTextColor()
+            navigationIcon = resources.getColoredDrawableWithColor(
+                this@NewConversationActivity,
+                com.android.common.R.drawable.ic_cmn_arrow_left_fill,
+                textColor
+            )
+            setNavigationContentDescription(com.goodwy.commons.R.string.back)
+            setNavigationOnClickListener {
+                hideKeyboard()
+                finish()
+            }
+        }
         binding.newConversationHolder.setBackgroundColor(backgroundColor)
         binding.suggestionsOverlay.setBackgroundColor(backgroundColor)
 //        binding.newConversationAddress.setBackgroundColor(backgroundColor)
@@ -125,6 +166,15 @@ class NewConversationActivity : SimpleActivity() {
         }
     }
     
+    /** Match ContactPickerActivity: scale title based on app bar scroll offset. */
+    private fun setupTitleScrollAnimation() {
+        binding.newConversationAppbar.setupOffsetListener { verticalOffset, height ->
+            val h = if (height > 0) height else 1
+            binding.newConversationAppbar.titleView?.scaleX = (1 + 0.8f * verticalOffset / h)
+            binding.newConversationAppbar.titleView?.scaleY = (1 + 0.8f * verticalOffset / h)
+        }
+    }
+
     private fun setupMessageHolder() {
         isSpeechToTextAvailable = isSpeechToTextAvailable()
         
