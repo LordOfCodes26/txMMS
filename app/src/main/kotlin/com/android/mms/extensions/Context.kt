@@ -1827,8 +1827,8 @@ fun Context.getPackageDrawable(packageName: String): Drawable {
 }
 
 fun Context.getTextSizeMessage() = when (config.fontSizeMessage) {
-    FONT_SIZE_SMALL -> resources.getDimension(com.goodwy.commons.R.dimen.normal_text_size)
-    FONT_SIZE_MEDIUM -> resources.getDimension(com.goodwy.commons.R.dimen.bigger_text_size)
-    FONT_SIZE_LARGE -> resources.getDimension(com.goodwy.commons.R.dimen.big_text_size)
-    else -> resources.getDimension(com.goodwy.commons.R.dimen.extra_big_text_size)
+    FONT_SIZE_SMALL -> resources.getDimension(com.goodwy.commons.R.dimen.smaller_text_size)
+    FONT_SIZE_MEDIUM -> resources.getDimension(com.goodwy.commons.R.dimen.normal_text_size)
+    FONT_SIZE_LARGE -> resources.getDimension(com.goodwy.commons.R.dimen.bigger_text_size)
+    else -> resources.getDimension(com.goodwy.commons.R.dimen.big_text_size)
 }

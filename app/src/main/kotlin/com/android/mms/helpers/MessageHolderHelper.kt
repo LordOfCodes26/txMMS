@@ -18,6 +18,7 @@ import android.view.inputmethod.EditorInfo
 import android.widget.Toast
 import androidx.core.view.updateLayoutParams
 import androidx.core.content.res.ResourcesCompat
+import com.android.common.dialogs.MDateTimePickerDialog
 import com.goodwy.commons.activities.BaseSimpleActivity
 import com.android.mms.R
 import com.android.mms.adapters.AttachmentsAdapter
@@ -218,19 +219,27 @@ class MessageHolderHelper(
 //            chooseCamera
 //            chooseTitle
             chooseClock.setOnClickListener {
-                onScheduleMessage?.invoke() ?: activity.toast(com.goodwy.commons.R.string.unknown_error_occurred)
+                val blurTarget = activity.findViewById<eightbitlab.com.blurview.BlurTarget>(R.id.mainBlurTarget)
+                    ?: throw IllegalStateException("mainBlurTarget not found")
+                val mDateTimePickerDialog = MDateTimePickerDialog(activity);
+                mDateTimePickerDialog.bindBlurTarget(blurTarget)
+                mDateTimePickerDialog.show()
+                mDateTimePickerDialog.setOnDateSelectListener { datetime ->
+                    insertText(datetime.toLocaleString())
+                }
             }
             chooseImage.setOnClickListener { onChoosePhoto() }
             chooseEmoji.setOnClickListener { onChooseVideo() }
+            chooseText.setOnClickListener { onPickQuickText() }
             chooseCamera.setOnClickListener { onTakePhoto() }
             chooseCamera.setOnClickListener { onRecordVideo() }
             chooseVoice.setOnClickListener { onRecordAudio() }
 //            pickFile.setOnClickListener { onPickFile() }
             chooseContact.setOnClickListener { onPickContact() }
             chooseTitle.setOnClickListener {
-                onScheduleMessage?.invoke() ?: activity.toast(com.goodwy.commons.R.string.unknown_error_occurred)
+                onPickQuickText()
             }
-            chooseText.setOnClickListener { onPickQuickText() }
+
         }
     }
 

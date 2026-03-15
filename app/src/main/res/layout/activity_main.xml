@@ -52,20 +52,16 @@
                                 app:showDelay="250"
                                 tools:visibility="visible" />
 
-                            <com.goodwy.commons.views.MyTextView
+                            <ImageView
                                 android:id="@+id/no_conversations_placeholder"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:layout_centerHorizontal="true"
-                                android:layout_marginTop="@dimen/bigger_margin"
-                                android:alpha="0.8"
+                                android:layout_width="wrap_content"
+                                android:layout_height="@dimen/tx_bottom_bar_height"
+                                android:layout_centerInParent="true"
+                                android:contentDescription="@null"
+                                android:scaleType="fitCenter"
                                 android:gravity="center"
-                                android:paddingLeft="@dimen/activity_margin"
-                                android:paddingRight="@dimen/activity_margin"
-                                android:text="@string/no_conversations_found"
-                                android:textSize="@dimen/bigger_text_size"
-                                android:textStyle="italic"
-                                android:visibility="gone" />
+                                android:src="@drawable/ic_no_sms"
+                                android:visibility="visible" />
 
                             <com.goodwy.commons.views.MyTextView
                                 android:id="@+id/no_conversations_placeholder_2"
@@ -76,9 +72,9 @@
                                 android:background="@drawable/ripple_all_corners"
                                 android:gravity="center"
                                 android:padding="@dimen/activity_margin"
-                                android:text="@string/start_conversation"
+                                android:text="@string/no_conversations_found"
                                 android:textSize="@dimen/bigger_text_size"
-                                android:visibility="gone" />
+                                android:visibility="visible" />
 
                         </RelativeLayout>
 

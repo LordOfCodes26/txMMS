@@ -4,9 +4,9 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="@drawable/popup_menu_bg_you"
-    android:paddingHorizontal="@dimen/medium_normal_margin"
-    android:paddingVertical="@dimen/smaller_margin">
+    android:background="@drawable/bg_input"
+    android:paddingHorizontal="@dimen/normal_margin"
+    android:paddingVertical="@dimen/medium_margin">
 
     <!-- MaxHeightScrollView clamps height so chips/text scroll instead of expanding the screen.
          fillViewport=false so chips_edit_wrapper stays compact when empty (no stretch to viewport). -->
