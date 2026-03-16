@@ -304,7 +304,7 @@ class Config(context: Context) : BaseConfig(context) {
         set(copyNumberAndDelete) = prefs.edit { putBoolean(COPY_NUMBER_AND_DELETE_PREF, copyNumberAndDelete) }
 
     var fontSizeMessage: Int
-        get() = prefs.getInt(FONT_SIZE_MESSAGE, 1)
+        get() = prefs.getInt(FONT_SIZE_MESSAGE, 0)
         set(fontSizeMessage) = prefs.edit { putInt(FONT_SIZE_MESSAGE, fontSizeMessage) }
 
     var fontSizeMessageMultiplier: Float

@@ -27,8 +27,8 @@ class QuickTextSelectionDialog(
         
         blurView.setOverlayColor(activity.getProperBlurOverlayColor())
         blurView.setupWith(blurTarget)
-            .setFrameClearDrawable(windowBackground)
-            .setBlurRadius(5f)
+            // .setFrameClearDrawable(windowBackground)
+            .setBlurRadius(16f)
             .setBlurAutoUpdate(true)
 
         // Setup title
@@ -62,23 +62,23 @@ class QuickTextSelectionDialog(
                     false
                 )
                 val binding = com.goodwy.commons.databinding.ItemSimpleListBinding.bind(itemView)
-                
+
                 binding.bottomSheetItemTitle.text = quickText
                 binding.bottomSheetItemTitle.setTextColor(textColor)
                 binding.bottomSheetItemIcon.beGone()
                 binding.bottomSheetButton.beGone()
-                
+
                 itemView.setOnClickListener {
                     callback(quickText)
                     dialog?.dismiss()
                 }
-                
+
                 // Add ripple effect
                 itemView.background = activity.resources.getDrawable(
                     com.goodwy.commons.R.drawable.ripple_all_corners,
                     activity.theme
                 )
-                
+
                 listContainer.addView(itemView)
             }
         }

@@ -60,7 +60,7 @@
     <string name="invalid_short_code_desc">\"AB-CD0\"과 같은 단어를 포함한 단축코드가 아닌 \"503501\"과 같은 수자단축코드에만 회답할수 있습니다.</string>
     <string name="faq_1_text">MMS 첨부화일을 전송하려면 인터네트접근이 필요합니다.</string>
     <string name="message_not_sent_short">통보문 전송안됨</string>
-    <string name="no_conversations_found">보관된 통보문이 없습니다</string>
+    <string name="no_conversations_found">통보문리력이 없습니다.</string>
     <string name="reply">회답</string>
     <string name="unpin_conversation">고정 해제</string>
     <string name="members">성원</string>

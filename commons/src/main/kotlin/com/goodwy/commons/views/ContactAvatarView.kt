@@ -436,8 +436,11 @@ class ContactAvatarView @JvmOverloads constructor(
      * Prevents memory leaks by clearing Glide requests.
      */
     override fun onDetachedFromWindow() {
-        super.onDetachedFromWindow()
-        clearImageRequest()
+        try {
+            super.onDetachedFromWindow()
+            clearImageRequest()
+        } catch (e: Exception){
+        }
     }
 
     /**

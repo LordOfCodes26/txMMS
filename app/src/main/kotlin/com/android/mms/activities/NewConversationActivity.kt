@@ -170,8 +170,8 @@ class NewConversationActivity : SimpleActivity() {
             }
         }
         binding.newConversationHolder.setBackgroundColor(backgroundColor)
+        binding.newConversationAddress.setBackgroundColor(backgroundColor)
         binding.suggestionsOverlay.setBackgroundColor(backgroundColor)
-//        binding.newConversationAddress.setBackgroundColor(backgroundColor)
 
         binding.noContactsPlaceholder2.setTextColor(getProperPrimaryColor)
         binding.noContactsPlaceholder2.underlineText()

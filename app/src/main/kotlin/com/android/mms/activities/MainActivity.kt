@@ -185,10 +185,10 @@ class MainActivity : SimpleActivity() {
         binding.searchResultsList.setBackgroundColor(backgroundColor)
 
         val properPrimaryColor = getProperPrimaryColor()
-        binding.noConversationsPlaceholder2.setTextColor(properPrimaryColor)
-        binding.noConversationsPlaceholder2.underlineText()
+        binding.noConversationsPlaceholder2.setTextColor(getProperTextColor())
+        // binding.noConversationsPlaceholder2.underlineText()
         binding.conversationsFastscroller.updateColors(getProperAccentColor())
-        binding.conversationsProgressBar.setIndicatorColor(properPrimaryColor)
+        // binding.conversationsProgressBar.setIndicatorColor(properPrimaryColor)
         binding.conversationsProgressBar.trackColor = properPrimaryColor.adjustAlpha(LOWER_ALPHA)
         checkShortcut()
 
@@ -694,9 +694,9 @@ class MainActivity : SimpleActivity() {
 
     private fun initMessenger() {
         getCachedConversations()
-        binding.noConversationsPlaceholder2.setOnClickListener {
-            launchNewConversation()
-        }
+//        binding.noConversationsPlaceholder2.setOnClickListener {
+//            launchNewConversation()
+//        }
 
         binding.conversationsFab.setOnClickListener {
             launchNewConversation()
@@ -927,7 +927,7 @@ class MainActivity : SimpleActivity() {
         if (show) {
             binding.conversationsProgressBar.show()
             binding.noConversationsPlaceholder.beVisible()
-            binding.noConversationsPlaceholder.text = getString(R.string.loading_messages)
+            binding.noConversationsPlaceholder2.text = getString(R.string.loading_messages)
         } else {
             binding.conversationsProgressBar.hide()
             binding.noConversationsPlaceholder.beGone()
@@ -937,7 +937,7 @@ class MainActivity : SimpleActivity() {
     private fun showOrHidePlaceholder(show: Boolean) {
         binding.conversationsFastscroller.beGoneIf(show)
         binding.noConversationsPlaceholder.beVisibleIf(show)
-        binding.noConversationsPlaceholder.text = getString(R.string.no_conversations_found)
+        binding.noConversationsPlaceholder2.text = getString(R.string.no_conversations_found)
         binding.noConversationsPlaceholder2.beVisibleIf(show)
     }
 
