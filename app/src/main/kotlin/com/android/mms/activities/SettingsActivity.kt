@@ -359,7 +359,7 @@ class SettingsActivity : SimpleActivity() {
                 it.setTextColor(properPrimaryColor)
             }
 
-            val surfaceColor = getSurfaceColor()
+            val cardBgColor = resources.getColor(com.android.common.R.color.tx_cardview_bg)
             arrayOf(
                 settingsColorCustomizationHolder,
                 settingsGeneralHolder,
@@ -373,7 +373,7 @@ class SettingsActivity : SimpleActivity() {
                 settingsSecurityHolder,
                 settingsBackupsHolder
             ).forEach {
-                it.setCardBackgroundColor(surfaceColor)
+                it.setCardBackgroundColor(cardBgColor)
             }
 
             val properTextColor = getProperTextColor()
