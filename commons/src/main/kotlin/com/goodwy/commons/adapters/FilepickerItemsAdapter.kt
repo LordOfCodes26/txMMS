@@ -41,6 +41,7 @@ class FilepickerItemsAdapter(
     }
 
     override fun getActionMenuId() = 0
+    override fun getMorePopupMenuId() = 0
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) = createViewHolder(R.layout.item_filepicker_list, parent)
 

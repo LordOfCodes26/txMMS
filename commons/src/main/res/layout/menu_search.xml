@@ -19,4 +19,11 @@
             android:layout_alignParentEnd="true"
             android:layout_marginEnd="@dimen/small_margin" />
     </RelativeLayout>
+
+    <com.goodwy.commons.views.CustomActionModeToolbar
+        android:id="@+id/actionModeToolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:background="@android:color/transparent"
+        android:visibility="gone" />
 </merge>

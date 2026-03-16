@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ImageView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
+    android:layout_marginHorizontal="@dimen/tx_cardview_card_title_margin_left"
     android:layout_height="@dimen/divider_height"
     android:background="@color/divider_grey"/>

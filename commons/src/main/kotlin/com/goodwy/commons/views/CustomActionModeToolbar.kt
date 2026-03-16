@@ -4,21 +4,15 @@ import android.content.Context
 import android.content.res.ColorStateList
 import android.graphics.drawable.Drawable
 import android.util.AttributeSet
-import android.util.TypedValue
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.Menu
 import android.view.MenuInflater
 import android.view.MenuItem
 import android.view.View
-import android.view.ViewGroup
-import android.widget.ImageView
 import android.widget.LinearLayout
-import android.graphics.PorterDuff
 import androidx.appcompat.view.menu.MenuBuilder
-import androidx.appcompat.view.menu.MenuItemImpl
 import androidx.core.content.ContextCompat
-import com.android.common.view.MImageButton
 import java.lang.reflect.Method
 import com.goodwy.commons.R
 import com.goodwy.commons.databinding.CustomActionModeToolbarBinding
@@ -30,7 +24,7 @@ import com.goodwy.commons.views.BlurPopupMenu
 /**
  * Custom action mode toolbar implementation similar to CustomToolbar
  * that provides customizable title and navigation icon for ActionMode.
- * 
+ *
  * This toolbar is designed to be used as a custom view for ActionMode,
  * allowing full control over the title appearance and behavior.
  */
@@ -40,27 +34,69 @@ class CustomActionModeToolbar @JvmOverloads constructor(
     defStyleAttr: Int = 0
 ) : LinearLayout(context, attrs, defStyleAttr) {
 
+    companion object {
+        private val getMenuMethodCache = mutableMapOf<Class<*>, Method>()
+        private val setMenuItemListenerMethodCache = mutableMapOf<Class<*>, Method>()
+
+        private fun getMenuViaReflection(target: Any): Menu? = runCatching {
+            val clazz = target.javaClass
+            val method = getMenuMethodCache.getOrPut(clazz) {
+                clazz.getMethod("getMenu")
+            }
+            @Suppress("UNCHECKED_CAST")
+            method.invoke(target) as? Menu
+        }.getOrNull()
+
+        private fun setOnMenuItemClickListenerViaReflection(
+            target: Any,
+            listener: MenuItem.OnMenuItemClickListener
+        ): Boolean = runCatching {
+            val clazz = target.javaClass
+            val method = setMenuItemListenerMethodCache.getOrPut(clazz) {
+                clazz.getMethod("setOnMenuItemClickListener", MenuItem.OnMenuItemClickListener::class.java)
+            }
+            method.invoke(target, listener)
+            true
+        }.getOrDefault(false)
+
+        /**
+         * Creates a CustomActionModeToolbar instance suitable for use as ActionMode custom view.
+         *
+         * @param context The context to use
+         * @param title The initial title text
+         * @param onTitleClick The click listener for the title (typically for select all/deselect all)
+         * @return A configured CustomActionModeToolbar instance
+         */
+        fun create(
+            context: Context,
+            title: CharSequence? = null,
+            onTitleClick: (() -> Unit)? = null
+        ): CustomActionModeToolbar {
+            val toolbar = CustomActionModeToolbar(context)
+            toolbar.title = title
+            if (onTitleClick != null) {
+                toolbar.setOnTitleClickListener { onTitleClick() }
+            }
+            return toolbar
+        }
+    }
+
     private var binding: CustomActionModeToolbarBinding? = null
     private var onTitleClickListener: OnClickListener? = null
     private var onNavigationClickListener: OnClickListener? = null
-    
+
     private var _menu: Menu? = null
+    private var _action_menu: Menu? = null
     private var menuInflater: MenuInflater? = null
+    private var actionMenuInflater: MenuInflater? = null
+    private var hasInflatedActionBarMenu = false
     private var onMenuItemClickListener: MenuItem.OnMenuItemClickListener? = null
     private var popupWindow: BlurPopupMenu? = null
     private var overflowItems: List<MenuItem> = emptyList()
     private var isUpdatingMenu = false
-    private var requiresActionButtonMethod: Method? = null
-    
-    // Cached views to avoid repeated findViewById calls
-    private var cachedActionButtonsContainer: LinearLayout? = null
-    
-    // Cached dimension values
-    private var cachedIconSize: Int = -1
-    private var cachedMargin: Int = -1
-    private var cachedPadding: Int = -1
+
     private var cachedTextColor: Int = -1
-    
+
     // Menu update optimization flags
     private var menuNeedsUpdate = false
     private var pendingMenuUpdate: Runnable? = null
@@ -72,13 +108,14 @@ class CustomActionModeToolbar @JvmOverloads constructor(
 
     private fun navigationActionBarMenu(): Menu? {
         val actionBar = navigationActionBarView() ?: return null
-        return runCatching {
-            val method = actionBar.javaClass.getMethod("getMenu")
-            method.invoke(actionBar) as? Menu
-        }.getOrNull()
+        return getMenuViaReflection(actionBar)
     }
 
-    private fun inflateNavigationIconViewMenu() {
+    /**
+     * Inflates [R.menu.cab_navigation_only] into the navigation icon view (back button).
+     * Called from init; call again to re-inflate the navigation menu.
+     */
+    fun inflateNavigationIconViewMenu() {
         binding?.navigationIconView?.inflateMenu(R.menu.cab_navigation_only)
     }
 
@@ -86,8 +123,10 @@ class CustomActionModeToolbar @JvmOverloads constructor(
         navigationIconDrawable = drawable?.mutate()
         val actionBarView = navigationActionBarView() ?: return
         val menu = navigationActionBarMenu()
+
         if (menu != null) {
-            val navItem = menu.findItem(R.id.cab_remove) ?: if (menu.size() > 0) menu.getItem(0) else null
+            val fallbackItem = if (menu.size() > 0) menu.getItem(0) else null
+            val navItem = menu.findItem(R.id.cab_remove) ?: fallbackItem
             if (navItem != null) {
                 if (navigationIconDrawable != null) {
                     navItem.icon = navigationIconDrawable
@@ -95,6 +134,7 @@ class CustomActionModeToolbar @JvmOverloads constructor(
                 navItem.isVisible = true
             }
         }
+
         val showNav = (menu?.size() ?: 0) > 0 || navigationIconDrawable != null
         actionBarView.visibility = if (showNav) View.VISIBLE else View.GONE
         bindNavigationActionBarClickListener()
@@ -102,17 +142,10 @@ class CustomActionModeToolbar @JvmOverloads constructor(
 
     private fun bindNavigationActionBarClickListener() {
         val actionBar = navigationActionBarView() ?: return
-        runCatching {
-            val method = actionBar.javaClass.getMethod(
-                "setOnMenuItemClickListener",
-                MenuItem.OnMenuItemClickListener::class.java
-            )
-            val listener = MenuItem.OnMenuItemClickListener {
-                onNavigationClickListener?.onClick(actionBar)
-                true
-            }
-            method.invoke(actionBar, listener)
-        }
+        setOnMenuItemClickListenerViaReflection(actionBar, MenuItem.OnMenuItemClickListener {
+            onNavigationClickListener?.onClick(actionBar)
+            true
+        })
     }
 
     var navigationIcon: Drawable?
@@ -120,7 +153,7 @@ class CustomActionModeToolbar @JvmOverloads constructor(
         set(value) {
             applyNavigationIconDrawable(value)
         }
-    
+
     var title: CharSequence?
         get() = binding?.titleTextView?.text
         set(value) {
@@ -129,7 +162,7 @@ class CustomActionModeToolbar @JvmOverloads constructor(
                 visibility = if (value != null && value.isNotEmpty()) View.VISIBLE else View.GONE
             }
         }
-    
+
     val menu: Menu
         get() {
             if (_menu == null) {
@@ -137,22 +170,28 @@ class CustomActionModeToolbar @JvmOverloads constructor(
             }
             return _menu!!
         }
-    
+
+    /** Menu inflated into the action bar (when using [inflateMenu]). Like [CustomToolbar.actionMenu]. */
+    val actionMenu: Menu
+        get() {
+            if (_action_menu == null) {
+                _action_menu = MenuBuilder(context)
+            }
+            return _action_menu!!
+        }
+
     // Overflow (more) icon when using MActionBar
     private var overflowIconDrawable: Drawable? = null
 
-    private fun menuActionBarView(): View? = binding?.root?.findViewById(R.id.menuButton)
+    private fun menuActionBarView(): View? = binding?.root?.findViewById(R.id.actionbar)
 
     private fun menuActionBarMenu(): Menu? {
         val actionBar = menuActionBarView() ?: return null
-        return runCatching {
-            val method = actionBar.javaClass.getMethod("getMenu")
-            method.invoke(actionBar) as? Menu
-        }.getOrNull()
+        return getMenuViaReflection(actionBar)
     }
 
     private fun inflateMenuActionBarMenu() {
-        binding?.menuButton?.inflateMenu(R.menu.cab_more_only)
+        binding?.actionbar?.inflateMenu(R.menu.cab_more_only)
     }
 
     private fun applyOverflowIcon(drawable: Drawable?) {
@@ -160,7 +199,8 @@ class CustomActionModeToolbar @JvmOverloads constructor(
         val actionBarView = menuActionBarView() ?: return
         val menu = menuActionBarMenu()
         if (menu != null) {
-            val moreItem = menu.findItem(R.id.cab_more) ?: if (menu.size() > 0) menu.getItem(0) else null
+            val fallbackItem = if (menu.size() > 0) menu.getItem(0) else null
+            val moreItem = menu.findItem(R.id.cab_more) ?: fallbackItem
             if (moreItem != null) {
                 if (overflowIconDrawable != null) {
                     moreItem.icon = overflowIconDrawable
@@ -173,17 +213,17 @@ class CustomActionModeToolbar @JvmOverloads constructor(
 
     private fun bindMenuActionBarClickListener() {
         val actionBar = menuActionBarView() ?: return
-        runCatching {
-            val method = actionBar.javaClass.getMethod(
-                "setOnMenuItemClickListener",
-                MenuItem.OnMenuItemClickListener::class.java
-            )
-            val listener = MenuItem.OnMenuItemClickListener {
+        val listener = if (hasInflatedActionBarMenu) {
+            MenuItem.OnMenuItemClickListener { item ->
+                onMenuItemClickListener?.onMenuItemClick(item) ?: false
+            }
+        } else {
+            MenuItem.OnMenuItemClickListener {
                 showMenuPopup()
                 true
             }
-            method.invoke(actionBar, listener)
         }
+        setOnMenuItemClickListenerViaReflection(actionBar, listener)
     }
 
     var overflowIcon: Drawable?
@@ -191,16 +231,16 @@ class CustomActionModeToolbar @JvmOverloads constructor(
         set(value) {
             applyOverflowIcon(value)
         }
-    
+
     init {
         // Inflate toolbar layout using ViewBinding
         val toolbarBinding = CustomActionModeToolbarBinding.inflate(LayoutInflater.from(context), this, false)
         binding = toolbarBinding
-        
+
         // Copy layout parameters and properties from inflated layout
         orientation = HORIZONTAL
         gravity = Gravity.CENTER_VERTICAL
-        
+
         // Add the root view to this CustomActionModeToolbar
         addView(toolbarBinding.root)
 
@@ -209,44 +249,32 @@ class CustomActionModeToolbar @JvmOverloads constructor(
         // Inflate more/overflow menu so More button is inside MActionBar
         inflateMenuActionBarMenu()
         bindMenuActionBarClickListener()
-        
+
         // Setup click listeners
         binding?.titleTextView?.setOnClickListener { view ->
             onTitleClickListener?.onClick(view)
         }
-        
+
         // Read attributes from XML
-        attrs?.let {
-            val attrsArray = intArrayOf(
-                android.R.attr.title,
-                androidx.appcompat.R.attr.menu
+        attrs?.let { attrSet ->
+            val titleMenuAttrs = context.obtainStyledAttributes(
+                attrSet,
+                intArrayOf(android.R.attr.title, androidx.appcompat.R.attr.menu)
             )
-            val typedArray = context.obtainStyledAttributes(it, attrsArray)
-            
-            // Read title
-            val titleRes = typedArray.getResourceId(0, 0)
-            if (titleRes != 0) {
-                title = context.getString(titleRes)
-            } else {
-                val titleText = typedArray.getString(0)
-                if (!titleText.isNullOrEmpty()) {
-                    title = titleText
-                }
+            when (val titleRes = titleMenuAttrs.getResourceId(0, 0)) {
+                0 -> titleMenuAttrs.getString(0)?.takeIf { it.isNotEmpty() }?.let { title = it }
+                else -> title = context.getString(titleRes)
             }
-            
-            // Read menu resource
-            val menuRes = typedArray.getResourceId(1, 0)
-            if (menuRes != 0) {
+            titleMenuAttrs.getResourceId(1, 0).takeIf { it != 0 }?.let { menuRes ->
                 post { inflateMenu(menuRes) }
             }
-            
-            typedArray.recycle()
+            titleMenuAttrs.recycle()
         }
-        
+
         // Apply initial text color
         updateTextColor()
     }
-    
+
     /**
      * Sets the click listener for the title TextView.
      * This is typically used to handle select all / deselect all functionality.
@@ -254,21 +282,27 @@ class CustomActionModeToolbar @JvmOverloads constructor(
     fun setOnTitleClickListener(listener: OnClickListener?) {
         onTitleClickListener = listener
     }
-    
+
     /**
      * Sets the navigation content description from a resource ID.
      */
     fun setNavigationContentDescription(resId: Int) {
-        binding?.navigationIconView?.contentDescription = context.getString(resId)
+        navigationActionBarView()?.contentDescription = context.getString(resId)
     }
-    
+
     /**
      * Sets the navigation content description.
      */
     fun setNavigationContentDescription(description: CharSequence?) {
-        binding?.navigationIconView?.contentDescription = description
+        navigationActionBarView()?.contentDescription = description
     }
-    
+
+    /** Returns the navigation icon view (e.g. back button), or null if not available. */
+    fun getNavigationIconView(): View? = navigationActionBarView()
+
+    /** Returns the action bar (menu) view, or null if not available. */
+    fun getActionBar(): View? = menuActionBarView()
+
     /**
      * Sets the click listener for the navigation icon (handled via MActionBar menu item).
      */
@@ -276,21 +310,21 @@ class CustomActionModeToolbar @JvmOverloads constructor(
         onNavigationClickListener = listener
         bindNavigationActionBarClickListener()
     }
-    
+
     /**
      * Sets the text color of the title.
      */
     fun setTitleTextColor(color: Int) {
         binding?.titleTextView?.setTextColor(color)
     }
-    
+
     /**
      * Sets the text color of the title using ColorStateList.
      */
     fun setTitleTextColor(colors: ColorStateList?) {
         binding?.titleTextView?.setTextColor(colors)
     }
-    
+
     /**
      * Updates the text color based on the current theme.
      * This should be called when the theme changes.
@@ -300,7 +334,56 @@ class CustomActionModeToolbar @JvmOverloads constructor(
         cachedTextColor = context.getProperTextColor()
         binding?.titleTextView?.setTextColor(cachedTextColor)
     }
-    
+    private fun showMorePopupMenu(
+        anchor: View,
+        listener: MenuItem.OnMenuItemClickListener
+    ) {
+        val sourceMenu = _menu ?: return
+        val popupMenu = BlurPopupMenu(context, anchor, Gravity.END)
+        for (i in 0 until sourceMenu.size()) {
+            val item = sourceMenu.getItem(i)
+            val popupItem = popupMenu.menu.add(item.groupId, item.itemId, item.order, item.title)
+            popupItem.icon = item.icon
+            popupItem.isVisible = item.isVisible
+            popupItem.isEnabled = item.isEnabled
+            popupItem.isCheckable = item.isCheckable
+            popupItem.isChecked = item.isChecked
+        }
+        popupMenu.setOnMenuItemClickListener(listener)
+        popupMenu.show()
+    }
+    fun setPopupForMoreItem(
+        moreItemId: Int,
+        menuResId: Int,
+        blurTargetView: View?,
+        listener: MenuItem.OnMenuItemClickListener?
+    ): Boolean {
+        val actionBar = binding?.actionbar ?: return false
+        if (listener == null) return false
+
+        // Keep popup menu in toolbar cache, so callers can mutate visibility/title dynamically.
+        if (menuInflater == null) {
+            menuInflater = MenuInflater(context)
+        }
+        if (_menu == null) {
+            _menu = MenuBuilder(context)
+        } else {
+            _menu?.clear()
+        }
+        menuInflater?.inflate(menuResId, _menu)
+
+        val popupAnchor = actionBar as? View ?: return false
+        val fallbackClickListener = MenuItem.OnMenuItemClickListener { clickedItem ->
+            if (clickedItem.itemId == moreItemId) {
+                showMorePopupMenu(popupAnchor, listener)
+                true
+            } else {
+                onMenuItemClickListener?.onMenuItemClick(clickedItem) == true
+            }
+        }
+        return CustomActionModeToolbar.Companion.setOnMenuItemClickListenerViaReflection(actionBar, fallbackClickListener)
+    }
+
     /**
      * Updates the text color based on the background color for proper contrast.
      * This is typically used when the action mode toolbar has a custom background color.
@@ -317,7 +400,7 @@ class CustomActionModeToolbar @JvmOverloads constructor(
             }
         }
     }
-    
+
     /**
      * Updates all colors based on the background color for proper contrast.
      * This updates title, navigation icon, select all button, menu button, and action button colors.
@@ -325,7 +408,7 @@ class CustomActionModeToolbar @JvmOverloads constructor(
     fun updateColorsForBackground(backgroundColor: Int) {
         updateTextColorForBackground(backgroundColor)
         val contrastColor = backgroundColor.getContrastColor()
-        
+
         // Update overflow (More) MActionBar menu item icon color
         menuActionBarMenu()?.findItem(R.id.cab_more)?.let { moreItem ->
             moreItem.icon?.let { drawable ->
@@ -334,52 +417,60 @@ class CustomActionModeToolbar @JvmOverloads constructor(
                 moreItem.icon = iconDrawable
             }
         }
-        
-        // Update action button icon colors if present - use cached container
-        val actionButtonsContainer = cachedActionButtonsContainer ?: 
-            binding?.root?.findViewById<LinearLayout>(R.id.actionButtonsContainer)?.also { 
-                cachedActionButtonsContainer = it 
-            }
-        actionButtonsContainer?.let { container ->
-            val childCount = container.childCount
-            for (i in 0 until childCount) {
-                val child = container.getChildAt(i)
-                if (child is ImageView) {
-                    child.drawable?.let { drawable ->
-                        val iconDrawable = drawable.mutate()
-                        iconDrawable.setColorFilter(contrastColor, PorterDuff.Mode.SRC_IN)
-                        child.setImageDrawable(iconDrawable)
-                    }
-                }
-            }
-        }
     }
-    
+
     /**
-     * Inflates a menu resource into the toolbar menu.
+     * Inflates a menu resource into the action bar (menuButton), like [CustomToolbar.inflateMenu].
+     * Menu items are shown on the action bar and clicks are forwarded to [onMenuItemClickListener].
      */
-    fun inflateMenu(resId: Int) {
-        if (menuInflater == null) {
-            menuInflater = MenuInflater(context)
+//    fun inflateMenu(actionMenuResId: Int) {
+//        val actionBar = menuActionBarView() ?: return
+//        menuActionBarMenu()?.let { liveMenu ->
+//            if (liveMenu is MenuBuilder) {
+//                liveMenu.clear()
+//            }
+//        }
+//        binding?.menuButton?.inflateMenu(actionMenuResId)
+//        hasInflatedActionBarMenu = true
+//        if (actionMenuInflater == null) {
+//            actionMenuInflater = MenuInflater(context)
+//        }
+//        _action_menu = MenuBuilder(context).also { actionMenuInflater?.inflate(actionMenuResId, it) }
+//        bindMenuActionBarClickListener()
+//        updateMenuDisplay()
+//    }
+
+    fun inflateMenu(actionMenuResId: Int) {
+        getLiveActionBarMenu()?.let { liveMenu ->
+            if (liveMenu is MenuBuilder) liveMenu.clear()
         }
-        menuInflater?.inflate(resId, menu)
+        binding?.actionbar?.inflateMenu(actionMenuResId)
+        hasInflatedActionBarMenu = true
+        if (actionMenuInflater == null) actionMenuInflater = MenuInflater(context)
+        _action_menu = MenuBuilder(context).also { actionMenuInflater?.inflate(actionMenuResId, it) }
         updateMenuDisplay()
     }
-    
+
+    private fun getLiveActionBarMenu(): Menu? {
+        val actionBar = menuActionBarView() ?: return null
+        return getMenuViaReflection(actionBar)
+    }
+
     /**
      * Sets the menu item click listener.
      */
     fun setOnMenuItemClickListener(listener: MenuItem.OnMenuItemClickListener?) {
         onMenuItemClickListener = listener
+        bindMenuActionBarClickListener()
     }
-    
+
     /**
      * Invalidates the menu, causing it to be re-displayed.
      */
     fun invalidateMenu() {
         updateMenuDisplay()
     }
-    
+
     /**
      * Updates the select all button icon based on selection state.
      * If all items are selected, shows a checkmark icon; otherwise shows select all icon.
@@ -388,125 +479,66 @@ class CustomActionModeToolbar @JvmOverloads constructor(
      * @param allSelected True if all items are selected, false otherwise
      */
     fun updateSelectAllButtonIcon(menuItemId: Int, allSelected: Boolean) {
-        val menu = _menu ?: return
-        val menuItem = menu.findItem(menuItemId) ?: return
-        
-        // Get the appropriate icon based on selection state
+        val menu = if (hasInflatedActionBarMenu) menuActionBarMenu() ?: _action_menu else _menu
+        val menuItem = menu?.findItem(menuItemId) ?: return
+
         val iconRes = if (allSelected) {
-            // When all are selected, use checkmark icon to indicate deselect action
             com.android.common.R.drawable.ic_cmn_multi_unselect
         } else {
             com.android.common.R.drawable.ic_cmn_select_none
         }
-        
+
         val icon = ContextCompat.getDrawable(context, iconRes)
         icon?.let {
-            // Apply color filter
             if (cachedTextColor == -1) {
                 cachedTextColor = context.getProperTextColor()
             }
             it.applyColorFilter(cachedTextColor)
-            
-            // Update the menu item icon
             menuItem.icon = it
-            
-            // Update the action button if it's already displayed
-            val actionButtonsContainer = cachedActionButtonsContainer ?: 
-                binding?.root?.findViewById<LinearLayout>(R.id.actionButtonsContainer)?.also { 
-                    cachedActionButtonsContainer = it 
-                }
-            
-            actionButtonsContainer?.let { container ->
-                for (i in 0 until container.childCount) {
-                    val child = container.getChildAt(i)
-                    if (child is ImageView && child.tag == menuItemId) {
-                        // Update the icon on the action button
-                        val iconDrawable = it.mutate()
-                        iconDrawable.setColorFilter(cachedTextColor, PorterDuff.Mode.SRC_IN)
-                        child.setImageDrawable(iconDrawable)
-                        break
-                    }
-                }
-            }
-            
-            // Force menu update to refresh the display
             invalidateMenu()
         }
     }
-    
+
     /**
-     * Updates the menu display, separating items into action buttons and overflow items.
+     * Updates the menu display. When [hasInflatedActionBarMenu] is true, visibility follows
+     * [_action_menu]; otherwise all items are shown in the overflow popup.
      */
     private fun updateMenuDisplay() {
-        // Prevent recursive calls
         if (isUpdatingMenu) {
             menuNeedsUpdate = true
             return
         }
         isUpdatingMenu = true
         menuNeedsUpdate = false
-        
+
         try {
+            if (hasInflatedActionBarMenu) {
+                // Use _action_menu (we keep it in sync when inflating); reflection on MActionBar may return null
+                val shouldShow = _action_menu?.let { menu ->
+                    (0 until menu.size()).any { menu.getItem(it).isVisible }
+                } ?: true
+                menuActionBarView()?.visibility = if (shouldShow) View.VISIBLE else View.GONE
+                return
+            }
+
             val menu = _menu ?: return
-            val binding = this.binding ?: return
-            
-            // Use cached container or find and cache it
-            val actionButtonsContainer = cachedActionButtonsContainer ?: 
-                binding.root.findViewById<LinearLayout>(R.id.actionButtonsContainer)?.also { 
-                    cachedActionButtonsContainer = it 
-                }
-            
-            // Clear existing action buttons if container exists
-            actionButtonsContainer?.removeAllViews()
-            
-            // Separate menu items into action buttons and overflow items
-            val actionItems = mutableListOf<MenuItem>()
             val overflowItemsList = mutableListOf<MenuItem>()
             val menuSize = menu.size()
-            
-            // Pre-check if we need to process items
+
             if (menuSize == 0) {
                 menuActionBarView()?.visibility = View.GONE
-                actionButtonsContainer?.visibility = View.GONE
                 overflowItems = emptyList()
                 return
             }
-            
+
             for (i in 0 until menuSize) {
                 val item = menu.getItem(i) ?: continue
-                if (!item.isVisible) continue
-                
-                // Show as action button if requiresActionButton returns true and item has an icon
-                if (requiresActionButton(item) && item.icon != null) {
-                    actionItems.add(item)
-                } else {
-                    overflowItemsList.add(item)
-                }
+                if (item.isVisible) overflowItemsList.add(item)
             }
-            
-            // Create action buttons for items that should be shown as actions
-            if (actionButtonsContainer != null) {
-                // Ensure container doesn't intercept touch events (only set once)
-                if (actionButtonsContainer.descendantFocusability != ViewGroup.FOCUS_BLOCK_DESCENDANTS) {
-                    actionButtonsContainer.isClickable = false
-                    actionButtonsContainer.isFocusable = false
-                    actionButtonsContainer.descendantFocusability = ViewGroup.FOCUS_BLOCK_DESCENDANTS
-                }
-                
-                actionItems.forEach { item ->
-                    val actionButton = createActionButton(item)
-                    actionButtonsContainer.addView(actionButton)
-                }
-                
-                // Show/hide action buttons container
-                actionButtonsContainer.visibility = if (actionItems.isNotEmpty()) View.VISIBLE else View.GONE
-            }
-            
-            // Show overflow (More) MActionBar if there are overflow items
+
             val hasOverflowItems = overflowItemsList.isNotEmpty()
             menuActionBarView()?.visibility = if (hasOverflowItems) View.VISIBLE else View.GONE
-            
-            // Set default overflow icon if visible and no custom icon is set
+
             if (hasOverflowItems && overflowIconDrawable == null) {
                 val defaultIcon = ContextCompat.getDrawable(context, R.drawable.ic_three_dots_vector)
                 defaultIcon?.let {
@@ -517,115 +549,16 @@ class CustomActionModeToolbar @JvmOverloads constructor(
                     overflowIcon = it
                 }
             }
-            
-            // Store overflow items for popup menu
+
             overflowItems = overflowItemsList
         } finally {
             isUpdatingMenu = false
-            // Check if another update was requested during this update
             if (menuNeedsUpdate) {
                 post { updateMenuDisplay() }
             }
         }
     }
-    
-    /**
-     * Create an action button for a menu item with proper click handling
-     */
-    private fun createActionButton(item: MenuItem): MImageButton {
-        // Cache dimension values to avoid repeated resource lookups
-        if (cachedIconSize == -1) {
-            cachedIconSize = resources.getDimensionPixelSize(com.android.common.R.dimen.tx_toolbar_icon_size)
-            cachedMargin = resources.getDimensionPixelSize(R.dimen.normal_margin)
-            cachedPadding = resources.getDimensionPixelSize(R.dimen.icon_padding)
-        }
-        
-        // Cache text color if not cached
-        if (cachedTextColor == -1) {
-            cachedTextColor = context.getProperTextColor()
-        }
-        
-        val capturedItemId = item.itemId
-        val capturedItem = item
-        
-        return MImageButton(context).apply {
-            // Set layout params (same size as menu button)
-            layoutParams = LinearLayout.LayoutParams(cachedIconSize, cachedIconSize).apply {
-                marginEnd = cachedMargin
-            }
-            
-            // Set padding for the action button
-            setPadding(cachedPadding, cachedPadding, cachedPadding, cachedPadding)
-            
-            // Set clickable, focusable, and enabled properties FIRST
-            // This must be set before background for ripple to work properly
-            isClickable = true
-            isFocusable = true
-            isEnabled = true
-            
-            // Get a fresh instance of the background drawable for ripple effect
-            // Each view needs its own completely fresh instance for ripple to work properly
-            // Don't cache or mutate - get a new drawable each time
-            background = getActionButtonBackgroundDrawable()
-            
-            // Set icon with proper color
-            item.icon?.let { icon ->
-                val iconDrawable = icon.mutate()
-                iconDrawable.setColorFilter(cachedTextColor, PorterDuff.Mode.SRC_IN)
-                setImageDrawable(iconDrawable)
-            }
-            
-            contentDescription = item.title
-            scaleType = ImageView.ScaleType.CENTER_INSIDE
-            adjustViewBounds = true
-            
-            // Store the menu item ID for click handling
-            tag = capturedItemId
-            
-            // Set click listener - optimized to avoid unnecessary lookups
-            setOnClickListener {
-                // Always get the current listener and menu from the toolbar instance
-                val currentListener = this@CustomActionModeToolbar.onMenuItemClickListener
-                if (currentListener == null) return@setOnClickListener
-                
-                val currentMenu = this@CustomActionModeToolbar._menu
-                // Try to find the menu item from current menu first
-                val menuItem = currentMenu?.findItem(capturedItemId) ?: capturedItem
-                
-                // Ensure the item is visible
-                if (menuItem.isVisible) {
-                    currentListener.onMenuItemClick(menuItem)
-                }
-            }
-        }
-    }
-    
-    /**
-     * Check if a MenuItem requires an action button.
-     * Uses MenuItemImpl.requiresActionButton() method via reflection.
-     */
-    private fun requiresActionButton(item: MenuItem): Boolean {
-        if (item !is MenuItemImpl) return false
-        
-        try {
-            if (requiresActionButtonMethod == null) {
-                requiresActionButtonMethod = MenuItemImpl::class.java.getMethod("requiresActionButton")
-            }
-            return requiresActionButtonMethod?.invoke(item) as? Boolean ?: false
-        } catch (e: Exception) {
-            return false
-        }
-    }
-    
-    /**
-     * Gets the background drawable for action buttons with ripple effect.
-     */
-    private fun getActionButtonBackgroundDrawable(): Drawable? {
-        val typedValue = TypedValue()
-        context.theme.resolveAttribute(android.R.attr.selectableItemBackgroundBorderless, typedValue, true)
-        return ContextCompat.getDrawable(context, typedValue.resourceId)
-    }
-    
+
     /**
      * Shows the popup menu with blur effect, similar to CustomToolbar.
      */
@@ -671,7 +604,7 @@ class CustomActionModeToolbar @JvmOverloads constructor(
             newItem.isChecked = originalItem.isChecked
             newItem.isEnabled = originalItem.isEnabled
             newItem.isVisible = originalItem.isVisible
-            
+
             // Store mapping for click handling
             itemIdMap[originalItem.itemId] = originalItem
         }
@@ -684,18 +617,18 @@ class CustomActionModeToolbar @JvmOverloads constructor(
 
         // Show the popup menu
         blurPopupMenu.show()
-        
+
         // Store reference for cleanup
         popupWindow = blurPopupMenu
     }
-    
+
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         // Force full width by using screen width
         val screenWidth = resources.displayMetrics.widthPixels
         val fullWidthSpec = View.MeasureSpec.makeMeasureSpec(screenWidth, View.MeasureSpec.EXACTLY)
         super.onMeasure(fullWidthSpec, heightMeasureSpec)
     }
-    
+
     override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {
         super.onLayout(changed, l, t, r, b)
         // Update menu display when layout changes - only if menu exists and has items
@@ -710,48 +643,18 @@ class CustomActionModeToolbar @JvmOverloads constructor(
             }
         }
     }
-    
+
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
         // Cleanup popup window
         popupWindow?.dismiss()
         popupWindow = null
-        
+
         // Clear pending updates
         pendingMenuUpdate?.let { removeCallbacks(it) }
         pendingMenuUpdate = null
-        
-        // Clear cached references
-        cachedActionButtonsContainer = null
-        
-        // Reset cached values
-        cachedIconSize = -1
-        cachedMargin = -1
-        cachedPadding = -1
+
         cachedTextColor = -1
         menuNeedsUpdate = false
-    }
-    
-    /**
-     * Creates a CustomActionModeToolbar instance suitable for use as ActionMode custom view.
-     * 
-     * @param context The context to use
-     * @param title The initial title text
-     * @param onTitleClick The click listener for the title (typically for select all/deselect all)
-     * @return A configured CustomActionModeToolbar instance
-     */
-    companion object {
-        fun create(
-            context: Context,
-            title: CharSequence? = null,
-            onTitleClick: (() -> Unit)? = null
-        ): CustomActionModeToolbar {
-            val toolbar = CustomActionModeToolbar(context)
-            toolbar.title = title
-            if (onTitleClick != null) {
-                toolbar.setOnTitleClickListener { onTitleClick() }
-            }
-            return toolbar
-        }
     }
 }

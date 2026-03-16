@@ -2,6 +2,7 @@ package com.goodwy.commons.views
 
 import android.animation.AnimatorListenerAdapter
 import android.animation.ValueAnimator
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.res.ColorStateList
 import android.graphics.drawable.Drawable
@@ -19,13 +20,13 @@ import android.view.inputmethod.InputMethodManager
 import android.widget.LinearLayout
 import androidx.core.view.isVisible
 import androidx.appcompat.view.menu.MenuBuilder
-import androidx.core.content.ContextCompat
 import com.goodwy.commons.R
 import com.goodwy.commons.databinding.CustomToolbarBinding
 import com.goodwy.commons.extensions.getProperPrimaryColor
 import com.goodwy.commons.extensions.getProperTextColor
 import com.goodwy.commons.extensions.getProperTextCursorColor
 import com.goodwy.commons.extensions.onTextChangeListener
+import java.lang.reflect.Method
 
 /**
  * Custom toolbar implementation using LinearLayout that mimics MaterialToolbar API
@@ -36,6 +37,32 @@ class CustomToolbar @JvmOverloads constructor(
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0
 ) : LinearLayout(context, attrs, defStyleAttr) {
+
+    companion object {
+        private val getMenuMethodCache = mutableMapOf<Class<*>, Method>()
+        private val setMenuItemListenerMethodCache = mutableMapOf<Class<*>, Method>()
+
+        private fun getMenuViaReflection(target: Any): Menu? = runCatching {
+            val clazz = target.javaClass
+            val method = getMenuMethodCache.getOrPut(clazz) {
+                clazz.getMethod("getMenu")
+            }
+            @Suppress("UNCHECKED_CAST")
+            method.invoke(target) as? Menu
+        }.getOrNull()
+
+        private fun setOnMenuItemClickListenerViaReflection(
+            target: Any,
+            listener: MenuItem.OnMenuItemClickListener
+        ): Boolean = runCatching {
+            val clazz = target.javaClass
+            val method = setMenuItemListenerMethodCache.getOrPut(clazz) {
+                clazz.getMethod("setOnMenuItemClickListener", MenuItem.OnMenuItemClickListener::class.java)
+            }
+            method.invoke(target, listener)
+            true
+        }.getOrDefault(false)
+    }
 
     private var binding: CustomToolbarBinding? = null
 
@@ -55,6 +82,9 @@ class CustomToolbar @JvmOverloads constructor(
     private var onSearchClearClickListener: (() -> Unit)? = null
     private var forceShowSearchClearButton: Boolean = false
 
+    /** When non-null, action bar visibility is fixed to this value and not overridden by [updateMenuDisplay]. */
+    private var forceActionBarVisible: Boolean? = null
+
     // Cached values for performance
     private var cachedTextColor: Int? = null
     private var cachedPrimaryColor: Int? = null
@@ -63,6 +93,7 @@ class CustomToolbar @JvmOverloads constructor(
     private var overflowIconDrawable: Drawable? = null
     private var navigationIconDrawable: Drawable? = null
     private var isSearchBound = false
+    private var searchAnimator: ValueAnimator? = null
 
     var isSearchExpanded: Boolean = false
         private set
@@ -74,35 +105,19 @@ class CustomToolbar @JvmOverloads constructor(
 
     private fun navigationActionBarMenu(): Menu? {
         val actionBar = navigationActionBarView() ?: return null
-        return runCatching {
-            val method = actionBar.javaClass.getMethod("getMenu")
-            method.invoke(actionBar) as? Menu
-        }.getOrNull()
+        return getMenuViaReflection(actionBar)
     }
 
     private fun bindNavigationActionBarClickListener() {
         val actionBar = navigationActionBarView() ?: return
-        runCatching {
-            val method = actionBar.javaClass.getMethod(
-                "setOnMenuItemClickListener",
-                MenuItem.OnMenuItemClickListener::class.java
-            )
-            val listener = MenuItem.OnMenuItemClickListener {
-                onNavigationIconClicked(actionBar)
-                true
-            }
-            method.invoke(actionBar, listener)
-        }
+        setOnMenuItemClickListenerViaReflection(actionBar, MenuItem.OnMenuItemClickListener {
+            onNavigationIconClicked(actionBar)
+            true
+        })
     }
 
     private fun inflateNavigationIconViewMenu() {
         binding?.navigationIconView?.inflateMenu(R.menu.cab_navigation_only)
-//        runCatching {
-//            val menu = navigationActionBarMenu()
-//            menu?.clear()
-//            val method = actionBar.javaClass.getMethod("inflateMenu", Int::class.javaPrimitiveType)
-//            method.invoke(actionBar, R.menu.cab_navigation_only)
-//        }
     }
 
     private fun applyNavigationIconDrawable(drawable: Drawable?) {
@@ -125,7 +140,6 @@ class CustomToolbar @JvmOverloads constructor(
         val showNav = (menu?.size() ?: 0) > 0 || navigationIconDrawable != null
         actionBarView.visibility = if (showNav) View.VISIBLE else View.GONE
         bindNavigationActionBarClickListener()
-//        updateTitleMargin(actionBarView.visibility == View.VISIBLE)
     }
 
     private fun onNavigationIconClicked(view: View) {
@@ -189,57 +203,31 @@ class CustomToolbar @JvmOverloads constructor(
         val toolbarBinding = CustomToolbarBinding.inflate(LayoutInflater.from(context), this, false)
         binding = toolbarBinding
 
-        // Copy layout parameters and properties from inflated layout
         orientation = HORIZONTAL
         gravity = Gravity.CENTER_VERTICAL
-//        setPadding(
-//            toolbarBinding.root.paddingLeft,
-//            toolbarBinding.root.paddingTop,
-//            toolbarBinding.root.paddingRight,
-//            toolbarBinding.root.paddingBottom
-//        )
-
-        // Add the root view to this CustomToolbar
         addView(toolbarBinding.root)
         setupActionBarAndSearchBindings()
 
-        // Read attributes from XML
-        attrs?.let {
-            val attrsArray = intArrayOf(
-                android.R.attr.title,
-                androidx.appcompat.R.attr.menu
+        attrs?.let { attrSet ->
+            val titleMenuAttrs = context.obtainStyledAttributes(
+                attrSet,
+                intArrayOf(android.R.attr.title, androidx.appcompat.R.attr.menu)
             )
-            val typedArray = context.obtainStyledAttributes(it, attrsArray)
-
-            // Read title
-            val titleRes = typedArray.getResourceId(0, 0)
-            if (titleRes != 0) {
-                title = context.getString(titleRes)
-            } else {
-                val titleText = typedArray.getString(0)
-                if (!titleText.isNullOrEmpty()) {
-                    title = titleText
-                }
+            when (val titleRes = titleMenuAttrs.getResourceId(0, 0)) {
+                0 -> titleMenuAttrs.getString(0)?.takeIf { it.isNotEmpty() }?.let { title = it }
+                else -> title = context.getString(titleRes)
             }
-
-            // Read menu resource
-            val menuRes = typedArray.getResourceId(1, 0)
-            if (menuRes != 0) {
+            titleMenuAttrs.getResourceId(1, 0).takeIf { it != 0 }?.let { menuRes ->
                 post { inflateMenu(menuRes) }
             }
+            titleMenuAttrs.recycle()
 
-            typedArray.recycle()
-        }
-
-        // Read navigationIcon from XML (e.g. app:navigationIcon) and apply after layout is ready
-        attrs?.let {
             runCatching {
-                val toolbarAttrs = context.obtainStyledAttributes(it, androidx.appcompat.R.styleable.Toolbar, 0, 0)
-                val navIconDrawable = toolbarAttrs.getDrawable(androidx.appcompat.R.styleable.Toolbar_navigationIcon)
-                toolbarAttrs.recycle()
-                if (navIconDrawable != null) {
-                    post { navigationIcon = navIconDrawable }
+                val toolbarAttrs = context.obtainStyledAttributes(attrSet, androidx.appcompat.R.styleable.Toolbar, 0, 0)
+                toolbarAttrs.getDrawable(androidx.appcompat.R.styleable.Toolbar_navigationIcon)?.let { drawable ->
+                    post { navigationIcon = drawable }
                 }
+                toolbarAttrs.recycle()
             }
         }
     }
@@ -277,6 +265,7 @@ class CustomToolbar @JvmOverloads constructor(
         updateMenuDisplay()
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     private fun bindSearchCallbacks() {
         if (isSearchBound) return
         val binding = binding ?: return
@@ -357,24 +346,15 @@ class CustomToolbar @JvmOverloads constructor(
 
     private fun syncMenuFromActionBar() {
         val actionBar = binding?.actionBar ?: return
-        val reflectedMenu = runCatching {
-            val method = actionBar.javaClass.getMethod("getMenu")
-            method.invoke(actionBar) as? Menu
-        }.getOrNull()
-
+        val reflectedMenu = getMenuViaReflection(actionBar)
         if (reflectedMenu != null && (_action_menu == null || !hasInflatedActionMenu)) {
             _action_menu = reflectedMenu
         }
     }
 
     private fun hasVisibleMenuItems(menu: Menu?): Boolean {
-        val currentMenu = menu ?: return false
-        for (i in 0 until currentMenu.size()) {
-            if (currentMenu.getItem(i).isVisible) {
-                return true
-            }
-        }
-        return false
+        if (menu == null) return false
+        return (0 until menu.size()).any { menu.getItem(it).isVisible }
     }
 
     fun setOnSearchTextChangedListener(listener: ((String) -> Unit)?) {
@@ -397,10 +377,42 @@ class CustomToolbar @JvmOverloads constructor(
         val currentText = binding?.actionBarSearch?.searchEditText?.text?.toString().orEmpty()
         updateSearchClearIconVisibility(currentText)
     }
+    /**
+     * Sets the visibility of the action bar (toolbar menu / overflow).
+     * This value is remembered and will not be overridden by [updateMenuDisplay] (e.g. when
+     * the menu is invalidated or search expands/collapses), except while search is expanded
+     * the action bar stays hidden. Call [setActionBarVisibilityAutomatic] to revert to
+     * automatic visibility based on menu items.
+     */
+    fun setActionBarVisible(visible: Boolean) {
+        forceActionBarVisible = visible
+        getActionBar()?.isVisible = visible
+    }
+
+    /** Clears the forced visibility and recalculates action bar visibility from menu state. */
+    fun setActionBarVisibilityAutomatic() {
+        forceActionBarVisible = null
+        updateMenuDisplay()
+    }
+
+    /** @deprecated Use [setActionBarVisible] instead. */
+    @Deprecated("Use setActionBarVisible(visible) instead", ReplaceWith("setActionBarVisible(forceShow)"))
+    fun setActionBarShow(forceShow: Boolean) {
+        setActionBarVisible(forceShow)
+    }
+
+    /** Returns the navigation icon view (e.g. back button), or null if not available. */
+    fun getNavigationIconView(): View? = navigationActionBarView()
+
+    /** Sets the visibility of the navigation icon view. */
+    fun setNavigationIconViewVisible(visible: Boolean) {
+        navigationActionBarView()?.isVisible = visible
+    }
 
     fun setOnSearchExpandListener(listener: OnClickListener?) {
         onSearchExpandListener = listener
     }
+
 
     fun expandSearch() {
         val binding = binding ?: return
@@ -421,6 +433,7 @@ class CustomToolbar @JvmOverloads constructor(
         searchRoot.layoutParams = params
 
         searchRoot.post {
+            searchAnimator?.cancel()
             val parentView = searchRoot.parent as? View ?: return@post
             val targetWidth = parentView.width
             if (targetWidth <= 0) {
@@ -433,10 +446,9 @@ class CustomToolbar @JvmOverloads constructor(
                 return@post
             }
 
-            // Right-to-left expansion: keep right edge anchored while width grows.
             searchRoot.translationX = targetWidth.toFloat()
 
-            ValueAnimator.ofFloat(0f, 1f).apply {
+            searchAnimator = ValueAnimator.ofFloat(0f, 1f).apply {
                 duration = 250L
                 interpolator = DecelerateInterpolator()
                 addUpdateListener { anim ->
@@ -447,11 +459,11 @@ class CustomToolbar @JvmOverloads constructor(
                         searchRoot.layoutParams = lp
                     }
                     searchRoot.alpha = fraction
-                    // translationX so right edge stays at parent width: view grows right to left
                     searchRoot.translationX = targetWidth * (1f - fraction)
                 }
                 addListener(object : AnimatorListenerAdapter() {
                     override fun onAnimationEnd(animation: android.animation.Animator) {
+                        searchAnimator = null
                         (searchRoot.layoutParams)?.let { lp ->
                             lp.width = ViewGroup.LayoutParams.MATCH_PARENT
                             searchRoot.layoutParams = lp
@@ -494,8 +506,10 @@ class CustomToolbar @JvmOverloads constructor(
             searchRoot.alpha = 1f
             searchRoot.translationX = 0f
             updateMenuDisplay()
-            binding.titleTextView.visibility =
-                if (binding.titleTextView.text?.isNotEmpty() == true) View.VISIBLE else View.GONE
+            // Use current title so caller can restore title after collapse (e.g. dialpad-search collapse)
+            val hasTitleEarly = binding.titleTextView.text?.isNotEmpty() == true
+            binding.titleTextView.visibility = if (hasTitleEarly) View.VISIBLE else View.GONE
+            if (hasTitleEarly && !isSearchExpanded) binding.actionBar.visibility = View.VISIBLE
             return
         }
 
@@ -509,7 +523,8 @@ class CustomToolbar @JvmOverloads constructor(
         binding.actionBar.alpha = 0f
         binding.actionBar.visibility = View.VISIBLE
 
-        ValueAnimator.ofFloat(1f, 0f).apply {
+        searchAnimator?.cancel()
+        searchAnimator = ValueAnimator.ofFloat(1f, 0f).apply {
             duration = 250L
             interpolator = DecelerateInterpolator()
             addUpdateListener { anim ->
@@ -520,16 +535,15 @@ class CustomToolbar @JvmOverloads constructor(
                     searchRoot.layoutParams = lp
                 }
                 searchRoot.alpha = 1f - fraction
-                // Reverse of expand: keep right edge anchored while collapsing.
                 searchRoot.translationX = startWidth * fraction
                 searchRoot.requestLayout()
-                // Fade in toolbar content as search shrinks
                 val contentAlpha = fraction
                 binding.actionBar.alpha = contentAlpha
                 if (showTitle) binding.titleTextView.alpha = contentAlpha
             }
             addListener(object : AnimatorListenerAdapter() {
                 override fun onAnimationEnd(animation: android.animation.Animator) {
+                    searchAnimator = null
                     searchRoot.visibility = View.GONE
                     (searchRoot.layoutParams)?.let { lp ->
                         lp.width = ViewGroup.LayoutParams.MATCH_PARENT
@@ -540,8 +554,13 @@ class CustomToolbar @JvmOverloads constructor(
                     binding.actionBar.alpha = 1f
                     if (showTitle) binding.titleTextView.alpha = 1f
                     updateMenuDisplay()
-                    if (!showTitle) {
-                        binding.titleTextView.visibility = View.GONE
+                    // Use current title state so activity can restore title/action bar during collapse (e.g. after hiding dialpad search)
+                    val hasTitle = binding.titleTextView.text?.isNotEmpty() == true
+                    binding.titleTextView.visibility =
+                        if (hasTitle) View.VISIBLE else View.GONE
+                    // When activity restored the title, keep action bar visible (updateMenuDisplay may have hidden it)
+                    if (hasTitle && !isSearchExpanded) {
+                        binding.actionBar.visibility = View.VISIBLE
                     }
                 }
             })
@@ -664,10 +683,7 @@ class CustomToolbar @JvmOverloads constructor(
 
     private fun getLiveActionBarMenu(): Menu? {
         val actionBar = binding?.actionBar ?: return null
-        return runCatching {
-            val method = actionBar.javaClass.getMethod("getMenu")
-            method.invoke(actionBar) as? Menu
-        }.getOrNull()
+        return getMenuViaReflection(actionBar)
     }
 
     private fun invalidateActionBarMenuPresentation() {
@@ -734,31 +750,17 @@ class CustomToolbar @JvmOverloads constructor(
         }
         menuInflater?.inflate(menuResId, _menu)
 
-        return runCatching {
-            val setClickMethod = actionBar.javaClass.getMethod(
-                "setOnMenuItemClickListener",
-                MenuItem.OnMenuItemClickListener::class.java
-            )
-            val popupAnchor = actionBar as? View ?: return false
-            val fallbackClickListener = MenuItem.OnMenuItemClickListener { clickedItem ->
-                if (clickedItem.itemId == moreItemId) {
-                    showMorePopupMenu(popupAnchor, listener)
-                    true
-                } else {
-                    val handledByClient = onMenuItemClickListener?.onMenuItemClick(clickedItem) ?: false
-                    if (handledByClient) {
-                        true
-                    } else if (isSearchMenuItem(clickedItem.itemId)) {
-                        expandSearch()
-                        true
-                    } else {
-                        false
-                    }
-                }
+        val popupAnchor = actionBar as? View ?: return false
+        val fallbackClickListener = MenuItem.OnMenuItemClickListener { clickedItem ->
+            if (clickedItem.itemId == moreItemId) {
+                showMorePopupMenu(popupAnchor, listener)
+                true
+            } else {
+                onMenuItemClickListener?.onMenuItemClick(clickedItem) == true ||
+                    isSearchMenuItem(clickedItem.itemId).also { if (it) expandSearch() }
             }
-            setClickMethod.invoke(actionBar, fallbackClickListener)
-            true
-        }.getOrDefault(false)
+        }
+        return setOnMenuItemClickListenerViaReflection(actionBar, fallbackClickListener)
     }
 
     private fun showMorePopupMenu(
@@ -781,29 +783,12 @@ class CustomToolbar @JvmOverloads constructor(
     }
 
     fun inflateMenu(actionMenuResId: Int) {
-        val reflectedActionBarMenu = runCatching {
-            val actionBar = binding?.actionBar
-            val method = actionBar?.javaClass?.getMethod("getMenu")
-            method?.invoke(actionBar) as? Menu
-        }.getOrNull()
-        reflectedActionBarMenu?.clear()
-
+        getLiveActionBarMenu()?.clear()
         binding?.actionBar?.inflateMenu(actionMenuResId)
         hasInflatedActionMenu = true
-        syncMenuFromActionBar()
 
-        if (actionMenuInflater == null) {
-            actionMenuInflater = MenuInflater(context)
-        }
-        _action_menu = MenuBuilder(context).also { menu ->
-            actionMenuInflater?.inflate(actionMenuResId, menu)
-        }
-
-        // Fallback for cases where action bar menu reflection is unavailable.
-        if (reflectedActionBarMenu == null && _action_menu == null) {
-            _action_menu = MenuBuilder(context)
-            actionMenuInflater?.inflate(actionMenuResId, _action_menu)
-        }
+        if (actionMenuInflater == null) actionMenuInflater = MenuInflater(context)
+        _action_menu = MenuBuilder(context).also { actionMenuInflater?.inflate(actionMenuResId, it) }
         updateMenuDisplay()
     }
 
@@ -825,6 +810,11 @@ class CustomToolbar @JvmOverloads constructor(
             return
         }
 
+        forceActionBarVisible?.let { forced ->
+            toolbarBinding.actionBar.visibility = if (forced) View.VISIBLE else View.GONE
+            return
+        }
+
         if (!hasInflatedActionMenu) {
             toolbarBinding.actionBar.visibility = View.GONE
             return
@@ -842,7 +832,8 @@ class CustomToolbar @JvmOverloads constructor(
 
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
-        // Clear cached values to prevent memory leaks
+        searchAnimator?.cancel()
+        searchAnimator = null
         cachedTextColor = null
         cachedPrimaryColor = null
         cachedCursorColor = null

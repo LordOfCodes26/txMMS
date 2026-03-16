@@ -1583,13 +1583,14 @@ fun Activity.setupDialogStuff(
         getButton(AlertDialog.BUTTON_NEGATIVE).setTextColor(dialogButtonColor)
         getButton(AlertDialog.BUTTON_NEUTRAL).setTextColor(dialogButtonColor)
 
-//        //TODO Dialog background
-//        val bgDrawable = when {
-//            isDynamicTheme() -> ResourcesCompat.getDrawable(resources, com.android.common.R.drawable.dialog_background_common, theme)
-//            isBlackTheme() -> resources.getColoredDrawableWithColor(this@setupDialogStuff, R.drawable.dialog_bg, getSurfaceColor())
-//            else -> resources.getColoredDrawableWithColor(this@setupDialogStuff, R.drawable.dialog_bg, baseConfig.backgroundColor)
-//        }
-//        window?.setBackgroundDrawable(bgDrawable)
+        //TODO Dialog background
+        val bgDrawable = when {
+            isDynamicTheme() -> ResourcesCompat.getDrawable(resources, com.android.common.R.drawable.dialog_background_common, theme)
+            isBlackTheme() -> resources.getColoredDrawableWithColor(this@setupDialogStuff, R.drawable.dialog_bg, getSurfaceColor())
+            else -> resources.getColoredDrawableWithColor(this@setupDialogStuff, R.drawable.dialog_bg, baseConfig.backgroundColor)
+        }
+
+        window?.setBackgroundDrawable(bgDrawable)
         callback?.invoke(this)
     }
 }
@@ -1600,9 +1601,11 @@ fun Activity.setupMDialogStuff(
     blurTarget: BlurTarget? = null,
     titleId: Int = 0,
     titleText: String = "",
+    styleId : Int = 0,
     cancelOnTouchOutside: Boolean = true,
     cancelListener: (() -> Unit)? = null,
     callback: ((dialog: MDialog) -> Unit)? = null
+
 ): MDialog? {
     if (isDestroyed || isFinishing) {
         return null
@@ -1617,7 +1620,8 @@ fun Activity.setupMDialogStuff(
         view.setColors(textColor, primaryColor, backgroundColor)
     }
 
-    val dialog = MDialog(this)
+    var dialog = MDialog(this)
+    if (styleId != 0) dialog = MDialog(this, styleId)
     dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
     dialog.setContentView(view)
     dialog.setCanceledOnTouchOutside(cancelOnTouchOutside)

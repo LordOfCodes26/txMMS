@@ -972,6 +972,7 @@
     <string name="app_launcher_short">App Launcher</string>
     <string name="calculator_short">Calculator</string>
     <string name="calendar_short">Calendar</string>
+    <string name="camera_short">Camera</string>
     <string name="clock_short">Clock</string>
     <string name="choose_emoji">Emoticon</string>
     <string name="contacts_short">Contacts</string>
@@ -981,7 +982,6 @@
     <string name="flashlight_short">Flashlight</string>
     <string name="gallery_short">Gallery</string>
     <string name="voice_short">Voice</string>
-    <string name="camera_short">Camera</string>
     <string name="keyboard_short">Keyboard</string>
     <string name="launcher_short">Launcher</string>
     <string name="music_player_short">Music Player</string>
@@ -1109,7 +1109,6 @@
     <string name="translation_chinese_tw">Chinese (Traditional)</string>
 
     <!-- Pro comparison (shown in the deprecated free apps) -->
-    <string name="now">now</string>
     <string name="why_upgrade">Get the Pro version now!</string>
     <string name="why_upgrade_basic_version">Basic</string>
     <string name="why_upgrade_pro_version">Pro</string>

@@ -119,7 +119,8 @@ object AvatarResolver {
             if (styleConfig.sourceType == AvatarSourceType.PHOTO) {
                 val photoUri = styleConfig.customPhotoUri ?: contactPhotoUri
                 if (photoUri != null && photoUri.isNotEmpty()) {
-                    return AvatarSource.Photo(photoUri = photoUri)
+                    val fallback = buildMonogramFallback(contactName, posterConfig, styleConfig)
+                    return AvatarSource.Photo(photoUri = photoUri, fallbackMonogram = fallback)
                 }
             }
 
@@ -158,9 +159,11 @@ object AvatarResolver {
         }
 
         // Step 2b: Check if contact photo is available
-        // This is the second priority - use the contact's actual photo if available
+        // This is the second priority - use the contact's actual photo if available.
+        // Pass fallbackMonogram so when the photo fails to load we show initials and color.
         if (contactPhotoUri != null && contactPhotoUri.isNotEmpty()) {
-            return AvatarSource.Photo(photoUri = contactPhotoUri)
+            val fallback = buildMonogramFallback(contactName, posterConfig, null)
+            return AvatarSource.Photo(photoUri = contactPhotoUri, fallbackMonogram = fallback)
         }
 
         // Step 2c: Fallback to monogram
@@ -180,6 +183,28 @@ object AvatarResolver {
             initials = initials,
             gradientColors = gradientColors,
             drawableIndex = drawableIndex
+        )
+    }
+
+    /**
+     * Builds a Monogram instance for use as fallback when a Photo fails to load.
+     * Ensures the avatar always shows initials and gradient when the image is unavailable.
+     */
+    private fun buildMonogramFallback(
+        contactName: String,
+        posterConfig: ContactPosterConfig?,
+        styleConfig: AvatarStyleConfig?
+    ): AvatarSource.Monogram {
+        val initials = MonogramGenerator.generateInitials(contactName)
+        val drawableIndex = kotlin.math.abs(contactName.hashCode()) % 27
+        val gradientColors = styleConfig?.backgroundColors
+            ?: posterConfig?.gradientColors
+            ?: MonogramGenerator.generateGradientColors(contactName)
+        return AvatarSource.Monogram(
+            initials = initials,
+            gradientColors = gradientColors,
+            drawableIndex = drawableIndex,
+            fontFamily = styleConfig?.fontFamily
         )
     }
 }

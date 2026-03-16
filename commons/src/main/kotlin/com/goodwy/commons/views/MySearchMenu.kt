@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.res.ColorStateList
 import android.util.AttributeSet
 import android.view.LayoutInflater
+import android.view.View
 import com.google.android.material.appbar.MaterialToolbar
 import com.goodwy.commons.R
 import com.goodwy.commons.activities.BaseSimpleActivity
@@ -25,6 +26,18 @@ open class MySearchMenu(context: Context, attrs: AttributeSet) : MyAppBarLayout(
         get() = binding.topToolbar
     
     override fun requireCustomToolbar(): CustomToolbar = customToolbar ?: error("CustomToolbar not found")
+
+    fun getActionModeToolbar(): CustomActionModeToolbar = binding.actionModeToolbar
+
+    fun showActionModeToolbar() {
+        binding.actionModeToolbar.visibility = View.VISIBLE
+        binding.searchBarContainer.visibility = View.GONE
+    }
+
+    fun hideActionModeToolbar() {
+        binding.actionModeToolbar.visibility = View.GONE
+        binding.searchBarContainer.visibility = View.VISIBLE
+    }
 
     fun setupMenu() {
         // Search bar removed - no setup needed

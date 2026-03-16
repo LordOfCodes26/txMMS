@@ -1,4 +1,5 @@
 <resources>
+    <dimen name="_medium_md_margin">-9dp</dimen>
     <dimen name="_tiny_dp">-6dp</dimen>
     <dimen name="one_dp">1dp</dimen>
     <dimen name="tiny_margin">2dp</dimen>
@@ -18,6 +19,7 @@
     <dimen name="activity_margin">16dp</dimen>
     <dimen name="larger_margin">18dp</dimen>
     <dimen name="bigger_margin">20dp</dimen>
+    <dimen name="bigger_md_margin">20dp</dimen>
     <dimen name="big_margin">24dp</dimen>
     <dimen name="big_md_margin">26dp</dimen>
     <dimen name="section_margin">32dp</dimen>
@@ -28,7 +30,7 @@
     <dimen name="min_radio_checkbox_height">44dp</dimen>
     <dimen name="settings_margin">8dp</dimen>
     <dimen name="about_margin">20dp</dimen>
-    <dimen name="dialpad_bottom_margin">50dp</dimen>
+    <dimen name="dialpad_bottom_margin">150dp</dimen>
     <dimen name="blur_app_bar_height">125dp</dimen>
     <dimen name="blur_app_bar_margin">-125dp</dimen>
 
@@ -74,8 +76,9 @@
     <dimen name="line_color_picker_app_icon_size">64dp</dimen>
 
     <dimen name="too_tiny_text_size">6sp</dimen>
+    <dimen name="md_tiny_text_size">7sp</dimen>
     <dimen name="tiny_text_size">8sp</dimen>
-    <dimen name="small_text_size">10sp</dimen>
+    <dimen name="small_text_size">11sp</dimen>
     <dimen name="smaller_text_size">12sp</dimen>
     <dimen name="normal_text_size">14sp</dimen>
     <dimen name="medium_text_size">15sp</dimen>
@@ -84,6 +87,7 @@
     <dimen name="middle_text_size">17sp</dimen>
     <dimen name="big_text_size">18sp</dimen>
     <dimen name="extra_big_text_size">19sp</dimen>
+    <dimen name="extra_text_size">20sp</dimen>
     <dimen name="actionbar_text_size">21sp</dimen>
     <dimen name="large_text_size">22sp</dimen>
     <dimen name="extra_large_text_size">30sp</dimen>
@@ -114,6 +118,7 @@
     <dimen name="list_icon_size_x_small">18dp</dimen>
     <dimen name="list_icon_size_small">24dp</dimen>
     <dimen name="list_icon_size_medium">40dp</dimen>
+    <dimen name="list_icon_size_medium_md">48dp</dimen>
     <dimen name="list_icon_size_large">56dp</dimen>
     <dimen name="list_icon_size_extra_large">64dp</dimen>
 
@@ -155,10 +160,12 @@
     <dimen name="search_menu_height">36dp</dimen>
 
     <!--Recent Call Height -->
-    <dimen name="recent_call_height">67dp</dimen>
+    <dimen name="recent_call_height">66dp</dimen>
     <dimen name="recent_call_sim_width">14dp</dimen>
     <dimen name="recent_call_sim_height">18dp</dimen>
     <dimen name="recent_call_info_size">18dp</dimen>
+    <!-- Fixed width for info/checkbox holder so padding doesn't shift when toggling action mode -->
+    <dimen name="action_mode_info_holder_size">36dp</dimen>
     <!--Swipe-->
     <dimen name="swipe_width">180dp</dimen>
 
