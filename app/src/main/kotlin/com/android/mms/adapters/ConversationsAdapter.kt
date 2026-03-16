@@ -2,6 +2,7 @@ package com.android.mms.adapters
 
 import android.annotation.SuppressLint
 import android.content.Intent
+import android.graphics.Color
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
@@ -82,10 +83,10 @@ class ConversationsAdapter(
         toolbar?.updateTextColorForBackground(cabBackgroundColor)
         toolbar?.updateColorsForBackground(cabBackgroundColor)
 
-        if (activity is com.goodwy.commons.activities.EdgeToEdgeActivity) {
-            activity.window.statusBarColor = cabBackgroundColor
-            activity.window.setSystemBarsAppearance(cabBackgroundColor)
-        }
+//        if (activity is com.goodwy.commons.activities.EdgeToEdgeActivity) {
+//            activity.window.statusBarColor = cabBackgroundColor
+//            activity.window.setSystemBarsAppearance(cabBackgroundColor)
+//        }
 
         notifyDataSetChanged()
     }
