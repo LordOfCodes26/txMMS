@@ -1,6 +1,7 @@
 package com.android.mms.adapters
 
 import android.view.Menu
+import android.view.MenuItem
 import com.goodwy.commons.dialogs.ConfirmationDialog
 import com.goodwy.commons.extensions.isRTLLayout
 import com.goodwy.commons.extensions.notificationManager
@@ -30,7 +31,10 @@ import kotlin.collections.forEach
 class RecycleBinConversationsAdapter(
     activity: SimpleActivity, recyclerView: MyRecyclerView, onRefresh: () -> Unit, itemClick: (Any) -> Unit
 ) : BaseConversationsAdapter(activity, recyclerView, onRefresh, itemClick, isRecycleBin = true) {
-    override fun getActionMenuId() = R.menu.cab_recycle_bin_conversations
+    override fun getActionMenuId() = R.menu.cab_action_menu
+    override fun getMorePopupMenuId() = R.menu.cab_recycle_bin_conversations
+    override fun getMoreItemId() = R.id.more
+    override fun onMorePopupMenuItemClick(item: MenuItem) = actionItemPressed(item.itemId).let { true }
 
     override fun prepareActionMode(menu: Menu) {}
 

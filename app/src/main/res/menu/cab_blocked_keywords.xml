@@ -6,9 +6,4 @@
         android:icon="@drawable/ic_copy_vector"
         android:title="@string/copy_to_clipboard"
         app:showAsAction="ifRoom" />
-    <item
-        android:id="@+id/cab_delete"
-        android:icon="@drawable/ic_delete_outline"
-        android:title="@string/delete"
-        app:showAsAction="ifRoom" />
 </menu>

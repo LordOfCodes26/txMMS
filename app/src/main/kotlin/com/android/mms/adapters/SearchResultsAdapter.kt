@@ -24,6 +24,7 @@ class SearchResultsAdapter(
     private var textToHighlight = highlightText
 
     override fun getActionMenuId() = 0
+    override fun getMorePopupMenuId() = 0
 
     override fun prepareActionMode(menu: Menu) {}
 

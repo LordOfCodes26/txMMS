@@ -54,13 +54,14 @@ import com.android.mms.models.Conversation
 import com.android.mms.models.Events
 import com.android.mms.models.Message
 import com.android.mms.models.SearchResult
+import com.goodwy.commons.interfaces.ActionModeToolbarHost
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
 import java.util.*
 import kotlin.text.toFloat
 
-class MainActivity : SimpleActivity() {
+class MainActivity : SimpleActivity(), ActionModeToolbarHost {
     companion object {
         private const val SECRET_BOX_PACKAGE = "chonha.get.secret.number"
         private const val SECRET_NUMBER_EXTRA = "secret_number"
@@ -236,6 +237,19 @@ class MainActivity : SimpleActivity() {
             false
         }
     }
+
+    override fun getActionModeToolbar(): com.goodwy.commons.views.CustomActionModeToolbar =
+        binding.mainMenu.getActionModeToolbar()
+
+    override fun showActionModeToolbar() {
+        binding.mainMenu.showActionModeToolbar()
+    }
+
+    override fun hideActionModeToolbar() {
+        binding.mainMenu.hideActionModeToolbar()
+    }
+
+    override fun getBlurTargetView() = binding.mainBlurTarget
 
     private fun setupOptionsMenu() {
         binding.apply {

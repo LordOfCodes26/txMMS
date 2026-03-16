@@ -1,6 +1,7 @@
 package com.android.mms.adapters
 
 import android.view.Menu
+import android.view.MenuItem
 import com.goodwy.commons.dialogs.ConfirmationDialog
 import com.goodwy.commons.extensions.baseConfig
 import com.goodwy.commons.extensions.isRTLLayout
@@ -31,7 +32,10 @@ import com.android.mms.models.ConversationListItem
 class ArchivedConversationsAdapter(
     activity: SimpleActivity, recyclerView: MyRecyclerView, onRefresh: () -> Unit, itemClick: (Any) -> Unit,
 ) : BaseConversationsAdapter(activity, recyclerView, onRefresh, itemClick, isArchived = true) {
-    override fun getActionMenuId() = R.menu.cab_archived_conversations
+    override fun getActionMenuId() = R.menu.cab_action_menu
+    override fun getMorePopupMenuId() = R.menu.cab_archived_conversations
+    override fun getMoreItemId() = R.id.more
+    override fun onMorePopupMenuItemClick(item: MenuItem) = actionItemPressed(item.itemId).let { true }
 
     override fun prepareActionMode(menu: Menu) {}
 

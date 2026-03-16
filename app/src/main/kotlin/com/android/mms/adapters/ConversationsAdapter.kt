@@ -8,6 +8,7 @@ import android.os.Looper
 import android.text.TextUtils
 import android.view.Gravity
 import android.view.Menu
+import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import com.goodwy.commons.dialogs.ConfirmationDialog
@@ -59,7 +60,10 @@ class ConversationsAdapter(
 
     private var getBlockedNumbers = activity.getBlockedNumbers()
 
-    override fun getActionMenuId() = R.menu.cab_conversations
+    override fun getActionMenuId() = R.menu.cab_action_menu
+    override fun getMorePopupMenuId() = R.menu.cab_conversations
+    override fun getMoreItemId() = R.id.more
+    override fun onMorePopupMenuItemClick(item: MenuItem) = actionItemPressed(item.itemId).let { true }
 
     @SuppressLint("NotifyDataSetChanged")
     override fun onActionModeCreated() {
@@ -181,21 +185,20 @@ class ConversationsAdapter(
         val isAllUnblockedNumbers = isAllUnblockedNumbers()
 
         menu.apply {
-            //findItem(R.id.cab_block_number).title = activity.addLockedLabelIfNeeded(com.goodwy.commons.R.string.block_number)
-            findItem(R.id.cab_block_number).isVisible = isAllUnblockedNumbers && !isAllBlockedNumbers
-            findItem(R.id.cab_unblock_number).isVisible = isAllBlockedNumbers && !isAllUnblockedNumbers
-            findItem(R.id.cab_add_number_to_contact).isVisible = isSingleSelection && !isGroupConversation
-            findItem(R.id.cab_dial_number).isVisible =
+            findItem(R.id.cab_block_number)?.isVisible = isAllUnblockedNumbers && !isAllBlockedNumbers
+            findItem(R.id.cab_unblock_number)?.isVisible = isAllBlockedNumbers && !isAllUnblockedNumbers
+            findItem(R.id.cab_add_number_to_contact)?.isVisible = isSingleSelection && !isGroupConversation
+            findItem(R.id.cab_dial_number)?.isVisible =
                 isSingleSelection && !isGroupConversation && !isShortCodeWithLetters(selectedConversation.phoneNumber)
-            findItem(R.id.cab_copy_number).isVisible = isSingleSelection && !isGroupConversation
-            findItem(R.id.cab_conversation_details).isVisible = isSingleSelection
-            findItem(R.id.cab_rename_conversation).isVisible = isSingleSelection && isGroupConversation
-            findItem(R.id.cab_mark_as_read).isVisible = selectedItems.any { !it.read }
-            findItem(R.id.cab_mark_as_unread).isVisible = selectedItems.any { it.read }
-            findItem(R.id.cab_archive).isVisible = archiveAvailable
+            findItem(R.id.cab_copy_number)?.isVisible = isSingleSelection && !isGroupConversation
+            findItem(R.id.cab_conversation_details)?.isVisible = isSingleSelection
+            findItem(R.id.cab_rename_conversation)?.isVisible = isSingleSelection && isGroupConversation
+            findItem(R.id.cab_mark_as_read)?.isVisible = selectedItems.any { !it.read }
+            findItem(R.id.cab_mark_as_unread)?.isVisible = selectedItems.any { it.read }
+            findItem(R.id.cab_archive)?.isVisible = archiveAvailable
             val isPinZeroMode = activity.config.selectedConversationPin == 0
-            findItem(R.id.cab_encrypt_conversations).isVisible = isPinZeroMode
-            findItem(R.id.cab_decrypt_conversations).isVisible = !isPinZeroMode
+            findItem(R.id.cab_encrypt_conversations)?.isVisible = isPinZeroMode
+            findItem(R.id.cab_decrypt_conversations)?.isVisible = !isPinZeroMode
             checkPinBtnVisibility(this)
         }
     }
@@ -553,9 +556,9 @@ class ConversationsAdapter(
     private fun checkPinBtnVisibility(menu: Menu) {
         val pinnedConversations = activity.config.pinnedConversations
         val selectedConversations = getSelectedItems()
-        menu.findItem(R.id.cab_pin_conversation).isVisible =
+        menu.findItem(R.id.cab_pin_conversation)?.isVisible =
             selectedConversations.any { !pinnedConversations.contains(it.threadId.toString()) }
-        menu.findItem(R.id.cab_unpin_conversation).isVisible =
+        menu.findItem(R.id.cab_unpin_conversation)?.isVisible =
             selectedConversations.any { pinnedConversations.contains(it.threadId.toString()) }
     }
 

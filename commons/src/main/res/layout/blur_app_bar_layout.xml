@@ -4,6 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
+
     <com.google.android.material.appbar.CollapsingToolbarLayout
         android:id="@+id/collapsing_toolbar"
         android:layout_width="match_parent"
@@ -47,6 +48,18 @@
             android:visibility="visible"
             app:layout_collapseMode="pin"
             app:popupTheme="@style/ThemeOverlay.AppCompat.Light" />
+
+        <com.goodwy.commons.views.CustomActionModeToolbar
+            android:id="@+id/actionModeToolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            android:layout_marginTop="@dimen/tx_top_bar_toolbar_margin_top"
+            android:layout_marginEnd="@dimen/small_margin"
+            android:paddingBottom="@dimen/tx_bottom_bar_icon_padding"
+            app:layout_collapseMode="pin"
+            android:gravity="bottom"
+            android:background="@android:color/transparent"
+            android:visibility="gone"  />
 
     </com.google.android.material.appbar.CollapsingToolbarLayout>
 

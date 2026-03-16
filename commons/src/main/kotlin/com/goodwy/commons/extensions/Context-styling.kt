@@ -264,7 +264,7 @@ fun Context.getAppIconColors() = resources.getIntArray(R.array.md_app_icon_color
 fun Context.getSurfaceColor(): Int {
     val baseColor = baseConfig.backgroundColor
     val bottomColor = when {
-        isDynamicTheme() -> resources.getColor(R.color.tx_common_bg, theme)
+        isDynamicTheme() -> resources.getColor(com.android.common.R.color.tx_common_bg, theme)
         isLightTheme() -> resources.getColor(R.color.bottom_tabs_light_background, theme)
         isGrayTheme() -> resources.getColor(R.color.bottom_tabs_gray_background, theme)
         isBlackTheme() -> resources.getColor(R.color.bottom_tabs_black_background, theme)

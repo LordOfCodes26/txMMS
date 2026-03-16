@@ -11,10 +11,5 @@
         android:icon="@drawable/ic_edit_vector"
         android:title="@string/edit"
         app:showAsAction="ifRoom" />
-    <item
-        android:id="@+id/cab_delete"
-        android:icon="@drawable/ic_delete_outline"
-        android:title="@string/delete"
-        app:showAsAction="ifRoom" />
 </menu>
 

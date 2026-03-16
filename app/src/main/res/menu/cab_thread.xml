@@ -4,12 +4,6 @@
     xmlns:tools="http://schemas.android.com/tools"
     tools:ignore="AppCompatResource,AlwaysShowAction">
     <item
-        android:id="@+id/cab_delete"
-        android:icon="@drawable/ic_cmn_delete"
-        android:showAsAction="always"
-        android:title="@string/delete"
-        app:showAsAction="always" />
-    <item
         android:id="@+id/cab_copy_to_clipboard"
         android:icon="@drawable/ic_copy_vector"
         android:showAsAction="always"
@@ -35,11 +29,6 @@
         android:id="@+id/cab_select_text"
         android:showAsAction="never"
         android:title="@string/select_text"
-        app:showAsAction="never" />
-    <item
-        android:id="@+id/cab_select_all"
-        android:icon="@drawable/ic_cmn_select_none"
-        android:title="@string/select_all"
         app:showAsAction="never" />
     <item
         android:id="@+id/cab_properties"

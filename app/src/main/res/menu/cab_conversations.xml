@@ -4,18 +4,6 @@
     xmlns:tools="http://schemas.android.com/tools"
     tools:ignore="AppCompatResource,AlwaysShowAction">
     <item
-        android:id="@+id/cab_select_all"
-        android:icon="@drawable/ic_cmn_select_none"
-        android:title="@string/select_all"
-        android:showAsAction="always"
-        app:showAsAction="ifRoom" />
-    <item
-        android:id="@+id/cab_delete"
-        android:icon="@drawable/ic_cmn_delete"
-        android:showAsAction="always"
-        android:title="@string/delete"
-        app:showAsAction="always" />
-    <item
         android:id="@+id/cab_archive"
         android:icon="@drawable/ic_archive_vector"
         android:showAsAction="never"

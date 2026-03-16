@@ -12,6 +12,7 @@ import com.goodwy.commons.extensions.setupViewBackground
 import com.goodwy.commons.interfaces.RefreshRecyclerViewListener
 import com.goodwy.commons.views.MyRecyclerView
 import com.android.mms.R
+import com.goodwy.commons.R as CommonsR
 import com.android.mms.databinding.ItemManageQuickTextBinding
 import com.android.mms.extensions.config
 
@@ -23,12 +24,15 @@ class ManageQuickTextsAdapter(
         setupDragListener(true)
     }
 
-    override fun getActionMenuId() = R.menu.cab_quick_texts
+    override fun getActionMenuId() = CommonsR.menu.cab_delete_only
+    override fun getMorePopupMenuId() = R.menu.cab_quick_texts
+    override fun getMoreItemId() = R.id.more
+    override fun onMorePopupMenuItemClick(item: MenuItem) = actionItemPressed(item.itemId).let { true }
 
     override fun prepareActionMode(menu: Menu) {
         menu.apply {
-            findItem(R.id.cab_copy_text).isVisible = isOneItemSelected()
-            findItem(R.id.cab_edit).isVisible = isOneItemSelected()
+            findItem(R.id.cab_copy_text)?.isVisible = isOneItemSelected()
+            findItem(R.id.cab_edit)?.isVisible = isOneItemSelected()
         }
     }
 

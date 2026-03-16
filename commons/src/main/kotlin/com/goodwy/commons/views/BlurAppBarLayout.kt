@@ -13,6 +13,8 @@ import com.goodwy.commons.activities.TopBarWithUpdateColors
 import com.google.android.material.appbar.AppBarLayout
 import com.google.android.material.appbar.CollapsingToolbarLayout
 import com.goodwy.commons.R
+import com.goodwy.commons.databinding.BlurAppBarLayoutBinding
+import com.goodwy.commons.databinding.MenuSearchBinding
 
 /**
  * Reusable app bar with collapsing toolbar, title, and CustomToolbar (search/menu).
@@ -29,6 +31,9 @@ class BlurAppBarLayout @JvmOverloads constructor(
         fun onSearchTextChanged(s: String?)
     }
 
+
+    val binding = BlurAppBarLayoutBinding.inflate(LayoutInflater.from(context), this)
+
     val titleView: TextView? by lazy { findViewById(R.id.tv_title) }
     val toolbar: CustomToolbar? by lazy { findViewById(R.id.toolbar) as? CustomToolbar }
     val collapsingToolbarLayout: CollapsingToolbarLayout? by lazy { findViewById(R.id.collapsing_toolbar) }
@@ -42,7 +47,8 @@ class BlurAppBarLayout @JvmOverloads constructor(
         isLiftOnScroll = false
         isLifted = false
 
-        LayoutInflater.from(context).inflate(R.layout.blur_app_bar_layout, this, true)
+        // Binding already inflated and attached merge content to this; do not inflate again
+        // or a duplicate searchBarContainer will stay visible and cover the action mode toolbar.
 
         if (attrs != null) {
             context.theme.obtainStyledAttributes(attrs, R.styleable.BlurAppBarLayout, defStyleAttr, 0).use { a ->
@@ -142,5 +148,19 @@ class BlurAppBarLayout @JvmOverloads constructor(
     /** Sets the search field text (e.g. for speech-to-text). */
     fun setText(text: String) {
         toolbar?.setSearchText(text)
+    }
+
+    fun getActionModeToolbar(): CustomActionModeToolbar = binding.actionModeToolbar
+
+    fun showActionModeToolbar() {
+        binding.toolbar.visibility = View.GONE
+        titleView?.visibility = View.GONE
+        binding.actionModeToolbar.visibility = View.VISIBLE
+    }
+
+    fun hideActionModeToolbar() {
+        binding.actionModeToolbar.visibility = View.GONE
+        titleView?.visibility = View.VISIBLE
+        binding.toolbar.visibility = View.VISIBLE
     }
 }

@@ -14,6 +14,7 @@ import android.text.style.URLSpan
 import android.text.util.Linkify
 import android.util.TypedValue
 import android.view.*
+import android.view.MenuItem
 import android.view.ScaleGestureDetector
 import android.widget.LinearLayout
 import com.goodwy.commons.views.BlurPopupMenu
@@ -178,7 +179,10 @@ class ThreadAdapter(
         (recyclerView.itemAnimator as? SimpleItemAnimator)?.supportsChangeAnimations = false
     }
 
-    override fun getActionMenuId() = R.menu.cab_thread
+    override fun getActionMenuId() = R.menu.cab_action_menu
+    override fun getMorePopupMenuId() = R.menu.cab_thread
+    override fun getMoreItemId() = R.id.more
+    override fun onMorePopupMenuItemClick(item: MenuItem) = actionItemPressed(item.itemId).let { true }
 
     override fun prepareActionMode(menu: Menu) {
         val isOneItemSelected = isOneItemSelected()
@@ -191,13 +195,13 @@ class ThreadAdapter(
         } && getSelectedAttachments().isNotEmpty()
 
         menu.apply {
-            findItem(R.id.cab_copy_to_clipboard).isVisible = isOneItemSelected && hasText
-            findItem(R.id.cab_save_as).isVisible = showSaveAs
-            findItem(R.id.cab_share).isVisible = isOneItemSelected && hasText
-            findItem(R.id.cab_forward_message).isVisible = selectedKeys.isNotEmpty() && hasAnyText
-            findItem(R.id.cab_select_text).isVisible = isOneItemSelected && hasText
-            findItem(R.id.cab_properties).isVisible = isOneItemSelected
-            findItem(R.id.cab_restore).isVisible = isRecycleBin
+            findItem(R.id.cab_copy_to_clipboard)?.isVisible = isOneItemSelected && hasText
+            findItem(R.id.cab_save_as)?.isVisible = showSaveAs
+            findItem(R.id.cab_share)?.isVisible = isOneItemSelected && hasText
+            findItem(R.id.cab_forward_message)?.isVisible = selectedKeys.isNotEmpty() && hasAnyText
+            findItem(R.id.cab_select_text)?.isVisible = isOneItemSelected && hasText
+            findItem(R.id.cab_properties)?.isVisible = isOneItemSelected
+            findItem(R.id.cab_restore)?.isVisible = isRecycleBin
         }
     }
 

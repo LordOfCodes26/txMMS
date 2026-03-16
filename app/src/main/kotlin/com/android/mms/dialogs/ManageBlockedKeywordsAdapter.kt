@@ -11,6 +11,7 @@ import com.goodwy.commons.extensions.setupViewBackground
 import com.goodwy.commons.interfaces.RefreshRecyclerViewListener
 import com.goodwy.commons.views.MyRecyclerView
 import com.android.mms.R
+import com.goodwy.commons.R as CommonsR
 import com.android.mms.databinding.ItemManageBlockedKeywordBinding
 import com.android.mms.extensions.config
 
@@ -22,11 +23,14 @@ class ManageBlockedKeywordsAdapter(
         setupDragListener(true)
     }
 
-    override fun getActionMenuId() = R.menu.cab_blocked_keywords
+    override fun getActionMenuId() = CommonsR.menu.cab_delete_only
+    override fun getMorePopupMenuId() = R.menu.cab_blocked_keywords
+    override fun getMoreItemId() = R.id.more
+    override fun onMorePopupMenuItemClick(item: MenuItem) = actionItemPressed(item.itemId).let { true }
 
     override fun prepareActionMode(menu: Menu) {
         menu.apply {
-            findItem(R.id.cab_copy_keyword).isVisible = isOneItemSelected()
+            findItem(R.id.cab_copy_keyword)?.isVisible = isOneItemSelected()
         }
     }
 
