@@ -58,6 +58,7 @@ import com.goodwy.commons.dialogs.PermissionRequiredDialog
 import com.goodwy.commons.dialogs.RadioGroupDialog
 import com.goodwy.commons.dialogs.RadioGroupIconDialog
 import com.goodwy.commons.extensions.*
+import com.goodwy.commons.interfaces.ActionModeToolbarHost
 import com.goodwy.commons.helpers.*
 import com.goodwy.commons.models.PhoneNumber
 import com.goodwy.commons.models.RadioItem
@@ -91,7 +92,7 @@ import kotlin.collections.HashMap
 import kotlin.collections.HashSet
 import kotlin.collections.set
 
-class ThreadActivity : SimpleActivity() {
+class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
     private val debugTag = "ThreadActivityFee"
     private var threadId = 0L
     private var currentSIMCardIndex = 0
@@ -2302,4 +2303,28 @@ class ThreadActivity : SimpleActivity() {
             false
         }
     }
+
+    override fun getActionModeToolbar(): com.goodwy.commons.views.CustomActionModeToolbar =
+        binding.threadActionModeToolbar
+
+    override fun showActionModeToolbar() {
+        binding.threadToolbar.beGone()
+        binding.topDetailsCompact.root.beGone()
+        binding.topDetailsLarge.beGone()
+        binding.threadActionModeToolbar.beVisible()
+    }
+
+    override fun hideActionModeToolbar() {
+        binding.threadActionModeToolbar.beGone()
+        binding.threadToolbar.beVisible()
+        if (config.threadTopStyle == THREAD_TOP_LARGE) {
+            binding.topDetailsCompact.root.beGone()
+            binding.topDetailsLarge.beVisible()
+        } else {
+            binding.topDetailsLarge.beGone()
+            binding.topDetailsCompact.root.beVisible()
+        }
+    }
+
+    override fun getBlurTargetView() = binding.mainBlurTarget
 }

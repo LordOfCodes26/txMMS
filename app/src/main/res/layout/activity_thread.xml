@@ -124,6 +124,16 @@
                     app:layout_collapseMode="pin"
                     app:popupTheme="@style/ThemeOverlay.AppCompat.Light" />
 
+                <com.goodwy.commons.views.CustomActionModeToolbar
+                    android:id="@+id/thread_action_mode_toolbar"
+                    android:layout_width="match_parent"
+                    android:layout_height="?attr/actionBarSize"
+                    android:layout_marginTop="@dimen/section_md_margin"
+                    android:background="@color/transparent"
+                    android:gravity="center"
+                    android:visibility="gone"
+                    app:layout_collapseMode="pin" />
+
                 <androidx.constraintlayout.widget.ConstraintLayout
                     android:id="@+id/topDetailsLarge"
                     android:layout_width="match_parent"

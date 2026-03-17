@@ -251,13 +251,26 @@ class ThreadAdapter(
         val actModeBar = actMode?.customView?.parent as? View
         actModeBar?.setBackgroundColor(cabBackgroundColor)
 
-        val toolbar = actMode?.customView as? com.goodwy.commons.views.CustomActionModeToolbar
+        // When using host toolbar (ThreadActivity), actMode is null so get toolbar from actBarToolbar.
+        val toolbar = (actMode?.customView as? com.goodwy.commons.views.CustomActionModeToolbar) ?: actBarToolbar
         toolbar?.updateTextColorForBackground(cabBackgroundColor)
         toolbar?.updateColorsForBackground(cabBackgroundColor)
 
-        if (activity is com.goodwy.commons.activities.EdgeToEdgeActivity) {
-            activity.window.statusBarColor = cabBackgroundColor
-            activity.window.setSystemBarsAppearance(cabBackgroundColor)
+        // Ensure "more" popup works when using host toolbar (e.g. ThreadActivity). When the toolbar was
+        // visibility=gone, setPopupForMoreItem in setupActionModeToolbar may not attach correctly;
+        // re-apply once the toolbar is visible.
+        if (toolbar != null && getMoreItemId() != 0 && getMorePopupMenuId() != 0 && activity is com.goodwy.commons.interfaces.ActionModeToolbarHost) {
+            val blurTarget = (activity as com.goodwy.commons.interfaces.ActionModeToolbarHost).getBlurTargetView()
+            toolbar.setPopupForMoreItem(
+                getMoreItemId(),
+                getMorePopupMenuId(),
+                blurTarget,
+                object : MenuItem.OnMenuItemClickListener {
+                    override fun onMenuItemClick(item: MenuItem): Boolean {
+                        return onMorePopupMenuItemClick(item)
+                    }
+                }
+            )
         }
     }
 
