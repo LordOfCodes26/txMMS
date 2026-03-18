@@ -155,6 +155,17 @@ class ThreadAdapter(
         }
     })
 
+    /** Touch listener for pinch-to-zoom font size on message bubbles. Attach to both wrapper and body so pinches on text are received. */
+    private val pinchToZoomTouchListener = View.OnTouchListener { _, event ->
+        if (event.pointerCount >= 2) {
+            recyclerView.requestDisallowInterceptTouchEvent(true)
+            scaleGestureDetector.onTouchEvent(event)
+            true
+        } else {
+            false
+        }
+    }
+
     companion object {
         private const val MAX_MEDIA_HEIGHT_RATIO = 3
         private const val SIM_BITS = 21
@@ -576,6 +587,11 @@ class ThreadAdapter(
                 }
 
                 setOnTouchListener { v, event ->
+                    if (event.pointerCount >= 2) {
+                        recyclerView.requestDisallowInterceptTouchEvent(true)
+                        scaleGestureDetector.onTouchEvent(event)
+                        return@setOnTouchListener true
+                    }
                     val action = event.action
                     if (action == MotionEvent.ACTION_UP) {
                         val x = event.x
@@ -760,18 +776,7 @@ class ThreadAdapter(
             val contrastColorReceived = if (selectedBubbleOption != null) activity.getProperTextColor() else backgroundReceived.getContrastColor()
 
             threadMessageBodyWrapper.apply {
-                // Setup pinch-to-zoom gesture detector for font size adjustment
-                // Only process multi-touch events (pinch gestures) to avoid interfering with clicks
-                setOnTouchListener { v, event ->
-                    // Only handle multi-touch events (pinch gesture with 2+ pointers)
-                    if (event.pointerCount >= 2) {
-                        scaleGestureDetector.onTouchEvent(event)
-                        if (scaleGestureDetector.isInProgress) {
-                            return@setOnTouchListener true
-                        }
-                    }
-                    false // Let other touch events (like clicks) still work
-                }
+                setOnTouchListener(pinchToZoomTouchListener)
 
                 val isRtl = activity.isRTLLayout
                 val bubbleStyle = activity.config.bubbleStyle
@@ -871,19 +876,8 @@ class ThreadAdapter(
             }
 
             threadMessageBodyWrapper.apply {
-                // Setup pinch-to-zoom gesture detector for font size adjustment
-                // Only process multi-touch events (pinch gestures) to avoid interfering with clicks
-                setOnTouchListener { v, event ->
-                    // Only handle multi-touch events (pinch gesture with 2+ pointers)
-                    if (event.pointerCount >= 2) {
-                        scaleGestureDetector.onTouchEvent(event)
-                        if (scaleGestureDetector.isInProgress) {
-                            return@setOnTouchListener true
-                        }
-                    }
-                    false // Let other touch events (like clicks) still work
-                }
-                
+                setOnTouchListener(pinchToZoomTouchListener)
+
                 updateLayoutParams<RelativeLayout.LayoutParams> {
                     removeRule(RelativeLayout.END_OF)
                     addRule(RelativeLayout.ALIGN_PARENT_END)
