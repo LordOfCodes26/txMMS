@@ -35,7 +35,7 @@ class Config(context: Context) : BaseConfig(context) {
         set(sendOnEnter) = prefs.edit { putBoolean(SEND_ON_ENTER, sendOnEnter) }
 
     var enableDeliveryReports: Boolean
-        get() = prefs.getBoolean(ENABLE_DELIVERY_REPORTS, false)
+        get() = prefs.getBoolean(ENABLE_DELIVERY_REPORTS, true)
         set(enableDeliveryReports) = prefs.edit { putBoolean(ENABLE_DELIVERY_REPORTS, enableDeliveryReports) }
 
     var deliveryReportSound: String?
