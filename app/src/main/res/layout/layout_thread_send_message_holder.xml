@@ -133,6 +133,7 @@
         android:id="@+id/threadTypeMessage"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:elevation="4dp"
         android:background="@drawable/bg_input"
         android:gravity="center_vertical"
         android:hint="@string/type_a_message"
