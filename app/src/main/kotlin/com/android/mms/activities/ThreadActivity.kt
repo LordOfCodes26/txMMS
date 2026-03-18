@@ -255,7 +255,9 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
 
         val bottomBarColor = getBottomBarColor()
 //        binding.shortCodeHolder.root.setBackgroundColor(bottomBarColor)
-        binding.messageHolder.attachmentPickerHolder.setBackgroundColor(bottomBarColor)
+        binding.messageHolder.attachmentPickerHolder.setBackgroundColor(
+            ResourcesCompat.getColor(resources, com.goodwy.commons.R.color.md_grey_100, theme)
+        )
     }
 
     override fun onStart() {
@@ -364,9 +366,11 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
 
                 val messagesList = binding.threadMessagesList
                 // When keyboard is open OR attachment picker is shown, add extra bottom padding so message bubbles move up
+                // For attachment picker: use keyboard height + height of input bar so last bubble is not overlapped by picker top
+                val inputBarHeight = dp(32)
                 val extraBottomPadding = when {
                     ime.bottom > 0 -> ime.bottom
-                    isAttachmentPickerVisible -> config.keyboardHeight + 24
+                    isAttachmentPickerVisible -> config.keyboardHeight + inputBarHeight
                     else -> 0
                 }
                 if (extraBottomPadding > 0) {
@@ -959,7 +963,10 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                     hideKeyboard()
                     threadTypeMessage.clearFocus()
                     isAttachmentPickerVisible = true
-                    messageHolderHelper?.showAttachmentPicker()
+                    // If keyboard is visible, wait for it to fully hide before showing picker (done in setupMessagingEdgeToEdge insets listener)
+                    if (!wasKeyboardVisible) {
+                        messageHolderHelper?.showAttachmentPicker()
+                    }
                 }
                 threadTypeMessage.requestApplyInsets()
                 // Re-apply window insets so message bubbles move up when attachment picker is shown

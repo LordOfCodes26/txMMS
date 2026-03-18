@@ -13,7 +13,6 @@ import android.telephony.SubscriptionInfo
 import android.util.TypedValue
 import android.view.KeyEvent
 import android.view.ViewGroup
-import android.view.animation.OvershootInterpolator
 import android.view.inputmethod.EditorInfo
 import android.widget.Toast
 import androidx.core.view.updateLayoutParams
@@ -486,7 +485,8 @@ class MessageHolderHelper(
         binding.attachmentPickerHolder.updateLayoutParams<ViewGroup.LayoutParams> {
             height = keyboardHeight
         }
-        binding.attachmentPickerHolder.showWithAnimation()
+        // Show without slide/alpha animation so it appears smoothly (avoids strange motion when opening from keyboard)
+        binding.attachmentPickerHolder.beVisible()
         animateAttachmentButton(rotation = -135f)
     }
 
@@ -498,8 +498,7 @@ class MessageHolderHelper(
     private fun animateAttachmentButton(rotation: Float) {
         binding.threadAddAttachment.animate()
             .rotation(rotation)
-            .setDuration(500L)
-            .setInterpolator(OvershootInterpolator())
+            .setDuration(200L)
             .start()
     }
 
