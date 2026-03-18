@@ -20,6 +20,7 @@ import com.goodwy.commons.views.BlurPopupMenu
 import com.goodwy.commons.views.MyRecyclerView
 import com.android.mms.BuildConfig
 import com.android.mms.R
+import com.android.mms.databinding.ItemConversationBinding
 import com.android.mms.activities.MainActivity
 import com.android.mms.activities.SimpleActivity
 import com.android.mms.dialogs.RenameConversationDialog
@@ -98,12 +99,16 @@ class ConversationsAdapter(
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         super.onBindViewHolder(holder, position)
-        val conversation = getConversationAt(position)
-        holder.itemView.setOnLongClickListener {
-            if (conversation != null) {
-                showPopupMenu(conversation, holder.itemView)
+        val conversation = getConversationAt(position) ?: return
+        // Root is SwipeActionView; it consumes touch for swipe and long-press may never fire there.
+        // Attach long-click to the inner content view so the popup is triggered.
+        holder.itemView.setOnLongClickListener(null)
+        ItemConversationBinding.bind(holder.itemView).conversationFrameSelect.apply {
+            isLongClickable = true
+            setOnLongClickListener {
+                showPopupMenu(conversation, this)
+                true
             }
-            true
         }
     }
 
@@ -112,12 +117,9 @@ class ConversationsAdapter(
         if (activity.isDestroyed || activity.isFinishing) {
             return
         }
-        // Select the conversation first (for compatibility with existing logic)
-        val position = getItemKeyPosition(conversation.hashCode())
-        if (position >= 0) {
-            selectedKeys.clear()
-            selectedKeys.add(conversation.hashCode())
-        }
+        // Always select the long-pressed conversation so the popup can show
+        selectedKeys.clear()
+        selectedKeys.add(conversation.hashCode())
 
         val popupMenu = BlurPopupMenu(activity, view, Gravity.END)
         popupMenu.inflate(R.menu.cab_conversations)
@@ -133,24 +135,24 @@ class ConversationsAdapter(
         val isAllUnblockedNumbers = isAllUnblockedNumbers()
 
         menu.apply {
-            findItem(R.id.cab_block_number).isVisible = isAllUnblockedNumbers && !isAllBlockedNumbers
-            findItem(R.id.cab_unblock_number).isVisible = isAllBlockedNumbers && !isAllUnblockedNumbers
-            findItem(R.id.cab_add_number_to_contact).isVisible = isSingleSelection && !isGroupConversation
-            findItem(R.id.cab_dial_number).isVisible =
+            findItem(R.id.cab_block_number)?.isVisible = isAllUnblockedNumbers && !isAllBlockedNumbers
+            findItem(R.id.cab_unblock_number)?.isVisible = isAllBlockedNumbers && !isAllUnblockedNumbers
+            findItem(R.id.cab_add_number_to_contact)?.isVisible = isSingleSelection && !isGroupConversation
+            findItem(R.id.cab_dial_number)?.isVisible =
                 false && isSingleSelection && !isGroupConversation && !isShortCodeWithLetters(selectedConversation.phoneNumber)
-            findItem(R.id.cab_copy_number).isVisible = isSingleSelection && !isGroupConversation
-            findItem(R.id.cab_conversation_details).isVisible = isSingleSelection
-            findItem(R.id.cab_rename_conversation).isVisible = isSingleSelection && isGroupConversation
-            findItem(R.id.cab_mark_as_read).isVisible = selectedItems.any { !it.read }
-            findItem(R.id.cab_mark_as_unread).isVisible = selectedItems.any { it.read }
-            findItem(R.id.cab_archive).isVisible = archiveAvailable
+            findItem(R.id.cab_copy_number)?.isVisible = isSingleSelection && !isGroupConversation
+            findItem(R.id.cab_conversation_details)?.isVisible = isSingleSelection
+            findItem(R.id.cab_rename_conversation)?.isVisible = isSingleSelection && isGroupConversation
+            findItem(R.id.cab_mark_as_read)?.isVisible = selectedItems.any { !it.read }
+            findItem(R.id.cab_mark_as_unread)?.isVisible = selectedItems.any { it.read }
+            findItem(R.id.cab_archive)?.isVisible = archiveAvailable
             val isPinZeroMode = activity.config.selectedConversationPin == 0
-            findItem(R.id.cab_encrypt_conversations).isVisible = isPinZeroMode
-            findItem(R.id.cab_decrypt_conversations).isVisible = !isPinZeroMode
+            findItem(R.id.cab_encrypt_conversations)?.isVisible = isPinZeroMode
+            findItem(R.id.cab_decrypt_conversations)?.isVisible = !isPinZeroMode
             checkPinBtnVisibility(this)
-            // Hide select_all as it doesn't make sense in a popup menu for single item
-            findItem(R.id.cab_select_all).isVisible = false
-            
+            // Hide select_all if present (not in cab_conversations popup menu)
+            findItem(R.id.cab_select_all)?.isVisible = false
+
             // Remove icons from all menu items
             for (i in 0 until size()) {
                 getItem(i)?.icon = null
