@@ -1119,7 +1119,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             val phoneNumber = participants.first().phoneNumbers.firstOrNull()?.normalizedNumber ?: ""
             val normalizedTitle = threadTitle.normalizePhoneNumber()
             val normalizedPhone = phoneNumber.normalizePhoneNumber()
-            if (phoneNumber.isNotEmpty() && (normalizedTitle == normalizedPhone || threadTitle == phoneNumber)) {
+            if (phoneNumber.isNotEmpty() && (normalizedTitle == normalizedPhone || threadTitle == phoneNumber) && threadTitle.startsWith("+")) {
                 threadTitle = getDisplayNumberWithoutCountryCode(phoneNumber)
             }
         }

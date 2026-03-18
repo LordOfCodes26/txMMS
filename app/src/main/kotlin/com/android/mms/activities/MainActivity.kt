@@ -793,15 +793,16 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
                 val threadIds = cachedConversations.map { it.threadId }
                 if (!threadIds.contains(clonedConversation.threadId)) {
                     // If this is a new conversation and title equals phone number (not in contacts),
-                    // remove country code from the display
+                    // remove country code from the display. Keep title when it is already the thread address (e.g. "1912345678").
                     val normalizedTitle = clonedConversation.title.normalizePhoneNumber()
                     val normalizedPhoneNumber = clonedConversation.phoneNumber.normalizePhoneNumber()
-                    val updatedConversation = if (normalizedTitle == normalizedPhoneNumber || clonedConversation.title == clonedConversation.phoneNumber) {
-                        val phoneNumberWithoutCountryCode = getDisplayNumberWithoutCountryCode(clonedConversation.phoneNumber)
-                        clonedConversation.copy(title = phoneNumberWithoutCountryCode)
-                    } else {
-                        clonedConversation
+                    val phoneNumberWithoutCountryCode = getDisplayNumberWithoutCountryCode(clonedConversation.phoneNumber)
+                    val titleToUse = when {
+                        clonedConversation.title == clonedConversation.phoneNumber -> clonedConversation.phoneNumber
+                        normalizedTitle == normalizedPhoneNumber -> phoneNumberWithoutCountryCode
+                        else -> clonedConversation.title
                     }
+                    val updatedConversation = clonedConversation.copy(title = titleToUse)
                     conversationsDB.insertOrUpdate(updatedConversation)
                     cachedConversations.add(updatedConversation)
                 }

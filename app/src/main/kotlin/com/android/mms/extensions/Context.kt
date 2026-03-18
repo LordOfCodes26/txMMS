@@ -523,7 +523,13 @@ fun Context.getConversations(
                 }
 
                 val names = getThreadContactNames(phoneNumbers, privateContacts)
-                val title = TextUtils.join(", ", names.toTypedArray())
+                // Use thread address as title when it would otherwise be stripped (e.g. "1912345678" not "912345678")
+                val title = if (phoneNumbers.size == 1 && names.size == 1 &&
+                    names[0] == getDisplayNumberWithoutCountryCode(phoneNumbers.first())) {
+                    phoneNumbers.first()
+                } else {
+                    TextUtils.join(", ", names.toTypedArray())
+                }
                 var photoUri =
                     if (phoneNumbers.size == 1) simpleContactHelper.getPhotoUriFromPhoneNumber(
                         phoneNumbers.first()
