@@ -230,6 +230,7 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         val customToolbar = binding.mainMenu.toolbar ?: return appLockManager.lock().let { false }
         return if (customToolbar.isSearchExpanded) {
             customToolbar.collapseSearch()
+            binding.mainMenu.searchBeVisibleIf(false)
             isSearchOpen = false
             true
         } else {
