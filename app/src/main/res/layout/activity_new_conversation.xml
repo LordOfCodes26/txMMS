@@ -137,6 +137,7 @@
             android:id="@+id/new_conversation_address"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:elevation="6dp"
             android:layout_marginStart="@dimen/activity_margin"
             android:layout_marginEnd="@dimen/activity_margin" />
 

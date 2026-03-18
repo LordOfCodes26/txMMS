@@ -2,6 +2,7 @@ package com.goodwy.commons.views
 
 import android.content.Context
 import android.content.res.ColorStateList
+import android.graphics.Outline
 import android.graphics.drawable.GradientDrawable
 import android.text.Editable
 import android.text.TextUtils
@@ -13,6 +14,7 @@ import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewOutlineProvider
 import android.view.inputmethod.EditorInfo
 import android.widget.FrameLayout
 import android.widget.ImageView
@@ -30,6 +32,7 @@ class ChipsInputView @JvmOverloads constructor(
     defStyleAttr: Int = 0
 ) : FrameLayout(context, attrs, defStyleAttr) {
 
+    private var contentFrame: View? = null
     private val flexContainer: FlexboxLayout
     private val chipsScrollView: MaxHeightScrollView?
     private val editText: MyEditText
@@ -47,6 +50,9 @@ class ChipsInputView @JvmOverloads constructor(
     /** Marks flex children that are our compact chip rows (not Material Chip — full control over height). */
     private val chipRowMarker = Any()
 
+    private val outlineRadiusPx: Float
+        get() = 24f * resources.displayMetrics.density
+
     var hint: String
         get() = editText.hint?.toString() ?: ""
         set(value) {
@@ -61,8 +67,35 @@ class ChipsInputView @JvmOverloads constructor(
         get() = chips.toList()
 
     init {
+        var elevationFromAttrs = 0f
+        context.theme.obtainStyledAttributes(attrs, intArrayOf(android.R.attr.elevation), defStyleAttr, 0).use { a ->
+            if (a.hasValue(0)) {
+                elevationFromAttrs = a.getDimension(0, 0f)
+            }
+        }
+
         val inflater = LayoutInflater.from(context)
         val rootView = inflater.inflate(R.layout.view_chips_input, this, true)
+        val frame = getChildAt(0)
+        contentFrame = frame
+
+        frame.outlineProvider = object : ViewOutlineProvider() {
+            override fun getOutline(view: View, outline: Outline) {
+                if (view.width > 0 && view.height > 0) {
+                    outline.setRoundRect(0, 0, view.width, view.height, outlineRadiusPx)
+                }
+            }
+        }
+        if (elevationFromAttrs > 0f) {
+            frame.elevation = elevationFromAttrs
+            frame.setLayerType(View.LAYER_TYPE_HARDWARE, null)
+        }
+        frame.addOnLayoutChangeListener { v, _, _, _, _, _, _, _, _ ->
+            if (v.elevation > 0f && v.width > 0 && v.height > 0) {
+                v.invalidateOutline()
+            }
+        }
+        super.setElevation(0f)
 
         flexContainer = rootView.findViewById(R.id.chips_flex_container)
         chipsScrollView = flexContainer.parent as? MaxHeightScrollView
@@ -312,6 +345,19 @@ class ChipsInputView @JvmOverloads constructor(
 
     private fun scrollToBottom() {
         chipsScrollView?.post { chipsScrollView.fullScroll(View.FOCUS_DOWN) }
+    }
+
+    override fun getElevation(): Float = contentFrame?.elevation ?: super.getElevation()
+
+    override fun setElevation(elevation: Float) {
+        val frame = contentFrame
+        if (frame != null) {
+            super.setElevation(0f)
+            frame.elevation = elevation
+            frame.setLayerType(if (elevation > 0f) View.LAYER_TYPE_HARDWARE else View.LAYER_TYPE_NONE, null)
+        } else {
+            super.setElevation(elevation)
+        }
     }
 
     fun getEditText(): MyEditText = editText
