@@ -20,8 +20,11 @@
 
         <com.google.android.flexbox.FlexboxLayout
             android:id="@+id/chips_flex_container"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:minHeight="@dimen/two_line_list_item_min_height"
+            android:clickable="true"
+            android:focusable="true"
             app:flexWrap="wrap"
             app:flexDirection="row"
             app:alignItems="flex_start"
@@ -35,7 +38,7 @@
                 android:layout_height="@dimen/chips_input_chip_row_height"
                 app:layout_flexGrow="1"
                 app:layout_flexShrink="0"
-                app:layout_minWidth="100dp"
+                app:layout_minWidth="120dp"
                 app:layout_alignSelf="flex_start">
 
                 <com.goodwy.commons.views.MyEditText

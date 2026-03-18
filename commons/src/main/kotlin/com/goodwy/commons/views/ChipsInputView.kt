@@ -67,12 +67,17 @@ class ChipsInputView @JvmOverloads constructor(
         flexContainer = rootView.findViewById(R.id.chips_flex_container)
         chipsScrollView = flexContainer.parent as? MaxHeightScrollView
         editText = rootView.findViewById(R.id.chips_edit_text)
+        val chipsEditWrapper = rootView.findViewById<View>(R.id.chips_edit_wrapper)
         clearButton = rootView.findViewById(R.id.chips_clear_button)
         addressBookButton = rootView.findViewById(R.id.chips_address_book_button)
         speechToTextButton = rootView.findViewById(R.id.chips_speech_to_text_button)
 
         setupEditText()
         setupButtons()
+        flexContainer.isClickable = true
+        flexContainer.setOnClickListener { editText.requestFocus() }
+        chipsEditWrapper.isClickable = true
+        chipsEditWrapper.setOnClickListener { editText.requestFocus() }
         updateButtonsVisibility("")
         updatePlaceholderVisibility()
     }
