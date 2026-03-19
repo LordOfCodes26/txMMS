@@ -106,6 +106,8 @@
                 android:id="@+id/collapsing_toolbar"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
+                android:clipChildren="false"
+                android:clipToPadding="false"
                 app:contentScrim="@color/transparent"
                 app:statusBarScrim="@color/transparent"
                 app:collapsedTitleGravity="center"
@@ -140,7 +142,9 @@
                     android:layout_height="match_parent"
                     app:layout_collapseMode="pin"
                     android:paddingBottom="4dp"
-                    android:translationZ="4dp">
+                    android:translationZ="4dp"
+                    android:clipChildren="false"
+                    android:clipToPadding="false">
 
                     <LinearLayout
                         android:id="@+id/topDetailsLarge_center_group"
@@ -150,22 +154,30 @@
                         android:gravity="center"
                         android:layout_gravity="center"
                         android:layout_marginTop="@dimen/normal_margin"
-                        android:paddingHorizontal="@dimen/section_md_margin"
+                        android:paddingStart="@dimen/section_md_margin"
+                        android:paddingEnd="@dimen/label_start_margin"
+                        android:clipChildren="false"
+                        android:clipToPadding="false"
                         >
 
-                        <com.goodwy.commons.views.MyTextView
+                        <com.goodwy.commons.views.MarqueeTextView
                             android:id="@+id/sender_name_large"
-                            android:layout_width="wrap_content"
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:background="@drawable/ripple_all_corners"
                             android:maxLines="1"
-                            android:gravity="center"
-                            android:layout_gravity="center"
+                            android:singleLine="true"
+                            android:ellipsize="marquee"
+                            android:marqueeRepeatLimit="-1"
+                            android:scrollHorizontally="true"
+                            android:gravity="center_vertical|center"
+                            android:layout_gravity="center_horizontal"
                             android:textSize="@dimen/extra_big_text_size"
                             android:paddingTop="@dimen/small_margin"
                             android:paddingBottom="@dimen/small_margin"
                             android:paddingLeft="@dimen/normal_margin"
                             android:paddingRight="@dimen/normal_margin"
+                            android:layout_marginHorizontal="@dimen/larger_margin"
+                            tools:ignore="Deprecated"
                             tools:text="Name"/>
 
                         <!--                        <com.goodwy.commons.views.MyTextView-->

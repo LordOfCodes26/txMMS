@@ -1159,6 +1159,11 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                     if (threadTitle.isNotEmpty()) {
                         senderNameLarge.text = threadTitle
                         senderNameLarge.setTextColor(textColor)
+                        senderNameLarge.isSelected = true
+                        // Marquee starts after layout; re-apply selection so it reliably runs in AppBar.
+                        senderNameLarge.post {
+                            senderNameLarge.isSelected = true
+                        }
                     }
 //                    senderNumberLarge.beGoneIf(threadSubtitle.isEmpty() || threadTitle == threadSubtitle || participants.size > 1)
 //                    senderNumberLarge.text = threadSubtitle
