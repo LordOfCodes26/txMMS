@@ -63,7 +63,7 @@
                 android:layout_gravity="center_vertical|end"
                 android:src="@drawable/ic_cmn_info" />
 
-            <com.goodwy.commons.views.MyAppCompatCheckbox
+            <com.android.common.view.MCycleCheckBox
                 android:id="@+id/item_contact_checkbox"
                 android:layout_width="24dp"
                 android:layout_height="24dp"

@@ -159,6 +159,9 @@
     <!--Search toolbar-->
     <dimen name="search_menu_height">36dp</dimen>
 
+    <!-- Top padding for action mode toolbar content so it aligns with normal toolbar -->
+    <dimen name="action_mode_toolbar_content_top">42dp</dimen>
+
     <!--Recent Call Height -->
     <dimen name="recent_call_height">66dp</dimen>
     <dimen name="recent_call_sim_width">14dp</dimen>

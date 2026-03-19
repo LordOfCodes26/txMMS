@@ -14,15 +14,15 @@
         android:id="@+id/item_contact_holder"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:minHeight="@dimen/recent_call_height"
-        android:paddingStart="@dimen/bigger_margin"
-        android:paddingEnd="@dimen/medium_margin">
+        android:minHeight="@dimen/min_row_height"
+        android:paddingStart="@dimen/larger_margin"
+        android:paddingTop="@dimen/medium_margin">
 
         <com.goodwy.commons.views.ContactAvatarView
             android:id="@+id/item_contact_image"
-            android:layout_width="@dimen/call_icon_size"
-            android:layout_height="@dimen/call_icon_size"
-            android:layout_marginEnd="@dimen/normal_margin"
+            android:layout_width="@dimen/normal_icon_size"
+            android:layout_height="@dimen/normal_icon_size"
+            android:layout_marginBottom="@dimen/medium_margin"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
@@ -31,12 +31,12 @@
             android:id="@+id/item_contact_name"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="@dimen/medium_normal_margin"
-            android:layout_marginTop="@dimen/smaller_margin"
+            android:layout_marginStart="@dimen/medium_margin"
             android:ellipsize="end"
             android:maxLines="1"
+            android:paddingEnd="@dimen/small_margin"
             android:textDirection="locale"
-            android:textSize="@dimen/middle_text_size"
+            android:textSize="@dimen/big_text_size"
             tools:text="John Doe"
             app:layout_goneMarginBottom="@dimen/medium_margin"
             app:layout_constraintTop_toTopOf="parent"
@@ -73,27 +73,28 @@
 
         <RelativeLayout
             android:id="@+id/item_contact_info_holder"
-            android:layout_width="@dimen/action_mode_info_holder_size"
-            android:layout_height="wrap_content"
-            android:layout_marginEnd="@dimen/small_margin"
+            android:layout_width="33dp"
+            android:layout_height="33dp"
+            android:layout_marginEnd="@dimen/medium_margin"
             android:layout_marginStart="@dimen/medium_margin"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/details"
+            android:layout_marginBottom="@dimen/medium_margin"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent">
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/item_contact_info"
-                style="?attr/borderlessButtonStyle"
-                android:layout_width="@dimen/recent_call_info_size"
-                android:layout_height="@dimen/recent_call_info_size"
-                android:layout_margin="@dimen/medium_md_margin"
-                android:paddingHorizontal="@dimen/zero"
-                app:icon="@drawable/ic_cmn_info"
-                app:rippleColor="?attr/colorControlHighlight" />
 
-            <com.goodwy.commons.views.MyAppCompatCheckbox
+            <ImageView
+                android:id="@+id/item_contact_info"
+                android:layout_width="@dimen/tx_toolbar_icon_size"
+                android:layout_height="@dimen/tx_toolbar_icon_size"
+                android:contentDescription="@string/contact_details"
+                android:padding="@dimen/tx_toolbar_icon_padding"
+                android:src="@drawable/ic_cmn_info"
+                android:layout_centerInParent="true"/>
+
+            <com.android.common.view.MCycleCheckBox
                 android:id="@+id/item_contact_checkbox"
                 android:layout_width="24dp"
                 android:layout_height="24dp"

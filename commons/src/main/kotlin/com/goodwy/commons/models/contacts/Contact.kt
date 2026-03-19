@@ -68,6 +68,12 @@ data class Contact(
         }
 
     companion object {
+        private const val SORT_CAT_SYMBOL = 0
+        private const val SORT_CAT_KOREAN = 1
+        private const val SORT_CAT_ENGLISH = 2
+        private const val SORT_CAT_OTHER = 3
+        private const val SORT_CAT_NUMBER = 4
+
         var sorting = 0
         var startWithSurname = false
         var showNicknameInsteadNames = false
@@ -242,17 +248,39 @@ data class Contact(
         if (first.isEmpty()) return 1
         if (second.isEmpty()) return -1
 
-        val firstCharType = getCharType(first.first())
-        val secondCharType = getCharType(second.first())
+        // Order: symbols (0), Korean (1), English (2), other (3), numbers (4) at last
+        val cat1 = getSortCategory(first.first())
+        val cat2 = getSortCategory(second.first())
+        val categoryCompare = cat1.compareTo(cat2)
+        if (categoryCompare != 0) return categoryCompare
 
-        // Non-letters come before letters
-        return when {
-            firstCharType == CharType.LETTER && secondCharType != CharType.LETTER -> 1
-            firstCharType != CharType.LETTER && secondCharType == CharType.LETTER -> -1
-            firstCharType == CharType.DIGIT && secondCharType == CharType.SYMBOL -> 1
-            firstCharType == CharType.SYMBOL && secondCharType == CharType.DIGIT -> -1
+        return when (cat1) {
+            SORT_CAT_SYMBOL, SORT_CAT_OTHER, SORT_CAT_NUMBER -> first.compareTo(second, true)
             else -> collator?.compare(first, second) ?: first.compareTo(second, true)
         }
+    }
+
+    /** Sort category for fixed order: symbols, Korean, English, other (ASCII), numbers at last. */
+    private fun getSortCategory(char: Char): Int {
+        return when {
+            char.isDigit() -> SORT_CAT_NUMBER
+            !char.isLetter() -> SORT_CAT_SYMBOL
+            isHangul(char) -> SORT_CAT_KOREAN
+            isLatinLetter(char) -> SORT_CAT_ENGLISH
+            else -> SORT_CAT_OTHER
+        }
+    }
+
+    private fun isHangul(c: Char): Boolean {
+        val code = c.code
+        return (code in 0xAC00..0xD7A3) ||   // Hangul Syllables
+            (code in 0x1100..0x11FF) ||       // Hangul Jamo
+            (code in 0x3130..0x318F)         // Hangul Compatibility Jamo
+    }
+
+    private fun isLatinLetter(c: Char): Boolean {
+        val code = c.code
+        return (code in 0x41..0x5A) || (code in 0x61..0x7A)  // A-Z, a-z
     }
 
     private fun compareWithLettersFirst(first: String, second: String): Int {

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.android.common.view.MBlurView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/blurView"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:paddingVertical="@dimen/smaller_margin">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/dialog_title"
+            style="@style/DialogTitleStyle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:visibility="gone" />
+
+        <ScrollView
+            android:id="@+id/dialog_option_list_holder"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <LinearLayout
+                android:id="@+id/option_list_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingLeft="@dimen/normal_margin"
+                android:paddingRight="@dimen/normal_margin" />
+
+        </ScrollView>
+    </LinearLayout>
+</com.android.common.view.MBlurView>

@@ -15,14 +15,12 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:minHeight="@dimen/min_row_height"
-        android:paddingStart="@dimen/larger_margin"
-        android:paddingTop="@dimen/medium_margin">
+        android:paddingHorizontal="@dimen/activity_margin">
 
         <com.goodwy.commons.views.ContactAvatarView
             android:id="@+id/item_contact_image"
             android:layout_width="@dimen/normal_icon_size"
             android:layout_height="@dimen/normal_icon_size"
-            android:padding="@dimen/tiny_margin"
             android:layout_marginBottom="@dimen/medium_margin"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
@@ -45,7 +43,7 @@
             app:layout_constraintStart_toEndOf="@+id/item_contact_image"
             app:layout_constraintEnd_toStartOf="@+id/item_contact_checkbox" />
 
-        <com.goodwy.commons.views.MyAppCompatCheckbox
+        <com.android.common.view.MCycleCheckBox
             android:id="@+id/item_contact_checkbox"
             android:layout_width="24dp"
             android:layout_height="24dp"
@@ -56,7 +54,6 @@
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintEnd_toEndOf="parent"/>
-
         <ImageView
             android:id="@+id/divider"
             android:layout_width="0dp"
