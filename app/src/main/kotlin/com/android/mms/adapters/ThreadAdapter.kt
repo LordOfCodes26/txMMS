@@ -156,9 +156,18 @@ class ThreadAdapter(
         }
     })
 
-    /** Touch listener for pinch-to-zoom font size on message bubbles. Attach to both wrapper and body so pinches on text are received. */
-    private val pinchToZoomTouchListener = View.OnTouchListener { _, event ->
+    /** Touch listener for pinch-to-zoom font size on message bubbles. Attach to wrapper, spacer, time holder and body so pinches anywhere on the bubble work. */
+    private val pinchToZoomTouchListener = View.OnTouchListener { view, event ->
         if (event.pointerCount >= 2) {
+            view.cancelLongPress()
+            var v: View? = view
+            while (v != null) {
+                if (v.id == R.id.thread_message_holder) {
+                    v.cancelLongPress()
+                    break
+                }
+                v = v.parent as? View
+            }
             recyclerView.requestDisallowInterceptTouchEvent(true)
             scaleGestureDetector.onTouchEvent(event)
             true
@@ -589,6 +598,15 @@ class ThreadAdapter(
 
                 setOnTouchListener { v, event ->
                     if (event.pointerCount >= 2) {
+                        v.cancelLongPress()
+                        var itemView: View? = v
+                        while (itemView != null) {
+                            if (itemView.id == R.id.thread_message_holder) {
+                                itemView.cancelLongPress()
+                                break
+                            }
+                            itemView = itemView.parent as? View
+                        }
                         recyclerView.requestDisallowInterceptTouchEvent(true)
                         scaleGestureDetector.onTouchEvent(event)
                         return@setOnTouchListener true
@@ -778,7 +796,11 @@ class ThreadAdapter(
 
             threadMessageBodyWrapper.apply {
                 setOnTouchListener(pinchToZoomTouchListener)
+            }
+            threadMessageBodySpacer.setOnTouchListener(pinchToZoomTouchListener)
+            threadMessageTimeSimHolder.setOnTouchListener(pinchToZoomTouchListener)
 
+            threadMessageBodyWrapper.apply {
                 val isRtl = activity.isRTLLayout
                 val bubbleStyle = activity.config.bubbleStyle
 
@@ -878,7 +900,11 @@ class ThreadAdapter(
 
             threadMessageBodyWrapper.apply {
                 setOnTouchListener(pinchToZoomTouchListener)
+            }
+            threadMessageBodySpacer.setOnTouchListener(pinchToZoomTouchListener)
+            threadMessageTimeSimHolder.setOnTouchListener(pinchToZoomTouchListener)
 
+            threadMessageBodyWrapper.apply {
                 updateLayoutParams<RelativeLayout.LayoutParams> {
                     removeRule(RelativeLayout.END_OF)
                     addRule(RelativeLayout.ALIGN_PARENT_END)
