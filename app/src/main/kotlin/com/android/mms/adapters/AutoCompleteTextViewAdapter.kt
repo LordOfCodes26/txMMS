@@ -40,11 +40,8 @@ class AutoCompleteTextViewAdapter(val activity: SimpleActivity, val contacts: Ar
                 itemContactNumber.text = contact.phoneNumbers.first().normalizedNumber
                 itemContactImage.bind(
                     AvatarResolver.resolve(
-                        contactId = contact.rawId.toLong(),
-                        posterConfig = null,
-                        contactPhotoUri = contact.photoUri.takeIf { it.isNotEmpty() },
-                        contactName = contact.name,
-                        styleConfig = null
+                        photoUri = contact.photoUri.takeIf { it.isNotEmpty() },
+                        displayName = contact.name
                     )
                 )
             }
