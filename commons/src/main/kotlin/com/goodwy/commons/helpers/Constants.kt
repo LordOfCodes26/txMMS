@@ -456,6 +456,10 @@ const val TAB_FILES = 32
 const val TAB_RECENT_FILES = 32
 const val TAB_STORAGE_ANALYSIS = 64
 
+const val TAB_INCALL_ACCEPT_STYLE = 101
+const val TAB_INCALL_BACKGROUND = 102
+const val TAB_INCALL_EDGE_LIGHTING = 103
+
 val photoExtensions: Array<String>
     get() = arrayOf(
         ".jpg",

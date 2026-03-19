@@ -23,7 +23,6 @@ import com.goodwy.commons.R
 import com.goodwy.commons.extensions.*
 import com.goodwy.commons.models.PhoneNumber
 import com.goodwy.commons.models.SimpleContact
-import com.goodwy.commons.models.contacts.Contact
 import com.goodwy.commons.models.contacts.Organization as MyOrganization
 import android.graphics.Bitmap
 import java.text.Collator
@@ -34,6 +33,7 @@ import androidx.core.graphics.createBitmap
 import androidx.core.graphics.drawable.toBitmap
 import androidx.core.util.size
 import com.goodwy.commons.helpers.getQuestionMarks
+import com.goodwy.commons.models.contacts.Contact
 
 class SimpleContactsHelper(val context: Context) {
     // Helper function to check if account is SIM card or phone storage
@@ -393,7 +393,7 @@ class SimpleContactsHelper(val context: Context) {
     fun loadContactImage(path: String, imageView: ImageView, placeholderName: String, placeholderImage: Drawable? = null, letter: Boolean = true) {
         // Generate placeholder only if not provided
         val placeholder = placeholderImage ?: run {
-            val letterOrIcon = if (placeholderName.isNotBlank() && placeholderName.isNotEmpty()) getContactLetterIcon(placeholderName) else getContactIconBg(placeholderName)
+            val letterOrIcon = if (letter) getContactLetterIcon(placeholderName) else getContactIconBg(placeholderName)
             letterOrIcon.toDrawable(context.resources)
         }
 
@@ -403,10 +403,12 @@ class SimpleContactsHelper(val context: Context) {
             .error(placeholder)
             .centerCrop()
             .circleCrop()
+            // Add signature to help with cache invalidation when contact photos are updated
+            // Using the photo URI as signature key ensures different URIs are cached separately
             .signature(if (path.isNotEmpty()) ObjectKey(path) else ObjectKey(placeholderName))
 
         Glide.with(context)
-            .load("")
+            .load(path)
             .transition(DrawableTransitionOptions.withCrossFade())
             .placeholder(placeholder)
             .apply(options)

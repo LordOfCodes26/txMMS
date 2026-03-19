@@ -513,8 +513,23 @@ class CustomActionModeToolbar @JvmOverloads constructor(
 
         try {
             if (hasInflatedActionBarMenu) {
-                // Use _action_menu (we keep it in sync when inflating); reflection on MActionBar may return null
-                val shouldShow = _action_menu?.let { menu ->
+                // Keep live MActionBar menu in sync with the mutable action menu model.
+                // Adapters update visibility/enabled flags on actionMenu, so mirror those flags here.
+                val sourceMenu = _action_menu
+                val liveMenu = menuActionBarMenu()
+                if (sourceMenu != null && liveMenu != null) {
+                    for (i in 0 until liveMenu.size()) {
+                        val liveItem = liveMenu.getItem(i) ?: continue
+                        val sourceItem = sourceMenu.findItem(liveItem.itemId) ?: continue
+                        liveItem.isVisible = sourceItem.isVisible
+                        liveItem.isEnabled = sourceItem.isEnabled
+                        liveItem.isCheckable = sourceItem.isCheckable
+                        liveItem.isChecked = sourceItem.isChecked
+                        liveItem.title = sourceItem.title
+                    }
+                }
+
+                val shouldShow = sourceMenu?.let { menu ->
                     (0 until menu.size()).any { menu.getItem(it).isVisible }
                 } ?: true
                 menuActionBarView()?.visibility = if (shouldShow) View.VISIBLE else View.GONE

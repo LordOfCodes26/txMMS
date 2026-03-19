@@ -130,10 +130,10 @@ class ContactsHelper(val context: Context) {
                 contactIdToContactMap[key]?.groups = groups.valueAt(i)
             }
 
-            Contact.sorting = context.baseConfig.sorting
+            Contact.sorting = SORT_BY_FULL_NAME
             Contact.startWithSurname = context.baseConfig.startNameWithSurname
             Contact.showNicknameInsteadNames = context.baseConfig.showNicknameInsteadNames
-            Contact.sortingSymbolsFirst = context.baseConfig.sortingSymbolsFirst
+            Contact.sortingSymbolsFirst = true  // Fixed order: symbols, Korean, English, other
             Contact.collator = Collator.getInstance(context.sysLocale())
             System.setProperty("java.util.Arrays.useLegacyMergeSort", "true") //https://stackoverflow.com/questions/11441666/java-error-comparison-method-violates-its-general-contract
             resultContacts.sort()
@@ -445,6 +445,9 @@ class ContactsHelper(val context: Context) {
         if (gettingDuplicates) {
             return
         }
+
+        // Populate photo URIs from aggregate Contacts table (same as contact view) so list avatars show photo or monogram
+        refreshContactListPhotosFromAggregate(contacts)
 
         val phoneNumbers = getPhoneNumbers(null)
         val phoneSize = phoneNumbers.size
@@ -1060,7 +1063,14 @@ class ContactsHelper(val context: Context) {
         val selection = "(${Data.MIMETYPE} = ? OR ${Data.MIMETYPE} = ?) AND ${Data.RAW_CONTACT_ID} = ?"
         val selectionArgs = arrayOf(CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE, CommonDataKinds.Organization.CONTENT_ITEM_TYPE, id.toString())
         val contact = parseContactCursor(selection, selectionArgs)
-        if (contact != null) return contact
+        if (contact != null) {
+            // Photo is stored on the aggregate Contacts table; Data rows don't expose it.
+            // Refresh photo URI from Contacts.CONTENT_URI so updated avatars show after edit.
+            if (contact.contactId != 0) {
+                refreshContactPhotoFromAggregate(contact)
+            }
+            return contact
+        }
 
         // Fallback: Data.CONTENT_URI does not expose rows for protected contacts even after
         // unlock_all_with_pin. If this raw contact is a known unlocked contact, build the
@@ -1237,6 +1247,125 @@ class ContactsHelper(val context: Context) {
         }
 
         return null
+    }
+
+    /**
+     * Refreshes contact.photoUri and contact.thumbnailUri from the aggregate Contacts table.
+     * When the aggregate returns empty (e.g. after save or aggregation lag), tries the contact's
+     * photo sub-URI (Contacts.CONTENT_URI/contactId/photo) so the photo still shows in list/view.
+     */
+    private fun refreshContactPhotoFromAggregate(contact: Contact) {
+        if (contact.contactId == 0) return
+        val cursor = context.contentResolver.query(
+            Contacts.CONTENT_URI,
+            arrayOf(Contacts.PHOTO_URI, Contacts.PHOTO_THUMBNAIL_URI),
+            "${Contacts._ID} = ?",
+            arrayOf(contact.contactId.toString()),
+            null
+        )
+        cursor?.use { c ->
+            if (c.moveToFirst()) {
+                var photoUri = c.getStringValue(Contacts.PHOTO_URI) ?: ""
+                var thumbnailUri = c.getStringValue(Contacts.PHOTO_THUMBNAIL_URI) ?: ""
+                if (photoUri.isEmpty()) {
+                    val fallback = getContactPhotoUriFromProvider(contact.contactId, contact.id)
+                    if (!fallback.isEmpty()) {
+                        android.util.Log.d("ContactPhoto", "refreshContactPhotoFromAggregate fallbackUsed contactId=${contact.contactId} rawId=${contact.id} uri=${fallback.take(80)}")
+                        photoUri = fallback
+                        thumbnailUri = fallback
+                    }
+                }
+                contact.photoUri = photoUri
+                contact.thumbnailUri = thumbnailUri
+                android.util.Log.d("ContactPhoto", "refreshContactPhotoFromAggregate contactId=${contact.contactId} photoUri=${photoUri.take(80)}")
+            } else {
+                android.util.Log.d("ContactPhoto", "refreshContactPhotoFromAggregate contactId=${contact.contactId} cursor.moveToFirst()=false (no row)")
+            }
+        } ?: run {
+            android.util.Log.d("ContactPhoto", "refreshContactPhotoFromAggregate contactId=${contact.contactId} cursor=null")
+        }
+    }
+
+    /**
+     * When Contacts.PHOTO_URI is empty the aggregate may still have photo data. Use the platform
+     * openContactPhotoInputStream(contactUri) to detect; if it returns a stream, use the contact's
+     * photo sub-URI for display so Glide can load it.
+     */
+    private fun getContactPhotoUriFromProvider(contactId: Int, rawContactId: Int = 0): String {
+        if (contactId == 0) return ""
+        val contactUri = ContentUris.withAppendedId(Contacts.CONTENT_URI, contactId.toLong())
+        val contactPhotoUri = try {
+            Contacts.openContactPhotoInputStream(context.contentResolver, contactUri)?.use {
+                Uri.withAppendedPath(contactUri, Contacts.Photo.CONTENT_DIRECTORY).toString()
+            } ?: ""
+        } catch (_: Exception) {
+            ""
+        }
+        if (contactPhotoUri.isNotEmpty()) {
+            android.util.Log.d("ContactPhoto", "getContactPhotoUriFromProvider: contactPhotoUri hit contactId=$contactId rawId=$rawContactId")
+            return contactPhotoUri
+        }
+
+        if (rawContactId != 0) {
+            val rawUri = ContentUris.withAppendedId(RawContacts.CONTENT_URI, rawContactId.toLong())
+            val rawDisplayPhotoUri = Uri.withAppendedPath(rawUri, RawContacts.DisplayPhoto.CONTENT_DIRECTORY)
+            return try {
+                context.contentResolver.openAssetFileDescriptor(rawDisplayPhotoUri, "r")?.use {
+                    android.util.Log.d("ContactPhoto", "getContactPhotoUriFromProvider: rawDisplayPhotoUri hit contactId=$contactId rawId=$rawContactId")
+                    rawDisplayPhotoUri.toString()
+                } ?: ""
+            } catch (_: Exception) {
+                ""
+            }
+        }
+
+        return ""
+    }
+
+    /**
+     * Batch-refresh photoUri and thumbnailUri for all contacts in the list from the aggregate Contacts table.
+     * Ensures main contact list avatars use the same logic as contact view: photo when available, else monogram.
+     */
+    private fun refreshContactListPhotosFromAggregate(contacts: SparseArray<Contact>) {
+        val contactIds = mutableSetOf<Int>()
+        val size = contacts.size
+        for (i in 0 until size) {
+            val c = contacts.valueAt(i)
+            if (c.contactId != 0) contactIds.add(c.contactId)
+        }
+        if (contactIds.isEmpty()) return
+        val idList = contactIds.joinToString(",")
+        val photoMap = mutableMapOf<Int, Pair<String, String>>()
+        context.contentResolver.query(
+            Contacts.CONTENT_URI,
+            arrayOf(Contacts._ID, Contacts.PHOTO_URI, Contacts.PHOTO_THUMBNAIL_URI),
+            "${Contacts._ID} IN ($idList)",
+            null,
+            null
+        )?.use { c ->
+            while (c.moveToNext()) {
+                val contactId = c.getIntValue(Contacts._ID)
+                var photoUri = c.getStringValue(Contacts.PHOTO_URI) ?: ""
+                var thumbnailUri = c.getStringValue(Contacts.PHOTO_THUMBNAIL_URI) ?: ""
+                photoMap[contactId] = Pair(photoUri, thumbnailUri)
+            }
+        }
+        for (i in 0 until size) {
+            val contact = contacts.valueAt(i)
+            photoMap[contact.contactId]?.let { (mappedPhotoUri, mappedThumbnailUri) ->
+                var photoUri = mappedPhotoUri
+                var thumbnailUri = mappedThumbnailUri
+                if (photoUri.isEmpty()) {
+                    val fallback = getContactPhotoUriFromProvider(contact.contactId, contact.id)
+                    if (fallback.isNotEmpty()) {
+                        photoUri = fallback
+                        thumbnailUri = fallback
+                    }
+                }
+                contact.photoUri = photoUri
+                contact.thumbnailUri = thumbnailUri
+            }
+        }
     }
 
     fun getContactSources(callback: (ArrayList<ContactSource>) -> Unit) {
@@ -1419,6 +1548,11 @@ class ContactsHelper(val context: Context) {
         context.toast(R.string.updating)
 
         try {
+            android.util.Log.d(
+                "ContactPhotoSave",
+                "updateContact start rawId=${contact.id} contactId=${contact.contactId} photoUpdateStatus=$photoUpdateStatus photoUri=${contact.photoUri.take(120)}"
+            )
+            logContactPhotoState("before_applyBatch", contact.id, contact.contactId)
             val operations = ArrayList<ContentProviderOperation>()
             ContentProviderOperation.newUpdate(Data.CONTENT_URI).apply {
                 val selection = "${Data.RAW_CONTACT_ID} = ? AND ${Data.MIMETYPE} = ?"
@@ -1649,14 +1783,20 @@ class ContactsHelper(val context: Context) {
             }
 
             context.contentResolver.applyBatch(AUTHORITY, operations)
+            logContactPhotoState("after_applyBatch", contact.id, contact.contactId)
             return true
         } catch (e: Exception) {
+            android.util.Log.e("ContactPhotoSave", "updateContact failed rawId=${contact.id} contactId=${contact.contactId}", e)
             context.showErrorToast(e)
             return false
         }
     }
 
     private fun addPhoto(contact: Contact, operations: ArrayList<ContentProviderOperation>): ArrayList<ContentProviderOperation> {
+        android.util.Log.d(
+            "ContactPhotoSave",
+            "addPhoto rawId=${contact.id} contactId=${contact.contactId} photoUri=${contact.photoUri.take(120)}"
+        )
         if (contact.photoUri.isNotEmpty()) {
             val photoUri = contact.photoUri.toUri()
             val bitmap = MediaStore.Images.Media.getBitmap(context.contentResolver, photoUri)
@@ -1677,11 +1817,21 @@ class ContactsHelper(val context: Context) {
             }
 
             addFullSizePhoto(contact.id.toLong(), fullSizePhotoData)
+            android.util.Log.d(
+                "ContactPhotoSave",
+                "addPhoto prepared bytes thumb=${scaledSizePhotoData.size} full=${fullSizePhotoData.size}"
+            )
+        } else {
+            android.util.Log.d("ContactPhotoSave", "addPhoto skipped because photoUri is empty")
         }
         return operations
     }
 
     private fun removePhoto(contact: Contact, operations: ArrayList<ContentProviderOperation>): ArrayList<ContentProviderOperation> {
+        android.util.Log.d(
+            "ContactPhotoSave",
+            "removePhoto rawId=${contact.id} contactId=${contact.contactId}"
+        )
         ContentProviderOperation.newDelete(Data.CONTENT_URI).apply {
             val selection = "${Data.RAW_CONTACT_ID} = ? AND ${Data.MIMETYPE} = ?"
             val selectionArgs = arrayOf(contact.id.toString(), CommonDataKinds.Photo.CONTENT_ITEM_TYPE)
@@ -1690,6 +1840,43 @@ class ContactsHelper(val context: Context) {
         }
 
         return operations
+    }
+
+    private fun logContactPhotoState(stage: String, rawContactId: Int, contactId: Int) {
+        try {
+            var aggregatePhotoUri = ""
+            var aggregateThumbUri = ""
+            context.contentResolver.query(
+                Contacts.CONTENT_URI,
+                arrayOf(Contacts.PHOTO_URI, Contacts.PHOTO_THUMBNAIL_URI),
+                "${Contacts._ID} = ?",
+                arrayOf(contactId.toString()),
+                null
+            )?.use { c ->
+                if (c.moveToFirst()) {
+                    aggregatePhotoUri = c.getStringValue(Contacts.PHOTO_URI) ?: ""
+                    aggregateThumbUri = c.getStringValue(Contacts.PHOTO_THUMBNAIL_URI) ?: ""
+                }
+            }
+
+            var photoRows = 0
+            context.contentResolver.query(
+                Data.CONTENT_URI,
+                arrayOf(Data._ID),
+                "${Data.RAW_CONTACT_ID} = ? AND ${Data.MIMETYPE} = ?",
+                arrayOf(rawContactId.toString(), CommonDataKinds.Photo.CONTENT_ITEM_TYPE),
+                null
+            )?.use { c ->
+                photoRows = c.count
+            }
+
+            android.util.Log.d(
+                "ContactPhotoSave",
+                "$stage rawId=$rawContactId contactId=$contactId aggregatePhotoUri=${aggregatePhotoUri.take(120)} aggregateThumbUri=${aggregateThumbUri.take(120)} dataPhotoRows=$photoRows"
+            )
+        } catch (e: Exception) {
+            android.util.Log.e("ContactPhotoSave", "logContactPhotoState failed stage=$stage rawId=$rawContactId contactId=$contactId", e)
+        }
     }
 
     fun addContactsToGroup(contacts: ArrayList<Contact>, groupId: Long) {
@@ -2624,10 +2811,10 @@ class ContactsHelper(val context: Context) {
                 contactIdToContactMap[key]?.groups = groups.valueAt(i)
             }
 
-            Contact.sorting = context.baseConfig.sorting
+            Contact.sorting = SORT_BY_FULL_NAME
             Contact.startWithSurname = context.baseConfig.startNameWithSurname
             Contact.showNicknameInsteadNames = context.baseConfig.showNicknameInsteadNames
-            Contact.sortingSymbolsFirst = context.baseConfig.sortingSymbolsFirst
+            Contact.sortingSymbolsFirst = true  // Fixed order: symbols, Korean, English, other
             Contact.collator = Collator.getInstance(context.sysLocale())
 
             callback(resultContacts)

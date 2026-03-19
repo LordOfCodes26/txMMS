@@ -60,6 +60,7 @@ class BlurPopupMenu(
     }
 
     fun show() {
+        removeAllMenuIcons(menu)
         syncDelegateMenu()
         popupDelegate.setOnMenuItemClickListener(onMenuItemClickListener)
 
@@ -97,6 +98,17 @@ class BlurPopupMenu(
             val field = MPopup::class.java.getDeclaredField("menu")
             field.isAccessible = true
             field.set(popupDelegate, menu)
+        }
+    }
+
+    private fun removeAllMenuIcons(targetMenu: Menu) {
+        for (index in 0 until targetMenu.size()) {
+            val item = targetMenu.getItem(index)
+            item.icon = null
+            val subMenu = item.subMenu
+            if (subMenu != null) {
+                removeAllMenuIcons(subMenu)
+            }
         }
     }
 

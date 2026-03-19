@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.goodwy.commons.views.MyTextView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/option_row_text"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center"
+    android:textSize="@dimen/dialog_edit_size_common"
+    android:paddingTop="@dimen/smaller_margin"
+    android:paddingBottom="@dimen/smaller_margin"
+    android:paddingStart="@dimen/smaller_margin"
+    android:paddingEnd="@dimen/smaller_margin"
+    android:background="?attr/selectableItemBackground"
+    android:textDirection="locale" />

@@ -293,9 +293,7 @@
         <item name="android:textSize">@dimen/tx_dialog_title_text_size</item>
         <item name="android:textColor">@color/tx_dialog_confirm_text</item>
         <item name="android:gravity">start|center_vertical</item>
-        <item name="android:paddingTop">@dimen/big_margin</item>
         <item name="android:paddingHorizontal">@dimen/tx_dialog_padding_horizontal</item>
-        <item name="android:paddingBottom">@dimen/tx_dialog_padding_top</item>
     </style>
 
     <!-- Standardized Dialog Button Container Style -->
@@ -582,7 +580,7 @@
         <item name="android:layout_height">wrap_content</item>
         <item name="android:maxWidth">@dimen/settings_value_width</item>
         <item name="android:layout_centerVertical">true</item>
-        <item name="android:textSize">@dimen/smaller_text_size</item>
+        <item name="android:textSize">@dimen/tx_cardview_summary_size</item>
         <item name="android:textColor">@color/tx_cardview_summary</item>
         <item name="android:gravity">end</item>
         <item name="android:alpha">0.6</item>
