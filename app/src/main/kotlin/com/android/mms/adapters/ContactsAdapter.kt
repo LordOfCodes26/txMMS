@@ -96,11 +96,8 @@ class ContactsAdapter(
             itemContactImage.beGoneIf(!baseConfig.showContactThumbnails)
             itemContactImage.bind(
                 AvatarResolver.resolve(
-                    contactId = contact.rawId.toLong(),
-                    posterConfig = null,
-                    contactPhotoUri = contact.photoUri.takeIf { it.isNotEmpty() },
-                    contactName = contact.name,
-                    styleConfig = null
+                    photoUri = contact.photoUri.takeIf { it.isNotEmpty() },
+                    displayName = contact.name
                 )
             )
         }
