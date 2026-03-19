@@ -617,12 +617,13 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
             val dp5 = (5 * resources.displayMetrics.density).toInt()
             binding.mVerticalSideFrameBottom.layoutParams =
                 binding.mVerticalSideFrameBottom.layoutParams.apply { height = navHeight + dp5 }
-            val bottomOffset = (20 * resources.displayMetrics.density).toInt()
+            val bottomOffset = (0 * resources.displayMetrics.density).toInt()
             val fabLp = binding.conversationsFab.layoutParams as? ViewGroup.MarginLayoutParams
             if (fabLp != null) {
                 // Don't add navHeight to margin: setupEdgeToEdge already pads barContainer bottom.
                 // Use only a small offset so we don't double-apply insets (avoids huge gap in gesture nav).
                 fabLp.bottomMargin = if (ime.bottom > 0) ime.bottom + bottomOffset else bottomOffset
+                fabLp.rightMargin = (32 * resources.displayMetrics.density).toInt()
                 binding.conversationsFab.layoutParams = fabLp
             }
             insets

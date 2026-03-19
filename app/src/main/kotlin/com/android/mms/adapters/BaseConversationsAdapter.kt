@@ -216,7 +216,7 @@ abstract class BaseConversationsAdapter(
         when (val item = currentList[position]) {
             is ConversationListItem.DateHeader -> {
                 ItemConversationDateHeaderBinding.bind(holder.itemView).dateTextView.apply {
-                    alpha = 0.5f
+                    alpha = 0.7f
                     setTextColor(textColor)
                     setTextSize(TypedValue.COMPLEX_UNIT_PX, smallFontSize)
                     text = when (item.dayCode) {
@@ -372,14 +372,14 @@ abstract class BaseConversationsAdapter(
             }
             conversationAddress.apply {
                 text = titleForDisplay
-                setTextSize(TypedValue.COMPLEX_UNIT_PX, resources.getDimension(com.goodwy.commons.R.dimen.large_text_size) )
+                setTextSize(TypedValue.COMPLEX_UNIT_PX, fontSize )
                 if(!conversation.read || conversation.isBlocked) setTextColor(colorRed) else setTextColor(textColor)
             }
             if (conversation.messageCount > 1) {
                 conversationAddressCount.beVisible()
                 conversationAddressCount.apply {
                     text = "(${conversation.messageCount})"
-                    alpha = 0.5f
+                    alpha = 0.7f
                     setTextSize(TypedValue.COMPLEX_UNIT_PX, smallFontSize)
                     if(!conversation.read || conversation.isBlocked) setTextColor(colorRed) else setTextColor(textColor)
                 }
@@ -389,12 +389,12 @@ abstract class BaseConversationsAdapter(
 
             conversationBodyShort.apply {
                 text = smsDraft ?: conversation.snippet
-                alpha = 0.5f
+                alpha = 0.7f
                 setTextSize(TypedValue.COMPLEX_UNIT_PX, smallFontSize)
             }
             conversationDate.apply {
                 text = formatConversationDate(conversation)
-                alpha = 0.5f
+                alpha = 0.7f
                 setTextSize(TypedValue.COMPLEX_UNIT_PX, smallFontSize)
             }
 
