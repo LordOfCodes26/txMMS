@@ -6,7 +6,8 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:clipChildren="false"
-    android:clipToPadding="false">
+    android:clipToPadding="false"
+    android:paddingBottom="@dimen/normal_margin">
 
     <RelativeLayout
         android:id="@+id/scheduled_message_holder"
