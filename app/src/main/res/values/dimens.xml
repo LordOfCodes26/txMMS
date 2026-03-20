@@ -46,4 +46,6 @@
 
     <!--thread activity-->
     <dimen name="attach_text_width">48dp</dimen>
+
+    <dimen name="nest_bouncy_content_padding_top">128dp</dimen>
 </resources>

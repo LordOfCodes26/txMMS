@@ -503,7 +503,7 @@
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">wrap_content</item>
         <item name="android:layout_marginHorizontal">@dimen/tx_cardview_margin_horizontal</item>
-        <item name="android:layout_marginBottom">@dimen/tx_cardview_margin_bottom</item>
+        <item name="android:layout_marginBottom">@dimen/tx_cardview_margin_vertical</item>
         <item name="android:paddingStart">@dimen/tx_cardview_padding_left</item>
         <item name="android:paddingEnd">@dimen/tx_cardview_padding_right</item>
         <item name="android:paddingVertical">@dimen/tx_cardview_padding_vertical</item>

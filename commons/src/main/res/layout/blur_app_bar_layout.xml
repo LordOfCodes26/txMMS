@@ -27,11 +27,10 @@
             <TextView
                 android:id="@+id/tv_title"
                 android:layout_width="wrap_content"
-                android:layout_height="@dimen/tx_top_bar_toolbar_margin_top"
+                android:layout_height="wrap_content"
                 android:layout_gravity="center|start"
                 android:gravity="center|start"
                 android:layout_marginStart="@dimen/tx_top_bar_margin_left"
-                android:layout_marginBottom="12dp"
                 android:textColor="@color/tx_title_text"
                 android:textSize="@dimen/tx_nest_title" />
         </LinearLayout>
@@ -39,7 +38,7 @@
         <com.goodwy.commons.views.CustomToolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
+            android:layout_height="@dimen/tx_top_bar_toolbar_height"
             android:layout_marginTop="@dimen/tx_top_bar_toolbar_margin_top"
             android:layout_marginEnd="@dimen/small_margin"
             android:background="@android:color/transparent"
@@ -51,7 +50,7 @@
         <com.goodwy.commons.views.CustomActionModeToolbar
             android:id="@+id/actionModeToolbar"
             android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
+            android:layout_height="@dimen/tx_top_bar_toolbar_height"
             android:layout_marginTop="@dimen/tx_top_bar_toolbar_margin_top"
             android:layout_marginEnd="@dimen/small_margin"
             app:layout_collapseMode="pin"

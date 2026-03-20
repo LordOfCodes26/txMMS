@@ -273,7 +273,7 @@
         android:layout_height="wrap_content"
         android:visibility="gone"
         tools:visibility="visible"
-        android:layout_marginTop="@dimen/tx_cardview_margin_bottom"
+        android:layout_marginTop="@dimen/tx_cardview_margin_horizontal"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
