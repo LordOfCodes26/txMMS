@@ -362,7 +362,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             if (barContainer != null) {
                 val bottomBarLp = barContainer.layoutParams as ViewGroup.MarginLayoutParams
                 val bottomOffset = dp(3).toInt()
-                val appBarHeightPx = resources.getDimensionPixelSize(com.goodwy.commons.R.dimen.blur_app_bar_height)
+                val appBarHeightPx = resources.getDimensionPixelSize(com.android.common.R.dimen.tx_top_bar_expand_height)
 
                 val messagesList = binding.threadMessagesList
                 // When keyboard is open OR attachment picker is shown, add extra bottom padding so message bubbles move up

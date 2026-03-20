@@ -34,7 +34,7 @@
                         android:id="@+id/settings_holder"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:paddingTop="@dimen/blur_app_bar_height"
+                        android:paddingTop="@dimen/tx_top_bar_expand_height"
                         android:orientation="vertical">
 
                         <TextView
@@ -1389,9 +1389,8 @@
         <com.goodwy.commons.views.BlurAppBarLayout
             android:id="@+id/settings_menu"
             android:layout_width="match_parent"
-            android:layout_height="@dimen/blur_app_bar_height"
-            android:background="@color/transparent"
-            android:paddingBottom="5dp" />
+            android:layout_height="@dimen/tx_top_bar_expand_height"
+            android:background="@color/transparent" />
 
         <com.android.common.view.MVSideFrame
             android:id="@+id/m_vertical_side_frame_bottom"
