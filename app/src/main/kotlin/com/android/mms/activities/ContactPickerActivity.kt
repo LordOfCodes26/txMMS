@@ -46,6 +46,8 @@ import com.android.common.view.MVSideFrame
 import com.android.mms.R
 import com.android.mms.adapters.ContactPickerAdapter
 import com.android.mms.models.Contact
+import com.android.mms.models.ContactPickerListRow
+import java.util.Calendar
 import com.goodwy.commons.helpers.SimpleContactsHelper
 import com.goodwy.commons.views.BlurAppBarLayout
 import com.reddit.indicatorfastscroll.FastScrollerThumbView
@@ -112,6 +114,31 @@ class ContactPickerActivity : SimpleActivity() {
     private var contactPickerFilterBar: View? = null
     private var contactsLetterFastscroller: FastScrollerView? = null
     private var contactsLetterFastscrollerThumb: FastScrollerThumbView? = null
+    private val callLogMeta = ArrayList<CallLogEntryMeta>()
+
+    private data class CallLogEntryMeta(val type: Int, val timestamp: Long, val groupedCount: Int = 1)
+
+    private data class RawCallLogRow(
+        val number: String,
+        val normalized: String,
+        val type: Int,
+        val dateMillis: Long,
+        val cachedName: String?,
+    )
+
+    private data class IndexedCallLogEntry(
+        val contactIndex: Int,
+        val contact: Contact,
+        val type: Int,
+        val date: Long,
+        val groupedCount: Int,
+    )
+
+    private enum class CallLogDateSection {
+        TODAY,
+        YESTERDAY,
+        BEFORE,
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -311,9 +338,15 @@ class ContactPickerActivity : SimpleActivity() {
         })
 
         contactAdapter?.setListener(object : ContactPickerAdapter.ContactPickerAdapterListener {
-            override fun onContactToggled(position: Int, isSelected: Boolean) {
-                if (position !in filteredContacts.indices) return
-                val contact = filteredContacts[position]
+            override fun onContactToggled(contactIndex: Int, isSelected: Boolean) {
+                if (isCallLogMode) {
+                    if (contactIndex in allContacts.indices) {
+                        if (isSelected) selectedPositions.add(contactIndex) else selectedPositions.remove(contactIndex)
+                    }
+                    return
+                }
+                if (contactIndex !in filteredContacts.indices) return
+                val contact = filteredContacts[contactIndex]
                 val idx = allContacts.indexOfFirst {
                     if (contact.contactId.isEmpty()) it.phoneNumber == contact.phoneNumber
                     else it.contactId == contact.contactId && it.phoneNumber == contact.phoneNumber
@@ -468,16 +501,81 @@ class ContactPickerActivity : SimpleActivity() {
         val query = s.lowercase().trim()
         filteredContacts.clear()
         for (contact in allContacts) {
-            val matches = (contact.name?.lowercase()?.contains(query) == true) ||
-                (contact.phoneNumber?.lowercase()?.contains(query) == true) ||
-                (contact.address?.lowercase()?.contains(query) == true) ||
-                (contact.organizationName?.lowercase()?.contains(query) == true)
-            if (matches) filteredContacts.add(contact)
+            if (contactMatchesQuery(contact, query)) filteredContacts.add(contact)
         }
         updateAdapterWithFilteredContacts()
     }
 
+    private fun contactMatchesQuery(contact: Contact, query: String): Boolean {
+        return (contact.name.lowercase().contains(query)) ||
+            (contact.phoneNumber.lowercase().contains(query)) ||
+            (contact.address.lowercase().contains(query)) ||
+            (contact.organizationName.lowercase().contains(query))
+    }
+
+    private fun groupCallsByDateSections(entries: List<IndexedCallLogEntry>): List<ContactPickerListRow> {
+        if (entries.isEmpty()) return emptyList()
+        val todayStart = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+        val yesterdayStart = (todayStart.clone() as Calendar).apply {
+            add(Calendar.DAY_OF_YEAR, -1)
+        }
+        val todayStartMillis = todayStart.timeInMillis
+        val yesterdayStartMillis = yesterdayStart.timeInMillis
+        val result = ArrayList<ContactPickerListRow>()
+        var lastSection: CallLogDateSection? = null
+        for (entry in entries) {
+            val currentSection = when {
+                entry.date >= todayStartMillis -> CallLogDateSection.TODAY
+                entry.date >= yesterdayStartMillis -> CallLogDateSection.YESTERDAY
+                else -> CallLogDateSection.BEFORE
+            }
+            if (currentSection != lastSection) {
+                val dayCode = when (currentSection) {
+                    CallLogDateSection.TODAY -> ContactPickerListRow.DateSection.SECTION_TODAY
+                    CallLogDateSection.YESTERDAY -> ContactPickerListRow.DateSection.SECTION_YESTERDAY
+                    CallLogDateSection.BEFORE -> ContactPickerListRow.DateSection.SECTION_BEFORE
+                }
+                result.add(ContactPickerListRow.DateSection(dayCode))
+                lastSection = currentSection
+            }
+            result.add(
+                ContactPickerListRow.ContactRow(
+                    contactIndex = entry.contactIndex,
+                    callType = entry.type,
+                    callTimestamp = entry.date,
+                    groupedCallCount = entry.groupedCount,
+                ),
+            )
+        }
+        return result
+    }
+
     private fun updateAdapterWithFilteredContacts() {
+        if (isCallLogMode) {
+            val query = searchString.lowercase().trim()
+            val entries = ArrayList<IndexedCallLogEntry>()
+            allContacts.forEachIndexed { i, contact ->
+                if (query.isEmpty() || contactMatchesQuery(contact, query)) {
+                    if (i in callLogMeta.indices) {
+                        val m = callLogMeta[i]
+                        entries.add(IndexedCallLogEntry(i, contact, m.type, m.timestamp, m.groupedCount))
+                    }
+                }
+            }
+            val rows = groupCallsByDateSections(entries)
+            val filteredSelected = HashSet<Int>()
+            entries.forEach { e ->
+                if (selectedPositions.contains(e.contactIndex)) filteredSelected.add(e.contactIndex)
+            }
+            contactAdapter?.setCallLogModeItems(rows, allContacts, filteredSelected)
+            setupLetterFastscroller(emptyList())
+            return
+        }
         val filteredSelected = HashSet<Int>()
         filteredContacts.forEachIndexed { i, contact ->
             val idx = allContacts.indexOfFirst {
@@ -486,7 +584,7 @@ class ContactPickerActivity : SimpleActivity() {
             }
             if (idx >= 0 && selectedPositions.contains(idx)) filteredSelected.add(i)
         }
-        contactAdapter?.setItems(filteredContacts, filteredSelected)
+        contactAdapter?.setContactModeItems(filteredContacts, filteredSelected)
         setupLetterFastscroller(filteredContacts)
     }
 
@@ -529,6 +627,7 @@ class ContactPickerActivity : SimpleActivity() {
 
     private fun loadCallLog() {
         allContacts.clear()
+        callLogMeta.clear()
         filteredContacts.clear()
         selectedPositions.clear()
         callLogPlaceholder?.visibility = View.GONE
@@ -542,7 +641,8 @@ class ContactPickerActivity : SimpleActivity() {
                 val projection = arrayOf(
                     CallLog.Calls.NUMBER,
                     CallLog.Calls.CACHED_NAME,
-                    CallLog.Calls.DATE
+                    CallLog.Calls.DATE,
+                    CallLog.Calls.TYPE,
                 )
                 var cursor: android.database.Cursor? = null
                 try {
@@ -555,40 +655,54 @@ class ContactPickerActivity : SimpleActivity() {
                     )
                 } catch (_: SecurityException) {
                     runOnUiThread {
+                        callLogMeta.clear()
                         callLogPlaceholder?.visibility = View.VISIBLE
                         contactRecyclerView?.visibility = View.GONE
-                        contactAdapter?.setItems(emptyList(), emptySet())
+                        contactAdapter?.setCallLogModeItems(
+                            listRows = emptyList(),
+                            contactSource = emptyList(),
+                            selectedIndices = emptySet(),
+                        )
                     }
                     return@Thread
                 }
 
                 val list = ArrayList<Contact>()
-                val seenNumbers = HashSet<String>()
-                var nameCol = -1
+                val meta = ArrayList<CallLogEntryMeta>()
+                val rawRows = ArrayList<RawCallLogRow>()
                 cursor?.use { c ->
-                    nameCol = c.getColumnIndex(CallLog.Calls.CACHED_NAME)
+                    val nameCol = c.getColumnIndex(CallLog.Calls.CACHED_NAME)
                     val numberCol = c.getColumnIndex(CallLog.Calls.NUMBER)
-                    if (numberCol < 0) return@use
+                    val dateCol = c.getColumnIndex(CallLog.Calls.DATE)
+                    val typeCol = c.getColumnIndex(CallLog.Calls.TYPE)
+                    if (numberCol < 0 || dateCol < 0) return@use
                     var count = 0
                     while (c.moveToNext() && count < CALL_LOG_LIMIT) {
                         val number = c.getString(numberCol) ?: continue
                         if (number.isBlank()) continue
                         val normalized = normalizePhoneNumber(number)
-                        if (seenNumbers.contains(normalized)) continue
-                        seenNumbers.add(normalized)
-                        var name = number
-                        if (nameCol >= 0) {
-                            val cached = c.getString(nameCol)
-                            if (!cached.isNullOrBlank()) name = cached
-                        }
-                        if (name == number && ContextCompat.checkSelfPermission(this@ContactPickerActivity, Manifest.permission.READ_CONTACTS) == PackageManager.PERMISSION_GRANTED) {
-                            getDisplayNameForNumber(number)?.let { resolvedName ->
-                                if (resolvedName.isNotBlank()) name = resolvedName
-                            }
-                        }
-                        list.add(Contact(name = name, contactId = "", phoneNumber = number))
+                        val dateMillis = c.getLong(dateCol)
+                        val callType = if (typeCol >= 0) c.getInt(typeCol) else CallLog.Calls.INCOMING_TYPE
+                        val cached = if (nameCol >= 0) c.getString(nameCol) else null
+                        rawRows.add(RawCallLogRow(number, normalized, callType, dateMillis, cached))
                         count++
                     }
+                }
+                val countByNormalized = rawRows.groupingBy { it.normalized }.eachCount()
+                val seenNumbers = HashSet<String>()
+                for (raw in rawRows) {
+                    if (seenNumbers.contains(raw.normalized)) continue
+                    seenNumbers.add(raw.normalized)
+                    var name = raw.number
+                    if (!raw.cachedName.isNullOrBlank()) name = raw.cachedName
+                    if (name == raw.number && ContextCompat.checkSelfPermission(this@ContactPickerActivity, Manifest.permission.READ_CONTACTS) == PackageManager.PERMISSION_GRANTED) {
+                        getDisplayNameForNumber(raw.number)?.let { resolvedName ->
+                            if (resolvedName.isNotBlank()) name = resolvedName
+                        }
+                    }
+                    val groupedCount = countByNormalized[raw.normalized] ?: 1
+                    list.add(Contact(name = name, contactId = "", phoneNumber = raw.number))
+                    meta.add(CallLogEntryMeta(type = raw.type, timestamp = raw.dateMillis, groupedCount = groupedCount))
                 }
 
                 val selected = HashSet<Int>()
@@ -600,16 +714,17 @@ class ContactPickerActivity : SimpleActivity() {
                 runOnUiThread {
                     allContacts.clear()
                     allContacts.addAll(list)
+                    callLogMeta.clear()
+                    callLogMeta.addAll(meta)
                     filteredContacts.clear()
+                    selectedPositions.clear()
+                    selected.forEach { selectedPositions.add(it) }
                     if (searchString.trim().isEmpty()) {
                         filteredContacts.addAll(list)
-                        contactAdapter?.setItems(list, selected)
-                        setupLetterFastscroller(list)
+                        updateAdapterWithFilteredContacts()
                     } else {
                         searchListByQuery(searchString)
                     }
-                    selectedPositions.clear()
-                    selected.forEach { selectedPositions.add(it) }
                     if (list.isEmpty()) {
                         callLogPlaceholder?.visibility = View.VISIBLE
                         contactRecyclerView?.visibility = View.GONE
@@ -622,9 +737,14 @@ class ContactPickerActivity : SimpleActivity() {
             } catch (e: Exception) {
                 e.printStackTrace()
                 runOnUiThread {
+                    callLogMeta.clear()
                     callLogPlaceholder?.visibility = View.VISIBLE
                     contactRecyclerView?.visibility = View.GONE
-                    contactAdapter?.setItems(emptyList(), emptySet())
+                    contactAdapter?.setCallLogModeItems(
+                        listRows = emptyList(),
+                        contactSource = emptyList(),
+                        selectedIndices = emptySet(),
+                    )
                     setupLetterFastscroller(emptyList())
                 }
             }
@@ -633,13 +753,14 @@ class ContactPickerActivity : SimpleActivity() {
 
     private fun loadContacts() {
         allContacts.clear()
+        callLogMeta.clear()
         filteredContacts.clear()
         selectedPositions.clear()
         addedContactIds.clear()
         hasMoreContacts = false
         contactsCursor?.takeIf { !it.isClosed }?.close()
         contactsCursor = null
-        contactAdapter?.setItems(emptyList(), emptySet())
+        contactAdapter?.setContactModeItems(emptyList(), emptySet())
         callLogPlaceholder?.visibility = View.GONE
         contactRecyclerView?.visibility = View.VISIBLE
 
@@ -718,7 +839,7 @@ class ContactPickerActivity : SimpleActivity() {
                 filteredContacts.clear()
                 if (searchString.trim().isEmpty()) {
                     filteredContacts.addAll(contactList)
-                    contactAdapter?.setItems(contactList, selected)
+                    contactAdapter?.setContactModeItems(contactList, selected)
                     setupLetterFastscroller(contactList)
                 } else {
                     searchListByQuery(searchString)

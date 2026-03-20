@@ -178,7 +178,7 @@
                 android:scaleType="fitCenter"
                 app:layout_constraintStart_toStartOf="@+id/conversationHolder"
                 app:layout_constraintTop_toBottomOf="@id/conversationHolder"
-                tools:src="@drawable/ic_cmn_out" />
+                tools:src="@drawable/ic_sms_out" />
 
             <androidx.constraintlayout.widget.Barrier
                 android:id="@+id/conversationMessageTypeBarrier"
