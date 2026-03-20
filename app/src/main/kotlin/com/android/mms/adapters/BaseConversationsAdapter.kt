@@ -1,11 +1,9 @@
 package com.android.mms.adapters
 
 import android.annotation.SuppressLint
-import android.graphics.Typeface
 import android.provider.Telephony
 import android.os.Parcelable
 import android.text.format.DateUtils
-import android.util.Log
 import android.util.TypedValue
 import android.view.View
 import android.view.ViewGroup
@@ -16,7 +14,6 @@ import com.behaviorule.arturdumchev.library.pixels
 import com.bumptech.glide.Glide
 import com.qtalk.recyclerviewfastscroller.RecyclerViewFastScroller
 import com.goodwy.commons.adapters.MyRecyclerViewListAdapter
-import com.goodwy.commons.extensions.adjustAlpha
 import com.goodwy.commons.extensions.applyColorFilter
 import com.goodwy.commons.models.RecyclerSelectionPayload
 import com.goodwy.commons.extensions.beGone
@@ -38,7 +35,6 @@ import com.goodwy.commons.extensions.slideLeft
 import com.goodwy.commons.extensions.slideLeftReturn
 import com.goodwy.commons.extensions.slideRight
 import com.goodwy.commons.extensions.slideRightReturn
-import com.goodwy.commons.helpers.SimpleContactsHelper
 import com.goodwy.commons.helpers.ensureBackgroundThread
 import com.goodwy.commons.views.MyRecyclerView
 import com.android.mms.R
@@ -46,7 +42,6 @@ import com.android.mms.activities.SimpleActivity
 import com.android.mms.databinding.ItemConversationBinding
 import com.android.mms.extensions.config
 import com.android.mms.extensions.getDisplayNumberWithoutCountryCode
-import com.android.mms.extensions.deleteSmsDraft
 import com.android.mms.extensions.getAllDrafts
 import com.android.mms.helpers.*
 import com.android.mms.models.Conversation
@@ -66,8 +61,6 @@ import me.thanel.swipeactionview.SwipeGestureListener
 import kotlin.time.Duration.Companion.days
 import java.util.Calendar
 import java.util.Locale
-import kotlin.collections.get
-import kotlin.math.abs
 import kotlin.time.Duration.Companion.minutes
 
 @Suppress("LeakingThis")
@@ -317,14 +310,14 @@ abstract class BaseConversationsAdapter(
             when {
                 smsDraft != null -> conversationMessageType.beGone()
                 lastMessageType == Telephony.Sms.MESSAGE_TYPE_INBOX -> {
-                    conversationMessageType.setImageResource(R.drawable.ic_cmn_in)
+                    conversationMessageType.setImageResource(R.drawable.ic_sms_in)
                     conversationMessageType.beVisible()
                 }
                 lastMessageType == Telephony.Sms.MESSAGE_TYPE_SENT ||
                     lastMessageType == Telephony.Sms.MESSAGE_TYPE_OUTBOX ||
                     lastMessageType == Telephony.Sms.MESSAGE_TYPE_FAILED ||
                     lastMessageType == Telephony.Sms.MESSAGE_TYPE_QUEUED -> {
-                    conversationMessageType.setImageResource(R.drawable.ic_cmn_out)
+                    conversationMessageType.setImageResource(R.drawable.ic_sms_out)
                     conversationMessageType.beVisible()
                 }
                 else -> conversationMessageType.beGone()
