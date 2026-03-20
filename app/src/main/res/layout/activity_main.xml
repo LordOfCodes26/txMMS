@@ -19,149 +19,146 @@
             android:background="@color/tx_common_bg"
             android:layout_width="match_parent"
             android:layout_height="match_parent">
-            <androidx.coordinatorlayout.widget.CoordinatorLayout
-                android:id="@+id/main_coordinator_wrapper"
+            <RelativeLayout
+                android:id="@+id/main_nested_scrollview"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent">
-                <RelativeLayout
-                    android:id="@+id/main_holder"
+                android:layout_height="match_parent"
+                android:scrollbars="none"
+                android:scrollingCache="true"
+                app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+                <androidx.coordinatorlayout.widget.CoordinatorLayout
+                    android:id="@+id/main_coordinator_wrapper"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent">
                     <RelativeLayout
+                        android:id="@+id/main_holder"
                         android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:paddingTop="@dimen/nest_bouncy_content_padding_top">
-
-                        <com.google.android.material.progressindicator.LinearProgressIndicator
-                            android:id="@+id/conversations_progress_bar"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_alignParentTop="true"
-                            android:indeterminate="true"
-                            android:visibility="gone"
-                            app:hideAnimationBehavior="outward"
-                            app:showAnimationBehavior="inward"
-                            app:showDelay="250"
-                            tools:visibility="visible" />
-
-                        <ImageView
-                            android:id="@+id/no_conversations_placeholder"
-                            android:layout_width="wrap_content"
-                            android:layout_height="@dimen/tx_bottom_bar_height"
-                            android:layout_centerInParent="true"
-                            android:contentDescription="@null"
-                            android:scaleType="fitCenter"
-                            android:gravity="center"
-                            android:src="@drawable/ic_no_sms"
-                            android:visibility="visible" />
-
-                        <com.goodwy.commons.views.MyTextView
-                            android:id="@+id/no_conversations_placeholder_2"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_below="@+id/no_conversations_placeholder"
-                            android:layout_centerHorizontal="true"
-                            android:background="@drawable/ripple_all_corners"
-                            android:gravity="center"
-                            android:padding="@dimen/activity_margin"
-                            android:text="@string/no_conversations_found"
-                            android:textSize="@dimen/bigger_text_size"
-                            android:visibility="visible" />
-
-                    </RelativeLayout>
-
-                    <com.qtalk.recyclerviewfastscroller.RecyclerViewFastScroller
-                        android:id="@+id/conversations_fastscroller"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:scrollbars="none"
-                        app:layout_behavior="@string/appbar_scrolling_view_behavior">
-
-                        <com.goodwy.commons.views.MyRecyclerView
-                            android:id="@+id/conversations_list"
+                        android:layout_height="match_parent">
+                        <RelativeLayout
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
-                            android:clipToPadding="false"
-                            android:layoutAnimation="@anim/layout_animation"
-                            android:overScrollMode="ifContentScrolls"
-                            android:paddingTop="@dimen/nest_bouncy_content_padding_top"
-                            android:scrollbars="none"
-                            app:layoutManager="com.goodwy.commons.views.MyLinearLayoutManager" />
+                            android:paddingTop="@dimen/nest_bouncy_content_padding_top">
 
-                    </com.qtalk.recyclerviewfastscroller.RecyclerViewFastScroller>
-                </RelativeLayout>
+                            <com.google.android.material.progressindicator.LinearProgressIndicator
+                                android:id="@+id/conversations_progress_bar"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_alignParentTop="true"
+                                android:indeterminate="true"
+                                android:visibility="gone"
+                                app:hideAnimationBehavior="outward"
+                                app:showAnimationBehavior="inward"
+                                app:showDelay="250"
+                                tools:visibility="visible" />
 
-                <RelativeLayout
-                    android:id="@+id/search_holder"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:alpha="0"
-                    android:visibility="gone"
-                    tools:visibility="visible">
-                    <RelativeLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:paddingTop="@dimen/nest_bouncy_content_padding_top">
-                        <com.goodwy.commons.views.MyTextView
-                            android:id="@+id/search_placeholder"
+                            <ImageView
+                                android:id="@+id/no_conversations_placeholder"
+                                android:layout_width="wrap_content"
+                                android:layout_height="@dimen/tx_bottom_bar_height"
+                                android:layout_centerInParent="true"
+                                android:contentDescription="@null"
+                                android:scaleType="fitCenter"
+                                android:gravity="center"
+                                android:src="@drawable/ic_no_sms"
+                                android:visibility="visible" />
+
+                            <com.goodwy.commons.views.MyTextView
+                                android:id="@+id/no_conversations_placeholder_2"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_below="@+id/no_conversations_placeholder"
+                                android:layout_centerHorizontal="true"
+                                android:background="@drawable/ripple_all_corners"
+                                android:gravity="center"
+                                android:padding="@dimen/activity_margin"
+                                android:text="@string/no_conversations_found"
+                                android:textSize="@dimen/bigger_text_size"
+                                android:visibility="visible" />
+
+                        </RelativeLayout>
+
+                        <com.qtalk.recyclerviewfastscroller.RecyclerViewFastScroller
+                            android:id="@+id/conversations_fastscroller"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_centerHorizontal="true"
-                            android:layout_marginTop="@dimen/activity_margin"
-                            android:alpha="0.8"
-                            android:gravity="center"
-                            android:paddingStart="@dimen/activity_margin"
-                            android:paddingEnd="@dimen/activity_margin"
-                            android:text="@string/no_items_found"
-                            android:textSize="@dimen/bigger_text_size"
-                            android:textStyle="italic" />
+                            app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
-                        <com.goodwy.commons.views.MyTextView
-                            android:id="@+id/search_placeholder_2"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_below="@+id/search_placeholder"
-                            android:layout_centerHorizontal="true"
-                            android:alpha="0.8"
-                            android:gravity="center"
-                            android:paddingStart="@dimen/activity_margin"
-                            android:paddingTop="@dimen/medium_margin"
-                            android:paddingEnd="@dimen/activity_margin"
-                            android:paddingBottom="@dimen/medium_margin"
-                            android:text="@string/type_2_characters"
-                            android:textSize="@dimen/bigger_text_size"
-                            android:textStyle="italic" />
+                            <com.goodwy.commons.views.MyRecyclerView
+                                android:id="@+id/conversations_list"
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:clipToPadding="false"
+                                android:layoutAnimation="@anim/layout_animation"
+                                android:overScrollMode="ifContentScrolls"
+                                android:paddingTop="@dimen/nest_bouncy_content_padding_top"
+                                android:scrollbars="none"
+                                app:layoutManager="com.goodwy.commons.views.MyLinearLayoutManager" />
+
+                        </com.qtalk.recyclerviewfastscroller.RecyclerViewFastScroller>
                     </RelativeLayout>
 
-                    <com.goodwy.commons.views.MyRecyclerView
-                        android:id="@+id/search_results_list"
+                    <RelativeLayout
+                        android:id="@+id/search_holder"
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
-                        android:paddingTop="@dimen/nest_bouncy_content_padding_top"
-                        android:clipToPadding="false"
-                        android:scrollbars="vertical"
-                        app:layoutManager="com.goodwy.commons.views.MyLinearLayoutManager" />
+                        android:alpha="0"
+                        android:visibility="gone"
+                        tools:visibility="visible">
+                        <RelativeLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:paddingTop="@dimen/nest_bouncy_content_padding_top">
+                            <com.goodwy.commons.views.MyTextView
+                                android:id="@+id/search_placeholder"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_centerHorizontal="true"
+                                android:layout_marginTop="@dimen/activity_margin"
+                                android:alpha="0.8"
+                                android:gravity="center"
+                                android:paddingStart="@dimen/activity_margin"
+                                android:paddingEnd="@dimen/activity_margin"
+                                android:text="@string/no_items_found"
+                                android:textSize="@dimen/bigger_text_size"
+                                android:textStyle="italic" />
 
-                </RelativeLayout>
+                            <com.goodwy.commons.views.MyTextView
+                                android:id="@+id/search_placeholder_2"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_below="@+id/search_placeholder"
+                                android:layout_centerHorizontal="true"
+                                android:alpha="0.8"
+                                android:gravity="center"
+                                android:paddingStart="@dimen/activity_margin"
+                                android:paddingTop="@dimen/medium_margin"
+                                android:paddingEnd="@dimen/activity_margin"
+                                android:paddingBottom="@dimen/medium_margin"
+                                android:text="@string/type_2_characters"
+                                android:textSize="@dimen/bigger_text_size"
+                                android:textStyle="italic" />
+                        </RelativeLayout>
 
-            </androidx.coordinatorlayout.widget.CoordinatorLayout>
+                        <com.goodwy.commons.views.MyRecyclerView
+                            android:id="@+id/search_results_list"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:paddingTop="@dimen/nest_bouncy_content_padding_top"
+                            android:clipToPadding="false"
+                            android:scrollbars="vertical"
+                            app:layoutManager="com.goodwy.commons.views.MyLinearLayoutManager" />
+
+                    </RelativeLayout>
+
+                </androidx.coordinatorlayout.widget.CoordinatorLayout>
+            </RelativeLayout>
         </eightbitlab.com.blurview.BlurTarget>
 
-<!--        <RelativeLayout-->
-<!--            android:id="@+id/main_nested_scrollview"-->
-<!--            android:layout_width="match_parent"-->
-<!--            android:layout_height="match_parent"-->
-<!--            android:background="@color/tx_common_bg"-->
-<!--            android:scrollbars="none"-->
-<!--            android:scrollingCache="true"-->
-<!--            app:layout_behavior="@string/appbar_scrolling_view_behavior">-->
-
-
-<!--        </RelativeLayout>-->
         <com.android.common.view.MVSideFrame
             android:id="@+id/m_vertical_side_frame_top"
             android:layout_width="match_parent"
-            android:layout_height="@dimen/tx_mv_side_top_frame_height"
+            android:layout_height="110dp"
             android:layout_alignParentTop="true"/>
 
         <com.goodwy.commons.views.BlurAppBarLayout
@@ -169,13 +166,12 @@
             android:layout_width="match_parent"
             android:layout_height="@dimen/tx_top_bar_expand_height"
             android:background="@color/transparent"
-            android:paddingTop="10dp"
-            android:elevation="0dp" />
+            android:paddingBottom="0dp" />
 
         <com.android.common.view.MVSideFrame
             android:id="@+id/m_vertical_side_frame_bottom"
             android:layout_width="match_parent"
-            android:layout_height="@dimen/tx_mv_side_bottom_frame_height"
+            android:layout_height="100dp"
             android:layout_gravity="bottom"
             app:isTopFrame="false"/>
 
