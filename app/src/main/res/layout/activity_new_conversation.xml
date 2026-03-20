@@ -15,9 +15,8 @@
     <com.goodwy.commons.views.BlurAppBarLayout
         android:id="@+id/new_conversation_appbar"
         android:layout_width="match_parent"
-        android:layout_height="@dimen/blur_app_bar_height"
-        android:background="@color/transparent"
-        android:paddingBottom="5dp" />
+        android:layout_height="@dimen/tx_top_bar_expand_height"
+        android:background="@color/transparent" />
 
     <RelativeLayout
         android:id="@+id/new_conversation_holder"

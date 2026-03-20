@@ -33,7 +33,7 @@
                     android:clipToPadding="false"
                     android:nestedScrollingEnabled="true"
                     android:paddingStart="@dimen/activity_margin"
-                    android:paddingTop="@dimen/blur_app_bar_height"
+                    android:paddingTop="@dimen/tx_top_bar_expand_height"
                     android:paddingEnd="@dimen/activity_margin"
                     android:paddingBottom="@dimen/activity_margin"
                     android:scrollbars="none"
@@ -50,9 +50,8 @@
         <com.goodwy.commons.views.BlurAppBarLayout
             android:id="@+id/bubblePickerAppbar"
             android:layout_width="match_parent"
-            android:layout_height="@dimen/blur_app_bar_height"
-            android:background="@android:color/transparent"
-            android:paddingBottom="5dp" />
+            android:layout_height="@dimen/tx_top_bar_expand_height"
+            android:background="@android:color/transparent" />
 
         <FrameLayout
             android:id="@+id/lyt_action"
