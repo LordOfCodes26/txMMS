@@ -6,8 +6,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:clipChildren="false"
-    android:clipToPadding="false"
-    android:paddingBottom="@dimen/normal_margin">
+    android:clipToPadding="false">
 
     <RelativeLayout
         android:id="@+id/scheduled_message_holder"
@@ -274,17 +273,17 @@
         android:layout_height="wrap_content"
         android:visibility="gone"
         tools:visibility="visible"
-        android:background="@color/md_grey_100"
         android:layout_marginTop="@dimen/tx_cardview_margin_bottom"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent">
+        app:layout_constraintStart_toStartOf="parent"
+        android:layout_marginBottom="-30dp">
 
         <include
             android:id="@+id/attachment_picker"
             layout="@layout/layout_attachment_picker_small"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"/>
+            android:layout_height="@dimen/app_lock_view_max_size"/>
 
     </RelativeLayout>
 

@@ -116,6 +116,7 @@ import com.android.mms.models.Attachment
 import com.android.mms.models.Message
 import com.android.mms.models.ThreadItem
 import com.android.mms.models.ThreadItem.ThreadDateTime
+import com.mikhaellopez.rxanimation.alpha
 import java.util.Locale
 import kotlin.math.abs
 
@@ -1036,6 +1037,7 @@ class ThreadAdapter(
             setTextColor(textColor)
             setTextSize(TypedValue.COMPLEX_UNIT_PX, fontSizeSmall)
         }
+        messageBinding.threadMessageTime.alpha = 0.6f
         val holder = messageBinding.threadMessageTimeSimHolder
         val isReceived = message.isReceivedMessage()
         // Received: bottom-left, order HH:mm, SIM icon. Sent: bottom-right, order status, SIM, HH:mm
@@ -1128,13 +1130,15 @@ class ThreadAdapter(
                     hideTodaysDate = false,
                     dateFormat = "MM.dd"
                 )
-                setTextSize(TypedValue.COMPLEX_UNIT_PX, fontSizeSmall)
+                setTextSize(TypedValue.COMPLEX_UNIT_PX, fontSizeMessage)
             }
             threadDateTime.setTextColor(textColor)
+            threadDateTime.alpha = 0.6f
 
             // SIM info is now shown in each message bubble; hide from date header
             threadSimIcon.beGone()
             threadSimNumber.beGone()
+            threadSimNumber.alpha = 0.6f
         }
     }
 

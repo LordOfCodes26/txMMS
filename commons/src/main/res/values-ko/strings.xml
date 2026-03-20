@@ -753,4 +753,5 @@
     <string name="minutes_letter">%d분</string>
     <string name="hours_letter">%d시간</string>
     <string name="days_letter">%d일</string>
+    <string name="select_text">본문선택</string>
 </resources>

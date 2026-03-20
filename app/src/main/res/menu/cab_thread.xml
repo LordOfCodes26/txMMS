@@ -5,7 +5,7 @@
     tools:ignore="AppCompatResource,AlwaysShowAction">
     <item
         android:id="@+id/cab_copy_to_clipboard"
-        android:icon="@drawable/ic_copy_vector"
+        android:icon="@drawable/ic_cmn_copy"
         android:showAsAction="always"
         android:title="@string/copy_to_clipboard"
         app:showAsAction="always" />
@@ -17,7 +17,7 @@
         app:showAsAction="always" />
     <item
         android:id="@+id/cab_save_as"
-        android:icon="@drawable/ic_save_vector"
+        android:icon="@drawable/ic_cmn_note"
         android:title="@string/save_as"
         app:showAsAction="never" />
     <item
@@ -29,10 +29,11 @@
         android:id="@+id/cab_select_text"
         android:showAsAction="never"
         android:title="@string/select_text"
-        app:showAsAction="never" />
+        app:showAsAction="never"
+        android:icon="@drawable/ic_cmn_list"/>
     <item
         android:id="@+id/cab_properties"
-        android:icon="@drawable/ic_info_vector"
+        android:icon="@drawable/ic_cmn_info"
         android:title="@string/properties"
         app:showAsAction="ifRoom" />
     <item
