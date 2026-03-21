@@ -329,7 +329,7 @@ class Config(context: Context) : BaseConfig(context) {
 
     //Swipe
     var swipeRightAction: Int
-        get() = prefs.getInt(SWIPE_RIGHT_ACTION, SWIPE_ACTION_MARK_READ)
+        get() = prefs.getInt(SWIPE_RIGHT_ACTION, SWIPE_ACTION_CALL)
         set(swipeRightAction) = prefs.edit { putInt(SWIPE_RIGHT_ACTION, swipeRightAction) }
 
     var swipeLeftAction: Int

@@ -342,22 +342,22 @@ class SettingsActivity : SimpleActivity() {
         }
 
         binding.apply {
-            val properPrimaryColor = getProperPrimaryColor()
-            arrayOf(
-                settingsAppearanceLabel,
-                settingsGeneralLabel,
-                settingsNotificationsLabel,
-                settingsMessagesLabel,
-                settingsOutgoingMessagesLabel,
-                settingsListViewLabel,
-                settingsSwipeGesturesLabel,
-                settingsArchivedMessagesLabel,
-                settingsRecycleBinLabel,
-                settingsSecurityLabel,
-                settingsBackupsLabel
-            ).forEach {
-                it.setTextColor(properPrimaryColor)
-            }
+//            val properPrimaryColor = getProperPrimaryColor()
+//            arrayOf(
+//                settingsAppearanceLabel,
+//                settingsGeneralLabel,
+//                settingsNotificationsLabel,
+//                settingsMessagesLabel,
+//                settingsOutgoingMessagesLabel,
+//                settingsListViewLabel,
+//                settingsSwipeGesturesLabel,
+//                settingsArchivedMessagesLabel,
+//                settingsRecycleBinLabel,
+//                settingsSecurityLabel,
+//                settingsBackupsLabel
+//            ).forEach {
+//                it.setTextColor(properPrimaryColor)
+//            }
 
             val cardBgColor = resources.getColor(com.android.common.R.color.tx_cardview_bg)
             arrayOf(

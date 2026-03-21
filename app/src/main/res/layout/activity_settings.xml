@@ -40,14 +40,12 @@
                         <TextView
                             android:id="@+id/settings_appearance_label"
                             style="@style/SettingsSectionLabelStyle"
-                            android:layout_marginTop="12dp"
-                            android:text="@string/pref_category_appearance"
-                            tools:textColor="@color/primary"/>
+                            android:layout_marginStart="@dimen/tx_cardview_card_title_margin_left"
+                            android:text="@string/pref_category_appearance"/>
 
                         <androidx.cardview.widget.CardView
                             android:id="@+id/settingsColorCustomizationHolder"
                             style="@style/SettingsSectionHolder"
-                            app:cardCornerRadius="@dimen/activity_margin"
                             app:cardElevation="0dp">
 
                             <LinearLayout
@@ -63,7 +61,10 @@
                                     <com.goodwy.commons.views.MyTextView
                                         android:id="@+id/settings_customize_colors_label"
                                         style="@style/SettingsTextLabelStyle"
-                                        android:layout_marginEnd="68dp"
+                                        android:layout_alignParentStart="true"
+                                        android:layout_centerVertical="true"
+                                        android:layout_marginEnd="@dimen/normal_margin"
+                                        android:layout_toStartOf="@+id/settings_customize_colors_chevron"
                                         android:text="@string/customize_colors" />
 
                                     <ImageView
@@ -94,7 +95,6 @@
                                         android:layout_height="wrap_content"
                                         android:layout_alignParentEnd="true"
                                         android:layout_centerVertical="true"
-                                        android:layout_marginEnd="@dimen/settings_margin"
                                         android:clickable="false"
                                         android:contentDescription="@string/settings_icon"
                                         android:src="@drawable/ic_more_horiz" />
@@ -119,7 +119,6 @@
                                         android:layout_height="wrap_content"
                                         android:layout_alignParentEnd="true"
                                         android:layout_centerVertical="true"
-                                        android:layout_marginEnd="@dimen/settings_margin"
                                         android:clickable="false"
                                         android:contentDescription="@string/floating_button_style"
                                         android:src="@drawable/ic_circle_filled" />
@@ -139,7 +138,6 @@
                                 <RelativeLayout
                                     android:id="@+id/settingsContactColorListHolder"
                                     style="@style/SettingsHolderStyle"
-                                    android:paddingEnd="@dimen/medium_margin"
                                     tools:ignore="RtlSymmetry">
 
                                     <com.goodwy.commons.views.MyTextView
@@ -156,8 +154,6 @@
                                         android:layout_height="wrap_content"
                                         android:layout_alignParentEnd="true"
                                         android:layout_centerVertical="true"
-                                        android:paddingEnd="@dimen/small_margin"
-                                        android:layout_marginEnd="@dimen/settings_margin"
                                         android:clickable="false"
                                         android:contentDescription="@string/contact_color_list"
                                         android:src="@drawable/ic_color_list_android"/>
@@ -221,7 +217,6 @@
                                         android:layout_height="wrap_content"
                                         android:layout_alignParentEnd="true"
                                         android:layout_centerVertical="true"
-                                        android:layout_marginEnd="@dimen/settings_margin"
                                         android:background="?selectableItemBackgroundBorderless"
                                         android:contentDescription="@string/color_sim_card_icons"
                                         android:src="@drawable/ic_sim_vector"
@@ -249,13 +244,12 @@
                         <TextView
                             android:id="@+id/settingsGeneralLabel"
                             style="@style/SettingsSectionLabelStyle"
-                            android:text="@string/general"
-                            tools:textColor="@color/primary"/>
+                            android:layout_marginStart="@dimen/tx_cardview_card_title_margin_left"
+                            android:text="@string/general"/>
 
                         <androidx.cardview.widget.CardView
                             android:id="@+id/settingsGeneralHolder"
                             style="@style/SettingsSectionHolder"
-                            app:cardCornerRadius="@dimen/activity_margin"
                             app:cardElevation="0dp">
 
                             <LinearLayout
@@ -274,7 +268,7 @@
                                         android:layout_centerVertical="true"
                                         android:layout_alignParentStart="true"
                                         android:layout_toStartOf="@+id/settingsManageBlockedNumbersIconUnknown"
-                                        android:layout_marginEnd="12dp"
+                                        android:layout_marginEnd="@dimen/normal_margin"
                                         android:text="@string/manage_blocked_numbers"/>
 
                                     <ImageView
@@ -314,7 +308,7 @@
                                         android:layout_centerVertical="true"
                                         android:layout_alignParentStart="true"
                                         android:layout_toStartOf="@+id/settingsManageBlockedKeywordsCount"
-                                        android:layout_marginEnd="12dp"
+                                        android:layout_marginEnd="@dimen/normal_margin"
                                         android:text="@string/manage_blocked_keywords"/>
 
                                     <com.goodwy.commons.views.MyTextView
@@ -343,7 +337,7 @@
                                         android:layout_centerVertical="true"
                                         android:layout_alignParentStart="true"
                                         android:layout_toStartOf="@+id/settingsManageQuickTextsCount"
-                                        android:layout_marginEnd="12dp"
+                                        android:layout_marginEnd="@dimen/normal_margin"
                                         android:text="@string/manage_quick_texts"/>
 
                                     <com.goodwy.commons.views.MyTextView
@@ -390,7 +384,6 @@
                                         android:id="@+id/settings_font_size"
                                         style="@style/SettingsTextValueStyle"
                                         android:layout_alignParentEnd="true"
-                                        android:layout_marginEnd="@dimen/settings_margin"
                                         tools:text="@string/size" />
                                 </RelativeLayout>
 
@@ -412,7 +405,6 @@
                                         android:maxWidth="@dimen/settings_value_width_long"
                                         android:layout_alignParentEnd="true"
                                         android:layout_marginStart="@dimen/settings_margin"
-                                        android:layout_marginEnd="@dimen/settings_margin"
                                         tools:text="01.01.2025 08:30" />
 
                                 </RelativeLayout>
@@ -445,13 +437,12 @@
                         <TextView
                             android:id="@+id/settingsSwipeGesturesLabel"
                             style="@style/SettingsSectionLabelStyle"
-                            android:text="@string/swipe_gestures"
-                            tools:textColor="@color/primary"/>
+                            android:layout_marginStart="@dimen/tx_cardview_card_title_margin_left"
+                            android:text="@string/swipe_gestures"/>
 
                         <androidx.cardview.widget.CardView
                             android:id="@+id/settingsSwipeGesturesHolder"
                             style="@style/SettingsSectionHolder"
-                            app:cardCornerRadius="@dimen/activity_margin"
                             app:cardElevation="0dp">
 
                             <LinearLayout
@@ -509,7 +500,6 @@
                                         android:id="@+id/settingsSwipeRightAction"
                                         style="@style/SettingsTextValueStyle"
                                         android:layout_alignParentEnd="true"
-                                        android:layout_marginEnd="@dimen/settings_margin"
                                         tools:text="@string/mark_as_read" />
                                 </RelativeLayout>
 
@@ -529,7 +519,6 @@
                                         android:id="@+id/settingsSwipeLeftAction"
                                         style="@style/SettingsTextValueStyle"
                                         android:layout_alignParentEnd="true"
-                                        android:layout_marginEnd="@dimen/settings_margin"
                                         tools:text="@string/delete" />
                                 </RelativeLayout>
 
@@ -560,13 +549,12 @@
                         <TextView
                             android:id="@+id/settingsNotificationsLabel"
                             style="@style/SettingsSectionLabelStyle"
-                            android:text="@string/notifications"
-                            tools:textColor="@color/primary"/>
+                            android:layout_marginStart="@dimen/tx_cardview_card_title_margin_left"
+                            android:text="@string/notifications"/>
 
                         <androidx.cardview.widget.CardView
                             android:id="@+id/settingsNotificationsHolder"
                             style="@style/SettingsSectionHolder"
-                            app:cardCornerRadius="@dimen/activity_margin"
                             app:cardElevation="0dp">
 
                             <LinearLayout
@@ -615,7 +603,6 @@
                                         style="@style/SettingsTextValueStyle"
                                         android:layout_alignParentEnd="true"
                                         android:layout_centerVertical="true"
-                                        android:layout_marginEnd="@dimen/settings_margin"
                                         tools:text="None" />
 
                                 </RelativeLayout>
@@ -636,7 +623,6 @@
                                         android:id="@+id/settings_lock_screen_visibility"
                                         style="@style/SettingsTextValueStyle"
                                         android:layout_alignParentEnd="true"
-                                        android:layout_marginEnd="@dimen/settings_margin"
                                         tools:text="@string/sender_and_message" />
 
                                 </RelativeLayout>
@@ -668,13 +654,12 @@
                         <TextView
                             android:id="@+id/settingsMessagesLabel"
                             style="@style/SettingsSectionLabelStyle"
-                            android:text="@string/messages"
-                            tools:textColor="@color/primary"/>
+                            android:layout_marginStart="@dimen/tx_cardview_card_title_margin_left"
+                            android:text="@string/messages"/>
 
                         <androidx.cardview.widget.CardView
                             android:id="@+id/settingsMessagesHolder"
                             style="@style/SettingsSectionHolder"
-                            app:cardCornerRadius="@dimen/activity_margin"
                             app:cardElevation="0dp">
 
                             <LinearLayout
@@ -699,7 +684,6 @@
                                         android:id="@+id/settings_thread_top_style"
                                         style="@style/SettingsTextValueStyle"
                                         android:layout_alignParentEnd="true"
-                                        android:layout_marginEnd="@dimen/settings_margin"
                                         tools:text="@string/large" />
 
                                 </RelativeLayout>
@@ -713,7 +697,6 @@
                                         style="@style/SettingsTextLabelStyle"
                                         android:layout_alignParentStart="true"
                                         android:layout_centerVertical="true"
-                                        android:layout_marginEnd="@dimen/medium_margin"
                                         android:layout_toStartOf="@+id/settingsMessageBubbleIcon"
                                         android:text="@string/speech_bubble"/>
 
@@ -722,7 +705,6 @@
                                         style="@style/SettingsTextValueStyle"
                                         android:layout_alignParentEnd="true"
                                         android:layout_centerVertical="true"
-                                        android:layout_marginEnd="@dimen/settings_margin"
                                         tools:text="Type 1" />
                                 </RelativeLayout>
 
@@ -742,7 +724,6 @@
                                         android:id="@+id/settingsTextAlignmentMessage"
                                         style="@style/SettingsTextValueStyle"
                                         android:layout_alignParentEnd="true"
-                                        android:layout_marginEnd="@dimen/settings_margin"
                                         tools:text="@string/text_alignment_along_edges" />
                                 </RelativeLayout>
 
@@ -762,7 +743,6 @@
                                         android:id="@+id/settingsFontSizeMessage"
                                         style="@style/SettingsTextValueStyle"
                                         android:layout_alignParentEnd="true"
-                                        android:layout_marginEnd="@dimen/settings_margin"
                                         tools:text="@string/size" />
                                 </RelativeLayout>
 
@@ -782,7 +762,6 @@
                                         android:id="@+id/settings_action_on_message_click"
                                         style="@style/SettingsTextValueStyle"
                                         android:layout_alignParentEnd="true"
-                                        android:layout_marginEnd="@dimen/settings_margin"
                                         tools:text="@string/copy_code" />
                                 </RelativeLayout>
 
@@ -803,13 +782,12 @@
                         <TextView
                             android:id="@+id/settingsOutgoingMessagesLabel"
                             style="@style/SettingsSectionLabelStyle"
-                            android:text="@string/outgoing_messages"
-                            tools:textColor="@color/primary"/>
+                            android:layout_marginStart="@dimen/tx_cardview_card_title_margin_left"
+                            android:text="@string/outgoing_messages"/>
 
                         <androidx.cardview.widget.CardView
                             android:id="@+id/settingsOutgoingMessagesHolder"
                             style="@style/SettingsSectionHolder"
-                            app:cardCornerRadius="@dimen/activity_margin"
                             app:cardElevation="0dp">
 
                             <LinearLayout
@@ -872,7 +850,6 @@
                                         style="@style/SettingsTextValueStyle"
                                         android:layout_alignParentEnd="true"
                                         android:layout_centerVertical="true"
-                                        android:layout_marginEnd="@dimen/settings_margin"
                                         tools:text="None" />
 
                                 </RelativeLayout>
@@ -905,7 +882,6 @@
                                         android:id="@+id/settings_message_send_delay"
                                         style="@style/SettingsTextValueStyle"
                                         android:layout_alignParentEnd="true"
-                                        android:layout_marginEnd="@dimen/settings_margin"
                                         tools:text="@string/no_delay" />
                                 </RelativeLayout>
 
@@ -961,7 +937,6 @@
                                         android:id="@+id/settings_mms_file_size_limit"
                                         style="@style/SettingsTextValueStyle"
                                         android:layout_alignParentEnd="true"
-                                        android:layout_marginEnd="@dimen/settings_margin"
                                         tools:text="@string/mms_file_size_limit_none" />
 
                                 </RelativeLayout>
@@ -971,13 +946,12 @@
                         <TextView
                             android:id="@+id/settingsListViewLabel"
                             style="@style/SettingsSectionLabelStyle"
-                            android:text="@string/list_view"
-                            tools:textColor="@color/primary"/>
+                            android:layout_marginStart="@dimen/tx_cardview_card_title_margin_left"
+                            android:text="@string/list_view"/>
 
                         <androidx.cardview.widget.CardView
                             android:id="@+id/settingsListViewHolder"
                             style="@style/SettingsSectionHolder"
-                            app:cardCornerRadius="@dimen/activity_margin"
                             app:cardElevation="0dp">
 
                             <LinearLayout
@@ -1026,7 +1000,6 @@
                                         android:id="@+id/settingsContactThumbnailsSize"
                                         style="@style/SettingsTextValueStyle"
                                         android:layout_alignParentEnd="true"
-                                        android:layout_marginEnd="@dimen/settings_margin"
                                         tools:text="@string/medium"/>
                                 </RelativeLayout>
 
@@ -1070,7 +1043,6 @@
                                         android:id="@+id/settingsLinesCount"
                                         style="@style/SettingsTextValueStyle"
                                         android:layout_alignParentEnd="true"
-                                        android:layout_marginEnd="@dimen/settings_margin"
                                         tools:text="@string/two" />
                                 </RelativeLayout>
 
@@ -1090,7 +1062,6 @@
                                         android:id="@+id/settingsUnreadIndicatorPosition"
                                         style="@style/SettingsTextValueStyle"
                                         android:layout_alignParentEnd="true"
-                                        android:layout_marginEnd="@dimen/settings_margin"
                                         tools:text="@string/start" />
                                 </RelativeLayout>
 
@@ -1122,14 +1093,13 @@
                         <TextView
                             android:id="@+id/settingsArchivedMessagesLabel"
                             style="@style/SettingsSectionLabelStyle"
+                            android:layout_marginStart="@dimen/tx_cardview_card_title_margin_left"
                             android:text="@string/archived_conversations"
-                            android:visibility="gone"
-                            tools:textColor="@color/primary"/>
+                            android:visibility="gone"/>
 
                         <androidx.cardview.widget.CardView
                             android:id="@+id/settingsArchivedMessagesHolder"
                             style="@style/SettingsSectionHolder"
-                            app:cardCornerRadius="@dimen/activity_margin"
                             app:cardElevation="0dp">
 
                             <RelativeLayout
@@ -1147,14 +1117,13 @@
                         <TextView
                             android:id="@+id/settingsRecycleBinLabel"
                             style="@style/SettingsSectionLabelStyle"
+                            android:layout_marginStart="@dimen/tx_cardview_card_title_margin_left"
                             android:text="@string/recycle_bin"
-                            android:visibility="gone"
-                            tools:textColor="@color/primary"/>
+                            android:visibility="gone"/>
 
                         <androidx.cardview.widget.CardView
                             android:id="@+id/settingsRecycleBinHolder"
                             style="@style/SettingsSectionHolder"
-                            app:cardCornerRadius="@dimen/activity_margin"
                             app:cardElevation="0dp">
 
                             <LinearLayout
@@ -1190,7 +1159,6 @@
                                         android:id="@+id/settings_empty_recycle_bin_size"
                                         style="@style/SettingsTextValueStyle"
                                         android:layout_alignParentEnd="true"
-                                        android:layout_marginEnd="@dimen/settings_margin"
                                         tools:text="0 B" />
                                 </RelativeLayout>
                             </LinearLayout>
@@ -1199,14 +1167,13 @@
                         <TextView
                             android:id="@+id/settingsSecurityLabel"
                             style="@style/SettingsSectionLabelStyle"
+                            android:layout_marginStart="@dimen/tx_cardview_card_title_margin_left"
                             android:text="@string/security"
-                            android:visibility="gone"
-                            tools:textColor="@color/primary"/>
+                            android:visibility="gone"/>
 
                         <androidx.cardview.widget.CardView
                             android:id="@+id/settingsSecurityHolder"
                             style="@style/SettingsSectionHolder"
-                            app:cardCornerRadius="@dimen/activity_margin"
                             app:cardElevation="0dp">
 
                             <LinearLayout
@@ -1232,14 +1199,13 @@
                         <TextView
                             android:id="@+id/settingsBackupsLabel"
                             style="@style/SettingsSectionLabelStyle"
-                            android:text="@string/backups"
-                            tools:textColor="@color/primary"/>
+                            android:layout_marginStart="@dimen/tx_cardview_card_title_margin_left"
+                            android:text="@string/backups"/>
 
                         <androidx.cardview.widget.CardView
                             android:id="@+id/settingsBackupsHolder"
                             style="@style/SettingsSectionHolder"
                             android:layout_marginBottom="@dimen/secondary_fab_bottom_margin"
-                            app:cardCornerRadius="@dimen/activity_margin"
                             app:cardElevation="0dp">
 
                             <LinearLayout
@@ -1291,14 +1257,11 @@
                         <TextView
                             android:id="@+id/settingsOtherLabel"
                             style="@style/SettingsSectionLabelStyle"
-                            android:text="@string/other"
-                            tools:textColor="@color/primary"/>
+                            android:text="@string/other"/>
 
                         <androidx.cardview.widget.CardView
                             android:id="@+id/settingsOtherHolder"
                             style="@style/SettingsSectionHolder"
-                            android:layout_marginBottom="@dimen/secondary_fab_bottom_margin"
-                            app:cardCornerRadius="@dimen/activity_margin"
                             app:cardElevation="0dp">
 
                             <LinearLayout
