@@ -22,7 +22,9 @@ sealed class AvatarSource {
         val drawableResId: Int,
         val tintColor: Int,
         val backgroundColor: Int,
-        val backgroundDrawableIndex: Int? = null
+        val backgroundDrawableIndex: Int? = null,
+        val iconInsetRatio: Float = 0.2f,
+        val iconSizePx: Int? = null
     ) : AvatarSource()
 
     /**

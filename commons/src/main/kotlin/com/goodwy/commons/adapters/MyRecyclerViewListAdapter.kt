@@ -4,9 +4,6 @@ import android.annotation.SuppressLint
 import android.graphics.Color
 import android.view.*
 import android.view.ViewParent
-import android.widget.ImageView
-import androidx.appcompat.app.ActionBar
-import androidx.appcompat.widget.ActionMenuView
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
@@ -38,7 +35,7 @@ abstract class MyRecyclerViewListAdapter<T>(
     protected val layoutInflater = activity.layoutInflater
     protected val soldTextColor = activity.getSoldTextColor()
     protected var accentColor = activity.getProperAccentColor()
-    protected var textColor = activity.getProperTextColor()
+    protected var secondTextColor = activity.getProperTextColor()
     protected var backgroundColor = activity.getProperBackgroundColor()
     protected var surfaceColor = activity.getSurfaceColor()
     protected var properPrimaryColor = activity.getProperPrimaryColor()
@@ -551,7 +548,7 @@ abstract class MyRecyclerViewListAdapter<T>(
     }
 
     fun updateTextColor(textColor: Int) {
-        this.textColor = textColor
+        this.secondTextColor = textColor
         onRefresh.invoke()
     }
 

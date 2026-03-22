@@ -294,6 +294,7 @@
         <item name="android:textColor">@color/tx_dialog_confirm_text</item>
         <item name="android:gravity">start|center_vertical</item>
         <item name="android:paddingHorizontal">@dimen/tx_dialog_padding_horizontal</item>
+        <item name="android:paddingVertical">@dimen/tx_popup_menu_item_padding_vertical</item>
     </style>
 
     <!-- Standardized Dialog Button Container Style -->

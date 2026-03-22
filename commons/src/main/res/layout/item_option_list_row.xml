@@ -4,10 +4,9 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:gravity="center"
-    android:textSize="@dimen/dialog_edit_size_common"
-    android:paddingTop="@dimen/smaller_margin"
+    android:textSize="@dimen/tx_cardview_title_size"
     android:paddingBottom="@dimen/smaller_margin"
     android:paddingStart="@dimen/smaller_margin"
-    android:paddingEnd="@dimen/smaller_margin"
+    android:paddingVertical="@dimen/tx_popup_menu_item_padding_vertical"
     android:background="?attr/selectableItemBackground"
     android:textDirection="locale" />

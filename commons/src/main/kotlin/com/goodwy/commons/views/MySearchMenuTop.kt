@@ -149,7 +149,7 @@ open class MySearchMenuTop(context: Context, attrs: AttributeSet) : MyAppBarLayo
         //No need to update the status bar when using it in a dialog
 //        (context as? BaseSimpleActivity)?.updateTopBarColors(binding.topToolbar, Color.TRANSPARENT, useColorForStatusBar = false)
 
-        binding.toolbarContainer.setBackgroundResource(R.drawable.search_bg)
+        binding.toolbarContainer.setBackgroundResource(com.android.common.R.drawable.tx_search_background)
         binding.toolbarContainer.backgroundTintList = ColorStateList.valueOf(surfaceColor)
         binding.topToolbarSearchClear.applyColorFilter(contrastColor)
     }

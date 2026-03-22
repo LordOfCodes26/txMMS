@@ -150,7 +150,9 @@ class ContactAvatarView @JvmOverloads constructor(
                 source.drawableResId,
                 source.tintColor,
                 source.backgroundColor,
-                source.backgroundDrawableIndex
+                source.backgroundDrawableIndex,
+                source.iconInsetRatio,
+                source.iconSizePx
             )
             is AvatarSource.Monogram -> bindMonogram(
                 source.initials,
@@ -262,7 +264,9 @@ class ContactAvatarView @JvmOverloads constructor(
         drawableResId: Int,
         tintColor: Int,
         backgroundColor: Int,
-        backgroundDrawableIndex: Int? = null
+        backgroundDrawableIndex: Int? = null,
+        iconInsetRatio: Float = 0.2f,
+        iconSizePx: Int? = null
     ) {
         avatarImage.isVisible = true
         avatarInitials.isVisible = false
@@ -286,15 +290,23 @@ class ContactAvatarView @JvmOverloads constructor(
             post { avatarBackgroundLayer.background?.setBounds(0, 0, width, height) }
         }
         avatarImage.background = null
-        avatarImage.layoutParams = FrameLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            Gravity.CENTER
-        )
+        avatarImage.layoutParams = if (iconSizePx != null && iconSizePx > 0) {
+            FrameLayout.LayoutParams(iconSizePx, iconSizePx, Gravity.CENTER)
+        } else {
+            FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                Gravity.CENTER
+            )
+        }
         avatarImage.scaleType = ImageView.ScaleType.FIT_CENTER
-        val size = minOf(width, height).takeIf { it > 0 } ?: (resources.displayMetrics.density * 48f).toInt()
-        val inset = (size * 0.2f).toInt().coerceAtLeast(4)
-        avatarImage.setPadding(inset, inset, inset, inset)
+        if (iconSizePx != null && iconSizePx > 0) {
+            avatarImage.setPadding(0, 0, 0, 0)
+        } else {
+            val size = minOf(width, height).takeIf { it > 0 } ?: (resources.displayMetrics.density * 48f).toInt()
+            val inset = (size * iconInsetRatio.coerceIn(0.05f, 0.45f)).toInt().coerceAtLeast(4)
+            avatarImage.setPadding(inset, inset, inset, inset)
+        }
         avatarImage.setImageResource(drawableResId)
         avatarImage.imageTintList = ColorStateList.valueOf(tintColor)
     }

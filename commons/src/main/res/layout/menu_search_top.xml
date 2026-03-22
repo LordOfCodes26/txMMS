@@ -20,7 +20,7 @@
             android:layout_marginStart="@dimen/activity_margin"
             android:layout_marginEnd="@dimen/activity_margin"
             android:focusableInTouchMode="true"
-            android:background="@drawable/search_bg"
+            android:background="@drawable/tx_search_background"
             android:backgroundTint="@color/activated_item_foreground">
 
             <ImageView

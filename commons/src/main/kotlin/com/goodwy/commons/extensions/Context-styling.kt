@@ -50,7 +50,7 @@ fun Context.getProperBackgroundColor() = when {
 }
 
 fun Context.getProperPrimaryColor() = when {
-    isDynamicTheme() -> resources.getColor(R.color.you_primary_color, theme)
+    isDynamicTheme() -> resources.getColor(R.color.default_primary_color, theme)
     else -> baseConfig.primaryColor
 }
 
@@ -88,7 +88,6 @@ fun Context.updateTextColors(viewGroup: ViewGroup) {
     val cnt = viewGroup.childCount
     (0 until cnt).map { viewGroup.getChildAt(it) }.forEach {
         when (it) {
-            is MyTextView -> it.setColors(textColor, primaryColor, backgroundColor)
             is MyAppCompatSpinner -> it.setColors(textColor, primaryColor, backgroundColor)
 //            is MyCompatRadioButton -> it.setColors(textColor, accentColor, backgroundColor)
             is MyAppCompatCheckbox -> it.setColors(textColor, accentColor, backgroundColor)

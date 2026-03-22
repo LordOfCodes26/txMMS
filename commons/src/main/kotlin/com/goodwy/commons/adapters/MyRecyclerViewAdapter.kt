@@ -234,7 +234,7 @@ abstract class MyRecyclerViewAdapter(
         }
     }
 
-    protected fun toggleItemSelection(select: Boolean, pos: Int, updateTitle: Boolean = true) {
+    protected open fun toggleItemSelection(select: Boolean, pos: Int, updateTitle: Boolean = true) {
         if (select && !getIsItemSelectable(pos)) {
             return
         }
