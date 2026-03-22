@@ -12,7 +12,7 @@ import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
-import com.goodwy.commons.dialogs.ConfirmationDialog
+import com.android.common.dialogs.MConfirmDialog
 import com.goodwy.commons.extensions.*
 import com.goodwy.commons.helpers.KEY_PHONE
 import com.goodwy.commons.helpers.ensureBackgroundThread
@@ -52,6 +52,7 @@ import com.android.mms.messaging.isShortCodeWithLetters
 import com.android.mms.models.Conversation
 import com.android.mms.models.ConversationListItem
 import com.android.mms.models.Message
+import eightbitlab.com.blurview.BlurTarget
 
 class ConversationsAdapter(
     activity: SimpleActivity,
@@ -220,6 +221,23 @@ class ConversationsAdapter(
         return false
     }
 
+    private fun showMConfirmDialog(question: String, onConfirm: () -> Unit) {
+        val blurTarget = activity.findViewById<BlurTarget>(com.android.mms.R.id.mainBlurTarget)
+            ?: throw IllegalStateException("mainBlurTarget not found")
+        val dialog = MConfirmDialog(activity)
+        dialog.bindBlurTarget(blurTarget)
+        dialog.setContent(question)
+        dialog.setConfirmTitle(resources.getString(com.goodwy.commons.R.string.ok))
+        dialog.setCancelTitle(resources.getString(com.goodwy.commons.R.string.cancel))
+        dialog.setCanceledOnTouchOutside(true)
+        dialog.setOnCompleteListener { isConfirm ->
+            if (isConfirm) {
+                onConfirm()
+            }
+        }
+        dialog.show()
+    }
+
     override fun actionItemPressed(id: Int) {
         // Allow select_all to work even when no items are selected
         if (id == R.id.cab_select_all) {
@@ -281,9 +299,7 @@ class ConversationsAdapter(
         val baseString = if (isBlockNumbers) com.goodwy.strings.R.string.unblock_confirmation else com.goodwy.commons.R.string.block_confirmation
         val question = String.format(resources.getString(baseString), numbersString)
 
-        val blurTarget = activity.findViewById<eightbitlab.com.blurview.BlurTarget>(com.android.mms.R.id.mainBlurTarget)
-            ?: throw IllegalStateException("mainBlurTarget not found")
-        ConfirmationDialog(activity, question, blurTarget = blurTarget) {
+        showMConfirmDialog(question) {
             blockNumbers(isBlockNumbers, selectedItems)
         }
     }
@@ -362,9 +378,7 @@ class ConversationsAdapter(
         }
         val question = String.format(resources.getString(baseString), items)
 
-        val blurTarget = activity.findViewById<eightbitlab.com.blurview.BlurTarget>(com.android.mms.R.id.mainBlurTarget)
-            ?: throw IllegalStateException("mainBlurTarget not found")
-        ConfirmationDialog(activity, question, blurTarget = blurTarget) {
+        showMConfirmDialog(question) {
             ensureBackgroundThread {
                 deleteConversations(selectedItems)
             }
@@ -384,9 +398,7 @@ class ConversationsAdapter(
         val baseString = R.string.archive_confirmation
         val question = String.format(resources.getString(baseString), items)
 
-        val blurTarget = activity.findViewById<eightbitlab.com.blurview.BlurTarget>(com.android.mms.R.id.mainBlurTarget)
-            ?: throw IllegalStateException("mainBlurTarget not found")
-        ConfirmationDialog(activity, question, blurTarget = blurTarget) {
+        showMConfirmDialog(question) {
             ensureBackgroundThread {
                 archiveConversations(selectedItems)
             }
@@ -603,9 +615,7 @@ class ConversationsAdapter(
             val baseString = R.string.archive_confirmation
             val question = String.format(resources.getString(baseString), item)
 
-            val blurTarget = activity.findViewById<eightbitlab.com.blurview.BlurTarget>(com.android.mms.R.id.mainBlurTarget)
-                ?: throw IllegalStateException("mainBlurTarget not found")
-            ConfirmationDialog(activity, question, blurTarget = blurTarget) {
+            showMConfirmDialog(question) {
                 ensureBackgroundThread {
                     swipedArchiveConversations(conversation)
                 }
@@ -652,9 +662,7 @@ class ConversationsAdapter(
             }
             val question = String.format(resources.getString(baseString), item)
 
-            val blurTarget = activity.findViewById<eightbitlab.com.blurview.BlurTarget>(com.android.mms.R.id.mainBlurTarget)
-                ?: throw IllegalStateException("mainBlurTarget not found")
-            ConfirmationDialog(activity, question, blurTarget = blurTarget) {
+            showMConfirmDialog(question) {
                 ensureBackgroundThread {
                     swipedDeleteConversations(conversation)
                 }
