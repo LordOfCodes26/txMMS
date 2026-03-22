@@ -216,14 +216,14 @@ abstract class BaseConversationsAdapter(
             is ConversationListItem.DateHeader -> {
                 ItemConversationDateHeaderBinding.bind(holder.itemView).dateTextView.apply {
                     alpha = 0.7f
-                    setTextColor(textColor)
+                    setTextColor(secondTextColor)
+                    setTextSize(TypedValue.COMPLEX_UNIT_PX, smallFontSize)
                     text = when (item.dayCode) {
                         ConversationListItem.SECTION_TODAY -> activity.getString(R.string.today)
                         ConversationListItem.SECTION_YESTERDAY -> activity.getString(R.string.yesterday)
                         else -> activity.getString(R.string.previous)
                     }
                 }
-                ItemConversationDateHeaderBinding.bind(holder.itemView).dateTextView.alpha = 0.7f
                 val params = holder.itemView.layoutParams as? RecyclerView.LayoutParams
                 params?.bottomMargin = 0
             }
@@ -341,14 +341,14 @@ abstract class BaseConversationsAdapter(
 //            }
             // val isLastConversation = holder.bindingAdapterPosition == currentList.indexOfLast { it is ConversationListItem.ConversationItem }
             if (!activity.config.useDividers) divider.beInvisible() else divider.beVisible()
-            divider.setBackgroundColor(textColor)
+            divider.setBackgroundColor(secondTextColor)
 
             swipeView.isSelected = isRowSelected
             conversationFrameSelect.isSelected = isRowSelected
             conversationCheckbox.apply {
                 beVisibleIf(isInActionMode)
                 isChecked = isRowSelected
-                setColors(textColor, properPrimaryColor, backgroundColor)
+                setColors(secondTextColor, properPrimaryColor, backgroundColor)
                 setOnClickListener {
                     if (isInActionMode) {
                         holder.itemView.performClick()
@@ -377,7 +377,7 @@ abstract class BaseConversationsAdapter(
                     conversationBodyShort.translationX = -50.0f;
                 }
                 else {
-                    setTextColor(textColor)
+                    setTextColor(secondTextColor)
                 }
             }
             if (conversation.messageCount > 1) {
@@ -386,7 +386,7 @@ abstract class BaseConversationsAdapter(
                     text = "(${conversation.messageCount})"
                     alpha = 0.7f
                     setTextSize(TypedValue.COMPLEX_UNIT_PX, smallFontSize)
-                    if(!conversation.read || conversation.isBlocked) setTextColor(colorRed) else setTextColor(textColor)
+                    if(!conversation.read || conversation.isBlocked) setTextColor(colorRed) else setTextColor(secondTextColor)
                 }
             } else {
                 conversationAddressCount.beGone()
@@ -409,7 +409,7 @@ abstract class BaseConversationsAdapter(
                 }
             } else {
                 arrayListOf(conversationBodyShort, conversationDate).forEach {
-                    it.setTextColor(textColor)
+                    it.setTextColor(secondTextColor)
                 }
             }
 
@@ -542,18 +542,18 @@ abstract class BaseConversationsAdapter(
     }
 
     private fun bindContactAvatar(avatarView: ContactAvatarView, conversation: Conversation) {
-//        val isUnsavedMessage = conversation.threadId <= 0 || conversation.phoneNumber == conversation.title
-//        if (isUnsavedMessage) {
-//            // Force default avatar style (ic_person) for unsaved-number recents.
-//            avatarView.bind(
-//                AvatarSource.Monogram(
-//                    initials = "",
-//                    gradientColors = MonogramGenerator.generateGradientColors(conversation.phoneNumber),
-//                    drawableIndex = activity.getAvatarDrawableIndexForName(conversation.phoneNumber).takeIf { it >= 0 }
-//                )
-//            )
-//            return
-//        }
+        val isUnsavedMessage = conversation.threadId <= 0 || conversation.phoneNumber == conversation.title
+        if (isUnsavedMessage) {
+            // Force default avatar style (ic_person) for unsaved-number recents.
+            avatarView.bind(
+                AvatarSource.Monogram(
+                    initials = "",
+                    gradientColors = MonogramGenerator.generateGradientColors(conversation.phoneNumber),
+                    drawableIndex = activity.getAvatarDrawableIndexForName(conversation.phoneNumber).takeIf { it >= 0 }
+                )
+            )
+            return
+        }
 
         val avatarSeed = conversation.title.ifEmpty { conversation.phoneNumber }
         val drawableIndex = activity.getAvatarDrawableIndexForName(avatarSeed).takeIf { it >= 0 }

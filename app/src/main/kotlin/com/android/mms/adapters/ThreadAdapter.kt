@@ -1157,7 +1157,7 @@ class ThreadAdapter(
                 )
                 setTextSize(TypedValue.COMPLEX_UNIT_PX, fontSizeMessage)
             }
-            threadDateTime.setTextColor(textColor)
+            threadDateTime.setTextColor(secondTextColor)
             threadDateTime.alpha = 0.6f
 
             // SIM info is now shown in each message bubble; hide from date header
