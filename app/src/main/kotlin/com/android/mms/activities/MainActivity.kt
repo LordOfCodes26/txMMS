@@ -30,9 +30,9 @@ import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updatePadding
 import androidx.appcompat.widget.SearchView
 import androidx.core.view.MenuItemCompat
-import androidx.core.view.marginTop
 import androidx.recyclerview.widget.RecyclerView
 import com.android.common.view.MSearchView
 import com.android.common.view.MVSideFrame
@@ -55,7 +55,6 @@ import com.android.mms.models.Conversation
 import com.android.mms.models.Events
 import com.android.mms.models.Message
 import com.android.mms.models.SearchResult
-import com.behaviorule.arturdumchev.library.setHeight
 import com.goodwy.commons.interfaces.ActionModeToolbarHost
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
@@ -140,7 +139,6 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
     @SuppressLint("UnsafeIntentLaunch")
     override fun onResume() {
         super.onResume()
-        initMVSideFrames()
         if (shouldExitSecureModeOnResume) {
             shouldExitSecureModeOnResume = false
             if (config.selectedConversationPin > 0) {
@@ -287,9 +285,9 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
                 }
             })
 
-//            toolbar.setOnMenuItemClickListener { menuItem ->
-//                handleToolbarMenuItemClick(menuItem)
-//            }
+            toolbar.setOnMenuItemClickListener { menuItem ->
+                handleToolbarMenuItemClick(menuItem)
+            }
             toolbar.setPopupForMoreItem(
                 R.id.more,
                 R.menu.menu_main,
@@ -300,6 +298,7 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
                     }
                 }
             )
+
             mainMenu.clearSearch()
         }
     }
@@ -600,20 +599,45 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
     private fun initBouncy() {
         binding.mainMenu.post {
             // totalScrollRange is used by bouncy/offset logic if needed
-//            val toolbarLP = binding.mainMenu.toolbar?.layoutParams as? ViewGroup.MarginLayoutParams
-//            if (toolbarLP != null) {
-//                toolbarLP.topMargin = (10 * resources.displayMetrics.density).toInt()
-//                binding.mainMenu.toolbar?.layoutParams = toolbarLP
-//            }
-
         }
     }
 
     private fun initBouncyListener() {
         binding.mainMenu.setupOffsetListener { verticalOffset, height ->
             val h = if (height > 0) height else 1
-            binding.mainMenu.titleView?.scaleX = (1 + 0.5f * verticalOffset / h)
-            binding.mainMenu.titleView?.scaleY = (1 + 0.5f * verticalOffset / h)
+            binding.mainMenu.titleView?.scaleX = (1 + 0.8f * verticalOffset / h)
+            binding.mainMenu.titleView?.scaleY = (1 + 0.8f * verticalOffset / h)
+            // AppBarLayout's measured height stays at the expanded size while collapsing; offset is negative.
+            applyConversationsPaddingForAppBar(height, verticalOffset)
+        }
+        binding.mainMenu.post {
+            applyConversationsPaddingForAppBar(binding.mainMenu.height, 0)
+        }
+    }
+
+    /**
+     * Keep list / placeholder top inset in sync with the visible app bar region.
+     * [AppBarLayout] height does not shrink when the bar collapses — use [verticalOffset] (≤ 0) so that
+     * effective inset is layoutHeight + verticalOffset, matching Material’s collapse behavior.
+     */
+    private fun applyConversationsPaddingForAppBar(appBarLayoutHeightPx: Int, verticalOffset: Int) {
+        val expandedH = if (appBarLayoutHeightPx > 0) {
+            appBarLayoutHeightPx
+        } else {
+            resources.getDimensionPixelSize(com.android.common.R.dimen.tx_top_bar_expand_height)
+        }
+        val topPad = (expandedH + verticalOffset).coerceIn(0, expandedH)
+        fun syncRecyclerTopPadding(rv: RecyclerView, newTop: Int) {
+            if (rv.paddingTop == newTop) return
+            val delta = rv.paddingTop - newTop
+            rv.updatePadding(top = newTop)
+            rv.scrollBy(0, delta)
+        }
+        syncRecyclerTopPadding(binding.conversationsList, topPad)
+        syncRecyclerTopPadding(binding.searchResultsList, topPad)
+        binding.mainHolder.getChildAt(0)?.updatePadding(top = topPad)
+        if (binding.searchHolder.childCount > 0) {
+            binding.searchHolder.getChildAt(0)?.updatePadding(top = topPad)
         }
     }
 
@@ -1180,5 +1204,4 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
             checkWhatsNew(this, BuildConfig.VERSION_CODE)
         }
     }
-
 }
