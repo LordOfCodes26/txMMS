@@ -16,7 +16,7 @@
     <string name="mms_file_size_limit_none">제한 없음</string>
     <string name="messages">통보문</string>
     <string name="send_long_message_mms">긴 통보문을 MMS로 전송</string>
-    <string name="outgoing_messages">보내는 통보문</string>
+    <string name="outgoing_messages">기타</string>
     <string name="group_message_mms">그룹통보문을 MMS로 전송</string>
     <string name="export_messages">통보문 내보내기</string>
     <string name="export_sms">SMS 내보내기</string>
