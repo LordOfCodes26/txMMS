@@ -94,6 +94,13 @@
                                         android:contentDescription="@string/manage_blocked_numbers"/>
                                 </RelativeLayout>
 
+                                <View
+                                    android:layout_width="match_parent"
+                                    android:layout_height="@dimen/tx_cardview_divider_thickness"
+                                    android:layout_marginStart="@dimen/tx_cardview_padding_left"
+                                    android:layout_marginEnd="@dimen/tx_cardview_padding_right"
+                                    android:background="@color/tx_cardview_divider" />
+
                                 <RelativeLayout
                                     android:id="@+id/settingsManageBlockedKeywordsHolder"
                                     style="@style/SettingsHolderStyle">
@@ -173,6 +180,13 @@
 
                                 </RelativeLayout>
 
+                                <View
+                                    android:layout_width="match_parent"
+                                    android:layout_height="@dimen/tx_cardview_divider_thickness"
+                                    android:layout_marginStart="@dimen/tx_cardview_padding_left"
+                                    android:layout_marginEnd="@dimen/tx_cardview_padding_right"
+                                    android:background="@color/tx_cardview_divider" />
+
                                 <RelativeLayout
                                     android:id="@+id/settings_delivery_report_sound_holder"
                                     style="@style/SettingsHolderSwitchStyle">
@@ -217,6 +231,13 @@
 
                                 </RelativeLayout>
 
+                                <View
+                                    android:layout_width="match_parent"
+                                    android:layout_height="@dimen/tx_cardview_divider_thickness"
+                                    android:layout_marginStart="@dimen/tx_cardview_padding_left"
+                                    android:layout_marginEnd="@dimen/tx_cardview_padding_right"
+                                    android:background="@color/tx_cardview_divider" />
+
                                 <RelativeLayout
                                     android:id="@+id/settings_notification_sound_holder"
                                     style="@style/SettingsHolderSwitchStyle">
@@ -239,6 +260,13 @@
 
                                 </RelativeLayout>
 
+                                <View
+                                    android:layout_width="match_parent"
+                                    android:layout_height="@dimen/tx_cardview_divider_thickness"
+                                    android:layout_marginStart="@dimen/tx_cardview_padding_left"
+                                    android:layout_marginEnd="@dimen/tx_cardview_padding_right"
+                                    android:background="@color/tx_cardview_divider" />
+
                                 <RelativeLayout
                                     android:id="@+id/settings_lock_screen_visibility_holder"
                                     style="@style/SettingsHolderSwitchStyle">
@@ -258,6 +286,13 @@
                                         tools:text="@string/sender_and_message" />
 
                                 </RelativeLayout>
+
+                                <View
+                                    android:layout_width="match_parent"
+                                    android:layout_height="@dimen/tx_cardview_divider_thickness"
+                                    android:layout_marginStart="@dimen/tx_cardview_padding_left"
+                                    android:layout_marginEnd="@dimen/tx_cardview_padding_right"
+                                    android:background="@color/tx_cardview_divider" />
 
                                 <RelativeLayout
                                     android:id="@+id/settingsNotifyTurnsOnScreenHolder"
@@ -331,6 +366,13 @@
                                         app:switchPadding="@dimen/bigger_margin" />
                                 </RelativeLayout>
 
+                                <View
+                                    android:layout_width="match_parent"
+                                    android:layout_height="@dimen/tx_cardview_divider_thickness"
+                                    android:layout_marginStart="@dimen/tx_cardview_padding_left"
+                                    android:layout_marginEnd="@dimen/tx_cardview_padding_right"
+                                    android:background="@color/tx_cardview_divider" />
+
                                 <RelativeLayout
                                     android:id="@+id/settings_show_sms_remained_count_holder"
                                     style="@style/SettingsHolderSwitchStyle">
@@ -362,6 +404,13 @@
                                         app:switchPadding="@dimen/bigger_margin" />
                                 </RelativeLayout>
 
+                                <View
+                                    android:layout_width="match_parent"
+                                    android:layout_height="@dimen/tx_cardview_divider_thickness"
+                                    android:layout_marginStart="@dimen/tx_cardview_padding_left"
+                                    android:layout_marginEnd="@dimen/tx_cardview_padding_right"
+                                    android:background="@color/tx_cardview_divider" />
+
                                 <RelativeLayout
                                     android:id="@+id/settings_show_character_counter_holder"
                                     style="@style/SettingsHolderSwitchStyle">
@@ -373,6 +422,13 @@
                                         app:switchPadding="@dimen/bigger_margin" />
 
                                 </RelativeLayout>
+
+                                <View
+                                    android:layout_width="match_parent"
+                                    android:layout_height="@dimen/tx_cardview_divider_thickness"
+                                    android:layout_marginStart="@dimen/tx_cardview_padding_left"
+                                    android:layout_marginEnd="@dimen/tx_cardview_padding_right"
+                                    android:background="@color/tx_cardview_divider" />
 
                                 <RelativeLayout
                                     android:id="@+id/settings_message_send_delay_holder"
@@ -431,6 +487,13 @@
                                         android:layout_centerVertical="true"
                                         tools:text="Type 1" />
                                 </RelativeLayout>
+
+                                <View
+                                    android:layout_width="match_parent"
+                                    android:layout_height="@dimen/tx_cardview_divider_thickness"
+                                    android:layout_marginStart="@dimen/tx_cardview_padding_left"
+                                    android:layout_marginEnd="@dimen/tx_cardview_padding_right"
+                                    android:background="@color/tx_cardview_divider" />
 
                                 <RelativeLayout
                                     android:id="@+id/settingsManageQuickTextsHolder"
@@ -567,6 +630,13 @@
                                         android:contentDescription="@string/export_messages"/>
 
                                 </RelativeLayout>
+
+                                <View
+                                    android:layout_width="match_parent"
+                                    android:layout_height="@dimen/tx_cardview_divider_thickness"
+                                    android:layout_marginStart="@dimen/tx_cardview_padding_left"
+                                    android:layout_marginEnd="@dimen/tx_cardview_padding_right"
+                                    android:background="@color/tx_cardview_divider" />
 
                                 <RelativeLayout
                                     android:id="@+id/settings_import_messages_holder"
