@@ -11,7 +11,9 @@
     <string name="reply">回复</string>
     <string name="show_character_counter">撰写消息时显示字符计数器</string>
     <string name="show_phone_number">显示电话号码</string>
+    <string name="show_phonenumber_summary">与姓名一起显示电话号码</string>
     <string name="show_sms_remained_count">显示剩余短信条数</string>
+    <string name="show_sms_remained_count_summary">在发送按钮下方显示剩余免费短信条数</string>
     <string name="message_send_delay">消息发送延迟</string>
     <string name="no_delay">无延迟</string>
     <string name="delay_3s">3秒</string>
@@ -113,6 +115,7 @@
     <string name="sender_and_message">发信人和消息</string>
     <string name="sender_only">仅发信人</string>
     <string name="enable_delivery_reports">启用送达报告</string>
+    <string name="use_delivery_report_summary">告知已发送消息的送达状态</string>
     <string name="use_simple_characters">发送消息时删除重音和变音符号</string>
     <string name="send_on_enter">按下 Enter 键发送消息</string>
     <string name="mms_file_size_limit">调整发送的彩信图片的大小</string>

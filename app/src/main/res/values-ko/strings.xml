@@ -10,6 +10,7 @@
     <string name="sender_and_message">보낸사람 및 내용</string>
     <string name="sender_only">보낸사람만</string>
     <string name="enable_delivery_reports">수신확인 사용</string>
+    <string name="use_delivery_report_summary">전송한 통보문마다 전송정형에 대하여 알려줍니다</string>
     <string name="mms_file_size_limit">MMS 그림크기 조정</string>
     <string name="send_on_enter">행바꾸기 입력시 통보문 전송</string>
     <string name="use_simple_characters">통보문 전송시 력점 및 발음부호 제거</string>
@@ -104,7 +105,9 @@
     <string name="start_conversation">새 통보문 작성</string>
     <string name="show_character_counter">통보문 작성시 글자수 표시</string>
     <string name="show_phone_number">전화번호 현시</string>
+    <string name="show_phonenumber_summary">이름과 함께 전화번호를 현시합니다</string>
     <string name="show_sms_remained_count">통보문잔고현시</string>
+    <string name="show_sms_remained_count_summary">전송단추아래 남은 무료통보문개수가 현시됩니다</string>
     <string name="message_send_delay">통보문 전송 지연</string>
     <string name="no_delay">지연없음</string>
     <string name="delay_3s">3초</string>

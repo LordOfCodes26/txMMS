@@ -145,11 +145,30 @@
                                 <RelativeLayout
                                     android:id="@+id/settings_enable_delivery_reports_holder"
                                     style="@style/SettingsHolderSwitchStyle">
+                                    <com.goodwy.commons.views.MyTextView
+                                        android:id="@+id/settingsDeliveryReportLabel"
+                                        style="@style/SettingsTextLabelStyle"
+                                        android:layout_alignParentStart="true"
+                                        android:layout_centerVertical="false"
+                                        android:layout_toStartOf="@+id/settings_enable_delivery_reports"
+                                        android:text="@string/enable_delivery_reports" />
+
+                                    <com.goodwy.commons.views.MyTextView
+                                        android:id="@+id/settingsDeliveryReportSummary"
+                                        style="@style/SettingsTextSummaryStyle"
+                                        android:layout_below="@+id/settingsDeliveryReportLabel"
+                                        android:layout_alignParentStart="true"
+                                        android:layout_toStartOf="@+id/settings_enable_delivery_reports"
+                                        android:clickable="false"
+                                        android:text="@string/use_delivery_report_summary" />
 
                                     <com.goodwy.commons.views.MyLiquidSwitch
                                         android:id="@+id/settings_enable_delivery_reports"
                                         style="@style/SettingsSwitchStyle"
-                                        android:text="@string/enable_delivery_reports"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_alignParentEnd="true"
+                                        android:layout_centerVertical="true"
                                         app:switchPadding="@dimen/bigger_margin" />
 
                                 </RelativeLayout>
@@ -285,10 +304,30 @@
                                     android:id="@+id/settings_show_phone_number_holder"
                                     style="@style/SettingsHolderSwitchStyle">
 
+                                    <com.goodwy.commons.views.MyTextView
+                                        android:id="@+id/settingsShowPhoneNumberLabel"
+                                        style="@style/SettingsTextLabelStyle"
+                                        android:layout_alignParentStart="true"
+                                        android:layout_centerVertical="false"
+                                        android:layout_toStartOf="@+id/settings_show_phone_number"
+                                        android:text="@string/show_phone_number" />
+
+                                    <com.goodwy.commons.views.MyTextView
+                                        android:id="@+id/settingsShowPhoneNumberSummary"
+                                        style="@style/SettingsTextSummaryStyle"
+                                        android:layout_below="@+id/settingsShowPhoneNumberLabel"
+                                        android:layout_alignParentStart="true"
+                                        android:layout_toStartOf="@+id/settings_show_phone_number"
+                                        android:clickable="false"
+                                        android:text="@string/show_phonenumber_summary" />
+
                                     <com.goodwy.commons.views.MyLiquidSwitch
                                         android:id="@+id/settings_show_phone_number"
                                         style="@style/SettingsSwitchStyle"
-                                        android:text="@string/show_phone_number"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_alignParentEnd="true"
+                                        android:layout_centerVertical="true"
                                         app:switchPadding="@dimen/bigger_margin" />
                                 </RelativeLayout>
 
@@ -296,10 +335,30 @@
                                     android:id="@+id/settings_show_sms_remained_count_holder"
                                     style="@style/SettingsHolderSwitchStyle">
 
+                                    <com.goodwy.commons.views.MyTextView
+                                        android:id="@+id/settingsShowSmsRemainedCountLabel"
+                                        style="@style/SettingsTextLabelStyle"
+                                        android:layout_alignParentStart="true"
+                                        android:layout_centerVertical="false"
+                                        android:layout_toStartOf="@+id/settings_show_sms_remained_count"
+                                        android:text="@string/show_sms_remained_count" />
+
+                                    <com.goodwy.commons.views.MyTextView
+                                        android:id="@+id/settingsShowSmsRemainedCountSummary"
+                                        style="@style/SettingsTextSummaryStyle"
+                                        android:layout_below="@+id/settingsShowSmsRemainedCountLabel"
+                                        android:layout_alignParentStart="true"
+                                        android:layout_toStartOf="@+id/settings_show_sms_remained_count"
+                                        android:clickable="false"
+                                        android:text="@string/show_sms_remained_count_summary" />
+
                                     <com.goodwy.commons.views.MyLiquidSwitch
                                         android:id="@+id/settings_show_sms_remained_count"
                                         style="@style/SettingsSwitchStyle"
-                                        android:text="@string/show_sms_remained_count"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_alignParentEnd="true"
+                                        android:layout_centerVertical="true"
                                         app:switchPadding="@dimen/bigger_margin" />
                                 </RelativeLayout>
 

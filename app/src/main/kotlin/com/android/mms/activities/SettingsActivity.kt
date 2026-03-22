@@ -283,6 +283,16 @@ class SettingsActivity : SimpleActivity() {
                 it.applyColorFilter(properTextColor)
             }
 
+            arrayOf(
+                settingsDeliveryReportSummary,
+                settingsShowPhoneNumberSummary,
+                settingsShowSmsRemainedCountSummary
+            ).forEach {
+                it.setColors(com.android.common.R.color.tx_cardview_summary,
+                    com.android.common.R.color.tx_cardview_summary,
+                    com.android.common.R.color.tx_cardview_summary)
+            }
+
             settingsMenu.toolbar?.menu?.let { updateMenuItemColors(it) }
         }
         isRebindingSettings = false
