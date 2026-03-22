@@ -544,12 +544,13 @@ abstract class BaseConversationsAdapter(
     private fun bindContactAvatar(avatarView: ContactAvatarView, conversation: Conversation) {
         val isUnsavedMessage = conversation.threadId <= 0 || conversation.phoneNumber == conversation.title
         if (isUnsavedMessage) {
-            // Force default avatar style (ic_person) for unsaved-number recents.
+            // Match txDial RecentCallsAdapter: unsaved numbers use profile icon on gradient, not a letter (empty initials → "A").
             avatarView.bind(
                 AvatarSource.Monogram(
                     initials = "",
                     gradientColors = MonogramGenerator.generateGradientColors(conversation.phoneNumber),
-                    drawableIndex = activity.getAvatarDrawableIndexForName(conversation.phoneNumber).takeIf { it >= 0 }
+                    drawableIndex = activity.getAvatarDrawableIndexForName(conversation.phoneNumber).takeIf { it >= 0 },
+                    showProfileIcon = true
                 )
             )
             return

@@ -197,8 +197,7 @@ class ContactPickerAdapter(
 
     private fun bindPickerAvatar(avatarView: ContactAvatarView, contact: Contact) {
         val act = context as? android.app.Activity ?: return
-        val displayName = contact.name.ifEmpty { contact.phoneNumber }
-        val seed = displayName.ifBlank { contact.phoneNumber }
+        val hasContactName = contact.name.isNotEmpty() && contact.name != contact.phoneNumber
         if (contact.icon != -1) {
             avatarView.bind(
                 AvatarSource.Drawable(
@@ -209,19 +208,34 @@ class ContactPickerAdapter(
                 ),
                 previewMode = true,
             )
-        } else {
-            val initials = MonogramGenerator.generateInitials(displayName.ifEmpty { contact.phoneNumber })
-            val gradientColors = MonogramGenerator.generateGradientColors(seed)
-            val drawableIndex = context.getAvatarDrawableIndexForName(seed).takeIf { it >= 0 }
+            return
+        }
+        // Call log / dialer recents: unknown numbers use profile icon on gradient, not a digit letter (matches txDial RecentCallsAdapter).
+        if (!hasContactName) {
             avatarView.bind(
                 AvatarSource.Monogram(
-                    initials = initials,
-                    gradientColors = gradientColors,
-                    drawableIndex = drawableIndex,
+                    initials = "",
+                    gradientColors = MonogramGenerator.generateGradientColors(contact.phoneNumber),
+                    drawableIndex = context.getAvatarDrawableIndexForName(contact.phoneNumber).takeIf { it >= 0 },
+                    showProfileIcon = true,
                 ),
                 previewMode = true,
             )
+            return
         }
+        val displayName = contact.name
+        val seed = displayName.ifBlank { contact.phoneNumber }
+        val initials = MonogramGenerator.generateInitials(displayName.ifEmpty { contact.phoneNumber })
+        val gradientColors = MonogramGenerator.generateGradientColors(seed)
+        val drawableIndex = context.getAvatarDrawableIndexForName(seed).takeIf { it >= 0 }
+        avatarView.bind(
+            AvatarSource.Monogram(
+                initials = initials,
+                gradientColors = gradientColors,
+                drawableIndex = drawableIndex,
+            ),
+            previewMode = true,
+        )
     }
 
     private fun applyRecentsDivider(divider: ImageView) {
