@@ -1537,6 +1537,10 @@ class NewConversationActivity : SimpleActivity() {
     }
 
     private fun updateAvailableMessageCountForCurrentSim() {
+        if (!config.showSmsRemainedCount) {
+            binding.messageHolder.threadAvailableMessageCount.beGone()
+            return
+        }
         val slotId = FeeInfoUtils.getCurrentSimSlotId(
             context = this,
             availableSIMCards = availableSIMCards,

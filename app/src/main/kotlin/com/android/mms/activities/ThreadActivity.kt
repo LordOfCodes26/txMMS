@@ -261,6 +261,8 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         binding.messageHolder.attachmentPickerHolder.setBackgroundColor(
             ResourcesCompat.getColor(resources, com.goodwy.commons.R.color.md_grey_100, theme)
         )
+
+        updateAvailableMessageCountForCurrentSim()
     }
 
     override fun onStart() {
@@ -1266,6 +1268,10 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
     }
 
     private fun updateAvailableMessageCountForCurrentSim() {
+        if (!config.showSmsRemainedCount) {
+            binding.messageHolder.threadAvailableMessageCount.beGone()
+            return
+        }
         val slotId = FeeInfoUtils.getCurrentSimSlotId(
             context = this,
             availableSIMCards = availableSIMCards,

@@ -293,6 +293,17 @@
                                 </RelativeLayout>
 
                                 <RelativeLayout
+                                    android:id="@+id/settings_show_sms_remained_count_holder"
+                                    style="@style/SettingsHolderSwitchStyle">
+
+                                    <com.goodwy.commons.views.MyLiquidSwitch
+                                        android:id="@+id/settings_show_sms_remained_count"
+                                        style="@style/SettingsSwitchStyle"
+                                        android:text="@string/show_sms_remained_count"
+                                        app:switchPadding="@dimen/bigger_margin" />
+                                </RelativeLayout>
+
+                                <RelativeLayout
                                     android:id="@+id/settings_show_character_counter_holder"
                                     style="@style/SettingsHolderSwitchStyle">
 

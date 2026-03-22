@@ -11,6 +11,7 @@
     <string name="reply">回复</string>
     <string name="show_character_counter">撰写消息时显示字符计数器</string>
     <string name="show_phone_number">显示电话号码</string>
+    <string name="show_sms_remained_count">显示剩余短信条数</string>
     <string name="message_send_delay">消息发送延迟</string>
     <string name="no_delay">无延迟</string>
     <string name="delay_3s">3秒</string>

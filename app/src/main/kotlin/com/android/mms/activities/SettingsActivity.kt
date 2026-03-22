@@ -219,6 +219,7 @@ class SettingsActivity : SimpleActivity() {
         setupNotifyTurnsOnScreen()
 
         setupShowPhoneNumber()
+        setupShowSmsRemainedCount()
         setupShowCharacterCounter()
         setupMessageSendDelay()
 
@@ -484,6 +485,16 @@ class SettingsActivity : SimpleActivity() {
         }
         settingsShowPhoneNumberHolder.setOnClickListener {
             settingsShowPhoneNumber.toggle()
+        }
+    }
+
+    private fun setupShowSmsRemainedCount() = binding.apply {
+        settingsShowSmsRemainedCount.isChecked = config.showSmsRemainedCount
+        settingsShowSmsRemainedCount.setOnCheckedChangeListener { isChecked ->
+            config.showSmsRemainedCount = isChecked
+        }
+        settingsShowSmsRemainedCountHolder.setOnClickListener {
+            settingsShowSmsRemainedCount.toggle()
         }
     }
 

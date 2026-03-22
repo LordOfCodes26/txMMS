@@ -347,4 +347,8 @@ class Config(context: Context) : BaseConfig(context) {
     var showPhoneNumber: Boolean
         get() = prefs.getBoolean(SHOW_PHONE_NUMBER, true)
         set(showPhoneNumber) = prefs.edit { putBoolean(SHOW_PHONE_NUMBER, showPhoneNumber) }
+
+    var showSmsRemainedCount: Boolean
+        get() = prefs.getBoolean(SHOW_SMS_REMAINED_COUNT, true)
+        set(showSmsRemainedCount) = prefs.edit { putBoolean(SHOW_SMS_REMAINED_COUNT, showSmsRemainedCount) }
 }

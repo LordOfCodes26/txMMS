@@ -104,6 +104,7 @@
     <string name="start_conversation">새 통보문 작성</string>
     <string name="show_character_counter">통보문 작성시 글자수 표시</string>
     <string name="show_phone_number">전화번호 현시</string>
+    <string name="show_sms_remained_count">통보문잔고현시</string>
     <string name="message_send_delay">통보문 전송 지연</string>
     <string name="no_delay">지연없음</string>
     <string name="delay_3s">3초</string>
