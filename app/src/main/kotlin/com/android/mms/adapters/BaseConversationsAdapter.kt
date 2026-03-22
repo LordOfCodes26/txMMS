@@ -7,6 +7,7 @@ import android.text.format.DateUtils
 import android.util.TypedValue
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.view.updateLayoutParams
 import android.widget.TextView
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
@@ -31,10 +32,6 @@ import com.goodwy.commons.extensions.isRTLLayout
 import com.goodwy.commons.extensions.isSystemInDarkMode
 import com.goodwy.commons.extensions.setHeightAndWidth
 import com.goodwy.commons.extensions.setupViewBackground
-import com.goodwy.commons.extensions.slideLeft
-import com.goodwy.commons.extensions.slideLeftReturn
-import com.goodwy.commons.extensions.slideRight
-import com.goodwy.commons.extensions.slideRightReturn
 import com.goodwy.commons.helpers.ensureBackgroundThread
 import com.goodwy.commons.views.MyRecyclerView
 import com.android.mms.R
@@ -103,6 +100,7 @@ abstract class BaseConversationsAdapter(
         setupDragListener(true)
         setHasStableIds(true)
         updateDrafts()
+        recyclerView.itemAnimator?.changeDuration = 0
 
         registerAdapterDataObserver(object : RecyclerView.AdapterDataObserver() {
             override fun onChanged() = restoreRecyclerViewState()
@@ -455,35 +453,35 @@ abstract class BaseConversationsAdapter(
 //                }
             }
 
-            //swipe
+            // Swipe (pill motion + animators aligned with txDial RecentCallsAdapter)
             val isRTL = activity.isRTLLayout
+            val leftPillColor: Int
+            val rightPillColor: Int
             if (isRecycleBin) {
                 val swipeLeftResource =
                     if (isRTL) R.drawable.ic_delete_restore else com.goodwy.commons.R.drawable.ic_delete_outline
                 swipeLeftIcon.setImageResource(swipeLeftResource)
-                val swipeLeftColor =
+                leftPillColor =
                     if (isRTL) resources.getColor(R.color.swipe_purple, activity.theme) else resources.getColor(R.color.red_call, activity.theme)
-                swipeLeftIconHolder.setBackgroundColor(swipeLeftColor)
 
                 val swipeRightResource =
                     if (isRTL) com.goodwy.commons.R.drawable.ic_delete_outline else R.drawable.ic_delete_restore
                 swipeRightIcon.setImageResource(swipeRightResource)
-                val swipeRightColor =
+                rightPillColor =
                     if (isRTL) resources.getColor(R.color.red_call, activity.theme) else resources.getColor(R.color.swipe_purple, activity.theme)
-                swipeRightIconHolder.setBackgroundColor(swipeRightColor)
 
                 if (activity.config.swipeRipple) {
-                    swipeView.setRippleColor(SwipeDirection.Left, swipeLeftColor)
-                    swipeView.setRippleColor(SwipeDirection.Right, swipeRightColor)
+                    swipeView.setRippleColor(SwipeDirection.Left, leftPillColor)
+                    swipeView.setRippleColor(SwipeDirection.Right, rightPillColor)
                 }
             } else {
                 val swipeLeftAction = if (isRTL) activity.config.swipeRightAction else activity.config.swipeLeftAction
                 swipeLeftIcon.setImageResource(swipeActionImageResource(swipeLeftAction, conversation.read))
-                swipeLeftIconHolder.setBackgroundColor(swipeActionColor(swipeLeftAction))
+                leftPillColor = swipeActionColor(swipeLeftAction)
 
                 val swipeRightAction = if (isRTL) activity.config.swipeLeftAction else activity.config.swipeRightAction
                 swipeRightIcon.setImageResource(swipeActionImageResource(swipeRightAction, conversation.read))
-                swipeRightIconHolder.setBackgroundColor(swipeActionColor(swipeRightAction))
+                rightPillColor = swipeActionColor(swipeRightAction)
 
                 if (!activity.config.useSwipeToAction) {
                     swipeView.setDirectionEnabled(SwipeDirection.Left, false)
@@ -503,39 +501,78 @@ abstract class BaseConversationsAdapter(
                 }
 
                 if (activity.config.swipeRipple) {
-                    swipeView.setRippleColor(SwipeDirection.Left, swipeActionColor(swipeLeftAction))
-                    swipeView.setRippleColor(SwipeDirection.Right, swipeActionColor(swipeRightAction))
+                    swipeView.setRippleColor(SwipeDirection.Left, leftPillColor)
+                    swipeView.setRippleColor(SwipeDirection.Right, rightPillColor)
                 }
             }
 
-            arrayOf(
-                swipeLeftIcon, swipeRightIcon
-            ).forEach {
+            arrayOf(swipeLeftIcon, swipeRightIcon).forEach {
                 it.setColorFilter(properPrimaryColor.getContrastColor())
             }
+
+            val halfScreenWidth = activity.resources.displayMetrics.widthPixels / 2
+            val swipeWidth = activity.resources.getDimension(com.goodwy.commons.R.dimen.swipe_width)
+            if (swipeWidth > halfScreenWidth) {
+                swipeRightIconHolder.updateLayoutParams<ViewGroup.LayoutParams> { width = halfScreenWidth }
+                swipeLeftIconHolder.updateLayoutParams<ViewGroup.LayoutParams> { width = halfScreenWidth }
+            }
+
+            resetSwipeMotionHostVisuals(swipeRightIconMotionHost, swipeView, rightPillColor, swipeRightIcon)
+            resetSwipeMotionHostVisuals(swipeLeftIconMotionHost, swipeView, leftPillColor, swipeLeftIcon)
+            val motionBaseW = activity.resources.getDimensionPixelSize(R.dimen.swipe_icon_motion_host_width)
+            val motionMaxW = activity.resources.getDimensionPixelSize(R.dimen.swipe_icon_motion_host_width_max)
+            val motionMarginPx = activity.resources.getDimension(com.goodwy.commons.R.dimen.big_margin)
+            swipeView.rightSwipeAnimator =
+                swipeStripMotionHostAnimator(
+                    swipeRightIconMotionHost,
+                    swipeRightIconHolder,
+                    swipeView,
+                    motionMarginPx,
+                    slideTowardContent = true,
+                    baseWidthPx = motionBaseW,
+                    maxWidthPx = motionMaxW,
+                    pillColor = rightPillColor,
+                    iconView = swipeRightIcon,
+                )
+            swipeView.leftSwipeAnimator =
+                swipeStripMotionHostAnimator(
+                    swipeLeftIconMotionHost,
+                    swipeLeftIconHolder,
+                    swipeView,
+                    motionMarginPx,
+                    slideTowardContent = false,
+                    baseWidthPx = motionBaseW,
+                    maxWidthPx = motionMaxW,
+                    pillColor = leftPillColor,
+                    iconView = swipeLeftIcon,
+                )
 
             swipeView.useHapticFeedback = activity.config.swipeVibration
             swipeView.swipeGestureListener = object : SwipeGestureListener {
                 override fun onSwipedLeft(swipeActionView: SwipeActionView): Boolean {
-                    swipeLeftIcon.slideLeftReturn(swipeLeftIconHolder)
+                    finishActMode()
+                    resetSwipeMotionHostVisuals(swipeLeftIconMotionHost, swipeView, leftPillColor, swipeLeftIcon)
+                    resetSwipeMotionHostVisuals(swipeRightIconMotionHost, swipeView, rightPillColor, swipeRightIcon)
                     swipedLeft(conversation)
                     return true
                 }
 
                 override fun onSwipedRight(swipeActionView: SwipeActionView): Boolean {
-                    swipeRightIcon.slideRightReturn(swipeRightIconHolder)
+                    finishActMode()
+                    resetSwipeMotionHostVisuals(swipeLeftIconMotionHost, swipeView, leftPillColor, swipeLeftIcon)
+                    resetSwipeMotionHostVisuals(swipeRightIconMotionHost, swipeView, rightPillColor, swipeRightIcon)
                     swipedRight(conversation)
                     return true
                 }
 
-                override fun onSwipedActivated(swipedRight: Boolean) {
-                    if (swipedRight) swipeRightIcon.slideRight(swipeRightIconHolder)
-                    else swipeLeftIcon.slideLeft()
+                override fun onSwipeLeftComplete(swipeActionView: SwipeActionView) {
+                    resetSwipeMotionHostVisuals(swipeLeftIconMotionHost, swipeView, leftPillColor, swipeLeftIcon)
+                    resetSwipeMotionHostVisuals(swipeRightIconMotionHost, swipeView, rightPillColor, swipeRightIcon)
                 }
 
-                override fun onSwipedDeactivated(swipedRight: Boolean) {
-                    if (swipedRight) swipeRightIcon.slideRightReturn(swipeRightIconHolder)
-                    else swipeLeftIcon.slideLeftReturn(swipeLeftIconHolder)
+                override fun onSwipeRightComplete(swipeActionView: SwipeActionView) {
+                    resetSwipeMotionHostVisuals(swipeLeftIconMotionHost, swipeView, leftPillColor, swipeLeftIcon)
+                    resetSwipeMotionHostVisuals(swipeRightIconMotionHost, swipeView, rightPillColor, swipeRightIcon)
                 }
             }
         }

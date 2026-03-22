@@ -13,18 +13,29 @@
         android:layout_width="@dimen/swipe_width"
         android:layout_height="match_parent"
         android:layout_gravity="left|center_vertical"
-        android:background="@color/primary"
+        android:background="@android:color/transparent"
         tools:ignore="RtlHardcoded">
 
-        <ImageView
-            android:id="@+id/swipeRightIcon"
-            android:layout_width="28dp"
-            android:layout_height="28dp"
-            android:layout_marginLeft='@dimen/big_margin'
-            android:layout_alignParentLeft='true'
-            android:layout_centerVertical='true'
-            android:src="@drawable/ic_mark_read"
-            android:contentDescription="@null"/>
+        <FrameLayout
+            android:id="@+id/swipeRightIconMotionHost"
+            android:layout_width="@dimen/swipe_icon_motion_host_width"
+            android:layout_height="@dimen/swipe_icon_motion_host_height"
+            android:layout_alignParentLeft="true"
+            android:layout_centerVertical="true"
+            android:layout_marginLeft="@dimen/big_margin"
+            android:background="@android:color/transparent"
+            android:clipToOutline="true">
+
+            <ImageView
+                android:id="@+id/swipeRightIcon"
+                android:layout_width="@dimen/recent_call_info_size"
+                android:layout_height="@dimen/recent_call_info_size"
+                android:layout_gravity="center_vertical|start"
+                android:layout_marginStart="@dimen/medium_margin"
+                android:layout_marginEnd="@dimen/medium_margin"
+                android:contentDescription="@null"
+                android:src="@drawable/ic_mark_read" />
+        </FrameLayout>
     </RelativeLayout>
 
     <RelativeLayout
@@ -32,18 +43,29 @@
         android:layout_width="@dimen/swipe_width"
         android:layout_height="match_parent"
         android:layout_gravity="right|center_vertical"
-        android:background="@color/red_call"
+        android:background="@android:color/transparent"
         tools:ignore="RtlHardcoded">
 
-        <ImageView
-            android:id="@+id/swipeLeftIcon"
-            android:layout_width="28dp"
-            android:layout_height="28dp"
-            android:layout_marginRight='@dimen/big_margin'
-            android:layout_alignParentRight='true'
-            android:layout_centerVertical='true'
-            android:src="@drawable/ic_cmn_delete"
-            android:contentDescription="@null"/>
+        <FrameLayout
+            android:id="@+id/swipeLeftIconMotionHost"
+            android:layout_width="@dimen/swipe_icon_motion_host_width"
+            android:layout_height="@dimen/swipe_icon_motion_host_height"
+            android:layout_alignParentRight="true"
+            android:layout_centerVertical="true"
+            android:layout_marginRight="@dimen/big_margin"
+            android:background="@android:color/transparent"
+            android:clipToOutline="true">
+
+            <ImageView
+                android:id="@+id/swipeLeftIcon"
+                android:layout_width="@dimen/recent_call_info_size"
+                android:layout_height="@dimen/recent_call_info_size"
+                android:layout_gravity="center_vertical|end"
+                android:layout_marginStart="@dimen/medium_margin"
+                android:layout_marginEnd="@dimen/medium_margin"
+                android:contentDescription="@null"
+                android:src="@drawable/ic_cmn_delete" />
+        </FrameLayout>
     </RelativeLayout>
 
     <FrameLayout

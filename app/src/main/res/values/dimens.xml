@@ -47,6 +47,11 @@
     <!--thread activity-->
     <dimen name="attach_text_width">48dp</dimen>
 
+    <!-- Swipe row motion (match txDial RecentCallsAdapter pill strip) -->
+    <dimen name="swipe_icon_motion_host_width">34dp</dimen>
+    <dimen name="swipe_icon_motion_host_width_max">140dp</dimen>
+    <dimen name="swipe_icon_motion_host_height">34dp</dimen>
+
     <dimen name="nest_bouncy_content_padding_top">128dp</dimen>
     <dimen name="custom_topbar_top">34dp</dimen>
 </resources>
