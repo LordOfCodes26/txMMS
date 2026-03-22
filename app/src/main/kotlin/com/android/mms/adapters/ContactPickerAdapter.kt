@@ -185,7 +185,7 @@ class ContactPickerAdapter(
 
         fun bind(section: ContactPickerListRow.DateSection) {
             val act = context as? android.app.Activity ?: return
-            title.setTextColor(act.getProperTextColor().adjustAlpha(0.76f))
+            title.setTextColor(act.getProperTextColor().adjustAlpha(0.7f))
             title.text = when (section.dayCode) {
                 ContactPickerListRow.DateSection.SECTION_TODAY -> act.getString(R.string.today)
                 ContactPickerListRow.DateSection.SECTION_YESTERDAY -> act.getString(R.string.yesterday)

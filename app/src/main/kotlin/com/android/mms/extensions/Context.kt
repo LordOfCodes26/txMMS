@@ -414,33 +414,33 @@ fun Context.getMMSSender(msgId: Long): String {
     return ""
 }
 
-//fun Context.getUnreadCountsByThread(): Map<Long, Int> {
-//    val result = HashMap<Long, Int>(128)
-//
-//    fun bump(id: Long) {
-//        result[id] = (result[id] ?: 0) + 1
-//    }
-//
-//    // Unread SMS
-//    queryCursor(
-//        uri = Sms.CONTENT_URI,
-//        projection = arrayOf(Sms.THREAD_ID),
-//        selection = "${Sms.READ}=0 AND ${Sms.TYPE}=${Sms.MESSAGE_TYPE_INBOX}",
-//        selectionArgs = null,
-//        showErrors = false
-//    ) { bump(it.getLongValue(Sms.THREAD_ID)) }
-//
-//    // Unread MMS
-//    queryCursor(
-//        uri = Mms.CONTENT_URI,
-//        projection = arrayOf(Mms.THREAD_ID),
-//        selection = "${Mms.READ}=0 AND ${Mms.MESSAGE_BOX}=${Mms.MESSAGE_BOX_INBOX}",
-//        selectionArgs = null,
-//        showErrors = false
-//    ) { bump(it.getLongValue(Mms.THREAD_ID)) }
-//
-//    return result
-//}
+fun Context.getUnreadCountsByThread(): Map<Long, Int> {
+    val result = HashMap<Long, Int>(128)
+
+    fun bump(id: Long) {
+        result[id] = (result[id] ?: 0) + 1
+    }
+
+    // Unread SMS
+    queryCursor(
+        uri = Sms.CONTENT_URI,
+        projection = arrayOf(Sms.THREAD_ID),
+        selection = "${Sms.READ}=0 AND ${Sms.TYPE}=${Sms.MESSAGE_TYPE_INBOX}",
+        selectionArgs = null,
+        showErrors = false
+    ) { bump(it.getLongValue(Sms.THREAD_ID)) }
+
+    // Unread MMS
+    queryCursor(
+        uri = Mms.CONTENT_URI,
+        projection = arrayOf(Mms.THREAD_ID),
+        selection = "${Mms.READ}=0 AND ${Mms.MESSAGE_BOX}=${Mms.MESSAGE_BOX_INBOX}",
+        selectionArgs = null,
+        showErrors = false
+    ) { bump(it.getLongValue(Mms.THREAD_ID)) }
+
+    return result
+}
 
 fun Context.getConversations(
     threadId: Long? = null,

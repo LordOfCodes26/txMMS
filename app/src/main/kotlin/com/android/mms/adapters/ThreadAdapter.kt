@@ -116,7 +116,6 @@ import com.android.mms.models.Attachment
 import com.android.mms.models.Message
 import com.android.mms.models.ThreadItem
 import com.android.mms.models.ThreadItem.ThreadDateTime
-import com.mikhaellopez.rxanimation.alpha
 import java.util.Locale
 import kotlin.math.abs
 

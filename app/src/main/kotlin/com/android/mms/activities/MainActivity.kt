@@ -32,6 +32,7 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.appcompat.widget.SearchView
 import androidx.core.view.MenuItemCompat
+import androidx.core.view.marginTop
 import androidx.recyclerview.widget.RecyclerView
 import com.android.common.view.MSearchView
 import com.android.common.view.MVSideFrame
@@ -54,6 +55,7 @@ import com.android.mms.models.Conversation
 import com.android.mms.models.Events
 import com.android.mms.models.Message
 import com.android.mms.models.SearchResult
+import com.behaviorule.arturdumchev.library.setHeight
 import com.goodwy.commons.interfaces.ActionModeToolbarHost
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
@@ -138,7 +140,7 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
     @SuppressLint("UnsafeIntentLaunch")
     override fun onResume() {
         super.onResume()
-
+        initMVSideFrames()
         if (shouldExitSecureModeOnResume) {
             shouldExitSecureModeOnResume = false
             if (config.selectedConversationPin > 0) {
@@ -206,6 +208,8 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
                 hideKeyboard()
             }
         })
+
+        setFabIconColor()
     }
 
     override fun onPause() {
@@ -283,9 +287,9 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
                 }
             })
 
-            toolbar.setOnMenuItemClickListener { menuItem ->
-                handleToolbarMenuItemClick(menuItem)
-            }
+//            toolbar.setOnMenuItemClickListener { menuItem ->
+//                handleToolbarMenuItemClick(menuItem)
+//            }
             toolbar.setPopupForMoreItem(
                 R.id.more,
                 R.menu.menu_main,
@@ -296,7 +300,6 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
                     }
                 }
             )
-
             mainMenu.clearSearch()
         }
     }
@@ -597,14 +600,20 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
     private fun initBouncy() {
         binding.mainMenu.post {
             // totalScrollRange is used by bouncy/offset logic if needed
+//            val toolbarLP = binding.mainMenu.toolbar?.layoutParams as? ViewGroup.MarginLayoutParams
+//            if (toolbarLP != null) {
+//                toolbarLP.topMargin = (10 * resources.displayMetrics.density).toInt()
+//                binding.mainMenu.toolbar?.layoutParams = toolbarLP
+//            }
+
         }
     }
 
     private fun initBouncyListener() {
         binding.mainMenu.setupOffsetListener { verticalOffset, height ->
             val h = if (height > 0) height else 1
-            binding.mainMenu.titleView?.scaleX = (1 + 0.8f * verticalOffset / h)
-            binding.mainMenu.titleView?.scaleY = (1 + 0.8f * verticalOffset / h)
+            binding.mainMenu.titleView?.scaleX = (1 + 0.5f * verticalOffset / h)
+            binding.mainMenu.titleView?.scaleY = (1 + 0.5f * verticalOffset / h)
         }
     }
 
@@ -626,8 +635,17 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
                 fabLp.rightMargin = (32 * resources.displayMetrics.density).toInt()
                 binding.conversationsFab.layoutParams = fabLp
             }
+            setFabIconColor()
             insets
         }
+    }
+
+    private  fun setFabIconColor() {
+        binding.conversationsFab.setColors(
+            resources.getColor(com.android.common.R.color.tx_content_text, theme),
+            resources.getColor(com.goodwy.commons.R.color.default_primary_color, theme),
+            resources.getColor(com.goodwy.commons.R.color.default_primary_color, theme)
+        )
     }
 
     private fun storeStateVariables() {
@@ -1162,4 +1180,5 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
             checkWhatsNew(this, BuildConfig.VERSION_CODE)
         }
     }
+
 }
