@@ -328,8 +328,12 @@ abstract class BaseConversationsAdapter(
                         conversationMessageType.beGone()
                         conversationDraft.beVisible()
                         conversationBodyShort.translationX = (-10 * resources.displayMetrics.density)
-                        val count = unreadCountHash[conversation.threadId]
-                        val szCount = "${count}"
+                        // Provider map can miss threads the local DB still counts as unread; never show "null".
+                        val count = unreadCountHash[conversation.threadId] ?: conversation.unreadCount
+                        val szCount = when {
+                            count > MAX_UNREAD_BADGE_COUNT -> "$MAX_UNREAD_BADGE_COUNT+"
+                            else -> count.toString()
+                        }
                         conversationDraft.text = szCount
                         if (smsDraft != null){
                             conversationBodyShort.translationX = (40 * resources.displayMetrics.density)
