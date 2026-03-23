@@ -207,7 +207,7 @@
                 android:layout_height="wrap_content"
                 android:textSize="@dimen/tx_cardview_summary_size"
                 android:paddingTop="@dimen/tx_cardview_summary_padding_top"
-                android:text="[초고함]"
+                android:text="@string/conversation_chogo_label"
                 android:visibility="gone"
                 android:textColor="@color/red_unread"
                 app:layout_constraintStart_toStartOf="@+id/conversationHolder"

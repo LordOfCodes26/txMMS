@@ -21,6 +21,8 @@
     <string name="loading_messages">Loading messages…</string>
     <string name="no_reply_support">Sender doesn\'t support replies</string>
     <string name="draft">Draft</string>
+    <!-- Conversation list badge for draft row (bracket style); shown next to draft threads -->
+    <string name="conversation_chogo_label">[Draft]</string>
     <string name="sending">Sending…</string>
     <string name="sending_cancelled">Sending cancelled</string>
     <string name="pin_conversation">Pin to the top</string>
