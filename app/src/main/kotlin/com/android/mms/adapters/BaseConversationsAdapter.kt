@@ -624,28 +624,24 @@ abstract class BaseConversationsAdapter(
             swipeView.swipeGestureListener = object : SwipeGestureListener {
                 override fun onSwipedLeft(swipeActionView: SwipeActionView): Boolean {
                     finishActMode()
-                    resetSwipeMotionHostVisuals(swipeLeftIconMotionHost, swipeView, leftPillColor, swipeLeftIcon)
-                    resetSwipeMotionHostVisuals(swipeRightIconMotionHost, swipeView, rightPillColor, swipeRightIcon)
-                    swipedLeft(conversation)
+                        swipedLeft(conversation)
                     return true
                 }
 
                 override fun onSwipedRight(swipeActionView: SwipeActionView): Boolean {
                     finishActMode()
-                    resetSwipeMotionHostVisuals(swipeLeftIconMotionHost, swipeView, leftPillColor, swipeLeftIcon)
-                    resetSwipeMotionHostVisuals(swipeRightIconMotionHost, swipeView, rightPillColor, swipeRightIcon)
                     swipedRight(conversation)
                     return true
                 }
 
                 override fun onSwipeLeftComplete(swipeActionView: SwipeActionView) {
-                    resetSwipeMotionHostVisuals(swipeLeftIconMotionHost, swipeView, leftPillColor, swipeLeftIcon)
-                    resetSwipeMotionHostVisuals(swipeRightIconMotionHost, swipeView, rightPillColor, swipeRightIcon)
+                    animateResetSwipeMotionHostVisuals(swipeLeftIconMotionHost, swipeView, leftPillColor, swipeLeftIcon)
+                    animateResetSwipeMotionHostVisuals(swipeRightIconMotionHost, swipeView, rightPillColor, swipeRightIcon)
                 }
 
                 override fun onSwipeRightComplete(swipeActionView: SwipeActionView) {
-                    resetSwipeMotionHostVisuals(swipeLeftIconMotionHost, swipeView, leftPillColor, swipeLeftIcon)
-                    resetSwipeMotionHostVisuals(swipeRightIconMotionHost, swipeView, rightPillColor, swipeRightIcon)
+                    animateResetSwipeMotionHostVisuals(swipeLeftIconMotionHost, swipeView, leftPillColor, swipeLeftIcon)
+                    animateResetSwipeMotionHostVisuals(swipeRightIconMotionHost, swipeView, rightPillColor, swipeRightIcon)
                 }
             }
         }

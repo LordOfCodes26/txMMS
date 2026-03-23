@@ -4,6 +4,7 @@ import android.graphics.drawable.GradientDrawable
 import android.view.View
 import android.view.ViewGroup
 import android.view.ViewOutlineProvider
+import android.view.animation.DecelerateInterpolator
 import androidx.annotation.ColorInt
 import androidx.core.view.updateLayoutParams
 import com.android.mms.R
@@ -15,25 +16,33 @@ private const val PHASE1_END = 0.42f
 /** Starting uniform scale for phase 1. */
 private const val SCALE_IN_MIN = 0.2f
 
-/** When reveal progress exceeds this, phase 3 slides the pill icon to the opposite horizontal end. */
+/** When reveal progress exceeds this, phase 3 slides the pill icon to the opposite horizontal end.
+ * Lower = longer phase 3 (more of the swipe maps to the cross-end slide). */
 private const val PHASE3_START = 0.78f
 
+/**
+ * Rounded pill (stadium) matching an oval look; [cornerRadiusPx] should be height/2 for a full capsule.
+ * Reuses one [GradientDrawable] so bounds/corners stay in sync when width changes.
+ */
 fun prepareSwipeMotionHostPillBackground(motionHost: View, @ColorInt color: Int, cornerRadiusPx: Float) {
     val d = (motionHost.background as? GradientDrawable)?.mutate() as? GradientDrawable
         ?: GradientDrawable().also { motionHost.background = it }
     d.shape = GradientDrawable.RECTANGLE
-    d.setColor(color)
-    d.cornerRadius = cornerRadiusPx
+    if (d.color?.defaultColor != color) {
+        d.setColor(color)
+    }
+    if (d.cornerRadius != cornerRadiusPx) {
+        d.cornerRadius = cornerRadiusPx
+    }
     motionHost.clipToOutline = true
     motionHost.outlineProvider = ViewOutlineProvider.BACKGROUND
 }
 
 private fun View.requestSwipePillLayout() {
-    forceLayout()
     requestLayout()
-    (parent as? View)?.requestLayout()
 }
 
+/** Matches XML horizontal margins: if only one of start/end is set, use it for both so the slide target stays symmetric. */
 private fun horizontalIconInsets(iconView: View, motionHost: View): Pair<Int, Int> {
     val fallback = motionHost.resources.getDimensionPixelSize(com.goodwy.commons.R.dimen.normal_margin)
     val lp = iconView.layoutParams as? ViewGroup.MarginLayoutParams ?: return fallback to fallback
@@ -47,6 +56,15 @@ private fun horizontalIconInsets(iconView: View, motionHost: View): Pair<Int, In
     }
 }
 
+/**
+ * Three-step motion during swipe reveal:
+ * 1. Phase 1 — uniform scale-in at fixed [baseWidthPx] (anchored to the seam toward the row).
+ * 2. Phase 2 — scale 1; [LayoutParams.width] lerps from [baseWidthPx] toward min([maxWidthPx], strip cap).
+ * 3. Phase 3 — when progress > [phase3Start]: [iconView] slides horizontally to the far end of the pill
+ *    (left-strip icon → right; right-strip icon → left), using the icon’s layout margins for symmetric insets.
+ *
+ * [slideTowardContent] true for the left strip (right-swipe reveal); false for the right strip (left-swipe).
+ */
 fun swipeStripMotionHostAnimator(
     motionHost: View,
     holder: View,
@@ -80,7 +98,9 @@ fun swipeStripMotionHostAnimator(
 
             if (p <= p1End) {
                 motionHost.updateLayoutParams<ViewGroup.LayoutParams> {
-                    width = baseWidthPx
+                    if (width != baseWidthPx) {
+                        width = baseWidthPx
+                    }
                 }
                 val t = if (p1End > 0f) p / p1End else 1f
                 val u = scaleInMin + (1f - scaleInMin) * t
@@ -90,15 +110,15 @@ fun swipeStripMotionHostAnimator(
                 val t = (p - p1End) / (1f - p1End)
                 val w = (baseWidthPx + (targetMax - baseWidthPx) * t).toInt()
                 motionHost.updateLayoutParams<ViewGroup.LayoutParams> {
-                    width = w
+                    if (width != w) {
+                        width = w
+                    }
                 }
                 motionHost.scaleX = 1f
                 motionHost.scaleY = 1f
             }
 
             prepareSwipeMotionHostPillBackground(motionHost, pillColor, cornerR)
-            motionHost.requestSwipePillLayout()
-            swipeRoot.requestSwipePillLayout()
 
             val layoutW = motionHost.width.takeIf { it > 0 } ?: baseWidthPx
             val hHost = motionHost.height.takeIf { it > 0 } ?: heightPx
@@ -136,15 +156,61 @@ fun resetSwipeMotionHostVisuals(motionHost: View, swipeRoot: View, @ColorInt pil
     val baseW = motionHost.resources.getDimensionPixelSize(R.dimen.swipe_icon_motion_host_width)
     val heightPx = motionHost.resources.getDimensionPixelSize(R.dimen.swipe_icon_motion_host_height)
     motionHost.updateLayoutParams<ViewGroup.LayoutParams> {
-        width = baseW
+        if (width != baseW) {
+            width = baseW
+        }
     }
     prepareSwipeMotionHostPillBackground(motionHost, pillColor, heightPx / 2f)
     motionHost.requestSwipePillLayout()
-    swipeRoot.requestSwipePillLayout()
     val w = motionHost.width
     val h = motionHost.height
     if (w > 0 && h > 0) {
         motionHost.pivotX = w / 2f
         motionHost.pivotY = h / 2f
     }
+}
+
+fun animateResetSwipeMotionHostVisuals(
+    motionHost: View,
+    swipeRoot: View,
+    @ColorInt pillColor: Int,
+    iconView: View,
+    durationMs: Long = 150L,
+) {
+    val baseW = motionHost.resources.getDimensionPixelSize(R.dimen.swipe_icon_motion_host_width)
+    val heightPx = motionHost.resources.getDimensionPixelSize(R.dimen.swipe_icon_motion_host_height)
+    val interpolator = DecelerateInterpolator()
+
+    motionHost.animate().cancel()
+    iconView.animate().cancel()
+
+    iconView.animate()
+        .translationX(0f)
+        .setDuration(durationMs)
+        .setInterpolator(interpolator)
+        .start()
+
+    motionHost.animate()
+        .translationX(0f)
+        .scaleX(1f)
+        .scaleY(1f)
+        .setDuration(durationMs)
+        .setInterpolator(interpolator)
+        .withEndAction {
+            motionHost.updateLayoutParams<ViewGroup.LayoutParams> {
+                if (width != baseW) {
+                    width = baseW
+                }
+            }
+            prepareSwipeMotionHostPillBackground(motionHost, pillColor, heightPx / 2f)
+            motionHost.requestSwipePillLayout()
+            swipeRoot.requestLayout()
+            val w = motionHost.width
+            val h = motionHost.height
+            if (w > 0 && h > 0) {
+                motionHost.pivotX = w / 2f
+                motionHost.pivotY = h / 2f
+            }
+        }
+        .start()
 }
