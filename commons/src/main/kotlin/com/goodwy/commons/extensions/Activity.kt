@@ -254,24 +254,19 @@ fun BaseSimpleActivity.isShowingAndroidSAFDialog(path: String, openInSystemAppAl
                 if (!openInSystemAppAllowed) {
                     val blurTarget = findViewById<BlurTarget>(R.id.mainBlurTarget)
                         ?: throw IllegalStateException("mainBlurTarget not found")
-                    ConfirmationDialog(
-                        this,
-                        "",
-                        R.string.confirm_storage_access_restricted_text,
-                        positive = android.R.string.ok,
-                        negative = 0,
-                        blurTarget = blurTarget
+                    showMConfirmBlurDialogSingle(
+                        blurTarget = blurTarget,
+                        message = getString(R.string.confirm_storage_access_restricted_text),
+                        confirmTitle = getString(android.R.string.ok),
                     ) {}
                 } else {
                     val blurTarget = findViewById<BlurTarget>(R.id.mainBlurTarget)
                         ?: throw IllegalStateException("mainBlurTarget not found")
-                    ConfirmationAdvancedDialog(
-                        this,
-                        "",
-                        R.string.confirm_storage_access_restricted_text,
-                        R.string.confirm_storage_access_restricted_text_open_system,
-                        R.string.cancel,
-                        blurTarget = blurTarget
+                    showMConfirmBlurDialog(
+                        blurTarget = blurTarget,
+                        message = getString(R.string.confirm_storage_access_restricted_text),
+                        confirmTitle = getString(R.string.confirm_storage_access_restricted_text_open_system),
+                        cancelTitle = getString(R.string.cancel),
                     ) { success ->
                         if (success) {
                             val uri = createAndroidDataOrObbUri(path)
@@ -1775,12 +1770,10 @@ fun BaseSimpleActivity.showModdedAppWarning() {
             "safety download the original version. Thanks"
     val blurTarget = findViewById<BlurTarget>(R.id.mainBlurTarget)
         ?: throw IllegalStateException("mainBlurTarget not found")
-    ConfirmationDialog(
-        activity = this,
+    showMConfirmBlurDialogSingle(
+        blurTarget = blurTarget,
         message = label,
-        positive = R.string.ok,
-        negative = 0,
-        blurTarget = blurTarget
+        confirmTitle = getString(R.string.ok),
     ) {
         launchMoreAppsFromUsIntent()
     }

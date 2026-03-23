@@ -300,7 +300,11 @@ abstract class MyRecyclerViewListAdapter<T>(
         val selectableItemCount = getSelectableItemCount()
         val selectedCount = min(selectedKeys.size, selectableItemCount)
         val oldTitle = actBarToolbar?.title
-        val newTitle = "$selectedCount / $selectableItemCount"
+        val newTitle = resources.getQuantityString(
+            R.plurals.items_selected_count,
+            selectedCount,
+            selectedCount
+        )
         if (oldTitle != newTitle) {
             actBarToolbar?.title = newTitle
             actMode?.invalidate()

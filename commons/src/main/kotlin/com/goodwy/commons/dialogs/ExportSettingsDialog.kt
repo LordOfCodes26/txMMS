@@ -61,9 +61,16 @@ class ExportSettingsDialog(
                             val title = String.format(activity.getString(R.string.file_already_exists_overwrite), newPath.getFilenameFromPath())
                             val blurTarget = activity.findViewById<BlurTarget>(R.id.mainBlurTarget)
                                 ?: throw IllegalStateException("mainBlurTarget not found")
-                            ConfirmationDialog(activity, title, blurTarget = blurTarget) {
-                                callback(newPath, filename)
-                                alertDialog.dismiss()
+                            activity.showMConfirmBlurDialog(
+                                blurTarget = blurTarget,
+                                message = title,
+                                confirmTitle = activity.getString(R.string.yes),
+                                cancelTitle = activity.getString(R.string.no),
+                            ) { confirmed ->
+                                if (confirmed) {
+                                    callback(newPath, filename)
+                                    alertDialog.dismiss()
+                                }
                             }
                         } else {
                             callback(newPath, filename)

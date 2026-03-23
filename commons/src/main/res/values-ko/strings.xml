@@ -182,7 +182,7 @@
     <string name="save">보관</string>
     <string name="discard">취소</string>
     <string name="undo_changes">변경사항 되돌리기</string>
-    <string name="undo_changes_confirmation">변경된 사항을 취소하시겠습니까?</string>
+    <string name="undo_changes_confirmation">변경된 내용을 취소하겠습니까?</string>
     <string name="save_before_closing">아직 변경사항을 보관하지 않았습니다. 완료전에 보관하시겠습니까?</string>
     <string name="global_theme_success">색상이 성공적으로 변경되였습니다. \'공유\'라는 새로운 사용환경이 추가되였습니다. 앞으로 모든 응용프로그람의 색상을 변경할때 사용하십시오.</string>
     <string name="purchase_thank_you"><![CDATA[
@@ -531,7 +531,6 @@
     <string name="faq_6_title_commons">응용프로그람 아이콘이 사라졌습니다. 어떻게 해야 합니까?</string>
     <string name="faq_7_title_commons">응용프로그람 결제를 완료했는데 응용프로그람을 내리적재 받을수 없습니다. 어떻게 해야 합니까?</string>
     <string name="faq_7_text_commons">응용프로그람의 결제는 봉사기가 관리합니다. 때때로 봉사기의 체계에서 오유가 발생할수도 있습니다. 응용프로그람의 완충을 지우고, 다시 내리적재 받아보시기 바랍니다.</string>
-    <string name="now">지금</string>
     <string name="why_upgrade">지금 Pro 판본으로 갱신해보십시오!</string>
     <string name="why_upgrade_basic_version">일반</string>
     <string name="why_upgrade_no_ads">광고 없음</string>
@@ -588,7 +587,7 @@
     <string name="nothing">없음</string>
     <string name="no_browser_found">련결 가능한 열람기 없음</string>
     <string name="no_email_client_found">련결 가능한 전자우편 없음</string>
-    <string name="copy_number_to_clipboard">복사</string>
+    <string name="copy_number_to_clipboard">전화번호복사</string>
     <string name="dial_number">전화번호</string>
     <string name="no_contacts_found">주소를 찾을수 없음</string>
     <string name="no_access_to_contacts">응용프로그람이 주소록에 접근할수 없습니다</string>
@@ -617,7 +616,7 @@
     <string name="not_blocking_anyone">아무도 차단하지 않았습니다.</string>
     <string name="manage_blocked_numbers">차단목록</string>
     <string name="blocked_numbers">차단 번호</string>
-    <string name="block_number">전화번호 차단</string>
+    <string name="block_number">차단목록에 추가</string>
     <string name="block_confirmation">\"%s\"를 차단하시겠습니까?</string>
     <string name="set_as_default">기본 응용프로그람으로 설정</string>
     <string name="block_hidden_calls">발신번호표시제한 전화 차단</string>
@@ -677,13 +676,18 @@
     <string name="add_to_existing_contact">기존 주소록에 추가</string>
     <string name="record_video">동영상 록화</string>
     <string name="export_blocked_numbers">차단 번호 내보내기</string>
-    <string name="add_a_blocked_number">차단 번호 추가</string>
+    <string name="add_a_blocked_number">차단목록에 추가</string>
     <string name="import_blocked_numbers">차단 번호 가져오기</string>
     <plurals name="column_counts">
-        <item quantity="other">열 %d 개</item>
+        <item quantity="other">렬 %d 개</item>
     </plurals>
     <plurals name="row_counts">
         <item quantity="other">행 %d 개</item>
+    </plurals>
+
+    <plurals name="items_selected_count">
+        <item quantity="one">%d개 선택됨</item>
+        <item quantity="other">%d개 선택됨</item>
     </plurals>
     <string name="must_make_default_dialer">전화번호 차단기능을 사용하려면 이 응용프로그람을 기본 전화응용프로그람으로 설정해야 합니다.</string>
     <string name="thumbnails">미리보기화상</string>

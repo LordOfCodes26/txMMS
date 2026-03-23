@@ -335,7 +335,13 @@ class PropertiesDialog : BasePropertiesDialog {
     private fun removeEXIFFromPath(path: String) {
         val blurTarget = mActivity.findViewById<BlurTarget>(R.id.mainBlurTarget)
             ?: throw IllegalStateException("mainBlurTarget not found")
-        ConfirmationDialog(mActivity, "", R.string.remove_exif_confirmation, blurTarget = blurTarget) {
+        mActivity.showMConfirmBlurDialog(
+            blurTarget = blurTarget,
+            message = mActivity.getString(R.string.remove_exif_confirmation),
+            confirmTitle = mActivity.getString(R.string.yes),
+            cancelTitle = mActivity.getString(R.string.no),
+        ) { confirmed ->
+            if (!confirmed) return@showMConfirmBlurDialog
             try {
                 ExifInterface(path).removeValues()
                 mActivity.toast(R.string.exif_removed)
@@ -350,7 +356,13 @@ class PropertiesDialog : BasePropertiesDialog {
     private fun removeEXIFFromPaths(paths: List<String>) {
         val blurTarget = mActivity.findViewById<BlurTarget>(R.id.mainBlurTarget)
             ?: throw IllegalStateException("mainBlurTarget not found")
-        ConfirmationDialog(mActivity, "", R.string.remove_exif_confirmation, blurTarget = blurTarget) {
+        mActivity.showMConfirmBlurDialog(
+            blurTarget = blurTarget,
+            message = mActivity.getString(R.string.remove_exif_confirmation),
+            confirmTitle = mActivity.getString(R.string.yes),
+            cancelTitle = mActivity.getString(R.string.no),
+        ) { confirmed ->
+            if (!confirmed) return@showMConfirmBlurDialog
             try {
                 paths.filter { mActivity.isPathOnInternalStorage(it) && it.canModifyEXIF() }.forEach {
                     ExifInterface(it).removeValues()

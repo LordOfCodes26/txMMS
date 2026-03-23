@@ -1,5 +1,6 @@
 package com.goodwy.commons.views
 
+import android.app.Activity
 import android.content.Context
 import android.content.res.ColorStateList
 import android.graphics.drawable.Drawable
@@ -13,13 +14,14 @@ import android.view.View
 import android.widget.LinearLayout
 import androidx.appcompat.view.menu.MenuBuilder
 import androidx.core.content.ContextCompat
+import com.android.common.view.MPopup
 import java.lang.reflect.Method
 import com.goodwy.commons.R
 import com.goodwy.commons.databinding.CustomActionModeToolbarBinding
 import com.goodwy.commons.extensions.applyColorFilter
 import com.goodwy.commons.extensions.getContrastColor
 import com.goodwy.commons.extensions.getProperTextColor
-import com.goodwy.commons.views.BlurPopupMenu
+import eightbitlab.com.blurview.BlurTarget
 
 /**
  * Custom action mode toolbar implementation similar to CustomToolbar
@@ -91,7 +93,7 @@ class CustomActionModeToolbar @JvmOverloads constructor(
     private var actionMenuInflater: MenuInflater? = null
     private var hasInflatedActionBarMenu = false
     private var onMenuItemClickListener: MenuItem.OnMenuItemClickListener? = null
-    private var popupWindow: BlurPopupMenu? = null
+    private var overflowMPopup: MPopup? = null
     private var overflowItems: List<MenuItem> = emptyList()
     private var isUpdatingMenu = false
 
@@ -339,18 +341,69 @@ class CustomActionModeToolbar @JvmOverloads constructor(
         listener: MenuItem.OnMenuItemClickListener
     ) {
         val sourceMenu = _menu ?: return
-        val popupMenu = BlurPopupMenu(context, anchor, Gravity.END)
-        for (i in 0 until sourceMenu.size()) {
-            val item = sourceMenu.getItem(i)
-            val popupItem = popupMenu.menu.add(item.groupId, item.itemId, item.order, item.title)
-            popupItem.icon = item.icon
-            popupItem.isVisible = item.isVisible
-            popupItem.isEnabled = item.isEnabled
-            popupItem.isCheckable = item.isCheckable
-            popupItem.isChecked = item.isChecked
+        val items = buildList {
+            for (i in 0 until sourceMenu.size()) {
+                add(sourceMenu.getItem(i))
+            }
         }
-        popupMenu.setOnMenuItemClickListener(listener)
-        popupMenu.show()
+        overflowMPopup = showOverflowMPopup(anchor, items, listener)
+    }
+
+    private fun mPopupMenuField(popup: MPopup): Menu? =
+        runCatching {
+            val f = MPopup::class.java.getDeclaredField("menu")
+            f.isAccessible = true
+            f.get(popup) as Menu
+        }.getOrNull()
+
+    private fun stripMenuIconsForMPopup(targetMenu: Menu) {
+        for (index in 0 until targetMenu.size()) {
+            val item = targetMenu.getItem(index)
+            item.icon = null
+            item.subMenu?.let { sub -> stripMenuIconsForMPopup(sub) }
+        }
+    }
+
+    /**
+     * Right-side overflow using txCommon [MPopup] (blur + rounded menu), same visuals as [BlurPopupMenu].
+     */
+    private fun showOverflowMPopup(
+        anchor: View,
+        sourceItems: List<MenuItem>,
+        itemClickHandler: MenuItem.OnMenuItemClickListener
+    ): MPopup? {
+        val activity = context as? Activity ?: return null
+        val blurTarget = activity.findViewById<BlurTarget>(R.id.mainBlurTarget) ?: return null
+        overflowMPopup?.dismiss()
+        val popup = MPopup(activity, anchor, Gravity.END)
+        val targetMenu = mPopupMenuField(popup) ?: return null
+        if (targetMenu is MenuBuilder) {
+            targetMenu.clear()
+        }
+        val idToOriginal = mutableMapOf<Int, MenuItem>()
+        sourceItems.forEach { original ->
+            if (!original.isVisible) return@forEach
+            val newItem = targetMenu.add(original.groupId, original.itemId, original.order, original.title)
+            newItem.isCheckable = original.isCheckable
+            newItem.isChecked = original.isChecked
+            newItem.isEnabled = original.isEnabled
+            newItem.isVisible = original.isVisible
+            idToOriginal[original.itemId] = original
+        }
+        stripMenuIconsForMPopup(targetMenu)
+        popup.setBlurTarget(blurTarget)
+        popup.setOnMenuItemClickListener { clicked ->
+            val original = idToOriginal[clicked.itemId] ?: clicked
+            itemClickHandler.onMenuItemClick(original)
+            true
+        }
+        val pullUpPx = activity.resources.getDimensionPixelSize(R.dimen.mactionbar_popup_vertical_overlap)
+        clearMpopupAnchorOffset(popup)
+        popup.show()
+        if (pullUpPx > 0) {
+            applyMpopupAnchorAdjustments(popup, activity, horizontalEndInsetPx = 0, verticalPullUpPx = pullUpPx)
+        }
+        return popup
     }
     fun setPopupForMoreItem(
         moreItemId: Int,
@@ -575,17 +628,15 @@ class CustomActionModeToolbar @JvmOverloads constructor(
     }
 
     /**
-     * Shows the popup menu with blur effect, similar to CustomToolbar.
+     * Shows the right-side overflow using [MPopup] (blur), anchored to the action bar.
      */
     private fun showMenuPopup() {
         val menu = _menu ?: return
         val anchor = menuActionBarView() ?: return
 
-        // Get overflow items to show
         val visibleItems = if (overflowItems.isNotEmpty()) {
             overflowItems.filter { it.isVisible }
         } else {
-            // Fallback: show all visible items if overflowItems is empty
             val menuSize = menu.size()
             buildList {
                 for (i in 0 until menuSize) {
@@ -595,46 +646,17 @@ class CustomActionModeToolbar @JvmOverloads constructor(
             }
         }
 
-        // Don't show if no visible items
         if (visibleItems.isEmpty()) {
             return
         }
 
-        // Create BlurPopupMenu
-        val blurPopupMenu = BlurPopupMenu(context, anchor, Gravity.END)
-
-        // Copy overflow items to BlurPopupMenu's menu
-        // Create a map to track original items by their IDs
-        val itemIdMap = mutableMapOf<Int, MenuItem>()
-        visibleItems.forEach { originalItem ->
-            val newItem = blurPopupMenu.menu.add(
-                originalItem.groupId,
-                originalItem.itemId,
-                originalItem.order,
-                originalItem.title
-            )
-            // Copy properties from original item
-            newItem.icon = originalItem.icon
-            newItem.isCheckable = originalItem.isCheckable
-            newItem.isChecked = originalItem.isChecked
-            newItem.isEnabled = originalItem.isEnabled
-            newItem.isVisible = originalItem.isVisible
-
-            // Store mapping for click handling
-            itemIdMap[originalItem.itemId] = originalItem
-        }
-
-        // Set click listener that maps back to original menu items
-        blurPopupMenu.setOnMenuItemClickListener { clickedItem ->
-            val originalItem = itemIdMap[clickedItem.itemId] ?: clickedItem
-            onMenuItemClickListener?.onMenuItemClick(originalItem) ?: false
-        }
-
-        // Show the popup menu
-        blurPopupMenu.show()
-
-        // Store reference for cleanup
-        popupWindow = blurPopupMenu
+        overflowMPopup = showOverflowMPopup(
+            anchor,
+            visibleItems,
+            MenuItem.OnMenuItemClickListener { clickedItem ->
+                onMenuItemClickListener?.onMenuItemClick(clickedItem) ?: false
+            }
+        )
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
@@ -661,9 +683,8 @@ class CustomActionModeToolbar @JvmOverloads constructor(
 
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
-        // Cleanup popup window
-        popupWindow?.dismiss()
-        popupWindow = null
+        overflowMPopup?.dismiss()
+        overflowMPopup = null
 
         // Clear pending updates
         pendingMenuUpdate?.let { removeCallbacks(it) }

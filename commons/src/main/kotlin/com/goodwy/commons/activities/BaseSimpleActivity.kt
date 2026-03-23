@@ -1351,13 +1351,10 @@ abstract class BaseSimpleActivity : EdgeToEdgeActivity() {
             baseConfig.wasAppOnSDShown = true
             val blurTarget = findViewById<BlurTarget>(R.id.mainBlurTarget)
                 ?: throw IllegalStateException("mainBlurTarget not found")
-            ConfirmationDialog(
-                activity = this,
-                message = "",
-                messageId = R.string.app_on_sd_card,
-                positive = R.string.ok,
+            showMConfirmBlurDialogSingle(
                 blurTarget = blurTarget,
-                negative = 0
+                message = getString(R.string.app_on_sd_card),
+                confirmTitle = getString(R.string.ok),
             ) {}
         }
     }

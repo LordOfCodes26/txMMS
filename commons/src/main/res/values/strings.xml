@@ -329,6 +329,10 @@
         <item quantity="one">%d contact moved</item>
         <item quantity="other">%d contacts moved</item>
     </plurals>
+    <plurals name="items_selected_count">
+        <item quantity="one">%d item selected</item>
+        <item quantity="other">%d items selected</item>
+    </plurals>
 
     <!-- Storages -->
     <string name="select_storage">Select storage</string>

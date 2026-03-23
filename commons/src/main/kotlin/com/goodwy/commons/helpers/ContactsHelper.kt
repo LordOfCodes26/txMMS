@@ -195,26 +195,6 @@ class ContactsHelper(val context: Context) {
             return
         }
 
-        // Background-thread probe: compare against the main-thread probe in MainActivity to
-        // detect whether the provider's unlock state is thread-scoped vs UID/process-scoped.
-        val bgProbe = context.contentResolver.query(
-            ContactsContract.Contacts.CONTENT_URI,
-            arrayOf(ContactsContract.Contacts._ID),
-            null, null, null
-        )
-        android.util.Log.d("ContactProtection", "getDeviceContacts probe Contacts.CONTENT_URI: count=${bgProbe?.count ?: -1} [BG THREAD tid=${Thread.currentThread().id}]")
-        bgProbe?.close()
-
-        val bgProbeData = context.contentResolver.query(
-            Data.CONTENT_URI,
-            arrayOf(Data.RAW_CONTACT_ID, RawContacts.ACCOUNT_TYPE, RawContacts.ACCOUNT_NAME, Data.MIMETYPE),
-            "${Data.MIMETYPE} = ?",
-            arrayOf(CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE),
-            null
-        )
-        android.util.Log.d("ContactProtection", "getDeviceContacts probe Data.CONTENT_URI (StructuredName): count=${bgProbeData?.count ?: -1} [BG THREAD tid=${Thread.currentThread().id}]")
-        bgProbeData?.close()
-
         val ignoredSources = ignoredContactSources ?: context.baseConfig.ignoredContactSources
         val uri = Data.CONTENT_URI
         val projection = getContactProjection()
@@ -229,21 +209,12 @@ class ContactsHelper(val context: Context) {
             val selectionArgs = arrayOf(mimetype)
             val sortOrder = getSortString()
 
-            var rowsSeen = 0
-            var rowsAccepted = 0
-            var rowsRejectedByAccount = 0
-            var rowsRejectedByIgnored = 0
-
             context.queryCursor(uri, projection, selection, selectionArgs, sortOrder, true) { cursor ->
-                rowsSeen++
                 val accountName = cursor.getStringValue(RawContacts.ACCOUNT_NAME) ?: ""
                 val accountType = cursor.getStringValue(RawContacts.ACCOUNT_TYPE) ?: ""
 
                 // Load phone storage and SIM card contacts
                 if (!isSimOrPhoneStorage(accountName, accountType)) {
-                    rowsRejectedByAccount++
-                    val rawId = cursor.getIntValue(Data.RAW_CONTACT_ID)
-                    android.util.Log.d("ContactProtection", "getDeviceContacts[$mimetype] SKIP rawId=$rawId acctType='$accountType' acctName='$accountName' (not phone/SIM)")
                     return@queryCursor
                 }
                 // Optimize: Cache account identifier to avoid repeated string concatenation
@@ -253,11 +224,9 @@ class ContactsHelper(val context: Context) {
                     "$accountName:$accountType"
                 }
                 if (ignoredSources.contains(accountIdentifier)) {
-                    rowsRejectedByIgnored++
                     return@queryCursor
                 }
 
-                rowsAccepted++
                 val id = cursor.getIntValue(Data.RAW_CONTACT_ID)
                 
                 // Check if contact already exists (e.g., from Organization entry when processing StructuredName, or vice versa)
@@ -338,7 +307,6 @@ class ContactsHelper(val context: Context) {
 
                 contacts.put(id, contact)
             }
-            android.util.Log.d("ContactProtection", "getDeviceContacts[$mimetype] summary: rowsSeen=$rowsSeen accepted=$rowsAccepted rejectedByAccount=$rowsRejectedByAccount rejectedByIgnored=$rowsRejectedByIgnored contacts.size=${contacts.size}")
         }
 
         // The provider's unlock_all_with_pin lifts protection on the contacts/raw_contacts views
@@ -351,9 +319,7 @@ class ContactsHelper(val context: Context) {
             // Secure mode: show ONLY unlocked contacts
             contacts.clear()
 
-            if (unlockedIds == null || unlockedIds.isEmpty()) {
-                android.util.Log.d("ContactProtection", "supplementary load: unlockedIds empty -> empty list")
-            } else {
+            if (unlockedIds != null && unlockedIds.isNotEmpty()) {
                 val idsClause = unlockedIds.joinToString(",")
 
                 // Step 1 — raw_id → (contact_id, account_name)
@@ -446,8 +412,10 @@ class ContactsHelper(val context: Context) {
             return
         }
 
-        // Populate photo URIs from aggregate Contacts table (same as contact view) so list avatars show photo or monogram
-        refreshContactListPhotosFromAggregate(contacts)
+        // Populate photo URIs from aggregate Contacts table (same as contact view) so list avatars show photo or monogram.
+        // For list loads (loadExtendedFields = false), skip per-contact openContactPhotoInputStream — that is O(n) I/O and
+        // dominates startup when many contacts have empty PHOTO_URI but inline photo bytes.
+        refreshContactListPhotosFromAggregate(contacts, resolveEmptyPhotoUris = loadExtendedFields)
 
         val phoneNumbers = getPhoneNumbers(null)
         val phoneSize = phoneNumbers.size
@@ -1132,7 +1100,6 @@ class ContactsHelper(val context: Context) {
         val storedGroups = getStoredGroupsSync()
         val groups       = getContactGroups(storedGroups, contactId)[contactId] ?: ArrayList()
 
-        android.util.Log.d("ContactProtection", "buildContactFromContactsUri: rawId=$rawContactId contactId=$contactId name='$displayName' phones=${phoneNumbers.size}")
         return Contact(
             rawContactId, "", displayName, "", "", "", "",
             photoUri, phoneNumbers, emails, addresses, events, accountName,
@@ -1270,19 +1237,13 @@ class ContactsHelper(val context: Context) {
                 if (photoUri.isEmpty()) {
                     val fallback = getContactPhotoUriFromProvider(contact.contactId, contact.id)
                     if (!fallback.isEmpty()) {
-                        android.util.Log.d("ContactPhoto", "refreshContactPhotoFromAggregate fallbackUsed contactId=${contact.contactId} rawId=${contact.id} uri=${fallback.take(80)}")
                         photoUri = fallback
                         thumbnailUri = fallback
                     }
                 }
                 contact.photoUri = photoUri
                 contact.thumbnailUri = thumbnailUri
-                android.util.Log.d("ContactPhoto", "refreshContactPhotoFromAggregate contactId=${contact.contactId} photoUri=${photoUri.take(80)}")
-            } else {
-                android.util.Log.d("ContactPhoto", "refreshContactPhotoFromAggregate contactId=${contact.contactId} cursor.moveToFirst()=false (no row)")
             }
-        } ?: run {
-            android.util.Log.d("ContactPhoto", "refreshContactPhotoFromAggregate contactId=${contact.contactId} cursor=null")
         }
     }
 
@@ -1302,7 +1263,6 @@ class ContactsHelper(val context: Context) {
             ""
         }
         if (contactPhotoUri.isNotEmpty()) {
-            android.util.Log.d("ContactPhoto", "getContactPhotoUriFromProvider: contactPhotoUri hit contactId=$contactId rawId=$rawContactId")
             return contactPhotoUri
         }
 
@@ -1311,7 +1271,6 @@ class ContactsHelper(val context: Context) {
             val rawDisplayPhotoUri = Uri.withAppendedPath(rawUri, RawContacts.DisplayPhoto.CONTENT_DIRECTORY)
             return try {
                 context.contentResolver.openAssetFileDescriptor(rawDisplayPhotoUri, "r")?.use {
-                    android.util.Log.d("ContactPhoto", "getContactPhotoUriFromProvider: rawDisplayPhotoUri hit contactId=$contactId rawId=$rawContactId")
                     rawDisplayPhotoUri.toString()
                 } ?: ""
             } catch (_: Exception) {
@@ -1325,8 +1284,12 @@ class ContactsHelper(val context: Context) {
     /**
      * Batch-refresh photoUri and thumbnailUri for all contacts in the list from the aggregate Contacts table.
      * Ensures main contact list avatars use the same logic as contact view: photo when available, else monogram.
+     *
+     * @param resolveEmptyPhotoUris When true, contacts with empty [Contacts.PHOTO_URI] are probed via
+     * [getContactPhotoUriFromProvider] (expensive for large lists). When false, only batch URI columns apply
+     * (fast path for main list).
      */
-    private fun refreshContactListPhotosFromAggregate(contacts: SparseArray<Contact>) {
+    private fun refreshContactListPhotosFromAggregate(contacts: SparseArray<Contact>, resolveEmptyPhotoUris: Boolean = true) {
         val contactIds = mutableSetOf<Int>()
         val size = contacts.size
         for (i in 0 until size) {
@@ -1334,28 +1297,33 @@ class ContactsHelper(val context: Context) {
             if (c.contactId != 0) contactIds.add(c.contactId)
         }
         if (contactIds.isEmpty()) return
-        val idList = contactIds.joinToString(",")
         val photoMap = mutableMapOf<Int, Pair<String, String>>()
-        context.contentResolver.query(
-            Contacts.CONTENT_URI,
-            arrayOf(Contacts._ID, Contacts.PHOTO_URI, Contacts.PHOTO_THUMBNAIL_URI),
-            "${Contacts._ID} IN ($idList)",
-            null,
-            null
-        )?.use { c ->
-            while (c.moveToNext()) {
-                val contactId = c.getIntValue(Contacts._ID)
-                var photoUri = c.getStringValue(Contacts.PHOTO_URI) ?: ""
-                var thumbnailUri = c.getStringValue(Contacts.PHOTO_THUMBNAIL_URI) ?: ""
-                photoMap[contactId] = Pair(photoUri, thumbnailUri)
+        // Chunk IN (...) to stay under SQLite limits and avoid huge single queries.
+        val idChunks = contactIds.chunked(450)
+        for (chunk in idChunks) {
+            val idList = chunk.joinToString(",")
+            context.contentResolver.query(
+                Contacts.CONTENT_URI,
+                arrayOf(Contacts._ID, Contacts.PHOTO_URI, Contacts.PHOTO_THUMBNAIL_URI),
+                "${Contacts._ID} IN ($idList)",
+                null,
+                null
+            )?.use { c ->
+                while (c.moveToNext()) {
+                    val contactId = c.getIntValue(Contacts._ID)
+                    var photoUri = c.getStringValue(Contacts.PHOTO_URI) ?: ""
+                    var thumbnailUri = c.getStringValue(Contacts.PHOTO_THUMBNAIL_URI) ?: ""
+                    photoMap[contactId] = Pair(photoUri, thumbnailUri)
+                }
             }
         }
         for (i in 0 until size) {
             val contact = contacts.valueAt(i)
-            photoMap[contact.contactId]?.let { (mappedPhotoUri, mappedThumbnailUri) ->
-                var photoUri = mappedPhotoUri
-                var thumbnailUri = mappedThumbnailUri
-                if (photoUri.isEmpty()) {
+            val mapped = photoMap[contact.contactId]
+            if (mapped != null) {
+                var photoUri = mapped.first
+                var thumbnailUri = mapped.second
+                if (photoUri.isEmpty() && resolveEmptyPhotoUris) {
                     val fallback = getContactPhotoUriFromProvider(contact.contactId, contact.id)
                     if (fallback.isNotEmpty()) {
                         photoUri = fallback

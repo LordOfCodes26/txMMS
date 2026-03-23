@@ -283,6 +283,9 @@
     <plurals name="delete_contacts">
         <item quantity="other">%d 个联系人</item>
     </plurals>
+    <plurals name="items_selected_count">
+        <item quantity="other">已选择 %d 项</item>
+    </plurals>
     <string name="select_storage">选择存储器</string>
     <string name="storage">存储</string>
     <string name="internal">内部存储器</string>

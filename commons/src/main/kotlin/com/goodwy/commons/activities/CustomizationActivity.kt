@@ -491,13 +491,11 @@ class CustomizationActivity : BaseSimpleActivity() {
         lastSavePromptTS = System.currentTimeMillis()
         val blurTarget = findViewById<BlurTarget>(R.id.mainBlurTarget)
             ?: throw IllegalStateException("mainBlurTarget not found")
-        ConfirmationAdvancedDialog(
-            activity = this,
-            message = "",
-            messageId = R.string.save_before_closing,
-            positive = R.string.save,
-            negative = R.string.discard,
-            blurTarget = blurTarget
+        showMConfirmBlurDialog(
+            blurTarget = blurTarget,
+            message = getString(R.string.save_before_closing),
+            confirmTitle = getString(R.string.save),
+            cancelTitle = getString(R.string.discard),
         ) {
             if (it) {
                 saveChanges(true)
@@ -660,13 +658,10 @@ class CustomizationActivity : BaseSimpleActivity() {
                     resources.getString(stringsR.string.app_icon_color_warning_g)
                 val blurTarget = findViewById<BlurTarget>(R.id.mainBlurTarget)
                     ?: throw IllegalStateException("mainBlurTarget not found")
-                ConfirmationDialog(
-                    activity = this,
+                showMConfirmBlurDialogSingle(
+                    blurTarget = blurTarget,
                     message = message,
-                    messageId = stringsR.string.app_icon_color_warning_g,
-                    positive = R.string.ok,
-                    negative = 0,
-                    blurTarget = blurTarget
+                    confirmTitle = getString(R.string.ok),
                 ) {
                     baseConfig.wasAppIconCustomizationWarningShown = true
                     pickAppIconColor()
@@ -935,15 +930,11 @@ class CustomizationActivity : BaseSimpleActivity() {
                 saveChanges(false)
                 val blurTarget = findViewById<BlurTarget>(R.id.mainBlurTarget)
                     ?: throw IllegalStateException("mainBlurTarget not found")
-                ConfirmationDialog(
-                    activity = this,
-                    message = "",
-                    messageId = stringsR.string.global_theme_success_g,
-                    positive = R.string.ok,
+                showMConfirmBlurDialogSingle(
                     blurTarget = blurTarget,
-                    negative = 0,
-                    callback = {}
-                )
+                    message = getString(stringsR.string.global_theme_success_g),
+                    confirmTitle = getString(R.string.ok),
+                ) {}
             }
 
             else -> {
@@ -1105,12 +1096,10 @@ class CustomizationActivity : BaseSimpleActivity() {
             customizationUseAccentColorFaq.setOnClickListener {
                 val blurTarget = findViewById<BlurTarget>(R.id.mainBlurTarget)
                     ?: throw IllegalStateException("mainBlurTarget not found")
-                ConfirmationDialog(
-                    activity = this@CustomizationActivity,
-                    messageId = stringsR.string.use_accent_color_summary,
-                    positive = R.string.ok,
-                    negative = 0,
-                    blurTarget = blurTarget
+                showMConfirmBlurDialogSingle(
+                    blurTarget = blurTarget,
+                    message = getString(stringsR.string.use_accent_color_summary),
+                    confirmTitle = getString(R.string.ok),
                 ) {}
             }
         }
