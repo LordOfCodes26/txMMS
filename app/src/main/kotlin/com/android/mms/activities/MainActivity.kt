@@ -212,6 +212,18 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         })
 
         setFabIconColor()
+
+        refreshSideFrameBlurAndInsets()
+    }
+
+    /** BlurView + MVSideFrame can stop updating after another activity was shown; re-apply insets and re-bind. */
+    private fun refreshSideFrameBlurAndInsets() {
+        binding.root.post {
+            ViewCompat.requestApplyInsets(binding.root)
+            binding.mainBlurTarget.invalidate()
+            binding.mVerticalSideFrameTop.bindBlurTarget(binding.mainBlurTarget)
+            binding.mVerticalSideFrameBottom.bindBlurTarget(binding.mainBlurTarget)
+        }
     }
 
     override fun onPause() {
