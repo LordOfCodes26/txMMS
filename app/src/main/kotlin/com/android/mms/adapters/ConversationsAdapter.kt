@@ -7,16 +7,16 @@ import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.text.TextUtils
-import android.view.Gravity
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
+import android.widget.PopupMenu
 import com.android.common.dialogs.MConfirmDialog
+import com.goodwy.commons.dialogs.OptionListDialog
 import com.goodwy.commons.extensions.*
 import com.goodwy.commons.helpers.KEY_PHONE
 import com.goodwy.commons.helpers.ensureBackgroundThread
-import com.goodwy.commons.views.BlurPopupMenu
 import com.goodwy.commons.views.MyRecyclerView
 import com.android.mms.BuildConfig
 import com.android.mms.R
@@ -102,109 +102,95 @@ class ConversationsAdapter(
         super.onBindViewHolder(holder, position)
         val conversation = getConversationAt(position) ?: return
         // Root is SwipeActionView; it consumes touch for swipe and long-press may never fire there.
-        // Attach long-click to the inner content view so the popup is triggered.
+        // Attach long-click to the inner content view so the actions dialog is triggered.
         holder.itemView.setOnLongClickListener(null)
         ItemConversationBinding.bind(holder.itemView).conversationFrameSelect.apply {
             isLongClickable = true
             setOnLongClickListener {
-                showPopupMenu(conversation, this)
+                showConversationActionsDialog(conversation, this)
                 true
             }
         }
     }
 
-    private fun showPopupMenu(conversation: Conversation, view: View) {
-        // Safety checks to prevent crashes
+    /** Same visibility rules as the overflow menu; used for CAB and for long-press [OptionListDialog]. */
+    private fun configureCabConversationsMenu(menu: Menu, includeDialNumber: Boolean = false) {
+        val selectedItems = getSelectedItems()
+        val isSingleSelection = isOneItemSelected()
+        val selectedConversation = selectedItems.firstOrNull() ?: return
+        val isGroupConversation = selectedConversation.isGroupConversation
+        val archiveAvailable = activity.config.isArchiveAvailable
+        val isAllBlockedNumbers = isAllBlockedNumbers()
+        val isAllUnblockedNumbers = isAllUnblockedNumbers()
+
+        menu.apply {
+            findItem(R.id.cab_block_number)?.isVisible = isAllUnblockedNumbers && !isAllBlockedNumbers
+            findItem(R.id.cab_unblock_number)?.isVisible = isAllBlockedNumbers && !isAllUnblockedNumbers
+            findItem(R.id.cab_add_number_to_contact)?.isVisible = isSingleSelection && !isGroupConversation
+            findItem(R.id.cab_dial_number)?.isVisible =
+                includeDialNumber && isSingleSelection && !isGroupConversation && !isShortCodeWithLetters(selectedConversation.phoneNumber)
+            findItem(R.id.cab_copy_number)?.isVisible = isSingleSelection && !isGroupConversation
+            findItem(R.id.cab_conversation_details)?.isVisible = isSingleSelection
+            findItem(R.id.cab_rename_conversation)?.isVisible = isSingleSelection && isGroupConversation
+            findItem(R.id.cab_mark_as_read)?.isVisible = selectedItems.any { !it.read }
+            findItem(R.id.cab_mark_as_unread)?.isVisible = selectedItems.any { it.read }
+            findItem(R.id.cab_archive)?.isVisible = archiveAvailable
+            val isPinZeroMode = activity.config.selectedConversationPin == 0
+            findItem(R.id.cab_encrypt_conversations)?.isVisible = isPinZeroMode
+            findItem(R.id.cab_decrypt_conversations)?.isVisible = !isPinZeroMode
+            checkPinBtnVisibility(this)
+        }
+    }
+
+    /** Long-press: show actions in a blurred list dialog (txDial Recents pattern), not a popup menu. */
+    private fun showConversationActionsDialog(conversation: Conversation, view: View) {
         if (activity.isDestroyed || activity.isFinishing) {
             return
         }
-        // Always select the long-pressed conversation so the popup can show
+        finishActMode()
         selectedKeys.clear()
         selectedKeys.add(conversation.hashCode())
 
-        val popupMenu = BlurPopupMenu(activity, view, Gravity.END)
-        popupMenu.inflate(R.menu.cab_conversations)
+        val popupMenu = PopupMenu(activity, view)
+        activity.menuInflater.inflate(R.menu.cab_conversations, popupMenu.menu)
+        configureCabConversationsMenu(popupMenu.menu, includeDialNumber = false)
 
-        // Use existing prepareActionMode logic to set visibility
+        val options = mutableListOf<Pair<CharSequence, () -> Unit>>()
         val menu = popupMenu.menu
-        val selectedItems = getSelectedItems()
-        val isSingleSelection = isOneItemSelected()
-        val selectedConversation = selectedItems.firstOrNull() ?: return
-        val isGroupConversation = selectedConversation.isGroupConversation
-        val archiveAvailable = activity.config.isArchiveAvailable
-        val isAllBlockedNumbers = isAllBlockedNumbers()
-        val isAllUnblockedNumbers = isAllUnblockedNumbers()
-
-        menu.apply {
-            findItem(R.id.cab_block_number)?.isVisible = isAllUnblockedNumbers && !isAllBlockedNumbers
-            findItem(R.id.cab_unblock_number)?.isVisible = isAllBlockedNumbers && !isAllUnblockedNumbers
-            findItem(R.id.cab_add_number_to_contact)?.isVisible = isSingleSelection && !isGroupConversation
-            findItem(R.id.cab_dial_number)?.isVisible =
-                false && isSingleSelection && !isGroupConversation && !isShortCodeWithLetters(selectedConversation.phoneNumber)
-            findItem(R.id.cab_copy_number)?.isVisible = isSingleSelection && !isGroupConversation
-            findItem(R.id.cab_conversation_details)?.isVisible = isSingleSelection
-            findItem(R.id.cab_rename_conversation)?.isVisible = isSingleSelection && isGroupConversation
-            findItem(R.id.cab_mark_as_read)?.isVisible = selectedItems.any { !it.read }
-            findItem(R.id.cab_mark_as_unread)?.isVisible = selectedItems.any { it.read }
-            findItem(R.id.cab_archive)?.isVisible = archiveAvailable
-            val isPinZeroMode = activity.config.selectedConversationPin == 0
-            findItem(R.id.cab_encrypt_conversations)?.isVisible = isPinZeroMode
-            findItem(R.id.cab_decrypt_conversations)?.isVisible = !isPinZeroMode
-            checkPinBtnVisibility(this)
-            // Hide select_all if present (not in cab_conversations popup menu)
-            findItem(R.id.cab_select_all)?.isVisible = false
-
-            // Remove icons from all menu items
-            for (i in 0 until size()) {
-                getItem(i)?.icon = null
-            }
+        for (i in 0 until menu.size()) {
+            val item = menu.getItem(i)
+            if (!item.isVisible) continue
+            val itemId = item.itemId
+            val label = item.title ?: ""
+            options.add(label to {
+                val requiresConfirmation = itemId == R.id.cab_block_number ||
+                    itemId == R.id.cab_unblock_number ||
+                    itemId == R.id.cab_delete ||
+                    itemId == R.id.cab_archive
+                actionItemPressed(itemId)
+                if (!requiresConfirmation) {
+                    selectedKeys.clear()
+                }
+            })
         }
 
-        popupMenu.setOnMenuItemClickListener { item ->
-            val requiresConfirmation = item.itemId == R.id.cab_block_number || 
-                                      item.itemId == R.id.cab_unblock_number ||
-                                      item.itemId == R.id.cab_delete ||
-                                      item.itemId == R.id.cab_archive
-            actionItemPressed(item.itemId)
-            // Only clear selectedKeys for actions that don't require confirmation
-            // For confirmation dialogs, selectedKeys will be cleared after the action completes
-            if (!requiresConfirmation) {
-                selectedKeys.clear()
-            }
-            true
-        }
+        if (options.isEmpty()) return
 
-        // Note: BlurPopupMenu doesn't have setOnDismissListener
-        // Clear selectedKeys after menu interaction instead
-        popupMenu.show()
+        val blurTarget = activity.findViewById<BlurTarget>(com.android.mms.R.id.mainBlurTarget)
+        try {
+            OptionListDialog(
+                activity = activity,
+                title = conversation.title,
+                options = options,
+                blurTarget = blurTarget,
+                cancelListener = null
+            )
+        } catch (_: Exception) {
+        }
     }
 
     override fun prepareActionMode(menu: Menu) {
-        val selectedItems = getSelectedItems()
-        val isSingleSelection = isOneItemSelected()
-        val selectedConversation = selectedItems.firstOrNull() ?: return
-        val isGroupConversation = selectedConversation.isGroupConversation
-        val archiveAvailable = activity.config.isArchiveAvailable
-        val isAllBlockedNumbers = isAllBlockedNumbers()
-        val isAllUnblockedNumbers = isAllUnblockedNumbers()
-
-        menu.apply {
-            findItem(R.id.cab_block_number)?.isVisible = isAllUnblockedNumbers && !isAllBlockedNumbers
-            findItem(R.id.cab_unblock_number)?.isVisible = isAllBlockedNumbers && !isAllUnblockedNumbers
-            findItem(R.id.cab_add_number_to_contact)?.isVisible = isSingleSelection && !isGroupConversation
-            findItem(R.id.cab_dial_number)?.isVisible =
-                isSingleSelection && !isGroupConversation && !isShortCodeWithLetters(selectedConversation.phoneNumber)
-            findItem(R.id.cab_copy_number)?.isVisible = isSingleSelection && !isGroupConversation
-            findItem(R.id.cab_conversation_details)?.isVisible = isSingleSelection
-            findItem(R.id.cab_rename_conversation)?.isVisible = isSingleSelection && isGroupConversation
-            findItem(R.id.cab_mark_as_read)?.isVisible = selectedItems.any { !it.read }
-            findItem(R.id.cab_mark_as_unread)?.isVisible = selectedItems.any { it.read }
-            findItem(R.id.cab_archive)?.isVisible = archiveAvailable
-            val isPinZeroMode = activity.config.selectedConversationPin == 0
-            findItem(R.id.cab_encrypt_conversations)?.isVisible = isPinZeroMode
-            findItem(R.id.cab_decrypt_conversations)?.isVisible = !isPinZeroMode
-            checkPinBtnVisibility(this)
-        }
+        configureCabConversationsMenu(menu, includeDialNumber = true)
     }
 
     private fun isAllBlockedNumbers(): Boolean {
