@@ -73,7 +73,7 @@
                 tools:visibility="visible" />
         </LinearLayout>
 
-        <com.android.common.view.MCheckBox
+        <com.android.common.view.MCycleCheckBox
             android:id="@+id/cb_contact_select"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"

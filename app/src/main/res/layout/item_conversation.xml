@@ -330,7 +330,7 @@
             <!--                app:layout_constraintBottom_toBottomOf="@+id/conversationAddress"-->
             <!--                app:layout_constraintEnd_toStartOf="@+id/conversationCheckbox" />-->
 
-            <com.goodwy.commons.views.MyAppCompatCheckbox
+            <com.android.common.view.MCycleCheckBox
                 android:id="@+id/conversationCheckbox"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"

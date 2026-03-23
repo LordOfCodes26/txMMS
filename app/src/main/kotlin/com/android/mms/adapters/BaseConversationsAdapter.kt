@@ -421,7 +421,7 @@ abstract class BaseConversationsAdapter(
             conversationCheckbox.apply {
                 beVisibleIf(isInActionMode)
                 isChecked = isRowSelected
-                setColors(blackDarkTextColor, properPrimaryColor, backgroundColor)
+                // setColors(blackDarkTextColor, properPrimaryColor, backgroundColor)
                 setOnClickListener {
                     if (isInActionMode) {
                         holder.itemView.performClick()
