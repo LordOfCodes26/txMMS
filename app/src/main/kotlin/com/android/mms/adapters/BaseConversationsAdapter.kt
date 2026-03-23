@@ -374,7 +374,7 @@ abstract class BaseConversationsAdapter(
                     }
                     lastMessageType == Telephony.Sms.MESSAGE_TYPE_QUEUED -> {
                         if (smsDraft == null) {
-                            conversationMessageType.setImageResource(R.drawable.ic_sms_send_progressing)
+                            conversationMessageType.setImageResource(R.drawable.ic_sms_progress)
                             conversationMessageType.beVisible()
                             conversationBodyShort.translationX = (-5 * resources.displayMetrics.density)
                         }
