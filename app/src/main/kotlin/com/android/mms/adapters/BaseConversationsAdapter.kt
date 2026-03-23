@@ -49,6 +49,7 @@ import com.android.mms.extensions.getUnreadCountsByThread
 import com.android.mms.extensions.saveSmsDraft
 import com.goodwy.commons.extensions.getAvatarDrawableIndexForName
 import com.goodwy.commons.extensions.getProperBackgroundColor
+import com.goodwy.commons.extensions.getProperTextColor
 import com.goodwy.commons.extensions.getSurfaceColor
 import com.goodwy.commons.extensions.getTextSizeSmall
 import com.goodwy.commons.helpers.AvatarSource
@@ -60,6 +61,7 @@ import me.thanel.swipeactionview.SwipeDirection
 import me.thanel.swipeactionview.SwipeGestureListener
 import kotlin.time.Duration.Companion.days
 import java.util.Calendar
+import java.util.HashMap
 import java.util.Locale
 import kotlin.time.Duration.Companion.minutes
 
@@ -93,9 +95,11 @@ abstract class BaseConversationsAdapter(
 
     private var recyclerViewState: Parcelable? = null
 
+    private var blackDarkTextColor = resources.getColor(com.android.common.R.color.tx_cardview_title, activity.theme)
+
+    var unreadCountHash = HashMap<Long, Int>(128)
     init {
-        var result = HashMap<Long, Int>(128)
-        result = activity.getUnreadCountsByThread() as HashMap<Long, Int>
+        unreadCountHash = activity.getUnreadCountsByThread() as HashMap<Long, Int>
 
         setupDragListener(true)
         setHasStableIds(true)
@@ -213,9 +217,8 @@ abstract class BaseConversationsAdapter(
         when (val item = currentList[position]) {
             is ConversationListItem.DateHeader -> {
                 ItemConversationDateHeaderBinding.bind(holder.itemView).dateTextView.apply {
-                    alpha = 0.7f
-                    setTextColor(secondTextColor)
-                    setTextSize(TypedValue.COMPLEX_UNIT_PX, smallFontSize)
+                    alpha = 0.6f
+                    setTextColor(blackDarkTextColor)
                     text = when (item.dayCode) {
                         ConversationListItem.SECTION_TODAY -> activity.getString(R.string.today)
                         ConversationListItem.SECTION_YESTERDAY -> activity.getString(R.string.yesterday)
@@ -299,33 +302,105 @@ abstract class BaseConversationsAdapter(
             val isRowSelected = selectedKeys.contains(conversation.hashCode())
             val smsDraft = drafts[conversation.threadId]
             // SMS Draft Configuration
-            val colorRed = resources.getColor(R.color.red_call, activity.theme)
+            conversationBodyShort.translationX = (0 * resources.displayMetrics.density)
+            tvConversationCHOGO.beGone()
+            val colorRed = resources.getColor(R.color.red_unread, activity.theme)
             if (smsDraft != null) {
-                conversationDraft.beVisible()
-                conversationDraft.apply {
-                    setTextColor(colorRed)
-                    setTextSize(TypedValue.COMPLEX_UNIT_PX, smallFontSize)
-                }
+                tvConversationCHOGO.beVisible()
+                conversationMessageType.beGone()
+                conversationBodyShort.translationX = (40 * resources.displayMetrics.density)
+//                conversationDraft.beVisible()
+//                conversationDraft.apply {
+//                    setTextColor(colorRed)
+//                    setTextSize(TypedValue.COMPLEX_UNIT_PX, smallFontSize)
+//                }
             } else {
-                conversationDraft.beGone()
+                tvConversationCHOGO.beGone()
+//                conversationDraft.beGone()
             }
+            conversationDraft.beGone()
+
             // Sent/received type icon (txDial item_recents_type logic): sent = ic_cmn_out, received = ic_cmn_in, draft/other = nothing (lastMessageType set on background when loading list)
-            val lastMessageType = conversation.lastMessageType
-            when {
-                smsDraft != null -> conversationMessageType.beGone()
-                lastMessageType == Telephony.Sms.MESSAGE_TYPE_INBOX -> {
-                    conversationMessageType.setImageResource(R.drawable.ic_sms_in)
-                    conversationMessageType.beVisible()
-                }
-                lastMessageType == Telephony.Sms.MESSAGE_TYPE_SENT ||
-                    lastMessageType == Telephony.Sms.MESSAGE_TYPE_OUTBOX ||
-                    lastMessageType == Telephony.Sms.MESSAGE_TYPE_FAILED ||
+            ensureBackgroundThread {
+                val lastMessageType = conversation.lastMessageType
+                when {
+                    conversation.unreadCount > 0 -> {
+                        conversationMessageType.beGone()
+                        conversationDraft.beVisible()
+                        conversationBodyShort.translationX = (-10 * resources.displayMetrics.density)
+                        val count = unreadCountHash[conversation.threadId]
+                        val szCount = "${count}"
+                        conversationDraft.text = szCount
+                        if (smsDraft != null){
+                            conversationBodyShort.translationX = (40 * resources.displayMetrics.density)
+                        }
+                    }
+                    lastMessageType == Telephony.Sms.MESSAGE_TYPE_INBOX -> {
+                        if (smsDraft == null)   {
+                            conversationMessageType.setImageResource(R.drawable.ic_sms_in)
+                            conversationMessageType.beVisible()
+                            conversationBodyShort.translationX = (-5 * resources.displayMetrics.density)
+                        }
+                        else {
+                            if (smsDraft != null){
+                                conversationBodyShort.translationX = (40 * resources.displayMetrics.density)
+                            }
+                        }
+                    }
+                    lastMessageType == Telephony.Sms.MESSAGE_TYPE_SENT ||
+                        lastMessageType == Telephony.Sms.MESSAGE_TYPE_OUTBOX -> {
+                        if (smsDraft == null)   {
+                            conversationMessageType.setImageResource(R.drawable.ic_sms_out)
+                            conversationMessageType.beVisible()
+                            conversationBodyShort.translationX = (-5 * resources.displayMetrics.density)
+                        }
+                        else {
+                            if (smsDraft != null){
+                                conversationBodyShort.translationX = (40 * resources.displayMetrics.density)
+                            }
+                        }
+                    }
+                    lastMessageType == Telephony.Sms.MESSAGE_TYPE_FAILED -> {
+                        if (smsDraft == null) {
+                            conversationMessageType.setImageResource(R.drawable.ic_sms_send_fail)
+                            conversationMessageType.beVisible()
+                            conversationBodyShort.translationX = (-5 * resources.displayMetrics.density)
+                        }
+                        else {
+                            if (smsDraft != null){
+                                conversationBodyShort.translationX = (40 * resources.displayMetrics.density)
+                            }
+                        }
+                    }
                     lastMessageType == Telephony.Sms.MESSAGE_TYPE_QUEUED -> {
-                    conversationMessageType.setImageResource(R.drawable.ic_sms_out)
-                    conversationMessageType.beVisible()
+                        if (smsDraft == null) {
+                            conversationMessageType.setImageResource(R.drawable.ic_sms_send_progressing)
+                            conversationMessageType.beVisible()
+                            conversationBodyShort.translationX = (-5 * resources.displayMetrics.density)
+                        }
+                        else {
+                            if (smsDraft != null){
+                                conversationBodyShort.translationX = (40 * resources.displayMetrics.density)
+                            }
+                        }
+                    }
+                    lastMessageType == Telephony.Sms.MESSAGE_TYPE_DRAFT -> {
+                        if (smsDraft == null) {
+                            conversationMessageType.beGone()
+                            tvConversationCHOGO.beVisible()
+                            conversationDraft.beGone()
+                            conversationBodyShort.translationX = (-5 * resources.displayMetrics.density)
+                        }
+                        else {
+                            if (smsDraft != null){
+                                conversationBodyShort.translationX = (40 * resources.displayMetrics.density)
+                            }
+                        }
+                    }
+                    else -> conversationMessageType.beGone()
                 }
-                else -> conversationMessageType.beGone()
             }
+
 
 //            draftClear.apply {
 //                beVisibleIf(smsDraft != null && !isInActionMode)
@@ -339,14 +414,14 @@ abstract class BaseConversationsAdapter(
 //            }
             // val isLastConversation = holder.bindingAdapterPosition == currentList.indexOfLast { it is ConversationListItem.ConversationItem }
             if (!activity.config.useDividers) divider.beInvisible() else divider.beVisible()
-            divider.setBackgroundColor(secondTextColor)
+            divider.setBackgroundColor(blackDarkTextColor)
 
             swipeView.isSelected = isRowSelected
             conversationFrameSelect.isSelected = isRowSelected
             conversationCheckbox.apply {
                 beVisibleIf(isInActionMode)
                 isChecked = isRowSelected
-                setColors(secondTextColor, properPrimaryColor, backgroundColor)
+                setColors(blackDarkTextColor, properPrimaryColor, backgroundColor)
                 setOnClickListener {
                     if (isInActionMode) {
                         holder.itemView.performClick()
@@ -370,21 +445,19 @@ abstract class BaseConversationsAdapter(
             conversationAddress.apply {
                 text = titleForDisplay
                 setTextSize(TypedValue.COMPLEX_UNIT_PX, fontSize )
-                if(!conversation.read || conversation.isBlocked) {
+                if(!conversation.read /*|| conversation.isBlocked*/) {
                     setTextColor(colorRed)
-                    conversationBodyShort.translationX = -50.0f;
                 }
                 else {
-                    setTextColor(secondTextColor)
+                    setTextColor(blackDarkTextColor)
                 }
             }
             if (conversation.messageCount > 1) {
                 conversationAddressCount.beVisible()
                 conversationAddressCount.apply {
                     text = "(${conversation.messageCount})"
-                    alpha = 0.7f
                     setTextSize(TypedValue.COMPLEX_UNIT_PX, smallFontSize)
-                    if(!conversation.read || conversation.isBlocked) setTextColor(colorRed) else setTextColor(secondTextColor)
+                    if(!conversation.read || conversation.isBlocked) setTextColor(colorRed) else setTextColor(blackDarkTextColor)
                 }
             } else {
                 conversationAddressCount.beGone()
@@ -392,13 +465,13 @@ abstract class BaseConversationsAdapter(
 
             conversationBodyShort.apply {
                 text = smsDraft ?: conversation.snippet
-                alpha = 0.7f
-                setTextSize(TypedValue.COMPLEX_UNIT_PX, smallFontSize)
+                alpha = 0.6f
+                //setTextSize(TypedValue.COMPLEX_UNIT_PX, smallFontSize)
             }
             conversationDate.apply {
                 text = formatConversationDate(conversation)
-                alpha = 0.7f
-                setTextSize(TypedValue.COMPLEX_UNIT_PX, smallFontSize)
+                alpha = 0.6f
+                //setTextSize(TypedValue.COMPLEX_UNIT_PX, smallFontSize)
             }
 
             if (conversation.isBlocked) {
@@ -407,7 +480,7 @@ abstract class BaseConversationsAdapter(
                 }
             } else {
                 arrayListOf(conversationBodyShort, conversationDate).forEach {
-                    it.setTextColor(secondTextColor)
+                    it.setTextColor(blackDarkTextColor)
                 }
             }
 
@@ -462,13 +535,13 @@ abstract class BaseConversationsAdapter(
                     if (isRTL) R.drawable.ic_delete_restore else com.goodwy.commons.R.drawable.ic_delete_outline
                 swipeLeftIcon.setImageResource(swipeLeftResource)
                 leftPillColor =
-                    if (isRTL) resources.getColor(R.color.swipe_purple, activity.theme) else resources.getColor(R.color.red_call, activity.theme)
+                    if (isRTL) resources.getColor(R.color.swipe_purple, activity.theme) else resources.getColor(R.color.red_unread, activity.theme)
 
                 val swipeRightResource =
                     if (isRTL) com.goodwy.commons.R.drawable.ic_delete_outline else R.drawable.ic_delete_restore
                 swipeRightIcon.setImageResource(swipeRightResource)
                 rightPillColor =
-                    if (isRTL) resources.getColor(R.color.red_call, activity.theme) else resources.getColor(R.color.swipe_purple, activity.theme)
+                    if (isRTL) resources.getColor(R.color.red_unread, activity.theme) else resources.getColor(R.color.swipe_purple, activity.theme)
 
                 if (activity.config.swipeRipple) {
                     swipeView.setRippleColor(SwipeDirection.Left, leftPillColor)
@@ -756,10 +829,10 @@ abstract class BaseConversationsAdapter(
 
     private fun swipeActionColor(swipeAction: Int): Int {
         return when (swipeAction) {
-            SWIPE_ACTION_DELETE -> resources.getColor(R.color.red_call, activity.theme)
+            SWIPE_ACTION_DELETE -> resources.getColor(R.color.red_unread, activity.theme)
             SWIPE_ACTION_ARCHIVE -> resources.getColor(R.color.swipe_purple, activity.theme)
-            SWIPE_ACTION_BLOCK -> resources.getColor(com.goodwy.commons.R.color.red_700, activity.theme)
-            SWIPE_ACTION_CALL -> resources.getColor(R.color.green_call, activity.theme)
+            SWIPE_ACTION_BLOCK -> resources.getColor(R.color.red_unread, activity.theme)
+            SWIPE_ACTION_CALL -> resources.getColor(R.color.green_call_dark, activity.theme)
             SWIPE_ACTION_MESSAGE -> resources.getColor(com.goodwy.commons.R.color.ic_messages, activity.theme)
             else -> properPrimaryColor
         }

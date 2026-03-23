@@ -180,28 +180,38 @@
                 android:id="@+id/conversationDraft"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="@dimen/tiny_margin"
-                android:alpha="0.8"
-                android:gravity="center_vertical"
-                android:text="@string/draft"
-                android:textColor="@color/red_call"
-                android:textSize="@dimen/smaller_text_size"
+                android:gravity="center"
+                android:text="2"
+                android:background="@drawable/ic_cmn_circle_uncheck_fill"
+                android:backgroundTint="@color/red_unread"
+                android:padding="@dimen/tiny_margin"
+                android:textColor="@color/white"
+                android:textSize="@dimen/tx_cardview_summary_size"
                 app:layout_constraintBottom_toBottomOf="@id/conversationHolder"
-                app:layout_constraintEnd_toEndOf="@id/conversationDate"
-                tools:text="초고" />
+                app:layout_constraintEnd_toEndOf="@id/conversationDate" />
 
             <ImageView
                 android:id="@+id/conversationMessageType"
                 android:layout_width="@dimen/list_icon_size_xx_small"
                 android:layout_height="@dimen/list_icon_size_xx_small"
-                android:layout_marginTop="@dimen/tx_cardview_arrow_padding"
-                android:alpha="0.6"
+                android:layout_marginTop="@dimen/tx_cardview_card_title_margin_top"
                 android:contentDescription="@null"
                 android:scaleType="fitCenter"
-                android:visibility="gone"
                 app:layout_constraintStart_toStartOf="@+id/conversationHolder"
                 app:layout_constraintTop_toBottomOf="@id/conversationHolder"
                 tools:src="@drawable/ic_sms_out" />
+
+            <TextView
+                android:id="@+id/tvConversationCHOGO"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="@dimen/tx_cardview_summary_size"
+                android:paddingTop="@dimen/tx_cardview_summary_padding_top"
+                android:text="[초고함]"
+                android:visibility="gone"
+                android:textColor="@color/red_unread"
+                app:layout_constraintStart_toStartOf="@+id/conversationHolder"
+                app:layout_constraintTop_toBottomOf="@id/conversationHolder"/>
 
             <androidx.constraintlayout.widget.Barrier
                 android:id="@+id/conversationMessageTypeBarrier"

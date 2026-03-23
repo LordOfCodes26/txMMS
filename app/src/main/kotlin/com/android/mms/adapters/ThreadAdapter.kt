@@ -1097,20 +1097,19 @@ class ThreadAdapter(
             messageBinding.threadMessageStatusIcon.apply {
                 when (message.type) {
                     android.provider.Telephony.Sms.MESSAGE_TYPE_FAILED -> {
-                        setImageResource(com.android.common.R.drawable.ic_cmn_info)
-                        applyColorFilter(ResourcesCompat.getColor(resources, com.goodwy.commons.R.color.theme_dark_red_primary_color, activity.theme))
+                        setImageResource(R.drawable.ic_sms_send_fail)
                         contentDescription = activity.getString(R.string.message_not_sent_touch_retry)
                         beVisible()
                     }
                     android.provider.Telephony.Sms.MESSAGE_TYPE_OUTBOX -> {
-                        setImageResource(com.android.common.R.drawable.ic_cmn_clock)
+                        setImageResource(R.drawable.ic_sms_send_queue)
                         applyColorFilter(textColor)
                         contentDescription = activity.getString(R.string.sending)
                         beVisible()
                     }
                     android.provider.Telephony.Sms.MESSAGE_TYPE_SENT -> {
                         val isDelivered = message.status == android.provider.Telephony.Sms.STATUS_COMPLETE
-                        setImageResource(if (isDelivered) R.drawable.ic_check_double_vector else com.goodwy.commons.R.drawable.ic_check_vector)
+                        setImageResource(if (isDelivered) com.goodwy.commons.R.drawable.ic_check_vector else R.drawable.ic_sms_send_progressing)
                         applyColorFilter(textColor)
                         contentDescription = activity.getString(if (isDelivered) R.string.delivered else R.string.sent)
                         beVisible()

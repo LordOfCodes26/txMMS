@@ -92,6 +92,8 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
     private var shouldExitSecureModeOnResume = false
     private var isLaunchingSecretBox = false
 
+    var unreadCountHash = HashMap<Long, Int>(128)
+
     private val binding by viewBinding(ActivityMainBinding::inflate)
 
     @SuppressLint("InlinedApi")
@@ -134,6 +136,8 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         clearAllMessagesIfNeeded {
             loadMessages()
         }
+
+        unreadCountHash = getUnreadCountsByThread() as HashMap<Long, Int>
     }
 
     @SuppressLint("UnsafeIntentLaunch")
@@ -605,8 +609,8 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
     private fun initBouncyListener() {
         binding.mainMenu.setupOffsetListener { verticalOffset, height ->
             val h = if (height > 0) height else 1
-            binding.mainMenu.titleView?.scaleX = (1 + 0.8f * verticalOffset / h)
-            binding.mainMenu.titleView?.scaleY = (1 + 0.8f * verticalOffset / h)
+            binding.mainMenu.titleView?.scaleX = (1 + 0.45f * verticalOffset / h)
+            binding.mainMenu.titleView?.scaleY = (1 + 0.45f * verticalOffset / h)
             // AppBarLayout's measured height stays at the expanded size while collapsing; offset is negative.
             applyConversationsPaddingForAppBar(height, verticalOffset)
         }

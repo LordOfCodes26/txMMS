@@ -3,4 +3,6 @@
     <color name="green_call">#FF67CE67</color>
     <color name="red_call">#FFEB5545</color>
     <color name="swipe_purple">#FF5E5CE6</color>
+    <color name="red_unread">#cc6048</color>
+    <color name="green_call_dark">#6f9429</color>
 </resources>

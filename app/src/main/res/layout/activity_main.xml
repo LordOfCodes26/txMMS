@@ -82,6 +82,7 @@
                             android:id="@+id/conversations_fastscroller"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
+                            android:paddingTop="@dimen/normal_margin"
                             app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
                             <com.goodwy.commons.views.MyRecyclerView
@@ -158,7 +159,7 @@
         <com.android.common.view.MVSideFrame
             android:id="@+id/m_vertical_side_frame_top"
             android:layout_width="match_parent"
-            android:layout_height="110dp"
+            android:layout_height="@dimen/tx_mv_side_top_frame_height"
             android:layout_alignParentTop="true"/>
 
         <com.goodwy.commons.views.BlurAppBarLayout
@@ -171,7 +172,7 @@
         <com.android.common.view.MVSideFrame
             android:id="@+id/m_vertical_side_frame_bottom"
             android:layout_width="match_parent"
-            android:layout_height="100dp"
+            android:layout_height="@dimen/tx_mv_side_top_frame_height"
             android:layout_gravity="bottom"
             app:isTopFrame="false"/>
 
