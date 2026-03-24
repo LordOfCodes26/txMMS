@@ -634,15 +634,20 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
     /**
      * Keep list / placeholder top inset in sync with the visible app bar region.
      * [AppBarLayout] height does not shrink when the bar collapses — use [verticalOffset] (≤ 0) so that
-     * effective inset is layoutHeight + verticalOffset, matching Material’s collapse behavior.
+     * effective inset is layoutHeight + adjusted offset, matching Material’s collapse behavior.
+     * Offset is shifted by (nest_bouncy_content_padding_top − tx_top_bar_expand_height) px vs raw listener values.
      */
     private fun applyConversationsPaddingForAppBar(appBarLayoutHeightPx: Int, verticalOffset: Int) {
+        val maxPad = resources.getDimensionPixelSize(R.dimen.nest_bouncy_content_padding_top)
+        val txTopBarExpandPx =
+            resources.getDimensionPixelSize(com.android.common.R.dimen.tx_top_bar_expand_height)
+        val adjustedVerticalOffset = verticalOffset + (maxPad - txTopBarExpandPx)
         val expandedH = if (appBarLayoutHeightPx > 0) {
             appBarLayoutHeightPx
         } else {
-            resources.getDimensionPixelSize(com.android.common.R.dimen.tx_top_bar_expand_height)
+            maxPad
         }
-        val topPad = (expandedH + verticalOffset).coerceIn(0, expandedH)
+        val topPad = (expandedH + adjustedVerticalOffset).coerceIn(0, maxPad)
         fun syncRecyclerTopPadding(rv: RecyclerView, newTop: Int) {
             if (rv.paddingTop == newTop) return
             val delta = rv.paddingTop - newTop
