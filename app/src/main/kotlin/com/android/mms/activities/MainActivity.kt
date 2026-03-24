@@ -647,7 +647,13 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         } else {
             maxPad
         }
-        val topPad = (expandedH + adjustedVerticalOffset).coerceIn(0, maxPad)
+        // Search mode collapses the app bar (setExpanded(false)); offset would shrink padding. Keep the same
+        // inset as XML (@dimen/nest_bouncy_content_padding_top) so conversation/search content does not jump up.
+        val topPad = if (binding.mainMenu.toolbar?.isSearchExpanded == true) {
+            maxPad
+        } else {
+            (expandedH + adjustedVerticalOffset).coerceIn(0, maxPad)
+        }
         fun syncRecyclerTopPadding(rv: RecyclerView, newTop: Int) {
             if (rv.paddingTop == newTop) return
             val delta = rv.paddingTop - newTop
