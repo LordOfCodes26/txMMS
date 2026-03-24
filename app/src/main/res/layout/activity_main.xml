@@ -35,6 +35,18 @@
                         android:id="@+id/main_holder"
                         android:layout_width="match_parent"
                         android:layout_height="match_parent">
+
+                        <com.goodwy.commons.views.MyRecyclerView
+                            android:id="@+id/conversations_list"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:clipToPadding="false"
+                            android:layoutAnimation="@anim/layout_animation"
+                            android:paddingTop="@dimen/nest_bouncy_content_padding_top"
+                            android:scrollbars="none"
+                            app:layout_behavior="@string/appbar_scrolling_view_behavior"
+                            app:layoutManager="com.goodwy.commons.views.MyLinearLayoutManager"/>
+
                         <RelativeLayout
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
@@ -78,24 +90,6 @@
 
                         </RelativeLayout>
 
-<!--                        <RelativeLayout-->
-<!--                            android:layout_width="match_parent"-->
-<!--                            android:layout_height="wrap_content"-->
-<!--                            android:paddingTop="@dimen/normal_margin"-->
-<!--                            app:layout_behavior="@string/appbar_scrolling_view_behavior">-->
-<!--                            -->
-<!--                        </RelativeLayout>-->
-
-                        <com.goodwy.commons.views.MyRecyclerView
-                            android:id="@+id/conversations_list"
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:clipToPadding="false"
-                            android:layoutAnimation="@anim/layout_animation"
-                            android:paddingTop="@dimen/nest_bouncy_content_padding_top"
-                            android:scrollbars="none"
-                            app:layout_behavior="@string/appbar_scrolling_view_behavior"
-                            app:layoutManager="com.goodwy.commons.views.MyLinearLayoutManager"/>
                     </RelativeLayout>
 
                     <RelativeLayout
