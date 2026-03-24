@@ -184,7 +184,7 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         val useSurfaceColor = isDynamicTheme() && !isSystemInDarkMode()
         val backgroundColor = if (useSurfaceColor) getSurfaceColor() else getProperBackgroundColor()
         binding.searchHolder.setBackgroundColor(backgroundColor)
-        binding.conversationsFastscroller.setBackgroundColor(backgroundColor)
+//        binding.conversationsFastscroller.setBackgroundColor(backgroundColor)
         binding.mainHolder.setBackgroundColor(backgroundColor)
         binding.conversationsList.setBackgroundColor(backgroundColor)
         binding.searchResultsList.setBackgroundColor(backgroundColor)
@@ -192,7 +192,7 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         val properPrimaryColor = getProperPrimaryColor()
         binding.noConversationsPlaceholder2.setTextColor(getProperTextColor())
         // binding.noConversationsPlaceholder2.underlineText()
-        binding.conversationsFastscroller.updateColors(getProperAccentColor())
+//        binding.conversationsFastscroller.updateColors(getProperAccentColor())
         // binding.conversationsProgressBar.setIndicatorColor(properPrimaryColor)
         binding.conversationsProgressBar.trackColor = properPrimaryColor.adjustAlpha(LOWER_ALPHA)
         checkShortcut()
@@ -1010,7 +1010,7 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
     }
 
     private fun showOrHidePlaceholder(show: Boolean) {
-        binding.conversationsFastscroller.beGoneIf(show)
+//        binding.conversationsFastscroller.beGoneIf(show)
         binding.noConversationsPlaceholder.beVisibleIf(show)
         binding.noConversationsPlaceholder2.text = getString(R.string.no_conversations_found)
         binding.noConversationsPlaceholder2.beVisibleIf(show)

@@ -1107,6 +1107,12 @@ class ThreadAdapter(
                         contentDescription = activity.getString(R.string.sending)
                         beVisible()
                     }
+                    android.provider.Telephony.Sms.MESSAGE_TYPE_QUEUED -> {
+                        setImageResource(com.android.common.R.drawable.ic_cmn_alarm)
+                        applyColorFilter(textColor)
+                        contentDescription = activity.getString(R.string.sending)
+                        beVisible()
+                    }
                     android.provider.Telephony.Sms.MESSAGE_TYPE_SENT -> {
                         val isDelivered = message.status == android.provider.Telephony.Sms.STATUS_COMPLETE
                         setImageResource(if (isDelivered) R.drawable.ic_sms_delivered else com.goodwy.commons.R.drawable.ic_check_vector)

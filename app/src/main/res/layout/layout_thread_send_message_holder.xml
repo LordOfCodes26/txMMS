@@ -192,7 +192,7 @@
         android:id="@+id/threadAvailableMessageCount"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:elevation="6dp"
+        android:elevation="12dp"
         android:gravity="center"
         android:layout_marginBottom="@dimen/small_margin"
         android:layout_marginEnd="@dimen/tiny_margin"

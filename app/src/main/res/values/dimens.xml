@@ -54,4 +54,7 @@
 
     <dimen name="nest_bouncy_content_padding_top">128dp</dimen>
     <dimen name="custom_topbar_top">34dp</dimen>
+    <dimen name="padding_vertical_badge">3dp</dimen>
+    <dimen name="padding_horizontal_badge">6dp</dimen>
+    <dimen name="radius_badge">20dp</dimen>
 </resources>

@@ -146,7 +146,7 @@
                 android:layout_marginEnd="@dimen/activity_margin"
                 android:gravity="start|bottom"
                 android:orientation="horizontal"
-                app:layout_constraintEnd_toStartOf="@+id/conversationDraft"
+                app:layout_constraintEnd_toStartOf="@+id/conversationDraftCardView"
                 app:layout_constraintStart_toEndOf="@+id/conversationImage"
                 app:layout_constraintTop_toTopOf="parent">
 
@@ -176,19 +176,27 @@
 
             </LinearLayout>
 
-            <TextView
-                android:id="@+id/conversationDraft"
+            <androidx.cardview.widget.CardView
+                android:id="@+id/conversationDraftCardView"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:gravity="center"
-                android:text="2"
-                android:background="@drawable/ic_cmn_circle_uncheck_fill"
-                android:backgroundTint="@color/red_unread"
-                android:padding="@dimen/tiny_margin"
-                android:textColor="@color/white"
-                android:textSize="@dimen/tx_cardview_summary_size"
                 app:layout_constraintBottom_toBottomOf="@id/conversationHolder"
-                app:layout_constraintEnd_toEndOf="@id/conversationDate" />
+                app:layout_constraintEnd_toEndOf="@id/conversationDate"
+                android:background="@color/red_unread"
+                android:backgroundTint="@color/red_unread"
+                app:cardCornerRadius="@dimen/radius_badge">
+                <TextView
+                    android:id="@+id/conversationDraft"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:text=""
+                    android:paddingVertical="@dimen/padding_vertical_badge"
+                    android:paddingHorizontal="@dimen/padding_horizontal_badge"
+                    android:textColor="@color/white"
+                    android:textSize="@dimen/tx_cardview_summary_size"/>
+            </androidx.cardview.widget.CardView>
+
 
             <ImageView
                 android:id="@+id/conversationMessageType"

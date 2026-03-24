@@ -78,25 +78,24 @@
 
                         </RelativeLayout>
 
-                        <com.qtalk.recyclerviewfastscroller.RecyclerViewFastScroller
-                            android:id="@+id/conversations_fastscroller"
+<!--                        <RelativeLayout-->
+<!--                            android:layout_width="match_parent"-->
+<!--                            android:layout_height="wrap_content"-->
+<!--                            android:paddingTop="@dimen/normal_margin"-->
+<!--                            app:layout_behavior="@string/appbar_scrolling_view_behavior">-->
+<!--                            -->
+<!--                        </RelativeLayout>-->
+
+                        <com.goodwy.commons.views.MyRecyclerView
+                            android:id="@+id/conversations_list"
                             android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:paddingTop="@dimen/normal_margin"
-                            app:layout_behavior="@string/appbar_scrolling_view_behavior">
-
-                            <com.goodwy.commons.views.MyRecyclerView
-                                android:id="@+id/conversations_list"
-                                android:layout_width="match_parent"
-                                android:layout_height="match_parent"
-                                android:clipToPadding="false"
-                                android:layoutAnimation="@anim/layout_animation"
-                                android:overScrollMode="ifContentScrolls"
-                                android:paddingTop="@dimen/nest_bouncy_content_padding_top"
-                                android:scrollbars="none"
-                                app:layoutManager="com.goodwy.commons.views.MyLinearLayoutManager" />
-
-                        </com.qtalk.recyclerviewfastscroller.RecyclerViewFastScroller>
+                            android:layout_height="match_parent"
+                            android:clipToPadding="false"
+                            android:layoutAnimation="@anim/layout_animation"
+                            android:paddingTop="@dimen/nest_bouncy_content_padding_top"
+                            android:scrollbars="none"
+                            app:layout_behavior="@string/appbar_scrolling_view_behavior"
+                            app:layoutManager="com.goodwy.commons.views.MyLinearLayoutManager"/>
                     </RelativeLayout>
 
                     <RelativeLayout
@@ -140,15 +139,21 @@
                                 android:textSize="@dimen/bigger_text_size"
                                 android:textStyle="italic" />
                         </RelativeLayout>
-
-                        <com.goodwy.commons.views.MyRecyclerView
-                            android:id="@+id/search_results_list"
+                        <RelativeLayout
                             android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:paddingTop="@dimen/nest_bouncy_content_padding_top"
-                            android:clipToPadding="false"
-                            android:scrollbars="vertical"
-                            app:layoutManager="com.goodwy.commons.views.MyLinearLayoutManager" />
+                            android:layout_height="wrap_content"
+                            android:paddingTop="@dimen/normal_margin"
+                            app:layout_behavior="@string/appbar_scrolling_view_behavior">
+                            <com.goodwy.commons.views.MyRecyclerView
+                                android:id="@+id/search_results_list"
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:paddingTop="@dimen/nest_bouncy_content_padding_top"
+                                android:clipToPadding="false"
+                                android:scrollbars="vertical"
+                                app:layoutManager="com.goodwy.commons.views.MyLinearLayoutManager" />
+                        </RelativeLayout>
+
 
                     </RelativeLayout>
 
