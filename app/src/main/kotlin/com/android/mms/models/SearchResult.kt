@@ -6,6 +6,8 @@ data class SearchResult(
     val phoneNumber: String?,
     val snippet: String,
     val date: String,
+    /** Epoch millis for grouping (Today / Yesterday / Previous), same basis as conversation list. */
+    val dateMillis: Long,
     val threadId: Long,
     var photoUri: String,
     val isCompany: Boolean = false,

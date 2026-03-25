@@ -55,6 +55,7 @@ import com.android.mms.models.Conversation
 import com.android.mms.models.Events
 import com.android.mms.models.Message
 import com.android.mms.models.SearchResult
+import com.android.mms.models.groupSearchResultsByDateSections
 import com.goodwy.commons.interfaces.ActionModeToolbarHost
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
@@ -1132,9 +1133,10 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         conversations: List<Conversation>,
         searchedText: String,
     ) {
-        val searchResults = ArrayList<SearchResult>()
+        val flatResults = ArrayList<SearchResult>()
         conversations.forEach { conversation ->
-            val date = (conversation.date * 1000L).formatDateOrTime(
+            val dateMillis = conversation.date * 1000L
+            val date = dateMillis.formatDateOrTime(
                 context = this,
                 hideTimeOnOtherDays = true,
                 showCurrentYear = true
@@ -1146,12 +1148,13 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
                 phoneNumber = conversation.phoneNumber,
                 snippet = conversation.phoneNumber,
                 date = date,
+                dateMillis = dateMillis,
                 threadId = conversation.threadId,
                 photoUri = conversation.photoUri,
                 isCompany = conversation.isCompany,
                 isBlocked = conversation.isBlocked
             )
-            searchResults.add(searchResult)
+            flatResults.add(searchResult)
         }
 
         messages.sortedByDescending { it.id }.forEach { message ->
@@ -1162,7 +1165,8 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
             }
 
             val phoneNumber = message.participants.firstOrNull()!!.phoneNumbers.firstOrNull()!!.normalizedNumber
-            val date = (message.date * 1000L).formatDateOrTime(
+            val dateMillis = message.date * 1000L
+            val date = dateMillis.formatDateOrTime(
                 context = this,
                 hideTimeOnOtherDays = true,
                 showCurrentYear = true
@@ -1176,20 +1180,23 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
                 phoneNumber = phoneNumber,
                 snippet = message.body,
                 date = date,
+                dateMillis = dateMillis,
                 threadId = message.threadId,
                 photoUri = message.senderPhotoUri,
                 isCompany = isCompany
             )
-            searchResults.add(searchResult)
+            flatResults.add(searchResult)
         }
 
+        val searchListItems = groupSearchResultsByDateSections(flatResults)
+
         runOnUiThread {
-            binding.searchResultsList.beVisibleIf(searchResults.isNotEmpty())
-            binding.searchPlaceholder.beVisibleIf(searchResults.isEmpty())
+            binding.searchResultsList.beVisibleIf(flatResults.isNotEmpty())
+            binding.searchPlaceholder.beVisibleIf(flatResults.isEmpty())
 
             val currAdapter = binding.searchResultsList.adapter
             if (currAdapter == null) {
-                SearchResultsAdapter(this, searchResults, binding.searchResultsList, searchedText) {
+                SearchResultsAdapter(this, searchListItems, binding.searchResultsList, searchedText) {
                 hideKeyboard()
                     Intent(this, ThreadActivity::class.java).apply {
                         putExtra(THREAD_ID, (it as SearchResult).threadId)
@@ -1201,7 +1208,7 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
                     binding.searchResultsList.adapter = this
                 }
             } else {
-                (currAdapter as SearchResultsAdapter).updateItems(searchResults, searchedText)
+                (currAdapter as SearchResultsAdapter).updateItems(searchListItems, searchedText)
             }
         }
     }
