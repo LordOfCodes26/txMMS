@@ -1,9 +1,10 @@
 package com.android.mms.adapters
 
 import android.annotation.SuppressLint
+import android.os.Handler
+import android.os.Looper
 import android.provider.Telephony
 import android.os.Parcelable
-import android.text.format.DateUtils
 import android.util.TypedValue
 import android.view.View
 import android.view.ViewGroup
@@ -24,7 +25,9 @@ import com.goodwy.commons.extensions.beInvisibleIf
 import com.goodwy.commons.extensions.beVisible
 import com.goodwy.commons.extensions.beVisibleIf
 import com.goodwy.commons.extensions.normalizePhoneNumber
-import com.goodwy.commons.extensions.formatDateOrTime
+import com.android.mms.extensions.formatGroupedSectionDateTime
+import com.android.mms.extensions.nextGroupedTodayLabelRefreshDelayMillis
+import com.android.mms.extensions.normalizeGroupedListRelativeTextForKorean
 import com.goodwy.commons.extensions.getContrastColor
 import com.goodwy.commons.extensions.getTextSize
 import com.goodwy.commons.extensions.isDynamicTheme
@@ -59,11 +62,8 @@ import com.goodwy.commons.views.ContactAvatarView
 import me.thanel.swipeactionview.SwipeActionView
 import me.thanel.swipeactionview.SwipeDirection
 import me.thanel.swipeactionview.SwipeGestureListener
-import kotlin.time.Duration.Companion.days
 import java.util.Calendar
 import java.util.HashMap
-import java.util.Locale
-import kotlin.time.Duration.Companion.minutes
 
 @Suppress("LeakingThis")
 abstract class BaseConversationsAdapter(
@@ -97,6 +97,12 @@ abstract class BaseConversationsAdapter(
 
     private var blackDarkTextColor = resources.getColor(com.android.common.R.color.tx_cardview_title, activity.theme)
 
+    private val groupedTodayRefreshHandler = Handler(Looper.getMainLooper())
+    private val groupedTodayRefreshRunnable = Runnable {
+        refreshTodaySectionTimeLabels()
+        scheduleGroupedTodayTimeRefresh()
+    }
+
     var unreadCountHash = HashMap<Long, Int>(128)
     init {
         unreadCountHash = activity.getUnreadCountsByThread() as HashMap<Long, Int>
@@ -127,7 +133,49 @@ abstract class BaseConversationsAdapter(
         commitCallback: (() -> Unit)? = null,
     ) {
         saveRecyclerViewState()
-        submitList(groupConversationsByDateSections(newConversations), commitCallback)
+        submitList(groupConversationsByDateSections(newConversations)) {
+            commitCallback?.invoke()
+            scheduleGroupedTodayTimeRefresh()
+        }
+    }
+
+    /** Call from activity [android.app.Activity.onResume]. */
+    fun scheduleGroupedTodayTimeRefresh() {
+        groupedTodayRefreshHandler.removeCallbacks(groupedTodayRefreshRunnable)
+        var minDelay: Long? = null
+        var section: String? = null
+        for (item in currentList) {
+            when (item) {
+                is ConversationListItem.DateHeader -> section = item.dayCode
+                is ConversationListItem.ConversationItem -> {
+                    if (section == ConversationListItem.SECTION_TODAY) {
+                        val d = nextGroupedTodayLabelRefreshDelayMillis(item.conversation.date * 1000L)
+                        minDelay = if (minDelay == null) d else minOf(minDelay!!, d)
+                    }
+                }
+            }
+        }
+        if (minDelay == null) return
+        groupedTodayRefreshHandler.postDelayed(groupedTodayRefreshRunnable, minDelay)
+    }
+
+    /** Call from activity [android.app.Activity.onPause]. */
+    fun pauseGroupedTodayTimeRefresh() {
+        groupedTodayRefreshHandler.removeCallbacks(groupedTodayRefreshRunnable)
+    }
+
+    private fun refreshTodaySectionTimeLabels() {
+        var section: String? = null
+        currentList.forEachIndexed { index, item ->
+            when (item) {
+                is ConversationListItem.DateHeader -> section = item.dayCode
+                is ConversationListItem.ConversationItem -> {
+                    if (section == ConversationListItem.SECTION_TODAY) {
+                        notifyItemChanged(index)
+                    }
+                }
+            }
+        }
     }
 
     private fun groupConversationsByDateSections(conversations: List<Conversation>): List<ConversationListItem> {
@@ -468,8 +516,10 @@ abstract class BaseConversationsAdapter(
                 alpha = 0.6f
                 //setTextSize(TypedValue.COMPLEX_UNIT_PX, smallFontSize)
             }
+            val bindPos = holder.bindingAdapterPosition
+            val sectionDayCode = if (bindPos >= 0) getSectionDayCodeForPosition(bindPos) else null
             conversationDate.apply {
-                text = formatConversationDate(conversation)
+                text = formatConversationDate(conversation, sectionDayCode)
                 alpha = 0.6f
                 //setTextSize(TypedValue.COMPLEX_UNIT_PX, smallFontSize)
             }
@@ -714,70 +764,16 @@ abstract class BaseConversationsAdapter(
         }
         return null
     }
-    private fun formatConversationDate(conversation: Conversation): String {
-//        val primaryText = when (sectionDayCode) {
-//            ConversationListItem.SECTION_TODAY -> {
-//                val now = System.currentTimeMillis()
-//                if (abs(now - (conversation?.date ?: 0)) < DateUtils.MINUTE_IN_MILLIS) {
-//                    resources.getString(com.goodwy.commons.R.string.now)
-//                } else {
-//                    conversation?.date
-//                }
-//            }
-//            ConversationListItem.SECTION_YESTERDAY -> activity.getString(R.string.yesterday)
-//            ConversationListItem.SECTION_BEFORE -> conversation?.date
-//            else -> conversation?.date
-//        }
-//        val langType = activity.resources.configuration.locales[0]?.language ?: Locale.getDefault().language
-//        return primaryText.toString()
-//        val normalizedPrimaryText = Converters.normalizeRelativeTextForKorean(primaryText.toString(), langType)
-//        return normalizedPrimaryText
-        val primaryText = if (activity.config.useRelativeDate) {
-            DateUtils.getRelativeDateTimeString(
-                activity,
-                conversation.date * 1000L,
-                1.minutes.inWholeMilliseconds,
-                2.days.inWholeMilliseconds,
-                0,
-            )
-        } else {
-            (conversation.date * 1000L).formatDateOrTime(
-                context = activity,
-                hideTimeOnOtherDays = true,
-                showCurrentYear = false,
-                useShamsi = true
-            )
-        }.toString()
-        val normalizedPrimaryText = normalizeRelativeTextForKorean(primaryText)
-        return normalizedPrimaryText
-    }
-
-    private fun normalizeRelativeTextForKorean(text: String): String {
-        val language = activity.resources.configuration.locales[0]?.language ?: Locale.getDefault().language
-        if (language != Locale.KOREAN.language) return text
-
-        val koreanCompact = text
-            .replace("분 전", "분전")
-            .replace("시간 전", "시간전")
-            .replace("일 전", "일전")
-            .replace("주 전", "주전")
-            .replace("개월 전", "개월전")
-            .replace("년 전", "년전")
-
-        return koreanCompact
-            .replace(Regex("""(\d+)\s*min\.?\s*ago""", RegexOption.IGNORE_CASE), "$1분전")
-            .replace(Regex("""(\d+)\s*mins\.?\s*ago""", RegexOption.IGNORE_CASE), "$1분전")
-            .replace(Regex("""(\d+)\s*hr\.?\s*ago""", RegexOption.IGNORE_CASE), "$1시간전")
-            .replace(Regex("""(\d+)\s*hrs\.?\s*ago""", RegexOption.IGNORE_CASE), "$1시간전")
-            .replace(Regex("""(\d+)\s*hour[s]?\s*ago""", RegexOption.IGNORE_CASE), "$1시간전")
-            .replace(Regex("""(\d+)\s*day[s]?\s*ago""", RegexOption.IGNORE_CASE), "$1일전")
-            .replace(Regex("""(\d+)\s*week[s]?\s*ago""", RegexOption.IGNORE_CASE), "$1주전")
-            .replace(Regex("""(\d+)\s*month[s]?\s*ago""", RegexOption.IGNORE_CASE), "$1개월전")
-            .replace(Regex("""(\d+)\s*year[s]?\s*ago""", RegexOption.IGNORE_CASE), "$1년전")
+    private fun formatConversationDate(conversation: Conversation, sectionDayCode: String?): String {
+        val text = formatGroupedSectionDateTime(activity, conversation.date * 1000L, sectionDayCode)
+        return normalizeGroupedListRelativeTextForKorean(activity, text)
     }
 
     override fun onChange(position: Int): String = when (val item = currentList.getOrNull(position)) {
-        is ConversationListItem.ConversationItem -> formatConversationDate(item.conversation)
+        is ConversationListItem.ConversationItem -> formatConversationDate(
+            item.conversation,
+            getSectionDayCodeForPosition(position),
+        )
         is ConversationListItem.DateHeader -> when (item.dayCode) {
             ConversationListItem.SECTION_TODAY -> activity.getString(R.string.today)
             ConversationListItem.SECTION_YESTERDAY -> activity.getString(R.string.yesterday)

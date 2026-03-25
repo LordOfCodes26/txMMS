@@ -178,6 +178,7 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
             }
 
             updateDrafts()
+            scheduleGroupedTodayTimeRefresh()
         }
 
         updateTextColors(binding.mainCoordinator)
@@ -215,6 +216,8 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         setFabIconColor()
 
         refreshSideFrameBlurAndInsets()
+
+        (binding.searchResultsList.adapter as? SearchResultsAdapter)?.scheduleGroupedTodayTimeRefresh()
     }
 
     /** BlurView + MVSideFrame can stop updating after another activity was shown; re-apply insets and re-bind. */
@@ -229,6 +232,8 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
 
     override fun onPause() {
         super.onPause()
+        (binding.conversationsList.adapter as? ConversationsAdapter)?.pauseGroupedTodayTimeRefresh()
+        (binding.searchResultsList.adapter as? SearchResultsAdapter)?.pauseGroupedTodayTimeRefresh()
         storeStateVariables()
     }
 
@@ -1134,18 +1139,13 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         val flatResults = ArrayList<SearchResult>()
         conversations.forEach { conversation ->
             val dateMillis = conversation.date * 1000L
-            val date = dateMillis.formatDateOrTime(
-                context = this,
-                hideTimeOnOtherDays = true,
-                showCurrentYear = true
-            )
 
             val searchResult = SearchResult(
                 messageId = -1,
                 title = conversation.title,
                 phoneNumber = conversation.phoneNumber,
                 snippet = conversation.phoneNumber,
-                date = date,
+                date = "",
                 dateMillis = dateMillis,
                 threadId = conversation.threadId,
                 photoUri = conversation.photoUri,
@@ -1164,11 +1164,6 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
 
             val phoneNumber = message.participants.firstOrNull()!!.phoneNumbers.firstOrNull()!!.normalizedNumber
             val dateMillis = message.date * 1000L
-            val date = dateMillis.formatDateOrTime(
-                context = this,
-                hideTimeOnOtherDays = true,
-                showCurrentYear = true
-            )
             val isCompany =
                 if (message.participants.size == 1) message.participants.first().isABusinessContact() else false
 
@@ -1177,7 +1172,7 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
                 title = recipient,
                 phoneNumber = phoneNumber,
                 snippet = message.body,
-                date = date,
+                date = "",
                 dateMillis = dateMillis,
                 threadId = message.threadId,
                 photoUri = message.senderPhotoUri,
@@ -1204,6 +1199,7 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
                     }
                 }.apply {
                     binding.searchResultsList.adapter = this
+                    scheduleGroupedTodayTimeRefresh()
                 }
             } else {
                 (currAdapter as SearchResultsAdapter).updateItems(searchListItems, searchedText)

@@ -190,6 +190,14 @@ class ContactPickerActivity : SimpleActivity() {
         scrollView?.setBackgroundColor(backgroundColor)
         contactRecyclerView?.setBackgroundColor(backgroundColor)
         setupTopBarNavigation()
+        if (isCallLogMode) {
+            contactAdapter?.scheduleGroupedTodayTimeRefresh()
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        contactAdapter?.pauseGroupedTodayTimeRefresh()
     }
 
     override fun onDestroy() {

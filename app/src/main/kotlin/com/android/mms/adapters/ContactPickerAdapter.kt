@@ -2,7 +2,8 @@ package com.android.mms.adapters
 
 import android.content.Context
 import android.graphics.Color
-import android.text.format.DateUtils
+import android.os.Handler
+import android.os.Looper
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -13,7 +14,9 @@ import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.goodwy.commons.extensions.adjustAlpha
-import com.goodwy.commons.extensions.formatDateOrTime
+import com.android.mms.extensions.formatGroupedSectionDateTime
+import com.android.mms.extensions.nextGroupedTodayLabelRefreshDelayMillis
+import com.android.mms.extensions.normalizeGroupedListRelativeTextForKorean
 import com.goodwy.commons.extensions.getAvatarDrawableIndexForName
 import com.goodwy.commons.extensions.getColoredDrawableWithColor
 import com.goodwy.commons.extensions.getProperAccentColor
@@ -28,8 +31,6 @@ import com.android.mms.models.ContactPickerListRow
 import com.goodwy.commons.views.ContactAvatarView
 import com.goodwy.commons.views.MyTextView
 import android.provider.CallLog.Calls
-import java.util.Locale
-import kotlin.math.abs
 
 class ContactPickerAdapter(
     private val context: Context,
@@ -40,6 +41,12 @@ class ContactPickerAdapter(
     private val selectedContactIndices = mutableSetOf<Int>()
     private var listener: ContactPickerAdapterListener? = null
     private var isCallLogMode = false
+
+    private val groupedTodayRefreshHandler = Handler(Looper.getMainLooper())
+    private val groupedTodayRefreshRunnable = Runnable {
+        refreshTodaySectionCallLogRows()
+        scheduleGroupedTodayTimeRefresh()
+    }
 
     override fun getItemViewType(position: Int): Int = when (rows[position]) {
         is ContactPickerListRow.DateSection -> VIEW_TYPE_SECTION
@@ -84,6 +91,7 @@ class ContactPickerAdapter(
 
     /** Contacts tab: one row per contact, indices match [contacts] list. */
     fun setContactModeItems(contacts: List<Contact>?, selectedIndices: Set<Int>?) {
+        pauseGroupedTodayTimeRefresh()
         isCallLogMode = false
         contactLookup = contacts ?: emptyList()
         selectedContactIndices.clear()
@@ -110,6 +118,45 @@ class ContactPickerAdapter(
         selectedContactIndices.addAll(selectedIndices ?: emptySet())
         rows = listRows
         notifyDataSetChanged()
+        scheduleGroupedTodayTimeRefresh()
+    }
+
+    fun scheduleGroupedTodayTimeRefresh() {
+        if (!isCallLogMode) return
+        groupedTodayRefreshHandler.removeCallbacks(groupedTodayRefreshRunnable)
+        var minDelay: Long? = null
+        var section: String? = null
+        for (row in rows) {
+            when (row) {
+                is ContactPickerListRow.DateSection -> section = row.dayCode
+                is ContactPickerListRow.ContactRow -> {
+                    if (section == ContactPickerListRow.DateSection.SECTION_TODAY) {
+                        val d = nextGroupedTodayLabelRefreshDelayMillis(row.callTimestamp)
+                        minDelay = if (minDelay == null) d else minOf(minDelay!!, d)
+                    }
+                }
+            }
+        }
+        if (minDelay == null) return
+        groupedTodayRefreshHandler.postDelayed(groupedTodayRefreshRunnable, minDelay)
+    }
+
+    fun pauseGroupedTodayTimeRefresh() {
+        groupedTodayRefreshHandler.removeCallbacks(groupedTodayRefreshRunnable)
+    }
+
+    private fun refreshTodaySectionCallLogRows() {
+        var section: String? = null
+        rows.forEachIndexed { index, row ->
+            when (row) {
+                is ContactPickerListRow.DateSection -> section = row.dayCode
+                is ContactPickerListRow.ContactRow -> {
+                    if (section == ContactPickerListRow.DateSection.SECTION_TODAY) {
+                        notifyItemChanged(index)
+                    }
+                }
+            }
+        }
     }
 
     fun setItems(newContacts: List<Contact>?) {
@@ -151,33 +198,8 @@ class ContactPickerAdapter(
 
     private fun callTimeLabel(callTimestamp: Long, sectionDayCode: String?): CharSequence {
         val act = context as? android.app.Activity ?: return ""
-        return when (sectionDayCode) {
-            ContactPickerListRow.DateSection.SECTION_TODAY -> {
-                val now = System.currentTimeMillis()
-                if (abs(now - callTimestamp) < DateUtils.MINUTE_IN_MILLIS) {
-                    val lang = act.resources.configuration.locales[0]?.language ?: Locale.getDefault().language
-                    if (lang == Locale.KOREAN.language) "지금" else "now"
-                } else {
-                    DateUtils.getRelativeTimeSpanString(
-                        callTimestamp,
-                        now,
-                        DateUtils.MINUTE_IN_MILLIS,
-                        DateUtils.FORMAT_ABBREV_RELATIVE,
-                    )
-                }
-            }
-            ContactPickerListRow.DateSection.SECTION_YESTERDAY -> act.getString(R.string.yesterday)
-            ContactPickerListRow.DateSection.SECTION_BEFORE -> callTimestamp.formatDateOrTime(
-                context = act,
-                hideTimeOnOtherDays = true,
-                showCurrentYear = false,
-            )
-            else -> callTimestamp.formatDateOrTime(
-                context = act,
-                hideTimeOnOtherDays = true,
-                showCurrentYear = false,
-            )
-        }
+        val text = formatGroupedSectionDateTime(act, callTimestamp, sectionDayCode)
+        return normalizeGroupedListRelativeTextForKorean(act, text)
     }
 
     private inner class SectionViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {

@@ -18,6 +18,7 @@ import com.goodwy.commons.helpers.NavigationIcon
 import com.goodwy.commons.helpers.ensureBackgroundThread
 import com.android.mms.R
 import com.android.mms.adapters.ArchivedConversationsAdapter
+import com.android.mms.adapters.BaseConversationsAdapter
 import com.android.mms.databinding.ActivityArchivedConversationsBinding
 import com.android.mms.extensions.config
 import com.android.mms.extensions.conversationsDB
@@ -54,6 +55,12 @@ class ArchivedConversationsActivity : SimpleActivity() {
         setupTopAppBar(binding.archiveAppbar, NavigationIcon.Arrow)
         loadArchivedConversations()
         binding.conversationsFastscroller.updateColors(getProperAccentColor())
+        getOrCreateConversationsAdapter().scheduleGroupedTodayTimeRefresh()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        (binding.conversationsList.adapter as? BaseConversationsAdapter)?.pauseGroupedTodayTimeRefresh()
     }
 
     override fun onDestroy() {

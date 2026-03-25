@@ -1,5 +1,7 @@
 package com.android.mms.adapters
 
+import android.os.Handler
+import android.os.Looper
 import android.util.TypedValue
 import android.view.Menu
 import android.view.View
@@ -19,6 +21,9 @@ import com.android.mms.activities.SimpleActivity
 import com.android.mms.databinding.ItemConversationDateHeaderBinding
 import com.android.mms.databinding.ItemSearchResultBinding
 import com.android.mms.extensions.config
+import com.android.mms.extensions.formatGroupedSectionDateTime
+import com.android.mms.extensions.nextGroupedTodayLabelRefreshDelayMillis
+import com.android.mms.extensions.normalizeGroupedListRelativeTextForKorean
 import com.android.mms.models.ConversationListItem
 import com.android.mms.models.SearchListItem
 import com.android.mms.models.SearchResult
@@ -37,6 +42,12 @@ class SearchResultsAdapter(
 
     private val blackDarkTextColor =
         resources.getColor(com.android.common.R.color.tx_cardview_title, activity.theme)
+
+    private val groupedTodayRefreshHandler = Handler(Looper.getMainLooper())
+    private val groupedTodayRefreshRunnable = Runnable {
+        refreshTodaySectionResultRows()
+        scheduleGroupedTodayTimeRefresh()
+    }
 
     companion object {
         private const val VIEW_TYPE_HEADER = 0
@@ -120,6 +131,17 @@ class SearchResultsAdapter(
 
     override fun getItemCount() = items.size
 
+    private fun getSectionDayCodeForPosition(position: Int): String? {
+        if (position !in items.indices) return null
+        for (index in position downTo 0) {
+            when (val row = items[index]) {
+                is SearchListItem.DateHeader -> return row.dayCode
+                else -> {}
+            }
+        }
+        return null
+    }
+
     fun updateItems(newItems: ArrayList<SearchListItem>, highlightText: String = "") {
         if (newItems.hashCode() != items.hashCode()) {
             items = ArrayList(newItems)
@@ -128,6 +150,44 @@ class SearchResultsAdapter(
         } else if (textToHighlight != highlightText) {
             textToHighlight = highlightText
             notifyDataSetChanged()
+        }
+        scheduleGroupedTodayTimeRefresh()
+    }
+
+    fun scheduleGroupedTodayTimeRefresh() {
+        groupedTodayRefreshHandler.removeCallbacks(groupedTodayRefreshRunnable)
+        var minDelay: Long? = null
+        var section: String? = null
+        for (item in items) {
+            when (item) {
+                is SearchListItem.DateHeader -> section = item.dayCode
+                is SearchListItem.ResultRow -> {
+                    if (section == ConversationListItem.SECTION_TODAY) {
+                        val d = nextGroupedTodayLabelRefreshDelayMillis(item.result.dateMillis)
+                        minDelay = if (minDelay == null) d else minOf(minDelay!!, d)
+                    }
+                }
+            }
+        }
+        if (minDelay == null) return
+        groupedTodayRefreshHandler.postDelayed(groupedTodayRefreshRunnable, minDelay)
+    }
+
+    fun pauseGroupedTodayTimeRefresh() {
+        groupedTodayRefreshHandler.removeCallbacks(groupedTodayRefreshRunnable)
+    }
+
+    private fun refreshTodaySectionResultRows() {
+        var section: String? = null
+        items.forEachIndexed { index, item ->
+            when (item) {
+                is SearchListItem.DateHeader -> section = item.dayCode
+                is SearchListItem.ResultRow -> {
+                    if (section == ConversationListItem.SECTION_TODAY) {
+                        notifyItemChanged(index)
+                    }
+                }
+            }
         }
     }
 
@@ -172,7 +232,11 @@ class SearchResultsAdapter(
             }
 
             searchResultDate.apply {
-                text = searchResult.date
+                val section = getSectionDayCodeForPosition(position)
+                text = normalizeGroupedListRelativeTextForKorean(
+                    activity,
+                    formatGroupedSectionDateTime(activity, searchResult.dateMillis, section),
+                )
                 alpha = 0.6f
                 if (searchResult.isBlocked) {
                     setTextColor(colorRed)
