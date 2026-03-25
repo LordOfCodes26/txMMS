@@ -18,19 +18,12 @@
             android:layout_gravity="center"
             android:visibility="gone" />
 
-        <ScrollView
-            android:id="@+id/dialog_option_list_holder"
+        <LinearLayout
+            android:id="@+id/option_list_container"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
-
-            <LinearLayout
-                android:id="@+id/option_list_container"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:paddingLeft="@dimen/normal_margin"
-                android:paddingRight="@dimen/normal_margin" />
-
-        </ScrollView>
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingLeft="@dimen/normal_margin"
+            android:paddingRight="@dimen/normal_margin" />
     </LinearLayout>
 </com.android.common.view.MBlurView>
