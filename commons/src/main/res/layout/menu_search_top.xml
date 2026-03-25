@@ -49,7 +49,7 @@
                 android:paddingStart="@dimen/normal_margin"
 
                 android:singleLine="true"
-                android:textSize="@dimen/big_text_size" />
+                android:textSize="@dimen/tx_normal_text" />
 
             <com.goodwy.commons.views.CustomToolbar
                 android:id="@+id/topToolbar"

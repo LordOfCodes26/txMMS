@@ -1,6 +1,7 @@
 package com.goodwy.commons.dialogs
 
 import android.app.Activity
+import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.core.content.ContextCompat
@@ -54,13 +55,16 @@ class OptionListDialog(
             }
 
                 val titleTextView = view.root.findViewById<TextView>(R.id.dialog_title)
+                val titleDivider = view.root.findViewById<View>(R.id.dialog_option_list_title_divider)
                 if (title.isNotEmpty()) {
                     titleTextView?.apply {
                         beVisible()
                         text = title
                     }
+                    titleDivider?.beVisible()
                 } else {
                     titleTextView?.beGone()
+                    titleDivider?.beGone()
                 }
 
             activity.setupMDialogStuff(

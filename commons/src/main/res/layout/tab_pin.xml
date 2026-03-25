@@ -35,7 +35,7 @@
         android:paddingTop="@dimen/small_margin"
         android:paddingBottom="@dimen/small_margin"
         android:textAlignment="center"
-        android:textSize="@dimen/big_text_size"
+        android:textSize="@dimen/tx_normal_text"
         app:layout_constraintBottom_toTopOf="@id/pin_flow"
         app:layout_constraintTop_toBottomOf="@id/pin_lock_title"
         tools:text="****" />

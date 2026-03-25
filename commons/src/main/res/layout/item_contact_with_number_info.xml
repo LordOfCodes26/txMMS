@@ -65,7 +65,7 @@
             android:layout_marginBottom="@dimen/medium_margin"
             android:ellipsize="end"
             android:maxLines="1"
-            android:textSize="@dimen/smaller_text_size"
+            android:textSize="@dimen/tx_small_text"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@+id/item_contact_info_holder"
             app:layout_goneMarginStart="0dp"

@@ -57,7 +57,7 @@
     <string name="add_to_favorites">즐겨찾기에 추가</string>
     <string name="remove_from_favorites">즐겨찾기에서 제거</string>
     <string name="search">검색</string>
-    <string name="type_2_characters">최소 한 글자를 입력하십시오.</string>
+    <string name="type_2_characters">최소 한글자를 입력하십시오.</string>
     <string name="filter">려과</string>
     <string name="filter_pro">려과</string>
     <string name="no_items_found">항목을 찾지 못함.</string>

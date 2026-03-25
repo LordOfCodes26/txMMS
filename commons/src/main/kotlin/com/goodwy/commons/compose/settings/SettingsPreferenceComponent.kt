@@ -85,7 +85,7 @@ fun SettingsPreferenceComponent(
                         dimensionResource(id = R.dimen.smaller_text_size).toSp()
                     },
                     lineHeight = with(LocalDensity.current) {
-                        dimensionResource(id = R.dimen.normal_text_size).toSp()
+                        dimensionResource(id = R.dimen.small_text_size).toSp()
                     },
                 )
             }

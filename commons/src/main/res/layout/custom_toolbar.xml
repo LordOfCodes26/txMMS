@@ -34,7 +34,7 @@
             android:gravity="start|center_vertical"
             android:maxLines="1"
             android:textColor="@color/tx_title_text"
-            android:textSize="@dimen/tx_nest_title"
+            android:textSize="@dimen/tx_app_title"
             tools:text="Toolbar Title" />
 
 
