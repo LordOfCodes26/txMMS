@@ -33,7 +33,7 @@
                 android:layout_marginStart="@dimen/tx_top_bar_margin_left"
                 android:layout_marginBottom="@dimen/tx_top_bar_title_margin_bottom"
                 android:textColor="@color/tx_title_text"
-                android:textSize="@dimen/tx_nest_title" />
+                android:textSize="@dimen/tx_big_title" />
         </LinearLayout>
 
         <com.goodwy.commons.views.CustomToolbar

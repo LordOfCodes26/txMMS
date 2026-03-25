@@ -54,7 +54,7 @@ fun Context.getProperBackgroundColor() = when {
 }
 
 fun Context.getProperPrimaryColor() = when {
-    isDynamicTheme() -> resources.getColor(R.color.tx_main_blue, theme)
+    isDynamicTheme() -> resources.getColor(com.android.common.R.color.tx_main_blue, theme)
     else -> baseConfig.primaryColor
 }
 

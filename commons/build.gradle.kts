@@ -118,6 +118,7 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     api(libs.kotlin.immutable.collections)
     implementation(libs.androidx.constraintlayout)
+    implementation("com.google.android.flexbox:flexbox:3.0.0")
     implementation(libs.androidx.documentfile)
     implementation(libs.androidx.swiperefreshlayout)
     implementation(libs.androidx.exifinterface)

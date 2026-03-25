@@ -8,7 +8,7 @@
     </style>
 
     <style name="NewConversationToolbarTitleTextStyle" parent="AppTheme.ActionBar.TitleTextStyle">
-        <item name="android:textSize">@dimen/tx_nest_title</item>
+        <item name="android:textSize">@dimen/tx_big_title</item>
     </style>
 
     <style name="roundedImageView" parent="">
