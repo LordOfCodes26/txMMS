@@ -38,6 +38,8 @@ class BlurAppBarLayout @JvmOverloads constructor(
     val toolbar: CustomToolbar? by lazy { findViewById(R.id.toolbar) as? CustomToolbar }
     val collapsingToolbarLayout: CollapsingToolbarLayout? by lazy { findViewById(R.id.collapsing_toolbar) }
 
+    fun requireCustomToolbar(): CustomToolbar = toolbar ?: error("CustomToolbar not found")
+
     private var offsetListener: ((verticalOffset: Int, height: Int) -> Unit)? = null
 
     init {

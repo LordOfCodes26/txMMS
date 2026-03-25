@@ -6,17 +6,17 @@
     <item
         android:id="@+id/select_conversations"
         android:title="@string/select_conversations"
-        android:showAsAction="never" />
+        app:showAsAction="never" />
     <item
         android:id="@+id/show_blocked_numbers"
-        android:title="@string/show_blocked_numbers"
-        android:showAsAction="never" />
+        android:title="@string/select_conversations"
+        app:showAsAction="never" />
     <item
         android:id="@+id/unlock_protected_contacts"
         android:title="@string/secure_box"
-        android:showAsAction="never" />
+        app:showAsAction="never" />
     <item
         android:id="@+id/settings"
         android:title="@string/settings"
-        android:showAsAction="never" />
+        app:showAsAction="never" />
 </menu>

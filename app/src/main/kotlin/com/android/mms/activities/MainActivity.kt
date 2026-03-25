@@ -251,7 +251,7 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
     }
 
     override fun onBackPressedCompat(): Boolean {
-        val customToolbar = binding.mainMenu.toolbar ?: return appLockManager.lock().let { false }
+        val customToolbar = binding.mainMenu.requireCustomToolbar()
         return if (customToolbar.isSearchExpanded) {
             customToolbar.collapseSearch()
             binding.mainMenu.searchBeVisibleIf(false)
@@ -278,8 +278,10 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
 
     private fun setupOptionsMenu() {
         binding.apply {
-            val toolbar = mainMenu.toolbar ?: return@apply
+            val toolbar = mainMenu.requireCustomToolbar()
             toolbar.inflateMenu(R.menu.action_menu_main)
+            updateMenuItemColors(toolbar.menu)
+            toolbar.updateSearchColors()
 
             mainMenu.setOnSearchStateListener(object : BlurAppBarLayout.OnSearchStateListener {
                 override fun onState(state: Int) {
@@ -310,16 +312,18 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
             toolbar.setOnMenuItemClickListener { menuItem ->
                 handleToolbarMenuItemClick(menuItem)
             }
+            toolbar.getActionBar()?.bindBlurTarget(this@MainActivity, mainBlurTarget)
             toolbar.setPopupForMoreItem(
                 R.id.more,
                 R.menu.menu_main,
-                binding.mainBlurTarget,
+                mainBlurTarget,
                 object : MenuItem.OnMenuItemClickListener {
                     override fun onMenuItemClick(item: MenuItem): Boolean {
                         return handleToolbarMenuItemClick(item)
                     }
-                }
+                },
             )
+            toolbar.invalidateMenu()
 
             mainMenu.clearSearch()
         }
@@ -328,14 +332,15 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
     private fun handleToolbarMenuItemClick(menuItem: MenuItem): Boolean {
         when (menuItem.itemId) {
             R.id.search -> {
-                if (binding.mainMenu.toolbar?.isSearchExpanded != true) {
+                if (!binding.mainMenu.requireCustomToolbar().isSearchExpanded) {
                     binding.mainMenu.startSearch()
                     isSearchOpen = true
                 }
             }
             R.id.select_conversations -> {
-                if (binding.mainMenu.toolbar?.isSearchExpanded == true) {
-                    binding.mainMenu.toolbar?.collapseSearch()
+                val tb = binding.mainMenu.requireCustomToolbar()
+                if (tb.isSearchExpanded) {
+                    tb.collapseSearch()
                     isSearchOpen = false
                 }
                 getOrCreateConversationsAdapter().startActMode()
@@ -417,7 +422,7 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
                 mSearchView?.let { searchView ->
                     searchView.post {
                         // Get the parent toolbar width for smooth slide-in
-                        val toolbar = binding.mainMenu.toolbar ?: return@post
+                        val toolbar = binding.mainMenu.requireCustomToolbar()
                         val slideDistance = toolbar.width.toFloat()
 
                         // Start from right side
@@ -446,7 +451,7 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
 
                 // Animate search bar disappearance with smooth translation (slide out to right)
                 mSearchView?.let { searchView ->
-                    val toolbar = binding.mainMenu.toolbar ?: return@let
+                    val toolbar = binding.mainMenu.requireCustomToolbar()
                     val slideDistance = toolbar.width.toFloat()
 
                     searchView.animate()
@@ -470,7 +475,7 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
 
     private fun refreshMenuItemsAndTitle() {
         val isSecureMode = config.selectedConversationPin > 0
-        binding.mainMenu.toolbar?.menu?.apply {
+        binding.mainMenu.requireCustomToolbar().menu.apply {
             findItem(R.id.unlock_protected_contacts)?.title = if (isSecureMode) {
                 getString(R.string.close_secure_box)
             } else {
@@ -483,6 +488,7 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
             if (isSecureMode) getString(R.string.secure_box)
             else getString(R.string.messages)
         )
+        binding.mainMenu.requireCustomToolbar().invalidateMenu()
     }
 
     private fun showBlockedNumbers() {
@@ -655,7 +661,7 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         }
         // Search mode collapses the app bar (setExpanded(false)); offset would shrink padding. Keep the same
         // inset as XML (@dimen/nest_bouncy_content_padding_top) so conversation/search content does not jump up.
-        val topPad = if (binding.mainMenu.toolbar?.isSearchExpanded == true) {
+        val topPad = if (binding.mainMenu.requireCustomToolbar().isSearchExpanded) {
             maxPad
         } else {
             (expandedH + adjustedVerticalOffset).coerceIn(0, maxPad)
@@ -718,7 +724,7 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         val backgroundColor = if (useSurfaceColor) getSurfaceColor() else getProperBackgroundColor()
         val statusBarColor = if (config.changeColourTopBar) getRequiredStatusBarColor(useSurfaceColor) else backgroundColor
         binding.mainMenu.updateColors(statusBarColor, scrollingView?.computeVerticalScrollOffset() ?: 0)
-        binding.mainMenu.toolbar?.updateSearchColors()
+        binding.mainMenu.requireCustomToolbar().updateSearchColors()
     }
 
     private fun loadMessages() {
@@ -1098,8 +1104,8 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
     }
 
     private fun searchTextChanged(text: String, forceUpdate: Boolean = false) {
-        val customToolbar = binding.mainMenu.toolbar
-        if (isSearchAlwaysShow && customToolbar?.isSearchExpanded != true && !forceUpdate) {
+        val customToolbar = binding.mainMenu.requireCustomToolbar()
+        if (isSearchAlwaysShow && !customToolbar.isSearchExpanded && !forceUpdate) {
             return
         }
 

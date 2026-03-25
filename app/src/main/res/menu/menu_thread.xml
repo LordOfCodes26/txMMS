@@ -7,16 +7,16 @@
         android:id="@+id/conversation_details"
         android:icon="@drawable/ic_cmn_info"
         android:title="@string/conversation_details"
-        android:showAsAction="never" />
+        app:showAsAction="never" />
     <item
         android:id="@+id/rename_conversation"
         android:icon="@drawable/ic_edit_vector"
         android:title="@string/rename_conversation"
-        android:showAsAction="never" />
+        app:showAsAction="never" />
     <item
         android:id="@+id/add_number_to_contact"
         android:title="@string/add_number_to_contact"
-        android:showAsAction="never" />
+        app:showAsAction="never" />
     <item
         android:id="@+id/block_number"
         android:showAsAction="never"
@@ -38,21 +38,21 @@
         android:id="@+id/archive"
         android:icon="@drawable/ic_archive_vector"
         android:title="@string/archive"
-        android:showAsAction="never" />
+        app:showAsAction="never" />
     <item
         android:id="@+id/unarchive"
         android:icon="@drawable/ic_unarchive_vector"
         android:title="@string/unarchive"
-        android:showAsAction="never" />
+        app:showAsAction="never" />
     <item
         android:id="@+id/delete"
         android:icon="@drawable/ic_cmn_delete"
         android:title="@string/delete"
-        android:showAsAction="never" />
+        app:showAsAction="never" />
 
     <item
         android:id="@+id/select_messages"
         android:icon="@drawable/ic_cmn_rectangle_uncheck"
         android:title="@string/select_conversations"
-        android:showAsAction="never" />
+        app:showAsAction="never" />
 </menu>
