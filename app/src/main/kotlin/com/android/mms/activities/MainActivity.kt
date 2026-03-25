@@ -1100,9 +1100,9 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         }
 
         lastSearchedText = text
-        binding.searchPlaceholder2.beGoneIf(text.length >= 2)
+        binding.searchPlaceholder2.beGoneIf(text.isNotEmpty())
 
-        if (text.length >= 2) {
+        if (text.isNotEmpty()) {
             ensureBackgroundThread {
                 val searchQuery = "%$text%"
                 val messages = messagesDB.getMessagesWithText(searchQuery)
