@@ -19,11 +19,18 @@
             android:visibility="gone" />
 
         <LinearLayout
-            android:id="@+id/option_list_container"
+            android:id="@+id/dialog_option_list_holder"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:paddingLeft="@dimen/normal_margin"
-            android:paddingRight="@dimen/normal_margin" />
+            android:layout_height="wrap_content">
+
+            <LinearLayout
+                android:id="@+id/option_list_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingLeft="@dimen/normal_margin"
+                android:paddingRight="@dimen/normal_margin" />
+
+        </LinearLayout>
     </LinearLayout>
 </com.android.common.view.MBlurView>

@@ -989,10 +989,11 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
             ).toMutableList() as ArrayList<Conversation>
         }
 
-        if (cached && config.appRunCount == 1) {
-            // there are no cached conversations on the first run so we show the
-            // loading placeholder and progress until we are done loading from telephony
+        if (cached) {
+            // DB snapshot only; getNewConversations() always follows. Do not show empty-state
+            // placeholders until setupConversations(..., cached = false) after the provider load.
             showOrHideProgress(conversations.isEmpty())
+            showOrHidePlaceholder(false)
         } else {
             showOrHideProgress(false)
             showOrHidePlaceholder(conversations.isEmpty())
@@ -1013,11 +1014,8 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
     private fun showOrHideProgress(show: Boolean) {
         if (show) {
             binding.conversationsProgressBar.show()
-            binding.noConversationsPlaceholder.beVisible()
-            binding.noConversationsPlaceholder2.text = getString(R.string.loading_messages)
         } else {
             binding.conversationsProgressBar.hide()
-            binding.noConversationsPlaceholder.beGone()
         }
     }
 

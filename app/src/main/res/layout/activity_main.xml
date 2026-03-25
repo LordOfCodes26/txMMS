@@ -73,7 +73,8 @@
                                 android:scaleType="fitCenter"
                                 android:gravity="center"
                                 android:src="@drawable/ic_no_sms"
-                                android:visibility="visible" />
+                                android:visibility="gone"
+                                tools:visibility="visible" />
 
                             <com.goodwy.commons.views.MyTextView
                                 android:id="@+id/no_conversations_placeholder_2"
@@ -86,7 +87,8 @@
                                 android:padding="@dimen/activity_margin"
                                 android:text="@string/no_conversations_found"
                                 android:textSize="@dimen/bigger_text_size"
-                                android:visibility="visible" />
+                                android:visibility="gone"
+                                tools:visibility="visible" />
 
                         </RelativeLayout>
 
