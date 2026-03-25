@@ -9,7 +9,7 @@
         app:showAsAction="never" />
     <item
         android:id="@+id/show_blocked_numbers"
-        android:title="@string/select_conversations"
+        android:title="@string/show_blocked_numbers"
         app:showAsAction="never" />
     <item
         android:id="@+id/unlock_protected_contacts"
