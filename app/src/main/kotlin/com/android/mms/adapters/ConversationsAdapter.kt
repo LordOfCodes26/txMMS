@@ -138,8 +138,13 @@ class ConversationsAdapter(
     }
 
     /** Same visibility rules as the overflow menu; used for CAB and for long-press [OptionListDialog]. */
-    private fun configureCabConversationsMenu(menu: Menu, includeDialNumber: Boolean = false) {
-        val selectedItems = getSelectedItems()
+    private fun configureCabConversationsMenu(
+        menu: Menu,
+        includeDialNumber: Boolean = false,
+        /** When showing long-press actions, pass the conversation here — do not put it in [selectedKeys] or the row looks selected after time-label refresh. */
+        selectionOverride: List<Conversation>? = null,
+    ) {
+        val selectedItems = selectionOverride?.let { ArrayList(it) } ?: getSelectedItems()
         // One *conversation* in the list, not only one selected key (keys and list can drift briefly).
         val isSingleSelection = selectedItems.size == 1
         val selectedConversation = selectedItems.firstOrNull()
@@ -177,11 +182,14 @@ class ConversationsAdapter(
         }
         finishActMode()
         selectedKeys.clear()
-        selectedKeys.add(conversation.hashCode())
 
         val popupMenu = PopupMenu(activity, view)
         activity.menuInflater.inflate(R.menu.cab_conversations, popupMenu.menu)
-        configureCabConversationsMenu(popupMenu.menu, includeDialNumber = false)
+        configureCabConversationsMenu(
+            popupMenu.menu,
+            includeDialNumber = false,
+            selectionOverride = listOf(conversation),
+        )
 
         val options = mutableListOf<Pair<CharSequence, () -> Unit>>()
         val menu = popupMenu.menu
@@ -195,6 +203,8 @@ class ConversationsAdapter(
                     itemId == R.id.cab_unblock_number ||
                     itemId == R.id.cab_delete ||
                     itemId == R.id.cab_archive
+                selectedKeys.clear()
+                selectedKeys.add(conversation.hashCode())
                 actionItemPressed(itemId)
                 if (!requiresConfirmation) {
                     selectedKeys.clear()
