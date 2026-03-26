@@ -400,14 +400,18 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
             }
 //            R.id.show_recycle_bin -> launchRecycleBin()
 //            R.id.show_archived -> launchArchivedConversations()
-            R.id.show_blocked_numbers -> showBlockedNumbers()
-            R.id.unlock_protected_contacts -> {
-                if (config.selectedConversationPin > 0) {
-                    closeSecureBox()
-                } else {
-                    launchSecretBoxForUnlock()
-                }
-            }
+//            R.id.show_blocked_numbers -> showBlockedNumbers()
+//            R.id.unlock_protected_contacts -> {
+//                if (config.selectedConversationPin > 0) {
+//                    closeSecureBox()
+//                } else {
+//                    launchSecretBoxForUnlock()
+//                }
+//            }
+            R.id.all_reading -> {}
+            R.id.blocked_list -> {}
+            R.id.protect_region -> {}
+            R.id.sim_card_message -> {}
             R.id.settings -> launchSettings()
 //            R.id.about -> launchAbout()
             else -> return false
@@ -529,12 +533,12 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
     private fun refreshMenuItemsAndTitle() {
         val isSecureMode = config.selectedConversationPin > 0
         binding.mainMenu.requireCustomToolbar().menu.apply {
-            findItem(R.id.unlock_protected_contacts)?.title = if (isSecureMode) {
-                getString(R.string.close_secure_box)
-            } else {
-                getString(R.string.secure_box)
-            }
-            findItem(R.id.show_blocked_numbers)?.isVisible = !isSecureMode
+//            findItem(R.id.unlock_protected_contacts)?.title = if (isSecureMode) {
+//                getString(R.string.close_secure_box)
+//            } else {
+//                getString(R.string.secure_box)
+//            }
+//            findItem(R.id.show_blocked_numbers)?.isVisible = !isSecureMode
         }
 
         binding.mainMenu.setTitle(

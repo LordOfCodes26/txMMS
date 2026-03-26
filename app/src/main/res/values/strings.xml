@@ -203,4 +203,8 @@
     <string name="select_conversations">Select</string>
     <string name="expand_message">Expand message</string>
     <string name="minimize_message">Minimize message</string>
+    <string name="all_reading">All Reading</string>
+    <string name="blocked_list">blocked_list</string>
+    <string name="protect_region">protect_region</string>
+    <string name="sim_card_message">sim_card_message</string>
 </resources>

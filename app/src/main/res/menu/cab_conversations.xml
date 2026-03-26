@@ -74,4 +74,12 @@
         android:id="@+id/cab_decrypt_conversations"
         android:title="@string/decrypt"
         app:showAsAction="never" />
+    <item
+        android:id="@+id/cab_secret_region_add"
+        android:title="@string/secret_region_add"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/cab_secret_region_delete"
+        android:title="@string/secret_region_delete"
+        app:showAsAction="never" />
 </menu>

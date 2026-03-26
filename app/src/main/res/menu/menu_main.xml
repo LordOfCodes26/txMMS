@@ -3,40 +3,64 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     tools:ignore="AppCompatResource,AlwaysShowAction">
-
     <group
         android:id="@+id/menu_group_select_conversations"
         android:checkableBehavior="single">
         <item
             android:id="@+id/select_conversations"
             android:title="@string/select_conversations"
-            app:showAsAction="never" />
+            android:showAsAction="never" />
+    </group>
+    <group
+        android:id="@+id/menu_group_all_reading"
+        android:checkableBehavior="single">
+        <item
+            android:id="@+id/all_reading"
+            android:title="@string/all_reading"
+            android:showAsAction="never" />
     </group>
 
     <group
-        android:id="@+id/menu_group_blocked_numbers"
+        android:id="@+id/menu_group_blocked_list"
         android:checkableBehavior="single">
         <item
-            android:id="@+id/show_blocked_numbers"
-            android:title="@string/show_blocked_numbers"
-            app:showAsAction="never" />
+            android:id="@+id/blocked_list"
+            android:title="@string/blocked_list"
+            android:showAsAction="never" />
     </group>
 
     <group
-        android:id="@+id/menu_group_secure_box"
+        android:id="@+id/menu_group_protect_region"
         android:checkableBehavior="single">
         <item
-            android:id="@+id/unlock_protected_contacts"
-            android:title="@string/secure_box"
-            app:showAsAction="never" />
+            android:id="@+id/protect_region"
+            android:title="@string/protect_region"
+            android:showAsAction="never" />
+    </group>
+    <group
+        android:id="@+id/menu_group_sim_card_message"
+        android:checkableBehavior="single">
+        <item
+            android:id="@+id/sim_card_message"
+            android:title="@string/sim_card_message"
+            android:showAsAction="never" />
     </group>
 
+<!--    <item-->
+<!--        android:id="@+id/show_blocked_numbers"-->
+<!--        android:title="@string/show_blocked_numbers"-->
+<!--        android:showAsAction="never" />-->
+<!--    <item-->
+<!--        android:id="@+id/unlock_protected_contacts"-->
+<!--        android:title="@string/secure_box"-->
+<!--        android:showAsAction="never" />-->
     <group
         android:id="@+id/menu_group_settings"
         android:checkableBehavior="single">
         <item
             android:id="@+id/settings"
             android:title="@string/settings"
-            app:showAsAction="never" />
+            android:showAsAction="never" />
     </group>
+
 </menu>

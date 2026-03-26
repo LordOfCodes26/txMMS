@@ -170,4 +170,8 @@
         <item quantity="one">%d분전</item>
         <item quantity="other">%d분전</item>
     </plurals>
+    <string name="all_reading"></string>
+    <string name="blocked_list"></string>
+    <string name="protect_region"></string>
+    <string name="sim_card_message"></string>
 </resources>
