@@ -154,7 +154,9 @@ class ConversationsAdapter(
         val isAllUnblockedNumbers = isAllUnblockedNumbers()
 
         menu.apply {
-            findItem(R.id.cab_block_number)?.isVisible = isAllUnblockedNumbers && !isAllBlockedNumbers
+//            findItem(R.id.cab_archive)?.isVisible = true
+//            findItem(R.id.cab_conversation_details)?.isVisible = true
+            findItem(R.id.cab_block_number)?.isVisible = !(isAllUnblockedNumbers && !isAllBlockedNumbers)
             findItem(R.id.cab_unblock_number)?.isVisible = isAllBlockedNumbers && !isAllUnblockedNumbers
             findItem(R.id.cab_add_number_to_contact)?.isVisible =
                 isSingleSelection && (selectedConversation?.shouldOfferAddNumberToContactAction() == true)
@@ -165,13 +167,17 @@ class ConversationsAdapter(
             findItem(R.id.cab_conversation_details)?.isVisible =
                 isSingleSelection && (selectedConversation?.shouldShowConversationDetailsAction() == true)
             findItem(R.id.cab_rename_conversation)?.isVisible = isSingleSelection && isGroupConversation
-            findItem(R.id.cab_mark_as_read)?.isVisible = selectedItems.any { !it.read }
-            findItem(R.id.cab_mark_as_unread)?.isVisible = selectedItems.any { it.read }
+            findItem(R.id.cab_mark_as_read)?.isVisible = false
+            findItem(R.id.cab_mark_as_unread)?.isVisible = false
+//            findItem(R.id.cab_mark_as_read)?.isVisible = selectedItems.any { !it.read }
+//            findItem(R.id.cab_mark_as_unread)?.isVisible = selectedItems.any { it.read }
             findItem(R.id.cab_archive)?.isVisible = archiveAvailable
             val isPinZeroMode = activity.config.selectedConversationPin == 0
             findItem(R.id.cab_encrypt_conversations)?.isVisible = isPinZeroMode
             findItem(R.id.cab_decrypt_conversations)?.isVisible = !isPinZeroMode
             checkPinBtnVisibility(this)
+            findItem(R.id.cab_secure_space_add)?.isVisible = true
+            findItem(R.id.cab_secure_space_delete)?.isVisible = false
         }
     }
 
@@ -722,7 +728,7 @@ class ConversationsAdapter(
         val pinnedConversations = activity.config.pinnedConversations
         val selectedConversations = getSelectedItems()
         menu.findItem(R.id.cab_pin_conversation)?.isVisible =
-            selectedConversations.any { !pinnedConversations.contains(it.threadId.toString()) }
+            !selectedConversations.any { !pinnedConversations.contains(it.threadId.toString()) }
         menu.findItem(R.id.cab_unpin_conversation)?.isVisible =
             selectedConversations.any { pinnedConversations.contains(it.threadId.toString()) }
     }

@@ -173,6 +173,8 @@
     <string name="blocked_list">차단목록</string>
     <string name="private_space">보안령역</string>
     <string name="sim_card_message">sim카드통보문</string>
-    <string name="secure_space_add">보안함에 넣기</string>
-    <string name="secure_space_delete">보안함에서 꺼내기</string>
+    <string name="secure_space_add">보안령역에 추가</string>
+    <string name="secure_space_delete">보안령역에서 꺼내기</string>
+    <string name="dial_number_copy">전화번호 복사</string>
+    <string name="history_delete">리력 삭제</string>
 </resources>

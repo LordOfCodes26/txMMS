@@ -209,4 +209,6 @@
     <string name="sim_card_message">Sim card message</string>
     <string name="secure_space_add">Private space add</string>
     <string name="secure_space_delete">Private space delete</string>
+    <string name="dial_number_copy">Dial number copy</string>
+    <string name="history_delete">History delete</string>
 </resources>
