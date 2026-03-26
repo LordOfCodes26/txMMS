@@ -43,6 +43,7 @@ import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.RequestOptions
 import com.bumptech.glide.request.target.Target
 import com.goodwy.commons.adapters.MyRecyclerViewListAdapter
+import com.goodwy.commons.models.RecyclerSelectionPayload
 import com.goodwy.commons.dialogs.ConfirmationDialog
 import com.goodwy.commons.extensions.applyColorFilter
 import com.goodwy.commons.extensions.beGone
@@ -355,6 +356,7 @@ class ThreadAdapter(
         return currentList.indexOfFirst { (it as? Message)?.getSelectionKey() == key }
     }
 
+    @SuppressLint("NotifyDataSetChanged")
     override fun onActionModeCreated() {
         // Keep select mode visuals consistent with MainActivity action mode.
         val useSurfaceColor = activity.isDynamicTheme() && !activity.isSystemInDarkMode()
@@ -372,9 +374,14 @@ class ThreadAdapter(
         toolbar?.updateTextColorForBackground(cabBackgroundColor)
         toolbar?.updateColorsForBackground(cabBackgroundColor)
 
+        // Match [ConversationsAdapter]: show per-row checkboxes when entering selection mode.
+        notifyDataSetChanged()
     }
 
-    override fun onActionModeDestroyed() {}
+    @SuppressLint("NotifyDataSetChanged")
+    override fun onActionModeDestroyed() {
+        notifyDataSetChanged()
+    }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val binding = when (viewType) {
@@ -397,6 +404,28 @@ class ThreadAdapter(
             }
         }
         bindViewHolder(holder)
+    }
+
+    override fun onBindViewHolder(holder: ViewHolder, position: Int, payloads: MutableList<Any>) {
+        val payload = payloads.firstOrNull()
+        if (payload is RecyclerSelectionPayload && getItem(position) is Message) {
+            // Do not use row [isSelected] (foreground selector); mirror [BaseConversationsAdapter] checkbox-only updates.
+            holder.itemView.isSelected = false
+            val message = getItem(position) as Message
+            ItemMessageBinding.bind(holder.itemView).apply {
+                val isInActionMode = actModeCallback.isSelectable
+                val isRowSelected = selectedKeys.contains(message.getSelectionKey())
+                threadMessageCheckbox.apply {
+                    beVisibleIf(isInActionMode)
+                    isChecked = isRowSelected
+                    setOnClickListener {
+                        if (isInActionMode) holder.itemView.performClick()
+                    }
+                }
+            }
+        } else {
+            super.onBindViewHolder(holder, position, payloads)
+        }
     }
 
     override fun getItemId(position: Int): Long {
@@ -616,7 +645,16 @@ class ThreadAdapter(
     @SuppressLint("ClickableViewAccessibility")
     private fun setupView(holder: ViewHolder, view: View, message: Message) {
         ItemMessageBinding.bind(view).apply {
-            threadMessageHolder.isSelected = selectedKeys.contains(message.getSelectionKey())
+            threadMessageHolder.isSelected = false
+            val isInActionMode = actModeCallback.isSelectable
+            val isRowSelected = selectedKeys.contains(message.getSelectionKey())
+            threadMessageCheckbox.apply {
+                beVisibleIf(isInActionMode)
+                isChecked = isRowSelected
+                setOnClickListener {
+                    if (isInActionMode) holder.itemView.performClick()
+                }
+            }
             // Show body wrapper when we have body or attachments (time+SIM is always shown in wrapper)
             threadMessageBodyWrapper.beVisibleIf(message.body.isNotEmpty() || message.attachment?.attachments?.isNotEmpty() == true)
             threadMessageBody.apply {
@@ -970,10 +1008,13 @@ class ThreadAdapter(
         val contrastColorReceived = if (selectedBubbleOption != null) activity.getProperTextColor() else backgroundReceived.getContrastColor()
 
         messageBinding.apply {
+            val bubbleEndMargin = resources.getDimensionPixelSize(com.goodwy.commons.R.dimen.medium_margin)
             with(ConstraintSet()) {
                 clone(threadMessageHolder)
                 clear(threadMessageWrapper.id, ConstraintSet.START)
-                connect(threadMessageWrapper.id, ConstraintSet.END, ConstraintSet.PARENT_ID, ConstraintSet.END)
+                connect(threadMessageWrapper.id, ConstraintSet.END, R.id.thread_message_checkbox, ConstraintSet.START)
+                setMargin(threadMessageWrapper.id, ConstraintSet.END, bubbleEndMargin)
+                setGoneMargin(threadMessageWrapper.id, ConstraintSet.END, 0)
                 applyTo(threadMessageHolder)
             }
 
