@@ -50,6 +50,7 @@ import androidx.core.net.toUri
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updatePadding
 import androidx.core.view.marginTop
 import androidx.documentfile.provider.DocumentFile
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -2357,10 +2358,16 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         binding.topDetailsCompact.root.beGone()
         binding.topDetailsLarge.beGone()
         binding.threadActionModeToolbar.beVisible()
+        binding.scrollToBottomFab.beGone()
+        binding.root.post {
+            applyActionModeRippleToolbarForThread()
+            applyActionModeThreadBottomInset(true)
+        }
     }
 
     override fun hideActionModeToolbar() {
         binding.threadActionModeToolbar.beGone()
+        binding.actionModeRippleToolbar.visibility = View.GONE
         binding.threadToolbar.beVisible()
         if (config.threadTopStyle == THREAD_TOP_LARGE) {
             binding.topDetailsCompact.root.beGone()
@@ -2369,7 +2376,49 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             binding.topDetailsLarge.beGone()
             binding.topDetailsCompact.root.beVisible()
         }
+        binding.scrollToBottomFab.beVisible()
+        applyActionModeThreadBottomInset(false)
     }
 
     override fun getBlurTargetView() = binding.mainBlurTarget
+
+    private fun applyActionModeRippleToolbarForThread() {
+        val blurTarget = findViewById<eightbitlab.com.blurview.BlurTarget>(R.id.mainBlurTarget) ?: return
+        val adapter = binding.threadMessagesList.adapter as? ThreadAdapter ?: return
+        if (!adapter.isActionModeActive()) {
+            binding.actionModeRippleToolbar.visibility = View.GONE
+            return
+        }
+        val (items, _) = adapter.buildThreadRippleToolbar()
+        if (items.isEmpty()) {
+            binding.actionModeRippleToolbar.visibility = View.GONE
+            return
+        }
+        binding.actionModeRippleToolbar.setTabs(this, items, blurTarget)
+        binding.actionModeRippleToolbar.setOnClickedListener { index ->
+            adapter.dispatchRippleToolbarAction(index)
+        }
+        binding.actionModeRippleToolbar.visibility = View.VISIBLE
+    }
+
+    fun refreshActionModeRippleToolbarIfNeeded() {
+        if (isDestroyed || isFinishing) return
+        applyActionModeRippleToolbarForThread()
+        applyActionModeThreadBottomInset(binding.actionModeRippleToolbar.visibility == View.VISIBLE)
+    }
+
+    private fun applyActionModeThreadBottomInset(enabled: Boolean) {
+        val bottomPx = if (!enabled) {
+            0
+        } else {
+            val nav = ViewCompat.getRootWindowInsets(binding.root)
+                ?.getInsets(WindowInsetsCompat.Type.navigationBars())?.bottom ?: 0
+            val ripple = binding.actionModeRippleToolbar
+            val h = ripple.height.takeIf { it > 0 } ?: ripple.measuredHeight.takeIf { it > 0 }
+                ?: resources.getDimensionPixelSize(R.dimen.action_mode_bottom_inset_fallback)
+            val margin = (25 * resources.displayMetrics.density).toInt()
+            h + margin + nav
+        }
+        binding.threadMessagesList.updatePadding(bottom = bottomPx)
+    }
 }

@@ -116,7 +116,9 @@ import com.android.mms.models.Attachment
 import com.android.mms.models.Message
 import com.android.mms.models.ThreadItem
 import com.android.mms.models.ThreadItem.ThreadDateTime
+import com.android.common.helper.IconItem
 import com.mikhaellopez.rxanimation.alpha
+import android.widget.PopupMenu
 import java.util.Locale
 import kotlin.math.abs
 
@@ -200,12 +202,15 @@ class ThreadAdapter(
         (recyclerView.itemAnimator as? SimpleItemAnimator)?.supportsChangeAnimations = false
     }
 
-    override fun getActionMenuId() = R.menu.cab_action_menu
+    override fun getActionMenuId() = R.menu.cab_action_menu_select
     override fun getMorePopupMenuId() = R.menu.cab_thread
-    override fun getMoreItemId() = R.id.more
+    override fun getMoreItemId() = 0
     override fun onMorePopupMenuItemClick(item: MenuItem) = actionItemPressed(item.itemId).let { true }
 
-    override fun prepareActionMode(menu: Menu) {
+    fun isActionModeActive(): Boolean = actModeCallback.isSelectable
+
+    /** Visibility for thread CAB items (overflow was [cab_thread]; now used by [buildThreadRippleToolbar]). */
+    private fun configureThreadActionMenuItems(menu: Menu) {
         val isOneItemSelected = isOneItemSelected()
         val selectedItem = getSelectedItems().firstOrNull() as? Message
         val hasText = selectedItem?.body != null && selectedItem.body != ""
@@ -222,13 +227,103 @@ class ThreadAdapter(
             findItem(R.id.cab_forward_message)?.isVisible = selectedKeys.isNotEmpty() && hasAnyText
             findItem(R.id.cab_select_text)?.isVisible = isOneItemSelected && hasText
             findItem(R.id.cab_properties)?.isVisible = isOneItemSelected
-            findItem(R.id.cab_restore)?.isVisible = isRecycleBin
+            findItem(R.id.cab_restore)?.isVisible = isRecycleBin && selectedKeys.isNotEmpty()
+            findItem(R.id.cab_delete)?.isVisible = selectedKeys.isNotEmpty() && !isRecycleBin
         }
+    }
+
+    override fun prepareActionMode(menu: Menu) {
+        configureThreadActionMenuItems(menu)
+    }
+
+    override fun updateSelectAllButtonIconIfAvailable(selectableItemCount: Int, selectedCount: Int) {
+        val allSelected = selectableItemCount > 0 && selectedCount == selectableItemCount
+        actBarToolbar?.updateSelectAllButtonIcon(R.id.cab_select_all, allSelected)
+        (activity as? ThreadActivity)?.refreshActionModeRippleToolbarIfNeeded()
+    }
+
+    /**
+     * Bottom [com.android.common.view.MRippleToolBar] for thread selection (same pattern as [com.android.mms.activities.MainActivity]).
+     */
+    fun buildThreadRippleToolbar(): Pair<ArrayList<IconItem>, ArrayList<Int>> {
+        val items = ArrayList<IconItem>()
+        val ids = ArrayList<Int>()
+        val pm = PopupMenu(activity, recyclerView)
+        activity.menuInflater.inflate(R.menu.cab_thread, pm.menu)
+        activity.menuInflater.inflate(R.menu.cab_action_menu, pm.menu)
+        configureThreadActionMenuItems(pm.menu)
+        pm.menu.findItem(R.id.cab_select_all)?.isVisible = false
+        val m = pm.menu
+
+        fun add(icon: Int, title: CharSequence, id: Int) {
+            items.add(
+                IconItem().apply {
+                    this.icon = icon
+                    this.title = title.toString()
+                },
+            )
+            ids.add(id)
+        }
+
+        val orderedIds = listOf(
+            R.id.cab_copy_to_clipboard,
+            // R.id.cab_share,
+            R.id.cab_save_as,
+            R.id.cab_forward_message,
+            // R.id.cab_select_text,
+            // R.id.cab_properties,
+            R.id.cab_restore,
+            R.id.cab_delete,
+        )
+        val iconForId = { itemId: Int ->
+            when (itemId) {
+                R.id.cab_copy_to_clipboard -> com.android.common.R.drawable.ic_cmn_copy
+                R.id.cab_save_as -> com.android.common.R.drawable.ic_cmn_note
+                R.id.cab_forward_message -> R.drawable.ic_redo_vector
+                // R.id.cab_select_text -> com.android.common.R.drawable.ic_cmn_list
+                // R.id.cab_properties -> R.drawable.ic_cmn_info
+                R.id.cab_restore -> R.drawable.ic_delete_restore
+                R.id.cab_delete -> com.goodwy.commons.R.drawable.ic_delete_outline
+                else -> 0
+            }
+        }
+        for (itemId in orderedIds) {
+            val mi = m.findItem(itemId) ?: continue
+            if (!mi.isVisible) continue
+            val iconRes = iconForId(itemId)
+            if (iconRes == 0) continue
+            add(iconRes, mi.title ?: "", itemId)
+        }
+        return items to ids
+    }
+
+    fun dispatchRippleToolbarAction(index: Int) {
+        if (selectedKeys.isEmpty()) return
+        val (_, actionIds) = buildThreadRippleToolbar()
+        val id = actionIds.getOrNull(index) ?: return
+        actionItemPressed(id)
+    }
+
+    override fun selectAll() {
+        for (i in 0 until itemCount) {
+            toggleItemSelection(true, i, false)
+        }
+        updateTitle()
     }
 
     override fun actionItemPressed(id: Int) {
         if (id == R.id.cab_select_all) {
-            selectAll()
+            if (getSelectableItemCount() == selectedKeys.size) {
+                (selectedKeys.clone() as HashSet<Int>).forEach { key ->
+                    val position = getItemKeyPosition(key)
+                    if (position != -1) {
+                        toggleItemSelection(false, position, false)
+                    }
+                }
+                updateTitle()
+            } else {
+                selectAll()
+            }
             return
         }
 
@@ -277,22 +372,6 @@ class ThreadAdapter(
         toolbar?.updateTextColorForBackground(cabBackgroundColor)
         toolbar?.updateColorsForBackground(cabBackgroundColor)
 
-        // Ensure "more" popup works when using host toolbar (e.g. ThreadActivity). When the toolbar was
-        // visibility=gone, setPopupForMoreItem in setupActionModeToolbar may not attach correctly;
-        // re-apply once the toolbar is visible.
-        if (toolbar != null && getMoreItemId() != 0 && getMorePopupMenuId() != 0 && activity is com.goodwy.commons.interfaces.ActionModeToolbarHost) {
-            val blurTarget = (activity as com.goodwy.commons.interfaces.ActionModeToolbarHost).getBlurTargetView()
-            toolbar.setPopupForMoreItem(
-                getMoreItemId(),
-                getMorePopupMenuId(),
-                blurTarget,
-                object : MenuItem.OnMenuItemClickListener {
-                    override fun onMenuItemClick(item: MenuItem): Boolean {
-                        return onMorePopupMenuItemClick(item)
-                    }
-                }
-            )
-        }
     }
 
     override fun onActionModeDestroyed() {}
