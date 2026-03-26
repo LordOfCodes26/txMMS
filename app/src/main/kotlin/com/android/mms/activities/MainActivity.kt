@@ -69,6 +69,10 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         private const val SECRET_NUMBER_EXTRA = "secret_number"
         private const val INVALID_CIPHER = -1
         private const val MIN_SWIPE_DISTANCE = 50f
+
+        /** CAB menu for the main conversation list ([R.menu.cab_action_menu_select]): select-all only; delete stays on the bottom ripple. */
+        @JvmField
+        val ACTION_MODE_MENU_SELECT: Int = R.menu.cab_action_menu_select
     }
 
     override var isSearchBarEnabled = true
@@ -268,10 +272,62 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
 
     override fun showActionModeToolbar() {
         binding.mainMenu.showActionModeToolbar()
+        binding.conversationsFab.beGone()
+        binding.root.post {
+            applyActionModeRippleToolbarForConversations()
+            applyActionModeListBottomInset(true)
+        }
     }
 
     override fun hideActionModeToolbar() {
         binding.mainMenu.hideActionModeToolbar()
+        binding.actionModeRippleToolbar.visibility = View.GONE
+        binding.conversationsFab.beVisible()
+        applyActionModeListBottomInset(false)
+    }
+
+    /**
+     * Bottom [MRippleToolBar] for [ConversationsAdapter] selection (txDial MainActivity pattern).
+     */
+    private fun applyActionModeRippleToolbarForConversations() {
+        val blurTarget = findViewById<eightbitlab.com.blurview.BlurTarget>(R.id.mainBlurTarget) ?: return
+        val adapter = binding.conversationsList.adapter as? ConversationsAdapter ?: return
+        if (!adapter.isActionModeActive()) {
+            binding.actionModeRippleToolbar.visibility = View.GONE
+            return
+        }
+        val (items, _) = adapter.buildConversationListRippleToolbar()
+        if (items.isEmpty()) {
+            binding.actionModeRippleToolbar.visibility = View.GONE
+            return
+        }
+        binding.actionModeRippleToolbar.setTabs(this, items, blurTarget)
+        binding.actionModeRippleToolbar.setOnClickedListener { index ->
+            adapter.dispatchRippleToolbarAction(index)
+        }
+        binding.actionModeRippleToolbar.visibility = View.VISIBLE
+    }
+
+    fun refreshActionModeRippleToolbarIfNeeded() {
+        if (isDestroyed || isFinishing) return
+        applyActionModeRippleToolbarForConversations()
+        applyActionModeListBottomInset(binding.actionModeRippleToolbar.visibility == View.VISIBLE)
+    }
+
+    private fun applyActionModeListBottomInset(enabled: Boolean) {
+        val bottomPx = if (!enabled) {
+            0
+        } else {
+            val nav = ViewCompat.getRootWindowInsets(binding.root)
+                ?.getInsets(WindowInsetsCompat.Type.navigationBars())?.bottom ?: 0
+            val ripple = binding.actionModeRippleToolbar
+            val h = ripple.height.takeIf { it > 0 } ?: ripple.measuredHeight.takeIf { it > 0 }
+                ?: resources.getDimensionPixelSize(R.dimen.action_mode_bottom_inset_fallback)
+            val margin = (25 * resources.displayMetrics.density).toInt()
+            h + margin + nav
+        }
+        binding.conversationsList.updatePadding(bottom = bottomPx)
+        binding.searchResultsList.updatePadding(bottom = bottomPx)
     }
 
     override fun getBlurTargetView() = binding.mainBlurTarget

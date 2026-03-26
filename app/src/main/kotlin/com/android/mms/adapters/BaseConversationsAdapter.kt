@@ -242,6 +242,18 @@ abstract class BaseConversationsAdapter(
         (it as? ConversationListItem.ConversationItem)?.conversation?.hashCode() == key
     }
 
+    /**
+     * Select every conversation row. Matches txDial [RecentCallsAdapter]: iterate all adapter positions;
+     * [toggleItemSelection] skips non-selectable rows (e.g. date headers). Base [MyRecyclerViewListAdapter.selectAll]
+     * used [itemCount] − [positionOffset], which can omit rows when offset is used.
+     */
+    override fun selectAll() {
+        for (i in 0 until itemCount) {
+            toggleItemSelection(true, i, false)
+        }
+        updateTitle()
+    }
+
     protected fun getConversationAt(position: Int): Conversation? =
         (currentList.getOrNull(position) as? ConversationListItem.ConversationItem)?.conversation
 
