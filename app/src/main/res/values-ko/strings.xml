@@ -164,4 +164,9 @@
     <!-- Others -->
     <string name="search">검색</string>
     <string name="select_conversations">선택</string>
+    <string name="grouped_list_now">지금</string>
+    <plurals name="grouped_list_minutes_ago">
+        <item quantity="one">%d분전</item>
+        <item quantity="other">%d분전</item>
+    </plurals>
 </resources>
