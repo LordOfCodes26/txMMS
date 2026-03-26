@@ -3,20 +3,40 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     tools:ignore="AppCompatResource,AlwaysShowAction">
-    <item
-        android:id="@+id/select_conversations"
-        android:title="@string/select_conversations"
-        app:showAsAction="never" />
-    <item
-        android:id="@+id/show_blocked_numbers"
-        android:title="@string/show_blocked_numbers"
-        app:showAsAction="never" />
-    <item
-        android:id="@+id/unlock_protected_contacts"
-        android:title="@string/secure_box"
-        app:showAsAction="never" />
-    <item
-        android:id="@+id/settings"
-        android:title="@string/settings"
-        app:showAsAction="never" />
+
+    <group
+        android:id="@+id/menu_group_select_conversations"
+        android:checkableBehavior="single">
+        <item
+            android:id="@+id/select_conversations"
+            android:title="@string/select_conversations"
+            app:showAsAction="never" />
+    </group>
+
+    <group
+        android:id="@+id/menu_group_blocked_numbers"
+        android:checkableBehavior="single">
+        <item
+            android:id="@+id/show_blocked_numbers"
+            android:title="@string/show_blocked_numbers"
+            app:showAsAction="never" />
+    </group>
+
+    <group
+        android:id="@+id/menu_group_secure_box"
+        android:checkableBehavior="single">
+        <item
+            android:id="@+id/unlock_protected_contacts"
+            android:title="@string/secure_box"
+            app:showAsAction="never" />
+    </group>
+
+    <group
+        android:id="@+id/menu_group_settings"
+        android:checkableBehavior="single">
+        <item
+            android:id="@+id/settings"
+            android:title="@string/settings"
+            app:showAsAction="never" />
+    </group>
 </menu>
