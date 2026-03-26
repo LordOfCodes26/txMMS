@@ -392,7 +392,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                     else -> 0
                 }
                 if (extraBottomPadding > 0) {
-                    messagesList.setPadding(0, appBarHeightPx, 0, dp(50) + navHeight + extraBottomPadding)
+                    messagesList.setPadding(0, appBarHeightPx, 0, dp(70) + navHeight + extraBottomPadding)
                     messagesList.scrollToPosition((messagesList.adapter?.itemCount ?: 1) - 1)
                 } else {
                     // Don't add navHeight to margin: setupEdgeToEdge already pads barContainer bottom.
