@@ -41,6 +41,7 @@ class BlurAppBarLayout @JvmOverloads constructor(
     fun requireCustomToolbar(): CustomToolbar = toolbar ?: error("CustomToolbar not found")
 
     private var offsetListener: ((verticalOffset: Int, height: Int) -> Unit)? = null
+    private var searchStateListener: OnSearchStateListener? = null
 
     init {
         elevation = 0f
@@ -103,19 +104,20 @@ class BlurAppBarLayout @JvmOverloads constructor(
 
     /** Registers with the CustomToolbar and updates expand/collapse and visibility; then notifies [listener]. */
     fun setOnSearchStateListener(listener: OnSearchStateListener?) {
+        searchStateListener = listener
         toolbar?.let { tb ->
             tb.setOnSearchExpandListener {
                 setExpanded(false)
                 titleView?.visibility = View.GONE
-                listener?.onState(MSearchView.SEARCH_START)
+                searchStateListener?.onState(MSearchView.SEARCH_START)
             }
             tb.setOnSearchBackClickListener {
                 setExpanded(true)
                 titleView?.visibility = View.VISIBLE
-                listener?.onState(MSearchView.SEARCH_END)
+                searchStateListener?.onState(MSearchView.SEARCH_END)
             }
             tb.setOnSearchTextChangedListener { text ->
-                listener?.onSearchTextChanged(text)
+                searchStateListener?.onSearchTextChanged(text)
             }
         }
     }
@@ -133,8 +135,23 @@ class BlurAppBarLayout @JvmOverloads constructor(
     fun searchBeVisibleIf(visible: Boolean) {
         if (!visible) {
             toolbar?.collapseSearch()
+            // Match in-toolbar back: restore expanded app bar (search start used setExpanded(false)).
+            setExpanded(true)
             titleView?.visibility = View.VISIBLE
         }
+    }
+
+    /**
+     * Exits search the same way as the in-search back button: one collapse, restore app bar, [SEARCH_END].
+     * Use for system back / programmatic exit — avoids double [CustomToolbar.collapseSearch] and a collapsed AppBar during the out-animation.
+     */
+    fun endSearchMode() {
+        val tb = toolbar ?: return
+        if (!tb.isSearchExpanded) return
+        tb.collapseSearch()
+        setExpanded(true)
+        titleView?.visibility = View.VISIBLE
+        searchStateListener?.onState(MSearchView.SEARCH_END)
     }
 
     override fun updateColors(background: Int, scrollOffset: Int) {

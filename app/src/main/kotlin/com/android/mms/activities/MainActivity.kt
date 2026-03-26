@@ -257,9 +257,8 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
     override fun onBackPressedCompat(): Boolean {
         val customToolbar = binding.mainMenu.requireCustomToolbar()
         return if (customToolbar.isSearchExpanded) {
-            customToolbar.collapseSearch()
-            binding.mainMenu.searchBeVisibleIf(false)
-            isSearchOpen = false
+            // Single collapse + restore AppBar (setExpanded) + SEARCH_END — not collapseSearch + searchBeVisibleIf (double animation).
+            binding.mainMenu.endSearchMode()
             true
         } else {
             appLockManager.lock()
@@ -394,10 +393,8 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
                 }
             }
             R.id.select_conversations -> {
-                val tb = binding.mainMenu.requireCustomToolbar()
-                if (tb.isSearchExpanded) {
-                    tb.collapseSearch()
-                    isSearchOpen = false
+                if (binding.mainMenu.requireCustomToolbar().isSearchExpanded) {
+                    binding.mainMenu.endSearchMode()
                 }
                 getOrCreateConversationsAdapter().startActMode()
             }
