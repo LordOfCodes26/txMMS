@@ -467,9 +467,11 @@ class ConversationsAdapter(
             }
         } else {
             val toRemoveSet = numbersToBlock.toSet()
-            val newList = currentList.toMutableList().apply {
-                removeAll { it is ConversationListItem.ConversationItem && (it as ConversationListItem.ConversationItem).conversation in toRemoveSet }
-            }
+            val newList = removeEmptyDateSections(
+                currentList.toMutableList().apply {
+                    removeAll { it is ConversationListItem.ConversationItem && (it as ConversationListItem.ConversationItem).conversation in toRemoveSet }
+                },
+            )
             ensureBackgroundThread {
                 //mark read
                 numbersToBlock.filter { conversation -> !conversation.read }.forEach {
@@ -562,11 +564,13 @@ class ConversationsAdapter(
 
         val toRemoveSet = conversationsToRemove.toSet()
         val newList = try {
-            currentList.toMutableList().apply {
-                removeAll { it is ConversationListItem.ConversationItem && (it as ConversationListItem.ConversationItem).conversation in toRemoveSet }
-            }
+            removeEmptyDateSections(
+                currentList.toMutableList().apply {
+                    removeAll { it is ConversationListItem.ConversationItem && (it as ConversationListItem.ConversationItem).conversation in toRemoveSet }
+                },
+            )
         } catch (_: Exception) {
-            currentList.toMutableList()
+            removeEmptyDateSections(currentList.toMutableList())
         }
 
         val selectedHashCodes = conversationsToArchive.map { it.hashCode() }.toSet()
@@ -576,7 +580,7 @@ class ConversationsAdapter(
                 finishActMode()
             } else {
                 submitList(newList)
-                if (newList.isEmpty()) {
+                if (hasNoConversationRows(newList)) {
                     refreshConversations()
                 }
             }
@@ -603,11 +607,13 @@ class ConversationsAdapter(
 
         val toRemoveSet = conversationsToRemove.toSet()
         val newList = try {
-            currentList.toMutableList().apply {
-                removeAll { it is ConversationListItem.ConversationItem && (it as ConversationListItem.ConversationItem).conversation in toRemoveSet }
-            }
+            removeEmptyDateSections(
+                currentList.toMutableList().apply {
+                    removeAll { it is ConversationListItem.ConversationItem && (it as ConversationListItem.ConversationItem).conversation in toRemoveSet }
+                },
+            )
         } catch (_: Exception) {
-            currentList.toMutableList()
+            removeEmptyDateSections(currentList.toMutableList())
         }
 
         val selectedHashCodes = conversationsToDelete.map { it.hashCode() }.toSet()
@@ -617,7 +623,7 @@ class ConversationsAdapter(
                 finishActMode()
             } else {
                 submitList(newList)
-                if (newList.isEmpty()) {
+                if (hasNoConversationRows(newList)) {
                     refreshConversations()
                 }
             }
@@ -777,16 +783,18 @@ class ConversationsAdapter(
 
         val toRemoveSet = conversationsToArchive.toSet()
         val newList = try {
-            currentList.toMutableList().apply {
-                removeAll { it is ConversationListItem.ConversationItem && (it as ConversationListItem.ConversationItem).conversation in toRemoveSet }
-            }
+            removeEmptyDateSections(
+                currentList.toMutableList().apply {
+                    removeAll { it is ConversationListItem.ConversationItem && (it as ConversationListItem.ConversationItem).conversation in toRemoveSet }
+                },
+            )
         } catch (_: Exception) {
-            currentList.toMutableList()
+            removeEmptyDateSections(currentList.toMutableList())
         }
 
         activity.runOnUiThread {
             submitList(newList)
-            if (newList.isEmpty()) {
+            if (hasNoConversationRows(newList)) {
                 refreshConversations()
             }
         }
@@ -831,16 +839,18 @@ class ConversationsAdapter(
 
         val toRemoveSet = conversationsToRemove.toSet()
         val newList = try {
-            currentList.toMutableList().apply {
-                removeAll { it is ConversationListItem.ConversationItem && (it as ConversationListItem.ConversationItem).conversation in toRemoveSet }
-            }
+            removeEmptyDateSections(
+                currentList.toMutableList().apply {
+                    removeAll { it is ConversationListItem.ConversationItem && (it as ConversationListItem.ConversationItem).conversation in toRemoveSet }
+                },
+            )
         } catch (_: Exception) {
-            currentList.toMutableList()
+            removeEmptyDateSections(currentList.toMutableList())
         }
 
         activity.runOnUiThread {
             submitList(newList)
-            if (newList.isEmpty()) {
+            if (hasNoConversationRows(newList)) {
                 refreshConversations()
             }
         }

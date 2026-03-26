@@ -120,11 +120,13 @@ class RecycleBinConversationsAdapter(
     private fun removeConversationsFromList(removedConversations: List<Conversation>) {
         val toRemoveSet = removedConversations.toSet()
         val newList = try {
-            currentList.toMutableList().apply {
-                removeAll { it is ConversationListItem.ConversationItem && (it as ConversationListItem.ConversationItem).conversation in toRemoveSet }
-            }
+            removeEmptyDateSections(
+                currentList.toMutableList().apply {
+                    removeAll { it is ConversationListItem.ConversationItem && (it as ConversationListItem.ConversationItem).conversation in toRemoveSet }
+                },
+            )
         } catch (_: Exception) {
-            currentList.toMutableList()
+            removeEmptyDateSections(currentList.toMutableList())
         }
 
         activity.runOnUiThread {
@@ -133,7 +135,7 @@ class RecycleBinConversationsAdapter(
                 finishActMode()
             } else {
                 submitList(newList)
-                if (newList.isEmpty()) {
+                if (hasNoConversationRows(newList)) {
                     refreshConversations()
                 }
             }

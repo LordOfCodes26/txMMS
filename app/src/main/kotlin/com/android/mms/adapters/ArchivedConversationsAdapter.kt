@@ -105,11 +105,13 @@ class ArchivedConversationsAdapter(
     private fun removeConversationsFromList(removedConversations: List<Conversation>) {
         val toRemoveSet = removedConversations.toSet()
         val newList = try {
-            currentList.toMutableList().apply {
-                removeAll { it is ConversationListItem.ConversationItem && (it as ConversationListItem.ConversationItem).conversation in toRemoveSet }
-            }
+            removeEmptyDateSections(
+                currentList.toMutableList().apply {
+                    removeAll { it is ConversationListItem.ConversationItem && (it as ConversationListItem.ConversationItem).conversation in toRemoveSet }
+                },
+            )
         } catch (ignored: Exception) {
-            currentList.toMutableList()
+            removeEmptyDateSections(currentList.toMutableList())
         }
 
         activity.runOnUiThread {
@@ -118,7 +120,7 @@ class ArchivedConversationsAdapter(
                 finishActMode()
             } else {
                 submitList(newList)
-                if (newList.isEmpty()) {
+                if (hasNoConversationRows(newList)) {
                     refreshConversations()
                 }
             }
@@ -161,16 +163,18 @@ class ArchivedConversationsAdapter(
     private fun swipedRemoveConversationsFromList(removedConversations: List<Conversation>) {
         val toRemoveSet = removedConversations.toSet()
         val newList = try {
-            currentList.toMutableList().apply {
-                removeAll { it is ConversationListItem.ConversationItem && (it as ConversationListItem.ConversationItem).conversation in toRemoveSet }
-            }
+            removeEmptyDateSections(
+                currentList.toMutableList().apply {
+                    removeAll { it is ConversationListItem.ConversationItem && (it as ConversationListItem.ConversationItem).conversation in toRemoveSet }
+                },
+            )
         } catch (ignored: Exception) {
-            currentList.toMutableList()
+            removeEmptyDateSections(currentList.toMutableList())
         }
 
         activity.runOnUiThread {
             submitList(newList)
-            if (newList.isEmpty()) {
+            if (hasNoConversationRows(newList)) {
                 refreshConversations()
             }
         }
@@ -206,16 +210,18 @@ class ArchivedConversationsAdapter(
 
         val toRemoveSet = conversationsToRemove.toSet()
         val newList = try {
-            currentList.toMutableList().apply {
-                removeAll { it is ConversationListItem.ConversationItem && (it as ConversationListItem.ConversationItem).conversation in toRemoveSet }
-            }
+            removeEmptyDateSections(
+                currentList.toMutableList().apply {
+                    removeAll { it is ConversationListItem.ConversationItem && (it as ConversationListItem.ConversationItem).conversation in toRemoveSet }
+                },
+            )
         } catch (ignored: Exception) {
-            currentList.toMutableList()
+            removeEmptyDateSections(currentList.toMutableList())
         }
 
         activity.runOnUiThread {
             submitList(newList)
-            if (newList.isEmpty()) {
+            if (hasNoConversationRows(newList)) {
                 refreshConversations()
             }
         }

@@ -212,6 +212,41 @@ abstract class BaseConversationsAdapter(
         return result
     }
 
+    /**
+     * After removing [ConversationListItem.ConversationItem] rows (delete, archive, block), strip
+     * [ConversationListItem.DateHeader] rows that no longer have any conversation underneath them
+     * until the next header or end of list.
+     */
+    protected fun removeEmptyDateSections(items: List<ConversationListItem>): MutableList<ConversationListItem> {
+        val out = mutableListOf<ConversationListItem>()
+        var i = 0
+        while (i < items.size) {
+            when (val item = items[i]) {
+                is ConversationListItem.DateHeader -> {
+                    i++
+                    val conversationsInSection = mutableListOf<ConversationListItem.ConversationItem>()
+                    while (i < items.size && items[i] is ConversationListItem.ConversationItem) {
+                        conversationsInSection.add(items[i] as ConversationListItem.ConversationItem)
+                        i++
+                    }
+                    if (conversationsInSection.isNotEmpty()) {
+                        out.add(item)
+                        out.addAll(conversationsInSection)
+                    }
+                }
+                is ConversationListItem.ConversationItem -> {
+                    out.add(item)
+                    i++
+                }
+            }
+        }
+        return out
+    }
+
+    /** True when there is nothing to show (no conversation rows). */
+    protected fun hasNoConversationRows(items: List<ConversationListItem>): Boolean =
+        items.none { it is ConversationListItem.ConversationItem }
+
     @SuppressLint("NotifyDataSetChanged")
     fun updateDrafts() {
         ensureBackgroundThread {
