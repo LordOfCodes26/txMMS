@@ -1215,6 +1215,7 @@ class ThreadAdapter(
             messageBinding.threadMessageStatusIcon.beGone()
         } else {
             messageBinding.threadMessageStatusIcon.apply {
+                clearColorFilter()
                 when (message.type) {
                     android.provider.Telephony.Sms.MESSAGE_TYPE_FAILED -> {
                         setImageResource(R.drawable.ic_sms_send_fail)
