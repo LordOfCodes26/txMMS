@@ -964,7 +964,10 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             },
             onHideAttachmentPickerRequested = {
                 isAttachmentPickerVisible = false
-                binding.root.post { ViewCompat.requestApplyInsets(binding.root) }
+                messageHolderHelper?.hideAttachmentPicker()
+                binding.messageHolder.messageHolder.postDelayed({
+                    binding.root.post { ViewCompat.requestApplyInsets(binding.root) }
+                }, 350)
             }
         )
         
@@ -976,28 +979,37 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                 if (attachmentPickerHolder.isVisible()) {
                     isAttachmentPickerVisible = false
                     messageHolderHelper?.hideAttachmentPicker()
+
+                    threadTypeMessage.requestApplyInsets()
+                    // Re-apply window insets so message bubbles move up when attachment picker is shown
+                    binding.root.post { ViewCompat.requestApplyInsets(binding.root) }
                 } else {
                     hideKeyboard()
                     threadTypeMessage.clearFocus()
-                    isAttachmentPickerVisible = true
                     // If keyboard is visible, wait for it to fully hide before showing picker (done in setupMessagingEdgeToEdge insets listener)
-                    if (!wasKeyboardVisible) {
+//                    if (!wasKeyboardVisible) {
+//                        messageHolderHelper?.showAttachmentPicker()
+//                    }
+                    binding.messageHolder.messageHolder.postDelayed({
+                        isAttachmentPickerVisible = true
                         messageHolderHelper?.showAttachmentPicker()
-                    }
+
+                        threadTypeMessage.requestApplyInsets()
+                        // Re-apply window insets so message bubbles move up when attachment picker is shown
+                        binding.root.post { ViewCompat.requestApplyInsets(binding.root) }
+                    }, 250)
                 }
-                threadTypeMessage.requestApplyInsets()
-                // Re-apply window insets so message bubbles move up when attachment picker is shown
-                binding.root.post { ViewCompat.requestApplyInsets(binding.root) }
+
             }
 
-            if (intent.extras?.containsKey(THREAD_ATTACHMENT_URI) == true) {
-                val uri = intent.getStringExtra(THREAD_ATTACHMENT_URI)!!.toUri()
-                messageHolderHelper?.addAttachment(uri)
-            } else if (intent.extras?.containsKey(THREAD_ATTACHMENT_URIS) == true) {
-                (intent.getSerializableExtra(THREAD_ATTACHMENT_URIS) as? ArrayList<Uri>)?.forEach {
-                    messageHolderHelper?.addAttachment(it)
-                }
-            }
+//            if (intent.extras?.containsKey(THREAD_ATTACHMENT_URI) == true) {
+//                val uri = intent.getStringExtra(THREAD_ATTACHMENT_URI)!!.toUri()
+//                messageHolderHelper?.addAttachment(uri)
+//            } else if (intent.extras?.containsKey(THREAD_ATTACHMENT_URIS) == true) {
+//                (intent.getSerializableExtra(THREAD_ATTACHMENT_URIS) as? ArrayList<Uri>)?.forEach {
+//                    messageHolderHelper?.addAttachment(it)
+//                }
+//            }
         }
         
         messageHolderHelper?.setupAttachmentPicker(
@@ -1030,8 +1042,8 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
 
         binding.messageHolder.apply {
             threadMessagesFastscroller.updateColors(surfaceColor)
-            threadAddAttachment.applyColorFilter(textColor)
-            threadAddAttachment.background.applyColorFilter(surfaceColor)
+//            threadAddAttachment.applyColorFilter(textColor)
+//            threadAddAttachment.background.applyColorFilter(surfaceColor)
         }
         
         scrollToBottomFab.setOnClickListener {
@@ -1231,50 +1243,50 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
 //            binding.messageHolder.threadSelectSimIcon.background.applyColorFilter(
 //                resources.getColor(com.goodwy.commons.R.color.activated_item_foreground, theme)
 //            )
-            binding.messageHolder.threadSelectSimIcon.applyColorFilter(getProperTextColor())
-            binding.messageHolder.threadSelectSimIconHolder.beVisibleIf(!config.showSimSelectionDialog)
-            binding.messageHolder.threadSelectSimNumber.beVisible()
-            val simLabel =
-                if (availableSIMCards.size > currentSIMCardIndex) availableSIMCards[currentSIMCardIndex].label else "SIM Card"
-            binding.messageHolder.threadSelectSimIconHolder.contentDescription = simLabel
-
-            if (availableSIMCards.isNotEmpty()) {
-                binding.messageHolder.threadSelectSimIconHolder.setOnClickListener {
-                    currentSIMCardIndex = (currentSIMCardIndex + 1) % availableSIMCards.size
-                    val currentSIMCard = availableSIMCards[currentSIMCardIndex]
-                    @SuppressLint("SetTextI18n")
-                    binding.messageHolder.threadSelectSimNumber.text = currentSIMCard.id.toString()
-                    val simColor = if (!config.colorSimIcons) textColor
-                    else {
-                        val simId = currentSIMCard.id
-                        if (simId in 1..4) config.simIconsColors[simId] else config.simIconsColors[0]
-                    }
-                    binding.messageHolder.threadSelectSimIcon.applyColorFilter(simColor)
-                    val currentSubscriptionId = currentSIMCard.subscriptionId
-                    numbers.forEach {
-                        config.saveUseSIMIdAtNumber(it, currentSubscriptionId)
-                    }
-                    it.performHapticFeedback()
-                    binding.messageHolder.threadSelectSimIconHolder.contentDescription = currentSIMCard.label
-                    toast(currentSIMCard.label)
-                    updateAvailableMessageCountForCurrentSim()
-                }
-            }
-
-            binding.messageHolder.threadSelectSimNumber.setTextColor(textColor.getContrastColor())
-            try {
-                @SuppressLint("SetTextI18n")
-                binding.messageHolder.threadSelectSimNumber.text = (availableSIMCards[currentSIMCardIndex].id).toString()
-                val simColor =
-                    if (!config.colorSimIcons) textColor
-                    else {
-                        val simId = availableSIMCards[currentSIMCardIndex].id
-                        if (simId in 1..4) config.simIconsColors[simId] else config.simIconsColors[0]
-                    }
-                binding.messageHolder.threadSelectSimIcon.applyColorFilter(simColor)
-            } catch (e: Exception) {
-                showErrorToast(e)
-            }
+//            binding.messageHolder.threadSelectSimIcon.applyColorFilter(getProperTextColor())
+//            binding.messageHolder.threadSelectSimIconHolder.beVisibleIf(!config.showSimSelectionDialog)
+//            binding.messageHolder.threadAvailableMessageCount.beVisible()
+//            val simLabel =
+//                if (availableSIMCards.size > currentSIMCardIndex) availableSIMCards[currentSIMCardIndex].label else "SIM Card"
+//            binding.messageHolder.threadAvailableMessageCount.contentDescription = simLabel
+//
+//            if (availableSIMCards.isNotEmpty()) {
+//                binding.messageHolder.threadSelectSimIconHolder.setOnClickListener {
+//                    currentSIMCardIndex = (currentSIMCardIndex + 1) % availableSIMCards.size
+//                    val currentSIMCard = availableSIMCards[currentSIMCardIndex]
+//                    @SuppressLint("SetTextI18n")
+//                    binding.messageHolder.threadSelectSimNumber.text = currentSIMCard.id.toString()
+//                    val simColor = if (!config.colorSimIcons) textColor
+//                    else {
+//                        val simId = currentSIMCard.id
+//                        if (simId in 1..4) config.simIconsColors[simId] else config.simIconsColors[0]
+//                    }
+//                    binding.messageHolder.threadSelectSimIcon.applyColorFilter(simColor)
+//                    val currentSubscriptionId = currentSIMCard.subscriptionId
+//                    numbers.forEach {
+//                        config.saveUseSIMIdAtNumber(it, currentSubscriptionId)
+//                    }
+//                    it.performHapticFeedback()
+//                    binding.messageHolder.threadSelectSimIconHolder.contentDescription = currentSIMCard.label
+//                    toast(currentSIMCard.label)
+//                    updateAvailableMessageCountForCurrentSim()
+//                }
+//            }
+//
+//            binding.messageHolder.threadSelectSimNumber.setTextColor(textColor.getContrastColor())
+//            try {
+//                @SuppressLint("SetTextI18n")
+//                binding.messageHolder.threadSelectSimNumber.text = (availableSIMCards[currentSIMCardIndex].id).toString()
+//                val simColor =
+//                    if (!config.colorSimIcons) textColor
+//                    else {
+//                        val simId = availableSIMCards[currentSIMCardIndex].id
+//                        if (simId in 1..4) config.simIconsColors[simId] else config.simIconsColors[0]
+//                    }
+//                binding.messageHolder.threadSelectSimIcon.applyColorFilter(simColor)
+//            } catch (e: Exception) {
+//                showErrorToast(e)
+//            }
         }
         updateAvailableMessageCountForCurrentSim()
     }

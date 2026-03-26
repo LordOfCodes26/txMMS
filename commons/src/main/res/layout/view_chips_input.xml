@@ -1,12 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<com.google.android.material.card.MaterialCardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="@drawable/bg_input"
     android:paddingHorizontal="@dimen/normal_margin"
-    android:paddingVertical="@dimen/medium_margin">
+    android:paddingVertical="@dimen/medium_margin"
+    app:cardBackgroundColor="@color/white"
+    app:contentPaddingLeft="@dimen/normal_margin"
+    app:contentPaddingRight="@dimen/normal_margin"
+    app:contentPaddingBottom="@dimen/medium_margin"
+    app:contentPaddingTop="@dimen/medium_margin"
+    app:cardCornerRadius="26dp"
+    app:strokeColor="@color/black"
+    app:strokeWidth="0.5dp"
+    app:cardElevation="4dp">
 
     <!-- MaxHeightScrollView clamps height so chips/text scroll instead of expanding the screen.
          fillViewport=false so chips_edit_wrapper stays compact when empty (no stretch to viewport). -->
@@ -110,4 +119,4 @@
             tools:tint="@color/dark_grey" />
 
     </LinearLayout>
-</FrameLayout>
+</com.google.android.material.card.MaterialCardView>

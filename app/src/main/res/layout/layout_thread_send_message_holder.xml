@@ -6,8 +6,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:clipChildren="false"
-    android:clipToPadding="false"
-    android:paddingBottom="@dimen/normal_margin">
+    android:clipToPadding="false">
 
     <RelativeLayout
         android:id="@+id/scheduled_message_holder"
@@ -85,7 +84,7 @@
         android:scrollbars="none"
         android:visibility="gone"
         app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
-        app:layout_constraintBottom_toTopOf="@id/threadTypeMessage"
+        app:layout_constraintBottom_toTopOf="@id/threadTypeMessageWrapper"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/scheduled_message_holder"
@@ -99,15 +98,15 @@
         android:layout_width="@dimen/medium_icon_size"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:layout_marginStart="@dimen/medium_normal_margin"
+        android:layout_marginStart="@dimen/normal_activity_margin"
         android:layout_marginBottom="@dimen/medium_normal_margin"
         app:layout_constraintBottom_toBottomOf="@id/attachment_picker_divider"
         app:layout_constraintStart_toStartOf="parent" >
 
         <ImageView
             android:id="@+id/threadExpandMessage"
-            android:layout_width="@dimen/small_icon_size"
-            android:layout_height="@dimen/small_icon_size"
+            android:layout_width="@dimen/full_icon_size"
+            android:layout_height="@dimen/full_icon_size"
             android:layout_gravity="center_horizontal"
             android:layout_marginBottom="@dimen/tiny_margin"
             android:background="?selectableItemBackgroundBorderless"
@@ -119,74 +118,56 @@
 
         <ImageView
             android:id="@+id/threadAddAttachment"
-            android:layout_width="@dimen/chips_input_chip_row_height"
-            android:layout_height="@dimen/chips_input_chip_row_height"
-            android:layout_marginBottom="@dimen/smaller_margin"
-            android:layout_marginStart="@dimen/small_md_margin"
-            android:background="@drawable/thread_background"
+            android:layout_width="@dimen/add_icon_size"
+            android:layout_height="@dimen/add_icon_size"
+            android:layout_marginBottom="@dimen/small_margin"
+            android:background="@drawable/ic_sms_add"
+            android:layout_gravity="center_horizontal"
             android:contentDescription="@string/attachment"
-            android:src="@drawable/ic_cmn_circle_add"
-            android:alpha="0.8"/>
+            android:padding="@dimen/smaller_margin"
+            android:alpha="0.9"/>
     </LinearLayout>
 
-    <com.goodwy.commons.views.MyEditText
-        android:id="@+id/threadTypeMessage"
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/threadTypeMessageWrapper"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:elevation="4dp"
-        android:background="@drawable/bg_input"
-        android:gravity="center_vertical"
-        android:hint="@string/type_a_message"
-        android:inputType="textCapSentences|textMultiLine"
-        android:minHeight="@dimen/medium_icon_size_plus"
-        android:layout_marginStart="@dimen/normal_margin"
+        android:layout_marginStart="@dimen/small_margin"
         android:layout_marginEnd="@dimen/smaller_margin"
-        android:paddingVertical="@dimen/smaller_margin"
-        android:paddingHorizontal="@dimen/normal_margin"
-        app:layout_constraintEnd_toStartOf="@id/threadSelectSimIconHolder"
+        app:layout_constraintHorizontal_weight="1"
+        app:layout_constraintEnd_toStartOf="@id/imv_emotic_btn"
         app:layout_constraintStart_toEndOf="@+id/threadAddAttachmentHolder"
-        app:layout_constraintBottom_toBottomOf="@id/threadAddAttachmentHolder" />
-
-    <LinearLayout
-        android:id="@+id/threadSelectSimIconHolder"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="@dimen/smaller_margin"
-        android:orientation="horizontal"
-        android:background="?selectableItemBackgroundBorderless"
-        app:layout_constraintStart_toEndOf="@id/threadTypeMessage"
-        app:layout_constraintEnd_toStartOf="@id/threadSendMessageWrapper"
         app:layout_constraintBottom_toBottomOf="@id/threadAddAttachmentHolder"
-        android:visibility="gone"
-        tools:visibility="visible"
-        tools:ignore="RtlHardcoded">
+        android:minHeight="@dimen/input_edit_height"
+        app:cardCornerRadius="@dimen/input_edit_wrapper_radius"
+        app:strokeColor="@color/black"
+        app:strokeWidth="0.5dp"
+        app:cardElevation="4dp">
 
-        <ImageView
-            android:id="@+id/threadSelectSimIcon"
-            android:layout_width="@dimen/colorpicker_items_height"
-            android:layout_height="@dimen/colorpicker_items_height"
-            android:alpha="0.9"
-            android:contentDescription="@null"
-            android:paddingHorizontal="@dimen/smaller_margin"
-            android:paddingVertical="@dimen/tiny_margin"
-            android:src="@drawable/ic_sim_vector" />
-    </LinearLayout>
+        <com.goodwy.commons.views.MyEditText
+            android:id="@+id/threadTypeMessage"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@color/white"
+            android:paddingHorizontal="@dimen/normal_margin"
+            android:paddingVertical="@dimen/medium_normal_margin"
+            android:gravity="center_vertical"
+            android:hint="@string/type_a_message"
+            android:inputType="textCapSentences|textMultiLine"
+            android:minHeight="@dimen/input_edit_height"
+            android:maxHeight="@dimen/input_edit_max_height"/>
+    </com.google.android.material.card.MaterialCardView>
 
-    <TextView
-        android:id="@+id/thread_select_sim_number"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:gravity="center"
-        android:textSize="@dimen/smaller_text_size"
-        android:textStyle="bold"
-        android:visibility="gone"
-        app:layout_constraintBottom_toBottomOf="@+id/threadSelectSimIconHolder"
-        app:layout_constraintLeft_toLeftOf="@+id/threadSelectSimIconHolder"
-        app:layout_constraintRight_toRightOf="@+id/threadSelectSimIconHolder"
-        app:layout_constraintTop_toTopOf="@+id/threadSelectSimIconHolder"
-        tools:text="1"
-        tools:textColor="@color/bw_30"
-        tools:visibility="visible" />
+    <ImageView
+        android:id="@+id/imv_emotic_btn"
+        android:layout_width="@dimen/emotic_icon_size"
+        android:layout_height="@dimen/emotic_icon_size"
+        android:background="@drawable/ic_sms_emotic"
+        android:alpha="0.9"
+        app:layout_constraintEnd_toStartOf="@id/threadSendMessageWrapper"
+        app:layout_constraintStart_toEndOf="@+id/threadTypeMessageWrapper"
+        app:layout_constraintBottom_toBottomOf="@id/threadTypeMessageWrapper"
+        android:layout_marginBottom="@dimen/medium_margin"/>
 
     <com.goodwy.commons.views.MyTextView
         android:id="@+id/threadAvailableMessageCount"
@@ -194,8 +175,8 @@
         android:layout_height="wrap_content"
         android:elevation="12dp"
         android:gravity="center"
-        android:layout_marginBottom="@dimen/small_margin"
-        android:layout_marginEnd="@dimen/tiny_margin"
+        android:layout_marginBottom="5dp"
+        android:layout_marginEnd="6dp"
         android:textColor="@color/default_text_color"
         android:textSize="@dimen/tiny_text_size"
         android:visibility="gone"
@@ -237,8 +218,8 @@
 
         <ImageView
             android:id="@+id/threadSendMessage"
-            android:layout_width="@dimen/chips_input_chip_row_height"
-            android:layout_height="@dimen/chips_input_chip_row_height"
+            android:layout_width="@dimen/add_icon_size"
+            android:layout_height="@dimen/add_icon_size"
             android:layout_gravity="center"
             android:foregroundGravity="center"
             android:alpha="0.9"
@@ -273,18 +254,17 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:visibility="gone"
-        tools:visibility="visible"
-        android:layout_marginTop="@dimen/tx_cardview_margin_horizontal"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
-        android:layout_marginBottom="-30dp">
+        tools:visibility="visible">
 
         <include
             android:id="@+id/attachment_picker"
             layout="@layout/layout_attachment_picker_small"
             android:layout_width="match_parent"
-            android:layout_height="@dimen/app_lock_view_max_size"/>
+            android:layout_height="@dimen/app_lock_view_max_size" />
 
     </RelativeLayout>
 

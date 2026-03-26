@@ -67,8 +67,8 @@ class MessageHolderHelper(
 
         binding.apply {
             threadSendMessage.applyColorFilter(textColor)
-            threadAddAttachment.applyColorFilter(textColor)
-            threadAddAttachment.background.applyColorFilter(surfaceColor)
+//            threadAddAttachment.applyColorFilter(textColor)
+//            threadAddAttachment.background.applyColorFilter(surfaceColor)
             // threadTypeMessageHolder.background.applyColorFilter(surfaceColor)
 
             threadCharacterCounter.beVisibleIf(threadTypeMessage.value.isNotEmpty() && activity.config.showCharacterCounter)
