@@ -2357,11 +2357,11 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         binding.threadToolbar.beGone()
         binding.topDetailsCompact.root.beGone()
         binding.topDetailsLarge.beGone()
+        binding.messageHolder.root.beGone()
         binding.threadActionModeToolbar.beVisible()
         binding.scrollToBottomFab.beGone()
         binding.root.post {
             applyActionModeRippleToolbarForThread()
-            applyActionModeThreadBottomInset(true)
         }
     }
 
@@ -2377,7 +2377,9 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             binding.topDetailsCompact.root.beVisible()
         }
         binding.scrollToBottomFab.beVisible()
-        applyActionModeThreadBottomInset(false)
+        if (!isRecycleBin && !isSpecialNumber()) {
+            binding.messageHolder.root.beVisible()
+        }
     }
 
     override fun getBlurTargetView() = binding.mainBlurTarget
@@ -2404,21 +2406,5 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
     fun refreshActionModeRippleToolbarIfNeeded() {
         if (isDestroyed || isFinishing) return
         applyActionModeRippleToolbarForThread()
-        applyActionModeThreadBottomInset(binding.actionModeRippleToolbar.visibility == View.VISIBLE)
-    }
-
-    private fun applyActionModeThreadBottomInset(enabled: Boolean) {
-        val bottomPx = if (!enabled) {
-            0
-        } else {
-            val nav = ViewCompat.getRootWindowInsets(binding.root)
-                ?.getInsets(WindowInsetsCompat.Type.navigationBars())?.bottom ?: 0
-            val ripple = binding.actionModeRippleToolbar
-            val h = ripple.height.takeIf { it > 0 } ?: ripple.measuredHeight.takeIf { it > 0 }
-                ?: resources.getDimensionPixelSize(R.dimen.action_mode_bottom_inset_fallback)
-            val margin = (25 * resources.displayMetrics.density).toInt()
-            h + margin + nav
-        }
-        binding.threadMessagesList.updatePadding(bottom = bottomPx)
     }
 }
