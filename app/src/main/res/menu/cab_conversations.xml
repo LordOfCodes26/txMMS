@@ -75,11 +75,11 @@
         android:title="@string/decrypt"
         app:showAsAction="never" />
     <item
-        android:id="@+id/cab_secret_region_add"
-        android:title="@string/secret_region_add"
+        android:id="@+id/cab_secure_space_add"
+        android:title="@string/secure_space_add"
         app:showAsAction="never" />
     <item
-        android:id="@+id/cab_secret_region_delete"
-        android:title="@string/secret_region_delete"
+        android:id="@+id/cab_secure_space_delete"
+        android:title="@string/secure_space_delete"
         app:showAsAction="never" />
 </menu>

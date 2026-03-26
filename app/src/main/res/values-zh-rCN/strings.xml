@@ -170,8 +170,10 @@
         <item quantity="one">%d분전</item>
         <item quantity="other">%d분전</item>
     </plurals>
-    <string name="all_reading"></string>
-    <string name="blocked_list"></string>
-    <string name="protect_region"></string>
-    <string name="sim_card_message"></string>
+    <string name="all_reading">全部阅读</string>
+    <string name="blocked_list">阻止列表</string>
+    <string name="private_space">保护区域</string>
+    <string name="sim_card_message">SIM卡通知</string>
+    <string name="secure_space_add">添加到安全文件夹</string>
+    <string name="secure_space_delete">从安全文件夹中移除</string>
 </resources>

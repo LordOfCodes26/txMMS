@@ -410,7 +410,7 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
 //            }
             R.id.all_reading -> {}
             R.id.blocked_list -> {}
-            R.id.protect_region -> {}
+            R.id.private_space -> {}
             R.id.sim_card_message -> {}
             R.id.settings -> launchSettings()
 //            R.id.about -> launchAbout()
