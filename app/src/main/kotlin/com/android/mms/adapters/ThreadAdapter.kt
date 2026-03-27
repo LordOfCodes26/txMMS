@@ -253,9 +253,8 @@ class ThreadAdapter(
         val items = ArrayList<IconItem>()
         val ids = ArrayList<Int>()
         val pm = PopupMenu(activity, recyclerView)
-//        activity.menuInflater.inflate(R.menu.cab_thread, pm.menu)
-//        activity.menuInflater.inflate(R.menu.cab_action_menu, pm.menu)
-        activity.menuInflater.inflate(R.menu.cab_conversations, pm.menu)
+        activity.menuInflater.inflate(R.menu.cab_thread, pm.menu)
+        activity.menuInflater.inflate(R.menu.cab_action_menu, pm.menu)
         configureThreadActionMenuItems(pm.menu)
         pm.menu.findItem(R.id.cab_select_all)?.isVisible = false
         val m = pm.menu
@@ -344,6 +343,11 @@ class ThreadAdapter(
             R.id.cab_delete -> askConfirmDelete()
             R.id.cab_restore -> askConfirmRestore()
             R.id.cab_properties -> showMessageDetails()
+
+            //ripple
+            R.id.cab_ripple_delete -> askConfirmDelete()
+            R.id.cab_ripple_message_conversion -> forwardMessage()
+            R.id.cab_ripple_copy -> copyToClipboard()
         }
     }
 

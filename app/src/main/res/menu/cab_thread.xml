@@ -41,4 +41,22 @@
         android:showAsAction="never"
         android:title="@string/restore"
         app:showAsAction="never" />
+
+    <!--    ripple items-->
+    <item
+        android:id="@+id/cab_ripple_delete"
+        android:title="@string/delete"
+        android:icon="@drawable/ic_cmn_delete_fill"
+        app:showAsAction="ifRoom"/>
+    <item
+        android:id="@+id/cab_ripple_message_conversion"
+        android:title="@string/message_conversion"
+        android:icon="@drawable/ic_cmn_chat_fill"
+        app:showAsAction="ifRoom"/>
+    <item
+        android:id="@+id/cab_ripple_copy"
+        android:title="@string/copy"
+        android:icon="@drawable/ic_sms_ripple_copy"
+        app:showAsAction="ifRoom"/>
+
 </menu>

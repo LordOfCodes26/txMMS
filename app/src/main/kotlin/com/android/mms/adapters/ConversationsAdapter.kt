@@ -301,7 +301,7 @@ class ConversationsAdapter(
 
         // Single-select only; visibility comes from [configureCabConversationsMenu] (details: group or contact; add: unknown number).
         val selectedItemSize = getSelectedItems().size
-        val exactlyOneConversation = getSelectedItems().size == 1
+        // val exactlyOneConversation = getSelectedItems().size == 1
         if (selectedItemSize == 1){
             add(
                 com.android.common.R.drawable.ic_cmn_delete_fill,
@@ -474,6 +474,13 @@ class ConversationsAdapter(
             R.id.cab_unpin_conversation -> pinConversation(false)
             R.id.cab_encrypt_conversations -> encryptConversations()
             R.id.cab_decrypt_conversations -> decryptConversations()
+
+            //when ripple
+            R.id.cab_ripple_delete -> askConfirmDelete()
+            R.id.cab_ripple_address_add -> addNumberToContact()
+            R.id.cab_ripple_secure_box -> {}
+            R.id.cab_ripple_private_space_add -> encryptConversations()
+
         }
     }
 
