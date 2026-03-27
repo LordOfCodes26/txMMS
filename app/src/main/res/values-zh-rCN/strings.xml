@@ -174,8 +174,9 @@
     <string name="blocked_list">阻止列表</string>
     <string name="private_space">保护区域</string>
     <string name="sim_card_message">SIM卡通知</string>
-    <string name="secure_space_add">添加到安全区域</string>
-    <string name="secure_space_delete">从安全区域中移除</string>
+    <string name="private_space_add">添加到安全区域</string>
+    <string name="private_space_delete">从安全区域中移除</string>
     <string name="dial_number_copy">拨号并复制</string>
     <string name="history_delete">历史记录删除</string>
+    <string name="message_conversion">消息转换</string>
 </resources>

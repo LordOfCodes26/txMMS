@@ -11,5 +11,6 @@ data class SearchResult(
     val threadId: Long,
     var photoUri: String,
     val isCompany: Boolean = false,
-    val isBlocked: Boolean = false
+    val isBlocked: Boolean = false,
+    val lastMessageType: Int = -1
 )

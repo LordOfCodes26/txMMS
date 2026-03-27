@@ -230,6 +230,9 @@ class ThreadAdapter(
             findItem(R.id.cab_properties)?.isVisible = isOneItemSelected
             findItem(R.id.cab_restore)?.isVisible = isRecycleBin && selectedKeys.isNotEmpty()
             findItem(R.id.cab_delete)?.isVisible = selectedKeys.isNotEmpty() && !isRecycleBin
+            findItem(R.id.cab_ripple_delete)?.isVisible = true
+            findItem(R.id.cab_ripple_message_conversion)?.isVisible = true
+            findItem(R.id.cab_ripple_copy)?.isVisible = true
         }
     }
 
@@ -250,8 +253,9 @@ class ThreadAdapter(
         val items = ArrayList<IconItem>()
         val ids = ArrayList<Int>()
         val pm = PopupMenu(activity, recyclerView)
-        activity.menuInflater.inflate(R.menu.cab_thread, pm.menu)
-        activity.menuInflater.inflate(R.menu.cab_action_menu, pm.menu)
+//        activity.menuInflater.inflate(R.menu.cab_thread, pm.menu)
+//        activity.menuInflater.inflate(R.menu.cab_action_menu, pm.menu)
+        activity.menuInflater.inflate(R.menu.cab_conversations, pm.menu)
         configureThreadActionMenuItems(pm.menu)
         pm.menu.findItem(R.id.cab_select_all)?.isVisible = false
         val m = pm.menu
@@ -267,24 +271,15 @@ class ThreadAdapter(
         }
 
         val orderedIds = listOf(
-            R.id.cab_copy_to_clipboard,
-            // R.id.cab_share,
-            R.id.cab_save_as,
-            R.id.cab_forward_message,
-            // R.id.cab_select_text,
-            // R.id.cab_properties,
-            R.id.cab_restore,
-            R.id.cab_delete,
+            R.id.cab_ripple_delete,
+            R.id.cab_ripple_message_conversion,
+            R.id.cab_ripple_copy
         )
         val iconForId = { itemId: Int ->
             when (itemId) {
-                R.id.cab_copy_to_clipboard -> com.android.common.R.drawable.ic_cmn_copy
-                R.id.cab_save_as -> com.android.common.R.drawable.ic_cmn_note
-                R.id.cab_forward_message -> R.drawable.ic_redo_vector
-                // R.id.cab_select_text -> com.android.common.R.drawable.ic_cmn_list
-                // R.id.cab_properties -> R.drawable.ic_cmn_info
-                R.id.cab_restore -> R.drawable.ic_delete_restore
-                R.id.cab_delete -> com.goodwy.commons.R.drawable.ic_delete_outline
+                R.id.cab_ripple_copy -> R.drawable.ic_sms_ripple_copy
+                R.id.cab_ripple_message_conversion -> com.android.common.R.drawable.ic_cmn_chat_fill
+                R.id.cab_ripple_delete -> com.android.common.R.drawable.ic_cmn_delete_fill
                 else -> 0
             }
         }
@@ -292,8 +287,16 @@ class ThreadAdapter(
             val mi = m.findItem(itemId) ?: continue
             if (!mi.isVisible) continue
             val iconRes = iconForId(itemId)
-            if (iconRes == 0) continue
+//            if (iconRes == 0) continue
+            if (getSelectedItems().size == 0){
+                break
+            }
             add(iconRes, mi.title ?: "", itemId)
+            if (getSelectedItems().size == 1){
+                if (itemId == R.id.cab_ripple_message_conversion) {
+                    break
+                }
+            }
         }
         return items to ids
     }

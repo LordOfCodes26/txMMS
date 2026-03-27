@@ -207,8 +207,9 @@
     <string name="blocked_list">Blocked list</string>
     <string name="private_space">Protect region</string>
     <string name="sim_card_message">Sim card message</string>
-    <string name="secure_space_add">Private space add</string>
-    <string name="secure_space_delete">Private space delete</string>
+    <string name="private_space_add">Private space add</string>
+    <string name="private_space_delete">Private space delete</string>
     <string name="dial_number_copy">Dial number copy</string>
     <string name="history_delete">History delete</string>
+    <string name="message_conversion">Message Conversion</string>
 </resources>
