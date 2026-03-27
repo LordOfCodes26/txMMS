@@ -1178,6 +1178,7 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
                 conversations.forEach { conversation ->
                     try {
                         conversation.messageCount = messagesDB.getThreadMessageCount(conversation.threadId)
+                        conversation.lastMessageType = messagesDB.getLastMessageType(conversation.threadId)
                     } catch (_: Exception) {
                         conversation.messageCount = 0
                     }
@@ -1207,15 +1208,24 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
                 messageId = -1,
                 title = conversation.title,
                 phoneNumber = conversation.phoneNumber,
-                snippet = conversation.phoneNumber,
+                snippet = conversation.snippet,
                 date = "",
                 dateMillis = dateMillis,
                 threadId = conversation.threadId,
                 photoUri = conversation.photoUri,
                 isCompany = conversation.isCompany,
-                isBlocked = conversation.isBlocked
+                isBlocked = conversation.isBlocked,
+                lastMessageType = conversation.lastMessageType
             )
             flatResults.add(searchResult)
+        }
+
+        fun getTypeFromMessage(message: Message): Int {
+            return if (message.isReceivedMessage()) {
+                Telephony.Sms.MESSAGE_TYPE_INBOX
+            } else {
+                Telephony.Sms.MESSAGE_TYPE_SENT
+            }
         }
 
         messages.sortedByDescending { it.id }.forEach { message ->
@@ -1239,7 +1249,9 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
                 dateMillis = dateMillis,
                 threadId = message.threadId,
                 photoUri = message.senderPhotoUri,
-                isCompany = isCompany
+                isCompany = isCompany,
+                isBlocked = false,
+                lastMessageType = getTypeFromMessage(message)
             )
             flatResults.add(searchResult)
         }

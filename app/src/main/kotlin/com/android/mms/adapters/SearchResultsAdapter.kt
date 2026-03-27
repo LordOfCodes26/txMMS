@@ -2,6 +2,7 @@ package com.android.mms.adapters
 
 import android.os.Handler
 import android.os.Looper
+import android.provider.Telephony
 import android.util.TypedValue
 import android.view.Menu
 import android.view.View
@@ -242,6 +243,35 @@ class SearchResultsAdapter(
                     setTextColor(colorRed)
                 } else {
                     setTextColor(blackDarkTextColor)
+                }
+            }
+            searchResultMessageType.apply {
+                val type = searchResult.lastMessageType
+                when {
+                    type == Telephony.Sms.MESSAGE_TYPE_INBOX -> {
+                        setImageResource(R.drawable.ic_sms_in)
+                        beVisible()
+                    }
+                    type == Telephony.Sms.MESSAGE_TYPE_SENT -> {
+                        setImageResource(R.drawable.ic_sms_out)
+                        beVisible()
+                    }
+                    type == Telephony.Sms.MESSAGE_TYPE_OUTBOX -> {
+                        setImageResource(R.drawable.ic_cmn_sms_send)
+                        beVisible()
+                    }
+                    type == Telephony.Sms.MESSAGE_TYPE_FAILED -> {
+                        setImageResource(R.drawable.ic_sms_send_fail)
+                        beVisible()
+                    }
+                    type == Telephony.Sms.MESSAGE_TYPE_QUEUED -> {
+                        setImageResource(com.android.common.R.drawable.ic_cmn_alarm)
+                        beVisible()
+                    }
+                    else -> {
+                        setImageResource(R.drawable.ic_sms_send_fail)
+                        beVisible()
+                    }
                 }
             }
 

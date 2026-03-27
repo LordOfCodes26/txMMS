@@ -12,5 +12,5 @@ data class SearchResult(
     var photoUri: String,
     val isCompany: Boolean = false,
     val isBlocked: Boolean = false,
-    val lastMessageType: Int = -1
+    val lastMessageType: Int? = null
 )
