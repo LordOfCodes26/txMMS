@@ -9,11 +9,14 @@ import java.util.Locale
 
 private const val ONE_MIN_MS = 60_000L
 private const val SIXTY_MIN_MS = 60 * ONE_MIN_MS
+private const val ONE_HOUR_MS = SIXTY_MIN_MS
+private const val TWENTY_FOUR_HOURS_MS = 24L * ONE_HOUR_MS
 
 /**
  * Formats last-message / call time for list rows under Today, Yesterday, or Previous headers.
  *
- * - **Today:** Delta &lt; 1 min → "Now"; 1–60 min → "1 min ago" / "N mins ago"; else → `HH:mm`
+ * - **Today:** Delta &lt; 1 min → "Now"; 1–60 min → "1 min ago" / "N mins ago";
+ *   &gt; 60 min and ≤ 24 h → "1 hour ago" / "N hours ago"; else → `HH:mm`
  * - **Yesterday:** `HH:mm`
  * - **Previous:** same calendar year as now → `MM.dd HH:mm`; else → `yyyy.MM.dd HH:mm`
  */
@@ -37,6 +40,10 @@ fun formatGroupedSectionDateTime(
                 delta <= SIXTY_MIN_MS -> {
                     val mins = (delta / ONE_MIN_MS).toInt().coerceIn(1, 60)
                     context.resources.getQuantityString(R.plurals.grouped_list_minutes_ago, mins, mins)
+                }
+                delta <= TWENTY_FOUR_HOURS_MS -> {
+                    val hours = (delta / ONE_HOUR_MS).toInt().coerceIn(1, 24)
+                    context.resources.getQuantityString(R.plurals.grouped_list_hours_ago, hours, hours)
                 }
                 else -> SimpleDateFormat("HH:mm", Locale.getDefault()).format(lastMessageMillis)
             }
@@ -84,7 +91,11 @@ fun normalizeGroupedListRelativeTextForKorean(context: Context, text: String): S
 
 /**
  * Milliseconds until the displayed Today-section label may change for this message/call time.
- * Schedules the next UI refresh so "1 min ago" becomes "2 min ago", "Now" becomes "1 min ago", etc.
+ * Mirrors how [formatGroupedSectionDateTime] buckets time:
+ * - **Now → minutes:** next full minute boundary ("1 min ago" → "2 min ago", same as [delta] crosses each minute).
+ * - **Minutes → hours:** next full minute while still ≤ 60 min; then next full hour boundary while in the hour range
+ *   ("1 hour ago" → "2 hours ago" after one full hour of elapsed time, same idea as minutes).
+ * - **Clock (HH:mm):** next minute tick of wall clock.
  */
 fun nextGroupedTodayLabelRefreshDelayMillis(lastMessageMillis: Long): Long {
     val now = System.currentTimeMillis()
@@ -94,6 +105,12 @@ fun nextGroupedTodayLabelRefreshDelayMillis(lastMessageMillis: Long): Long {
         delta <= SIXTY_MIN_MS -> {
             val m = (delta / ONE_MIN_MS).toInt()
             val nextBoundary = (m + 1) * ONE_MIN_MS
+            (nextBoundary - delta).coerceAtLeast(1L)
+        }
+        delta <= TWENTY_FOUR_HOURS_MS -> {
+            // Same pattern as minutes: advance when floor(delta/hour) would increment (next hour boundary).
+            val h = (delta / ONE_HOUR_MS).toInt()
+            val nextBoundary = (h + 1) * ONE_HOUR_MS
             (nextBoundary - delta).coerceAtLeast(1L)
         }
         else -> {

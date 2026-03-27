@@ -49,6 +49,10 @@
         <item quantity="one">%d min ago</item>
         <item quantity="other">%d mins ago</item>
     </plurals>
+    <plurals name="grouped_list_hours_ago">
+        <item quantity="one">%d hour ago</item>
+        <item quantity="other">%d hours ago</item>
+    </plurals>
     <string name="call_log">Call log</string>
     <string name="contacts">Contacts</string>
     <string name="no_call_log">No call history</string>

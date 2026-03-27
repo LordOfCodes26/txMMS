@@ -169,6 +169,10 @@
         <item quantity="one">%d분전</item>
         <item quantity="other">%d분전</item>
     </plurals>
+    <plurals name="grouped_list_hours_ago">
+        <item quantity="one">%d시간전</item>
+        <item quantity="other">%d시간전</item>
+    </plurals>
     <string name="all_reading">모두 읽기</string>
     <string name="blocked_list">차단목록</string>
     <string name="private_space">보안령역</string>

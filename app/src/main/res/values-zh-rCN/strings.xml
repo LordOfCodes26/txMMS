@@ -170,6 +170,10 @@
         <item quantity="one">%d분전</item>
         <item quantity="other">%d분전</item>
     </plurals>
+    <plurals name="grouped_list_hours_ago">
+        <item quantity="one">%d小时前</item>
+        <item quantity="other">%d小时前</item>
+    </plurals>
     <string name="all_reading">全部阅读</string>
     <string name="blocked_list">阻止列表</string>
     <string name="private_space">保护区域</string>
