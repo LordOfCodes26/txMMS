@@ -37,6 +37,7 @@ import android.util.TypedValue
 import android.view.KeyEvent
 import android.view.View
 import android.view.WindowManager
+import android.view.animation.DecelerateInterpolator
 import android.view.animation.OvershootInterpolator
 import android.os.Handler
 import android.os.Looper
@@ -123,6 +124,8 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
     private lateinit var scheduledDateTime: DateTime
 
     private var isAttachmentPickerVisible = false
+    /** When true, [threadTypeMessage] focus loss is from opening the attachment picker; skip inset sync. */
+    private var ignoreInputFocusLossInsetSync = false
     private var wasKeyboardVisible = false
     private var isSpeechToTextAvailable = false
     private var expandedMessageFragment: com.android.mms.fragments.ExpandedMessageFragment? = null
@@ -161,7 +164,9 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                 bottomView,
                 binding.shortCodeHolder.root
             ),
-            animateIme= true
+            // IME animation callback on content can leave stale bottom padding when the keyboard hides
+            // without a clean animation (e.g. toolbar steals window focus while the EditText keeps focus).
+            animateIme = false
         )
         setupMessagingEdgeToEdge()
 //        setupMaterialScrollListener(null, binding.threadAppbar)
@@ -402,11 +407,54 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                     barContainer.layoutParams = bottomBarLp
                 }
             }
+            // Toolbar / popups often hide the IME without clearing EditText focus; re-sync compose bar
+            // padding from root insets so it cannot stay stuck between keyboard and nav bar.
+            binding.root.post { applyComposeBarImePaddingFromInsets() }
             insets
         }
     }
 
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
+
+    /**
+     * Matches [EdgeToEdgeActivity.setupEdgeToEdge] padding for IME + system bars on the compose bar.
+     * Call when root insets change or when the IME hides without the EditText losing focus (toolbar taps).
+     */
+    private fun applyComposeBarImePaddingFromInsets() {
+        val rootInsets = ViewCompat.getRootWindowInsets(binding.root)
+            ?: ViewCompat.getRootWindowInsets(window.decorView)
+            ?: return
+        val imeAndSystem = rootInsets.getInsets(
+            WindowInsetsCompat.Type.ime() or WindowInsetsCompat.Type.systemBars()
+        )
+        val bottomPx = imeAndSystem.bottom
+        if (isRecycleBin) {
+            binding.threadMessagesList.updatePaddingWithBase(bottom = bottomPx)
+        } else {
+            binding.messageHolder.root.updatePaddingWithBase(bottom = bottomPx)
+        }
+        binding.shortCodeHolder.root.updatePaddingWithBase(bottom = bottomPx)
+    }
+
+    /**
+     * Focus loss is unreliable when the toolbar hides the IME (EditText often keeps focus).
+     * Still apply manual padding + re-dispatch for any edge cases.
+     */
+    private fun syncMessageInputBarToBottomAfterFocusLoss() {
+        if (isRecycleBin) return
+        val bar = binding.messageHolder.root
+        applyComposeBarImePaddingFromInsets()
+        val content = findViewById<View>(android.R.id.content)
+        fun requestInsets() {
+            ViewCompat.requestApplyInsets(binding.root)
+            content?.let { ViewCompat.requestApplyInsets(it) }
+            ViewCompat.requestApplyInsets(bar)
+        }
+        binding.root.post {
+            applyComposeBarImePaddingFromInsets()
+            requestInsets()
+        }
+    }
 
     private fun saveDraftMessage() {
         val draftMessage = messageHolderHelper?.getMessageText() ?: ""
@@ -969,6 +1017,11 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                 binding.messageHolder.messageHolder.postDelayed({
                     binding.root.post { ViewCompat.requestApplyInsets(binding.root) }
                 }, 350)
+            },
+            onThreadTypeMessageFocusChange = { hasFocus ->
+                if (!hasFocus && !isAttachmentPickerVisible && !ignoreInputFocusLossInsetSync) {
+                    syncMessageInputBarToBottomAfterFocusLoss()
+                }
             }
         )
         
@@ -985,6 +1038,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                     // Re-apply window insets so message bubbles move up when attachment picker is shown
                     binding.root.post { ViewCompat.requestApplyInsets(binding.root) }
                 } else {
+                    ignoreInputFocusLossInsetSync = true
                     hideKeyboard()
                     threadTypeMessage.clearFocus()
                     // If keyboard is visible, wait for it to fully hide before showing picker (done in setupMessagingEdgeToEdge insets listener)
@@ -998,6 +1052,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                         threadTypeMessage.requestApplyInsets()
                         // Re-apply window insets so message bubbles move up when attachment picker is shown
                         binding.root.post { ViewCompat.requestApplyInsets(binding.root) }
+                        ignoreInputFocusLossInsetSync = false
                     }, 250)
                 }
 

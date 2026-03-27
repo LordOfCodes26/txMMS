@@ -38,7 +38,8 @@ class MessageHolderHelper(
     private val onSpeechToText: () -> Unit = {},
     private val onExpandMessage: (() -> Unit)? = null,
     private val onTextChanged: ((String) -> Unit)? = null,
-    private val onHideAttachmentPickerRequested: (() -> Unit)? = null
+    private val onHideAttachmentPickerRequested: (() -> Unit)? = null,
+    private val onThreadTypeMessageFocusChange: ((hasFocus: Boolean) -> Unit)? = null,
 ) {
     private var isCountdownActive = false
     private var isSpeechToTextAvailable = false
@@ -103,6 +104,7 @@ class MessageHolderHelper(
                     hideAttachmentPicker()
                     activity.showKeyboard(threadTypeMessage)
                 }
+                onThreadTypeMessageFocusChange?.invoke(hasFocus)
             }
 
             threadTypeMessage.onTextChangeListener {
