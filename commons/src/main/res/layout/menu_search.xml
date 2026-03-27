@@ -5,19 +5,37 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content">
 
-    <RelativeLayout
+    <com.google.android.material.appbar.CollapsingToolbarLayout
         android:id="@+id/searchBarContainer"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="@dimen/smaller_margin">
+        android:layout_height="128dp"
+        android:minHeight="?attr/actionBarSize"
+        app:contentScrim="@android:color/transparent"
+        app:layout_scrollFlags="scroll|exitUntilCollapsed">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="?attr/actionBarSize"
+            android:gravity="center_vertical"
+            android:layout_gravity="bottom|start">
+            <TextView
+                android:id="@+id/collapsingTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_marginStart="@dimen/activity_margin"
+                android:gravity="center_vertical"
+                android:includeFontPadding="false"
+                android:textSize="@dimen/tx_big_title" />
+        </LinearLayout>
 
         <com.goodwy.commons.views.CustomToolbar
             android:id="@+id/topToolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
-            android:layout_alignParentTop="true"
-            android:layout_alignParentEnd="true" />
-    </RelativeLayout>
+            android:layout_gravity="top"
+            android:background="@android:color/transparent"
+            app:layout_collapseMode="pin" />
+    </com.google.android.material.appbar.CollapsingToolbarLayout>
 
     <com.goodwy.commons.views.CustomActionModeToolbar
         android:id="@+id/actionModeToolbar"
@@ -25,4 +43,5 @@
         android:layout_height="?attr/actionBarSize"
         android:background="@android:color/transparent"
         android:visibility="gone" />
+
 </merge>

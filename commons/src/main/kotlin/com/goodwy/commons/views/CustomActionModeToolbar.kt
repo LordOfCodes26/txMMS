@@ -397,12 +397,8 @@ class CustomActionModeToolbar @JvmOverloads constructor(
             itemClickHandler.onMenuItemClick(original)
             true
         }
-        val pullUpPx = activity.resources.getDimensionPixelSize(R.dimen.mactionbar_popup_vertical_overlap)
         clearMpopupAnchorOffset(popup)
         popup.show()
-        if (pullUpPx > 0) {
-            applyMpopupAnchorAdjustments(popup, activity, horizontalEndInsetPx = 0, verticalPullUpPx = pullUpPx)
-        }
         return popup
     }
     fun setPopupForMoreItem(

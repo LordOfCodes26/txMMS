@@ -119,20 +119,9 @@ class BlurPopupMenu(
         }.getOrDefault(0)
     }
 
-    /** Pull popup up for toolbar-anchored menus (no touch X); removes gap under MActionBar. */
+    /** Keep default MPopup Y; avoid post-show vertical motion/jump. */
     private fun resolveVerticalPullUpPx(): Int {
-        if (touchX >= 0f) {
-            return 0
-        }
-        val endAligned = gravity == Gravity.END ||
-            gravity == Gravity.RIGHT ||
-            gravity == Gravity.NO_GRAVITY
-        if (!endAligned) {
-            return 0
-        }
-        return runCatching {
-            context.resources.getDimensionPixelSize(R.dimen.mactionbar_popup_vertical_overlap)
-        }.getOrDefault(0)
+        return 0
     }
 
     fun dismiss() {
@@ -230,6 +219,7 @@ internal fun clearMpopupAnchorOffset(popup: MPopup) {
 /**
  * Applies horizontal end inset and/or vertical pull-up after [MPopup.show], **before the first draw**:
  * hides content, runs [PopupWindow.update], then shows. Avoids a visible frame at default END + post jump.
+ * [verticalPullUpPx] is signed: positive pulls popup up, negative pushes it down.
  */
 internal fun applyMpopupAnchorAdjustments(
     popup: MPopup,
@@ -237,7 +227,7 @@ internal fun applyMpopupAnchorAdjustments(
     horizontalEndInsetPx: Int = 0,
     verticalPullUpPx: Int = 0,
 ) {
-    if (horizontalEndInsetPx <= 0 && verticalPullUpPx <= 0) {
+    if (horizontalEndInsetPx == 0 && verticalPullUpPx == 0) {
         return
     }
     runCatching {
@@ -262,7 +252,7 @@ internal fun applyMpopupAnchorAdjustments(
             if (horizontalEndInsetPx > 0) {
                 xRoot += if (isRtl) horizontalEndInsetPx else -horizontalEndInsetPx
             }
-            if (verticalPullUpPx > 0) {
+            if (verticalPullUpPx != 0) {
                 yRoot -= verticalPullUpPx
             }
             pw.update(xRoot, yRoot, -1, -1)

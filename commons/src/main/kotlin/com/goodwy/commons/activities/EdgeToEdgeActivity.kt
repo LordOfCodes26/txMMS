@@ -332,6 +332,40 @@ abstract class EdgeToEdgeActivity : AppCompatActivity() {
         }
     }
 
+    /** Top bar colors for a standalone [CustomToolbar] (e.g. inside Material [AppBarLayout] without [MyAppBarLayout]). */
+    fun updateTopBarColors(
+        customToolbar: CustomToolbar,
+        colorBackground: Int,
+        colorPrimary: Int = getProperPrimaryColor(),
+        topAppBarColorIcon: Boolean = baseConfig.topAppBarColorIcon,
+        topAppBarColorTitle: Boolean = baseConfig.topAppBarColorTitle
+    ) {
+        val getProperBackgroundColor = getProperBackgroundColor()
+        val contrastColor =
+            if (colorBackground == Color.TRANSPARENT) getProperBackgroundColor.getContrastColor()
+            else colorBackground.getContrastColor()
+        val itemColor = if (topAppBarColorIcon) colorPrimary else contrastColor
+        val titleColor = if (topAppBarColorTitle) colorPrimary else contrastColor
+
+        window.setSystemBarsAppearance(colorBackground)
+
+        customToolbar.setTitleTextColor(titleColor)
+        customToolbar.navigationIcon?.applyColorFilter(itemColor)
+        val overflowIconRes =
+            if (useOverflowIcon) getOverflowIcon(baseConfig.overflowIcon) else getOverflowIcon(OVERFLOW_ICON_VERTICAL)
+        customToolbar.overflowIcon =
+            resources.getColoredDrawableWithColor(this, overflowIconRes, itemColor)
+
+        val menu = customToolbar.menu
+        for (i in 0 until menu.size) {
+            try {
+                menu[i].icon?.setTint(itemColor)
+            } catch (_: Exception) {
+            }
+        }
+        customToolbar.invalidateMenu()
+    }
+
     fun updateToolbarColors(
         toolbar: Toolbar,
         colorBackground: Int,

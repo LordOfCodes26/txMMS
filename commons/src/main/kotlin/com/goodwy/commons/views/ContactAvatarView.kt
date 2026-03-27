@@ -74,6 +74,8 @@ class ContactAvatarView @JvmOverloads constructor(
     private val THUMBNAIL_SIZE = 200
     // Max decode size for list preview avatars (keeps list scrolling fast)
     private val PREVIEW_MAX_SIZE = 96
+    // Track whether current bind is used in compact list/preview UI.
+    private var currentPreviewMode: Boolean = false
 
     /**
      * Returns the pixel size to use for Glide override so the image fills the avatar
@@ -408,7 +410,7 @@ class ContactAvatarView @JvmOverloads constructor(
 
         // Calculate text size as 50% of the view size (similar to canvas-based approach)
         // This ensures the letter scales proportionally with the avatar
-        val textSizePx = size * 0.39f
+        val textSizePx = size * 0.5f
 
         // Set text size in pixels for precise control
         avatarInitials.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, textSizePx)

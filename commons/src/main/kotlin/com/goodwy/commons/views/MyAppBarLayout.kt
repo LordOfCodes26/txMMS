@@ -3,6 +3,7 @@ package com.goodwy.commons.views
 import android.content.Context
 import android.util.AttributeSet
 import android.view.View
+import android.view.ViewGroup
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat.Type
 import androidx.core.view.updatePadding
@@ -33,37 +34,35 @@ open class MyAppBarLayout @JvmOverloads constructor(
 
     open val toolbar: MaterialToolbar?
         get() {
-            // First check for CustomToolbar
-            if (cachedCustomToolbar != null) {
-                return null // CustomToolbar doesn't extend MaterialToolbar
+            cachedToolbar?.let { return it }
+            findFirstDescendant(this, MaterialToolbar::class.java)?.let {
+                cachedToolbar = it
+                return it
             }
-            
-            for (i in 0 until childCount) {
-                val child = getChildAt(i)
-                if (child is MaterialToolbar) {
-                    return child.also { cachedToolbar = it }
-                }
-            }
-
             return null
         }
-    
+
     open val customToolbar: CustomToolbar?
         get() {
-            // First check for MaterialToolbar
-            if (cachedToolbar != null) {
-                return null // MaterialToolbar doesn't extend CustomToolbar
+            cachedCustomToolbar?.let { return it }
+            findFirstDescendant(this, CustomToolbar::class.java)?.let {
+                cachedCustomToolbar = it
+                return it
             }
-            
-            for (i in 0 until childCount) {
-                val child = getChildAt(i)
-                if (child is CustomToolbar) {
-                    return child.also { cachedCustomToolbar = it }
-                }
-            }
-
             return null
         }
+
+    @Suppress("UNCHECKED_CAST")
+    private fun <T : View> findFirstDescendant(root: ViewGroup, clazz: Class<T>): T? {
+        for (i in 0 until root.childCount) {
+            val child = root.getChildAt(i)
+            if (clazz.isInstance(child)) return child as T
+            if (child is ViewGroup) {
+                findFirstDescendant(child, clazz)?.let { return it }
+            }
+        }
+        return null
+    }
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()

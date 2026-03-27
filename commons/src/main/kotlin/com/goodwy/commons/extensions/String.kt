@@ -295,6 +295,40 @@ fun Char.toKoreanChoseongOrNull(): Char? {
     }
 }
 
+/** Single-char labels for collapsed fast-scroll rail (see [toFastScrollBucket]). */
+private const val FAST_SCROLL_LATIN_BUCKET = "A" // all English / Latin letters
+private const val FAST_SCROLL_HAN_BUCKET = "汉" // Han script (Chinese characters; also Kanji / Hanja)
+private const val FAST_SCROLL_DIGIT_BUCKET = "0"
+private const val FAST_SCROLL_SYMBOL_BUCKET = "#"
+private const val FAST_SCROLL_NON_LATIN_LETTER_BUCKET = "\u00B7" // middle dot — e.g. Cyrillic, Arabic
+
+/**
+ * Maps [getFirstLetter]-style output to a short rail: merge all Latin / English letters into `"A"`;
+ * keep Hangul (Korean choseong ㄱ..ㅎ) distinct; Han (Chinese characters) into `"汉"`; merge digits,
+ * symbols/emoji, and other scripts into fixed buckets.
+ */
+fun String.toFastScrollBucket(): String {
+    if (isEmpty()) return ""
+    if (length > 1) return FAST_SCROLL_SYMBOL_BUCKET
+    val c = this[0]
+    return when {
+        c.isDigit() -> FAST_SCROLL_DIGIT_BUCKET
+        c in 'A'..'Z' || c in 'a'..'z' -> FAST_SCROLL_LATIN_BUCKET
+        Character.isLetter(c) -> {
+            when (Character.UnicodeScript.of(c.code)) {
+                Character.UnicodeScript.LATIN -> FAST_SCROLL_LATIN_BUCKET
+                Character.UnicodeScript.HANGUL -> c.toString()
+                Character.UnicodeScript.HAN -> FAST_SCROLL_HAN_BUCKET
+                else -> {
+                    if (c in KOREAN_COMPAT_CONSONANTS) c.toString()
+                    else FAST_SCROLL_NON_LATIN_LETTER_BUCKET
+                }
+            }
+        }
+        else -> FAST_SCROLL_SYMBOL_BUCKET
+    }
+}
+
 // checks if string is a phone number
 fun String.isPhoneNumber(): Boolean {
     return this.matches("^[0-9+\\-\\)\\( *#]+\$".toRegex())

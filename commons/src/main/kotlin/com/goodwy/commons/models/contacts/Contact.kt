@@ -345,6 +345,9 @@ data class Contact(
         return character.uppercase(Locale.getDefault()).normalizeString()
     }
 
+    /** Fast-scroll rail label; shorter than [getFirstLetter] when many scripts/symbols exist. */
+    fun getFastScrollBucket(): String = getFirstLetter().toFastScrollBucket()
+
     fun getNameToDisplay(): String {
         // Use only firstName - prefix, middleName, surname, suffix, nickname removed
         val organization = getFullCompany()

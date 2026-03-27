@@ -60,6 +60,7 @@ open class MyRecyclerView : RecyclerView {
     private var totalItemCount = 0
     private var lastMaxItemIndex = 0
     private var linearLayoutManager: LinearLayoutManager? = null
+    var onOverscrollTranslationChanged: ((translationY: Float) -> Unit)? = null
 
     constructor(context: Context) : super(context)
 
@@ -350,6 +351,9 @@ open class MyRecyclerView : RecyclerView {
                             dampingRatio = 0.7f
                             stiffness = SpringForce.STIFFNESS_MEDIUM
                         }
+                        addUpdateListener { _, value, _ ->
+                            (recyclerView as? MyRecyclerView)?.onOverscrollTranslationChanged?.invoke(value)
+                        }
                     }
 
                 private fun signForDirection(): Int {
@@ -367,6 +371,7 @@ open class MyRecyclerView : RecyclerView {
                     val maxOffset = recyclerView.height * 0.15f
                     recyclerView.translationY =
                         (recyclerView.translationY + translationDelta).coerceIn(-maxOffset, maxOffset)
+                    (recyclerView as? MyRecyclerView)?.onOverscrollTranslationChanged?.invoke(recyclerView.translationY)
                     spring.cancel()
                 }
 
@@ -384,6 +389,8 @@ open class MyRecyclerView : RecyclerView {
                 override fun onRelease() {
                     if (recyclerView.translationY != 0f) {
                         spring.start()
+                    } else {
+                        (recyclerView as? MyRecyclerView)?.onOverscrollTranslationChanged?.invoke(0f)
                     }
                 }
 

@@ -2,11 +2,12 @@ package com.goodwy.commons.views
 
 import android.content.Context
 import android.content.res.ColorStateList
+import android.util.TypedValue
 import android.util.AttributeSet
 import android.view.LayoutInflater
 import android.view.View
+import com.google.android.material.appbar.AppBarLayout
 import com.google.android.material.appbar.MaterialToolbar
-import com.goodwy.commons.R
 import com.goodwy.commons.activities.BaseSimpleActivity
 import com.goodwy.commons.databinding.MenuSearchBinding
 import com.goodwy.commons.extensions.baseConfig
@@ -18,6 +19,24 @@ open class MySearchMenu(context: Context, attrs: AttributeSet) : MyAppBarLayout(
     var onSearchTextChangedListener: ((text: String) -> Unit)? = null
 
     val binding = MenuSearchBinding.inflate(LayoutInflater.from(context), this)
+    private var savedScrollFlags: Int? = null
+    private var savedAppBarHeight: Int? = null
+    private val minCollapsedTitleScale = 0.8f
+
+    init {
+        addOnOffsetChangedListener { appBarLayout, verticalOffset ->
+            val totalRange = appBarLayout.totalScrollRange
+            if (totalRange <= 0) return@addOnOffsetChangedListener
+
+            val collapseFraction = kotlin.math.abs(verticalOffset).toFloat() / totalRange.toFloat()
+            val targetScale = 1f - ((1f - minCollapsedTitleScale) * collapseFraction)
+
+            binding.collapsingTitle.pivotX = 0f
+            binding.collapsingTitle.pivotY = binding.collapsingTitle.height / 2f
+            binding.collapsingTitle.scaleX = targetScale
+            binding.collapsingTitle.scaleY = targetScale
+        }
+    }
 
     override val toolbar: MaterialToolbar?
         get() = null // CustomToolbar is used instead
@@ -37,6 +56,48 @@ open class MySearchMenu(context: Context, attrs: AttributeSet) : MyAppBarLayout(
     fun hideActionModeToolbar() {
         binding.actionModeToolbar.visibility = View.GONE
         binding.searchBarContainer.visibility = View.VISIBLE
+    }
+
+    fun collapseAndLockCollapsing() {
+        setExpanded(false, true)
+        val params = binding.searchBarContainer.layoutParams as? AppBarLayout.LayoutParams ?: return
+        if (savedScrollFlags == null) {
+            savedScrollFlags = params.scrollFlags
+        }
+        params.scrollFlags = 0
+        binding.searchBarContainer.layoutParams = params
+
+        if (savedAppBarHeight == null) {
+            savedAppBarHeight = layoutParams?.height
+        }
+        val collapsedHeight = resolveActionBarSizePx() + paddingTop + paddingBottom
+        layoutParams = layoutParams.apply {
+            height = collapsedHeight
+        }
+        requestLayout()
+    }
+
+    fun unlockCollapsing() {
+        val params = binding.searchBarContainer.layoutParams as? AppBarLayout.LayoutParams ?: return
+        params.scrollFlags = savedScrollFlags
+            ?: (AppBarLayout.LayoutParams.SCROLL_FLAG_SCROLL or AppBarLayout.LayoutParams.SCROLL_FLAG_EXIT_UNTIL_COLLAPSED)
+        binding.searchBarContainer.layoutParams = params
+        savedScrollFlags = null
+
+        layoutParams = layoutParams.apply {
+            height = savedAppBarHeight ?: LayoutParams.WRAP_CONTENT
+        }
+        savedAppBarHeight = null
+        requestLayout()
+    }
+
+    private fun resolveActionBarSizePx(): Int {
+        val outValue = TypedValue()
+        return if (context.theme.resolveAttribute(android.R.attr.actionBarSize, outValue, true)) {
+            TypedValue.complexToDimensionPixelSize(outValue.data, resources.displayMetrics)
+        } else {
+            resources.getDimensionPixelSize(androidx.appcompat.R.dimen.abc_action_bar_default_height_material)
+        }
     }
 
     fun setupMenu() {
@@ -65,6 +126,7 @@ open class MySearchMenu(context: Context, attrs: AttributeSet) : MyAppBarLayout(
 
     fun updateTitle(title: String) {
         binding.topToolbar.title = title
+        binding.collapsingTitle.text = title
     }
 
     fun searchBeVisibleIf(visible: Boolean = true) {
@@ -75,8 +137,9 @@ open class MySearchMenu(context: Context, attrs: AttributeSet) : MyAppBarLayout(
         // Search bar removed - no-op
     }
 
-    fun setText(text: String) {
+    fun setText(text: String?) {
         // Search bar removed - no-op
+        binding.collapsingTitle.text = text
     }
 
     fun clearSearch() {

@@ -261,7 +261,7 @@ internal fun DialogCheckBoxWithRadioAlignmentComponent(
                 text = label,
                 color = preferenceLabelColor(isEnabled = isPreferenceEnabled),
                 fontSize = with(LocalDensity.current) {
-                    dimensionResource(id = R.dimen.small_text_size).toSp()
+                    dimensionResource(id = R.dimen.normal_text_size).toSp()
                 },
                 textAlign = TextAlign.End
             )

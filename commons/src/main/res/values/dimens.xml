@@ -96,6 +96,8 @@
     <dimen name="popup_menu_elevation">4dp</dimen>
     <!-- Nudge MPopup up after show so the blur menu sits flush under MActionBar (removes default gap). -->
     <dimen name="mactionbar_popup_vertical_overlap">12dp</dimen>
+    <!-- Small intentional gap below action-mode toolbar before showing overflow popup. -->
+    <dimen name="mactionbar_popup_vertical_gap">4dp</dimen>
     <dimen name="divider_height">2px</dimen>
 
     <dimen name="contact_grid_item_max_size">100dp</dimen>

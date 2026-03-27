@@ -16,6 +16,7 @@ import com.goodwy.commons.helpers.CONTACT_THUMBNAILS_SIZE_LARGE
 import com.goodwy.commons.helpers.CONTACT_THUMBNAILS_SIZE_SMALL
 import com.goodwy.commons.interfaces.ActionModeToolbarHost
 import com.goodwy.commons.interfaces.MyActionModeCallback
+import com.goodwy.commons.models.RecyclerSelectionRefreshPayload
 import com.goodwy.commons.views.BottomPaddingDecoration
 import com.goodwy.commons.views.CustomActionModeToolbar
 import com.goodwy.commons.views.MyDividerDecoration
@@ -47,7 +48,7 @@ abstract class MyRecyclerViewAdapter(
 
     protected var actBarToolbar: CustomActionModeToolbar? = null
     private var isUsingHostActionModeToolbar = false
-    private var lastLongPressedItem = -1
+    protected var lastLongPressedItem = -1
     private var originalStatusBarColor: Int? = null
 
     private var isDividersVisible = false
@@ -250,7 +251,7 @@ abstract class MyRecyclerViewAdapter(
             selectedKeys.remove(itemKey)
         }
 
-        notifyItemChanged(pos + positionOffset)
+        notifyItemChanged(pos + positionOffset, RecyclerSelectionRefreshPayload)
 
         if (updateTitle) {
             updateTitle()
@@ -262,15 +263,11 @@ abstract class MyRecyclerViewAdapter(
         // }
     }
 
-    fun updateTitle() {
+    open fun updateTitle() {
         val selectableItemCount = getSelectableItemCount()
         val selectedCount = min(selectedKeys.size, selectableItemCount)
         val oldTitle = actBarToolbar?.title
-        val newTitle = resources.getQuantityString(
-            R.plurals.items_selected_count,
-            selectedCount,
-            selectedCount
-        )
+        val newTitle = resources.getString(com.goodwy.commons.R.string.action_mode_selection_title, selectedCount, selectableItemCount)
         if (oldTitle != newTitle) {
             actBarToolbar?.title = newTitle
             actMode?.invalidate()
@@ -550,6 +547,25 @@ abstract class MyRecyclerViewAdapter(
 
     protected fun createViewHolder(view: View): ViewHolder {
         return ViewHolder(view)
+    }
+
+    override fun onBindViewHolder(holder: ViewHolder, position: Int, payloads: MutableList<Any>) {
+        if (payloads.isNotEmpty() && payloads.any { it is RecyclerSelectionRefreshPayload }) {
+            onSelectionRefresh(holder, position)
+        } else {
+            onBindViewHolder(holder, position)
+        }
+    }
+
+    /**
+     * Partial bind after selection changes (payload [RecyclerSelectionRefreshPayload]).
+     * Override in adapters that use checkboxes instead of [View.isSelected] on the row root.
+     */
+    protected open fun onSelectionRefresh(holder: ViewHolder, position: Int) {
+        val logicalPos = position - positionOffset
+        if (logicalPos < 0) return
+        val key = getItemSelectionKey(logicalPos) ?: return
+        holder.itemView.isSelected = selectedKeys.contains(key)
     }
 
     protected fun bindViewHolder(holder: ViewHolder) {
