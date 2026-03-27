@@ -190,6 +190,13 @@ class ConversationsAdapter(
             checkPinBtnVisibility(this)
             findItem(R.id.cab_secure_space_add)?.isVisible = true
             findItem(R.id.cab_secure_space_delete)?.isVisible = false
+
+            findItem(R.id.cab_ripple_message_conversion)?.isVisible = false
+            findItem(R.id.cab_ripple_copy)?.isVisible = false
+            findItem(R.id.cab_ripple_delete)?.isVisible = false
+            findItem(R.id.cab_ripple_secure_box)?.isVisible = false
+            findItem(R.id.cab_ripple_address_add)?.isVisible = false
+            findItem(R.id.cab_ripple_private_space_add)?.isVisible = false
         }
     }
 
