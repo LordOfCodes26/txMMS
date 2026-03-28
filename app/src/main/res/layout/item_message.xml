@@ -131,6 +131,7 @@
         android:clickable="true"
         android:focusable="false"
         android:visibility="gone"
+        android:layout_marginEnd="@dimen/smaller_margin"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
