@@ -53,7 +53,7 @@ import com.android.mms.adapters.ContactsAdapter
 import com.android.mms.adapters.ContactPhonePair
 import com.android.mms.databinding.ActivityNewConversationBinding
 import com.android.mms.databinding.ItemSuggestedContactBinding
-import com.android.mms.dialogs.ScheduleMessageDialog
+import com.android.mms.dialogs.showScheduleDateTimePicker
 import com.android.mms.extensions.*
 import com.android.mms.helpers.*
 import com.android.mms.messaging.isLongMmsMessage
@@ -1185,15 +1185,13 @@ class NewConversationActivity : SimpleActivity() {
         }
     }
 
-    private fun launchScheduleSendDialog(originalDateTime: DateTime? = null) {
+    private fun launchScheduleSendDialog() {
         askForExactAlarmPermissionIfNeeded {
             val blurTarget = findViewById<eightbitlab.com.blurview.BlurTarget>(R.id.mainBlurTarget)
                 ?: throw IllegalStateException("mainBlurTarget not found")
-            ScheduleMessageDialog(this, originalDateTime ?: scheduledDateTime, blurTarget) { newDateTime ->
-                if (newDateTime != null) {
-                    scheduledDateTime = newDateTime
-                    showScheduleMessageDialog()
-                }
+            showScheduleDateTimePicker(blurTarget) { newDateTime ->
+                scheduledDateTime = newDateTime
+                showScheduleMessageDialog()
             }
         }
     }
@@ -1204,7 +1202,7 @@ class NewConversationActivity : SimpleActivity() {
         scheduledMessageIcon.applyColorFilter(textColor)
         scheduledMessageButton.setTextColor(textColor)
         scheduledMessagePress.setOnClickListener {
-            launchScheduleSendDialog(scheduledDateTime)
+            launchScheduleSendDialog()
         }
         discardScheduledMessage.apply {
             applyColorFilter(textColor)
@@ -1242,7 +1240,7 @@ class NewConversationActivity : SimpleActivity() {
         val processedText = removeDiacriticsIfNeeded(text)
         if (scheduledDateTime.millis < System.currentTimeMillis() + 1000L) {
             toast(R.string.must_pick_time_in_the_future)
-            launchScheduleSendDialog(scheduledDateTime)
+            launchScheduleSendDialog()
             return
         }
         try {

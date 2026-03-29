@@ -220,13 +220,18 @@ class MessageHolderHelper(
 //            chooseCamera
 //            chooseTitle
             chooseClock.setOnClickListener {
-                val blurTarget = activity.findViewById<eightbitlab.com.blurview.BlurTarget>(R.id.mainBlurTarget)
-                    ?: throw IllegalStateException("mainBlurTarget not found")
-                val mDateTimePickerDialog = MDateTimePickerDialog(activity);
-                mDateTimePickerDialog.bindBlurTarget(blurTarget)
-                mDateTimePickerDialog.show()
-                mDateTimePickerDialog.setOnDateSelectListener { datetime ->
-                    insertText(datetime.toLocaleString())
+                if (onScheduleMessage != null) {
+                    onHideAttachmentPickerRequested?.invoke() ?: hideAttachmentPicker()
+                    onScheduleMessage.invoke()
+                } else {
+                    val blurTarget = activity.findViewById<eightbitlab.com.blurview.BlurTarget>(R.id.mainBlurTarget)
+                        ?: throw IllegalStateException("mainBlurTarget not found")
+                    val mDateTimePickerDialog = MDateTimePickerDialog(activity)
+                    mDateTimePickerDialog.bindBlurTarget(blurTarget)
+                    mDateTimePickerDialog.show()
+                    mDateTimePickerDialog.setOnDateSelectListener { datetime ->
+                        insertText(datetime.toLocaleString())
+                    }
                 }
             }
             chooseImage.setOnClickListener { onChoosePhoto() }

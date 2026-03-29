@@ -1069,14 +1069,15 @@ class ThreadAdapter(
 
                 if (message.isScheduled) {
                     typeface = Typeface.create(Typeface.DEFAULT, Typeface.ITALIC)
-                    val scheduledDrawable = AppCompatResources.getDrawable(activity, com.goodwy.commons.R.drawable.ic_clock_vector)?.apply {
-                        applyColorFilter(contrastColorReceived)
-                        val size = lineHeight
-                        //val paddingIconBottom = context.resources.getDimensionPixelSize(com.goodwy.commons.R.dimen.smaller_margin)
-                        setBounds(0, 0, size, size)
-                    }
-
-                    setCompoundDrawables(null, null, scheduledDrawable, null)
+//                    val scheduledDrawable = AppCompatResources.getDrawable(activity, com.goodwy.commons.R.drawable.ic_clock_vector)?.apply {
+//                        applyColorFilter(contrastColorReceived)
+//                        val size = lineHeight
+//                        //val paddingIconBottom = context.resources.getDimensionPixelSize(com.goodwy.commons.R.dimen.smaller_margin)
+//                        setBounds(0, 0, size, size)
+//                    }
+//
+//                    setCompoundDrawables(null, null, scheduledDrawable, null)
+                    setCompoundDrawables(null, null, null, null)
                 } else {
                     typeface = Typeface.DEFAULT
                     setCompoundDrawables(null, null, null, null)

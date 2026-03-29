@@ -76,7 +76,7 @@ import com.android.mms.helpers.MessageHolderHelper
 import com.android.mms.databinding.ActivityThreadBinding
 import com.android.mms.dialogs.InvalidNumberDialog
 import com.android.mms.dialogs.RenameConversationDialog
-import com.android.mms.dialogs.ScheduleMessageDialog
+import com.android.mms.dialogs.showScheduleDateTimePicker
 import com.android.mms.extensions.*
 import com.android.mms.extensions.getDisplayNumberWithoutCountryCode
 import com.android.common.view.MVSideFrame
@@ -1809,7 +1809,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
     private fun sendScheduledMessage(text: String, subscriptionId: Int) {
         if (scheduledDateTime.millis < System.currentTimeMillis() + 1000L) {
             toast(R.string.must_pick_time_in_the_future)
-            launchScheduleSendDialog(scheduledDateTime)
+            launchScheduleSendDialog()
             return
         }
 
@@ -2080,15 +2080,13 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         }
     }
 
-    private fun launchScheduleSendDialog(originalDateTime: DateTime? = null) {
+    private fun launchScheduleSendDialog() {
         askForExactAlarmPermissionIfNeeded {
             val blurTarget = findViewById<eightbitlab.com.blurview.BlurTarget>(R.id.mainBlurTarget)
                 ?: throw IllegalStateException("mainBlurTarget not found")
-            ScheduleMessageDialog(this, originalDateTime, blurTarget) { newDateTime ->
-                if (newDateTime != null) {
-                    scheduledDateTime = newDateTime
-                    showScheduleMessageDialog()
-                }
+            showScheduleDateTimePicker(blurTarget) { newDateTime ->
+                scheduledDateTime = newDateTime
+                showScheduleMessageDialog()
             }
         }
     }
@@ -2106,11 +2104,11 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         scheduledMessageButton.apply {
             setTextColor(textColor)
 //            setOnClickListener {
-//                launchScheduleSendDialog(scheduledDateTime)
+//                launchScheduleSendDialog()
 //            }
         }
         scheduledMessagePress.setOnClickListener {
-            launchScheduleSendDialog(scheduledDateTime)
+            launchScheduleSendDialog()
         }
 
         discardScheduledMessage.apply {
