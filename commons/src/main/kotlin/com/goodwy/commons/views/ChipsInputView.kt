@@ -318,13 +318,14 @@ class ChipsInputView @JvmOverloads constructor(
         row.addView(tv)
         row.addView(close)
 
-        val chipMarginH = res.getDimensionPixelSize(R.dimen.small_margin)
+        val chipMarginH = res.getDimensionPixelSize(R.dimen.tiny_margin)
         row.layoutParams = FlexboxLayout.LayoutParams(
             ViewGroup.LayoutParams.WRAP_CONTENT,
             rowHeight
         ).apply {
             marginEnd = chipMarginH
             bottomMargin = chipMarginH
+            topMargin = chipMarginH
         }
 
         val insertIndex = (flexContainer.childCount - 1).coerceAtLeast(0)

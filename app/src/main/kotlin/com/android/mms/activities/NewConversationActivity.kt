@@ -568,6 +568,7 @@ class NewConversationActivity : SimpleActivity() {
         
         val hasContacts = contactPhonePairs.isNotEmpty()
         binding.contactsList.beVisibleIf(hasContacts)
+        binding.contactsListWrapper.beVisibleIf(hasContacts)
         binding.noContactsPlaceholder.beVisibleIf(!hasContacts)
         binding.noContactsPlaceholder2.beVisibleIf(
             !hasContacts && !hasPermission(
