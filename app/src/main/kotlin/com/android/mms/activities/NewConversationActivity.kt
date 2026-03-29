@@ -66,6 +66,7 @@ import com.android.mms.models.Events
 import com.android.mms.models.SIMCard
 import com.android.mms.BuildConfig
 import com.android.mms.helpers.MessageHolderHelper
+import com.google.gson.annotations.Until
 import org.greenrobot.eventbus.EventBus
 import org.joda.time.DateTime
 import java.net.URLDecoder
@@ -169,13 +170,14 @@ class NewConversationActivity : SimpleActivity() {
                 finish()
             }
         }
-        binding.newConversationHolder.setBackgroundColor(backgroundColor)
-        binding.newConversationAddress.setBackgroundColor(backgroundColor)
-        binding.suggestionsOverlay.setBackgroundColor(backgroundColor)
+//        binding.newConversationHolder.setBackgroundColor(backgroundColor)
+//        binding.newConversationAddress.setBackgroundColor(backgroundColor)
+//        binding.suggestionsOverlay.setBackgroundColor(backgroundColor)
+        binding.suggestionsOverlay.beGone()
 
         binding.noContactsPlaceholder2.setTextColor(getProperPrimaryColor)
         binding.noContactsPlaceholder2.underlineText()
-        binding.suggestionsLabel.setTextColor(getProperPrimaryColor)
+//        binding.suggestionsLabel.setTextColor(getProperPrimaryColor)
 
         binding.contactsList.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
@@ -424,12 +426,14 @@ class NewConversationActivity : SimpleActivity() {
         binding.newConversationAddress.setOnTextChangedListener { searchString ->
             // Hide/show suggestions based on text input
             if (searchString.isNotEmpty()) {
-                binding.suggestionsLabel.beGone()
+//                binding.suggestionsLabel.beGone()
                 binding.suggestionsScrollview.beGone()
+                binding.suggestionsOverlay.beGone()
             } else {
                 // Show suggestions only if they exist (check if suggestionsHolder has children)
                 if (binding.suggestionsHolder.childCount > 0) {
-                    binding.suggestionsLabel.beVisible()
+//                    binding.suggestionsLabel.beVisible()
+                    binding.suggestionsOverlay.beVisible()
                     binding.suggestionsScrollview.beVisible()
                 }
             }
@@ -622,7 +626,7 @@ class NewConversationActivity : SimpleActivity() {
                 runOnUiThread {
                     binding.suggestionsHolder.removeAllViews()
                     if (suggestions.isEmpty()) {
-                        binding.suggestionsLabel.beGone()
+//                        binding.suggestionsLabel.beGone()
                         binding.suggestionsScrollview.beGone()
                     } else {
                         //binding.suggestionsLabel.beVisible()

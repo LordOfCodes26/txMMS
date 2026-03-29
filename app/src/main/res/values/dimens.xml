@@ -68,4 +68,7 @@
     <dimen name="input_edit_max_height">200dp</dimen>
     <dimen name="input_edit_wrapper_radius">19dp</dimen>
     <dimen name="keyboard_add_height">350dp</dimen>
+    <dimen name="cardview_input_corner_radius">26dp</dimen>
+    <dimen name="cardview_stroke">0.5dp</dimen>
+    <dimen name="cardview_elevation">4dp</dimen>
 </resources>

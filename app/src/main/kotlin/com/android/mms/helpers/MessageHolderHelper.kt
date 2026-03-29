@@ -84,10 +84,10 @@ class MessageHolderHelper(
                 }
             }
 
-            (ResourcesCompat.getDrawable(activity.resources, R.drawable.thread_send_message_circle_border, activity.theme)?.mutate() as? GradientDrawable)?.let { drawable ->
-                drawable.setStroke((activity.resources.displayMetrics.density).toInt(), textColor)
-                threadSendMessage.background = drawable
-            }
+//            (ResourcesCompat.getDrawable(activity.resources, R.drawable.thread_send_message_circle_border, activity.theme)?.mutate() as? GradientDrawable)?.let { drawable ->
+//                drawable.setStroke((activity.resources.displayMetrics.density).toInt(), textColor)
+//                threadSendMessage.background = drawable
+//            }
             threadSendMessageWrapper.isClickable = false
             threadSendMessageCountdown.beGone()
 

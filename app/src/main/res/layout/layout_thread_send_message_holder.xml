@@ -98,7 +98,7 @@
         android:layout_width="@dimen/medium_icon_size"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:layout_marginStart="@dimen/normal_activity_margin"
+        android:layout_marginStart="@dimen/tx_cardview_margin_vertical"
         android:layout_marginBottom="@dimen/medium_normal_margin"
         app:layout_constraintBottom_toBottomOf="@id/attachment_picker_divider"
         app:layout_constraintStart_toStartOf="parent" >
@@ -123,9 +123,8 @@
             android:layout_marginBottom="@dimen/small_margin"
             android:background="@drawable/ic_sms_add"
             android:layout_gravity="center_horizontal"
-            android:contentDescription="@string/attachment"
-            android:padding="@dimen/smaller_margin"
-            android:alpha="0.9"/>
+            android:contentDescription="@string/attachment"/>
+
     </LinearLayout>
 
     <com.google.android.material.card.MaterialCardView
@@ -141,7 +140,7 @@
         android:minHeight="@dimen/input_edit_height"
         app:cardCornerRadius="@dimen/input_edit_wrapper_radius"
         app:strokeColor="@color/black"
-        app:strokeWidth="0.5dp"
+        app:strokeWidth="@dimen/cardview_stroke"
         app:cardElevation="4dp">
 
         <com.goodwy.commons.views.MyEditText
@@ -163,7 +162,6 @@
         android:layout_width="@dimen/emotic_icon_size"
         android:layout_height="@dimen/emotic_icon_size"
         android:background="@drawable/ic_sms_emotic"
-        android:alpha="0.9"
         app:layout_constraintEnd_toStartOf="@id/threadSendMessageWrapper"
         app:layout_constraintStart_toEndOf="@+id/threadTypeMessageWrapper"
         app:layout_constraintBottom_toBottomOf="@id/threadTypeMessageWrapper"
@@ -208,11 +206,8 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:layout_marginStart="@dimen/smaller_margin"
-        android:layout_marginEnd="@dimen/normal_margin"
+        android:layout_marginEnd="@dimen/tx_cardview_margin_vertical"
         android:layout_marginBottom="@dimen/small_margin"
-        android:clipChildren="false"
-        android:clipToPadding="false"
-        android:background="?selectableItemBackgroundBorderless"
         app:layout_constraintBottom_toBottomOf="@id/threadAddAttachmentHolder"
         app:layout_constraintEnd_toEndOf="parent" >
 
@@ -222,13 +217,10 @@
             android:layout_height="@dimen/add_icon_size"
             android:layout_gravity="center"
             android:foregroundGravity="center"
-            android:alpha="0.9"
-            android:background="@drawable/thread_send_message_circle_border"
+            android:background="@drawable/ic_sms_send"
             android:clickable="false"
             android:contentDescription="@string/ok"
-            android:layout_marginStart="@dimen/small_margin"
-            android:padding="@dimen/smaller_margin"
-            android:src="@drawable/ic_cmn_sms_send" />
+            android:layout_marginStart="@dimen/small_margin"/>
 
         <douglasspgyn.com.github.circularcountdown.CircularCountdown
             android:id="@+id/threadSendMessageCountdown"
