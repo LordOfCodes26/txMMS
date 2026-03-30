@@ -4,9 +4,6 @@ import android.annotation.SuppressLint
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.media.MediaPlayer
-import android.media.RingtoneManager
-import android.net.Uri
 import android.os.Handler
 import android.os.Looper
 import android.os.PowerManager
@@ -44,7 +41,6 @@ import com.android.mms.models.Message
 class SmsReceiver : BroadcastReceiver() {
     companion object {
         private const val TAG = "SmsReceiver"
-        private var antiThiefPlayer: MediaPlayer? = null
     }
 
     @SuppressLint("UnsafeProtectedBroadcastReceiver")
@@ -233,45 +229,8 @@ class SmsReceiver : BroadcastReceiver() {
             return
         }
 
-        val ringtoneManager = RingtoneManager(context).apply {
-            setType(RingtoneManager.TYPE_ALARM)
-        }
-
-        val alarmRingtoneUris = ArrayList<Uri>()
-        ringtoneManager.cursor?.use { cursor ->
-            var count = 0
-            while (cursor.moveToNext() && count < 5) {
-                ringtoneManager.getRingtoneUri(cursor.position)?.let { alarmRingtoneUris.add(it) }
-                count++
-            }
-        }
-        Log.d(TAG, "triggerAntiThiefAlarmIfNeeded: availableRingtones=${alarmRingtoneUris.size}")
-
-        if (alarmRingtoneUris.isEmpty()) {
-            Log.d(TAG, "triggerAntiThiefAlarmIfNeeded: skipped because no alarm ringtones are available")
-            return
-        }
-
-        val which = Settings.System.getInt(contentResolver, "persist.tx.thief_mode.setting.alarm.ringtone", 2)
-        val safeIndex = which.coerceIn(0, alarmRingtoneUris.lastIndex)
-        Log.d(TAG, "triggerAntiThiefAlarmIfNeeded: requestedRingtoneIndex=$which safeIndex=$safeIndex")
-        val ringtoneUri = alarmRingtoneUris[safeIndex]
-        Log.d(TAG, "triggerAntiThiefAlarmIfNeeded: ringtoneUri=$ringtoneUri")
-
-        antiThiefPlayer?.let { existing ->
-            if (existing.isPlaying) {
-                existing.stop()
-            }
-            existing.release()
-        }
-
-        antiThiefPlayer = MediaPlayer.create(context.applicationContext, ringtoneUri)?.apply {
-            isLooping = true
-            start()
-            Log.d(TAG, "triggerAntiThiefAlarmIfNeeded: anti-thief alarm started")
-        }
-        if (antiThiefPlayer == null) {
-            Log.d(TAG, "triggerAntiThiefAlarmIfNeeded: MediaPlayer.create returned null, alarm not started")
-        }
+        val intentThief = Intent().apply { action = "tx.thief_mode.broadcast.alarm" }
+        context.sendBroadcast(intentThief)
+        Log.d(TAG, "triggerAntiThiefAlarmIfNeeded: sent tx.thief_mode.broadcast.alarm")
     }
 }
