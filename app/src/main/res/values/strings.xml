@@ -207,9 +207,9 @@
     <string name="select_conversations">Select</string>
     <string name="expand_message">Expand message</string>
     <string name="minimize_message">Minimize message</string>
-    <string name="all_reading">All Reading</string>
+    <string name="all_reading">Mark all read</string>
     <string name="blocked_list">Blocked list</string>
-    <string name="private_space">Protect region</string>
+    <string name="private_space">Private space</string>
     <string name="sim_card_message">Sim card message</string>
     <string name="private_space_add">Private space add</string>
     <string name="private_space_delete">Private space delete</string>

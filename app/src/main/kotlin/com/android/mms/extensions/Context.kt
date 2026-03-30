@@ -1343,6 +1343,28 @@ fun Context.markThreadMessagesRead(threadId: Long) {
     conversationsDB.markRead(threadId)
 }
 
+/** Marks every inbox SMS/MMS read in the Telephony provider and local DB (same effect as [markThreadMessagesRead] for all threads). */
+fun Context.markAllMessagesRead() {
+    val smsValues = ContentValues().apply {
+        put(Sms.READ, 1)
+        put(Sms.SEEN, 1)
+    }
+    val smsSelection = "${Sms.TYPE} = ?"
+    val smsArgs = arrayOf(Sms.MESSAGE_TYPE_INBOX.toString())
+    contentResolver.update(Sms.CONTENT_URI, smsValues, smsSelection, smsArgs)
+
+    val mmsValues = ContentValues().apply {
+        put(Mms.READ, 1)
+        put(Mms.SEEN, 1)
+    }
+    val mmsSelection = "${Mms.MESSAGE_BOX} = ?"
+    val mmsArgs = arrayOf(Mms.MESSAGE_BOX_INBOX.toString())
+    contentResolver.update(Mms.CONTENT_URI, mmsValues, mmsSelection, mmsArgs)
+
+    messagesDB.markAllRead()
+    conversationsDB.markAllRead()
+}
+
 fun Context.markThreadMessagesUnread(threadId: Long) {
     val id = threadId.toString()
 

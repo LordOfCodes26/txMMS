@@ -50,6 +50,7 @@ import com.android.mms.extensions.*
 import com.android.mms.helpers.SEARCHED_MESSAGE_ID
 import com.android.mms.helpers.THREAD_ID
 import com.android.mms.helpers.THREAD_TITLE
+import com.android.mms.helpers.refreshConversations
 import com.android.mms.helpers.whatsNewList
 import com.android.mms.models.Conversation
 import com.android.mms.models.Events
@@ -408,7 +409,15 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
 //                    launchSecretBoxForUnlock()
 //                }
 //            }
-            R.id.all_reading -> {}
+            R.id.all_reading -> {
+                ensureBackgroundThread {
+                    markAllMessagesRead()
+                    runOnUiThread {
+                        unreadCountHash = getUnreadCountsByThread() as HashMap<Long, Int>
+                        refreshConversations()
+                    }
+                }
+            }
             R.id.blocked_list -> {}
             R.id.private_space -> {}
             R.id.sim_card_message -> {}
