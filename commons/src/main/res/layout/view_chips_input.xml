@@ -43,6 +43,7 @@
                 android:id="@+id/chips_edit_wrapper"
                 android:layout_width="0dp"
                 android:layout_height="@dimen/chips_input_chip_row_height"
+                android:gravity="center_vertical"
                 app:layout_flexGrow="1"
                 app:layout_flexShrink="0"
                 app:layout_minWidth="120dp"
@@ -66,8 +67,8 @@
 
                 <ImageView
                     android:id="@+id/chips_clear_button"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
+                    android:layout_width="@dimen/chips_input_chip_row_height"
+                    android:layout_height="@dimen/chips_input_chip_row_height"
                     android:layout_alignTop="@+id/chips_edit_text"
                     android:layout_alignEnd="@+id/chips_edit_text"
                     android:layout_marginStart="@dimen/small_margin"

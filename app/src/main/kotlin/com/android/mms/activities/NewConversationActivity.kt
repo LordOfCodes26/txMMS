@@ -257,9 +257,9 @@ class NewConversationActivity : SimpleActivity() {
      */
     private fun setupMessageHolderKeyboardSpacing() {
         val barContainer = binding.messageHolder.root
-        var extraSpaceDp = 12 * resources.displayMetrics.density
+        var extraSpaceDp = 12
         val extraSpacePx = (extraSpaceDp * resources.displayMetrics.density).toInt()
-        val bottomOffsetDp = 3 * resources.displayMetrics.density
+        val bottomOffsetDp = -33
         val bottomOffsetPx = (bottomOffsetDp * resources.displayMetrics.density).toInt()
 
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
@@ -276,9 +276,9 @@ class NewConversationActivity : SimpleActivity() {
             }
             val lp = barContainer.layoutParams as? ViewGroup.MarginLayoutParams
             if (lp != null) {
-                lp.bottomMargin = bottomMargin + (28 * resources.displayMetrics.density).toInt()
+                lp.bottomMargin = bottomMargin + (30 * resources.displayMetrics.density).toInt()
                 if (bottomMargin >= getDefaultKeyboardHeight()){
-                    lp.bottomMargin = bottomMargin + (4 * resources.displayMetrics.density).toInt()
+                    lp.bottomMargin = bottomMargin + (3 * resources.displayMetrics.density).toInt()
                 }
                 barContainer.layoutParams = lp
             }
@@ -379,8 +379,6 @@ class NewConversationActivity : SimpleActivity() {
             }
         }
     }
-
-
     private fun initContacts() {
         if (isThirdPartyIntent()) {
             return

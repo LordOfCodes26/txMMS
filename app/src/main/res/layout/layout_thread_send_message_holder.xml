@@ -134,7 +134,7 @@
         android:layout_marginStart="@dimen/small_margin"
         android:layout_marginEnd="@dimen/smaller_margin"
         android:minHeight="@dimen/input_edit_height"
-        app:cardCornerRadius="@dimen/input_edit_wrapper_radius"
+        app:cardCornerRadius="24dp"
         app:cardElevation="@dimen/cardview_default_elevation"
         app:layout_constraintBottom_toBottomOf="@id/threadAddAttachmentHolder"
         app:layout_constraintEnd_toStartOf="@id/imv_emotic_btn"
@@ -154,7 +154,7 @@
             android:maxHeight="@dimen/input_edit_max_height"
             android:minHeight="@dimen/input_edit_height"
             android:paddingHorizontal="@dimen/normal_margin"
-            android:paddingVertical="@dimen/medium_normal_margin" />
+            android:paddingVertical="@dimen/normal_margin" />
     </com.google.android.material.card.MaterialCardView>
 
     <ImageView
@@ -250,7 +250,7 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
-        tools:visibility="visible">
+        android:paddingTop="16dp">
 
         <include
             android:id="@+id/attachment_picker"

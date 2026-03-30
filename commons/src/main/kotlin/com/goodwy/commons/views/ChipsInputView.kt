@@ -303,7 +303,7 @@ class ChipsInputView @JvmOverloads constructor(
             setImageResource(R.drawable.ic_clear_round)
             imageTintList = ColorStateList.valueOf(textColor.adjustAlpha(0.6f))
             scaleType = ImageView.ScaleType.CENTER_INSIDE
-            layoutParams = LinearLayout.LayoutParams(iconSize, iconSize).apply {
+            layoutParams = LinearLayout.LayoutParams((iconSize*1.5).toInt(), (iconSize*1.5).toInt()).apply {
                 marginStart = res.getDimensionPixelSize(R.dimen.tiny_margin)
                 gravity = Gravity.CENTER_VERTICAL
             }
