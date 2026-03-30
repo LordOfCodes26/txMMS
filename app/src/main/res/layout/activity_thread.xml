@@ -218,7 +218,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|center_horizontal"
         android:layout_marginBottom="25dp"
-        android:elevation="@dimen/cardview_elevation"
+        android:elevation="@dimen/cardview_default_elevation"
         android:visibility="gone" />
 
     <FrameLayout

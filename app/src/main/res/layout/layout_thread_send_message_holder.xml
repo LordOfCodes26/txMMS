@@ -133,28 +133,28 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="@dimen/small_margin"
         android:layout_marginEnd="@dimen/smaller_margin"
-        app:layout_constraintHorizontal_weight="1"
-        app:layout_constraintEnd_toStartOf="@id/imv_emotic_btn"
-        app:layout_constraintStart_toEndOf="@+id/threadAddAttachmentHolder"
-        app:layout_constraintBottom_toBottomOf="@id/threadAddAttachmentHolder"
         android:minHeight="@dimen/input_edit_height"
         app:cardCornerRadius="@dimen/input_edit_wrapper_radius"
+        app:cardElevation="@dimen/cardview_default_elevation"
+        app:layout_constraintBottom_toBottomOf="@id/threadAddAttachmentHolder"
+        app:layout_constraintEnd_toStartOf="@id/imv_emotic_btn"
+        app:layout_constraintHorizontal_weight="1"
+        app:layout_constraintStart_toEndOf="@+id/threadAddAttachmentHolder"
         app:strokeColor="@color/black"
-        app:strokeWidth="@dimen/cardview_stroke"
-        app:cardElevation="@dimen/cardview_elevation">
+        app:strokeWidth="@dimen/cardview_stroke">
 
         <com.goodwy.commons.views.MyEditText
             android:id="@+id/threadTypeMessage"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:background="@color/white"
-            android:paddingHorizontal="@dimen/normal_margin"
-            android:paddingVertical="@dimen/medium_normal_margin"
             android:gravity="center_vertical"
             android:hint="@string/type_a_message"
             android:inputType="textCapSentences|textMultiLine"
+            android:maxHeight="@dimen/input_edit_max_height"
             android:minHeight="@dimen/input_edit_height"
-            android:maxHeight="@dimen/input_edit_max_height"/>
+            android:paddingHorizontal="@dimen/normal_margin"
+            android:paddingVertical="@dimen/medium_normal_margin" />
     </com.google.android.material.card.MaterialCardView>
 
     <ImageView
@@ -171,7 +171,7 @@
         android:id="@+id/threadAvailableMessageCount"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:elevation="@dimen/cardview_elevation"
+        android:elevation="@dimen/cardview_default_elevation"
         android:gravity="center"
         android:layout_marginBottom="5dp"
         android:layout_marginEnd="6dp"
