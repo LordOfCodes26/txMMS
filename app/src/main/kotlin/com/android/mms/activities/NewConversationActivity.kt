@@ -124,53 +124,55 @@ class NewConversationActivity : SimpleActivity() {
         binding.newConversationAddress.requestEditTextFocus()
         binding.newConversationAddress.hint = getString(R.string.recipients_hint)
 
-//        val rootView = window.decorView.rootView as ViewGroup
-//        var lastHeight = 0.0f
-//
-//        binding.newConversationAddress.viewTreeObserver.addOnGlobalLayoutListener(object : ViewTreeObserver.OnGlobalLayoutListener {
-//            override fun onGlobalLayout() {
-//                if (lastHeight == 0.0f) {
-//                    lastHeight = rootView.height.toFloat()
-//                } else {
-//                    val newHeight  : Float = binding.newConversationAddress.y
-//                    // If keyboard has been shown, height will decrease and vice versa
-//                    if(lastHeight > newHeight){
-//                        Log.d("Keyboard", "Shown")
-//                    }else{
-//                        Log.d("Keyboard", "Hidden")
-//                    }
-//                    lastHeight = newHeight
-//                }
-//            }
-//        })
-//
-//        val contentRoot = window.decorView.findViewById<View>(android.R.id.content) as ViewGroup
-//        contentRoot.viewTreeObserver.addOnGlobalFocusChangeListener { _, hasFocus ->
-//            if (hasFocus == null) { // If keyboard is hidden
-//                Log.d("Keyboard", "Hidden")
-//            } else {  // If keyboard is shown
-//                Log.d("Keyboard", "Shown")
-//            }
-//        }
-//        binding.newConversationAddress.getEditText()?.apply {
-//            addTextChangedListener(object : TextWatcher {
-//                override fun afterTextChanged(s: Editable?) {}
-//
-//                override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
-//                    val input = s.toString()
-//                }
-//
-//                // This method is triggered every time text changes.
-//                override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-//                    val input = s.toString()
-//                    // do something with input
-//                }
-//            })
-//        }
+
+                //        val rootView = window.decorView.rootView as ViewGroup
+    //        var lastHeight = 0.0f
+    //
+    //        binding.newConversationAddress.viewTreeObserver.addOnGlobalLayoutListener(object : ViewTreeObserver.OnGlobalLayoutListener {
+    //            override fun onGlobalLayout() {
+    //                if (lastHeight == 0.0f) {
+    //                    lastHeight = rootView.height.toFloat()
+    //                } else {
+    //                    val newHeight  : Float = binding.newConversationAddress.y
+    //                    // If keyboard has been shown, height will decrease and vice versa
+    //                    if(lastHeight > newHeight){
+    //                        Log.d("Keyboard", "Shown")
+    //                    }else{
+    //                        Log.d("Keyboard", "Hidden")
+    //                    }
+    //                    lastHeight = newHeight
+    //                }
+    //            }
+    //        })
+    //
+    //        val contentRoot = window.decorView.findViewById<View>(android.R.id.content) as ViewGroup
+    //        contentRoot.viewTreeObserver.addOnGlobalFocusChangeListener { _, hasFocus ->
+    //            if (hasFocus == null) { // If keyboard is hidden
+    //                Log.d("Keyboard", "Hidden")
+    //            } else {  // If keyboard is shown
+    //                Log.d("Keyboard", "Shown")
+    //            }
+    //        }
+    //        binding.newConversationAddress.getEditText()?.apply {
+    //            addTextChangedListener(object : TextWatcher {
+    //                override fun afterTextChanged(s: Editable?) {}
+    //
+    //                override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
+    //                    val input = s.toString()
+    //                }
+    //
+    //                // This method is triggered every time text changes.
+    //                override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+    //                    val input = s.toString()
+    //                    // do something with input
+    //                }
+    //            })
+    //        }
         // READ_CONTACTS permission is not mandatory, but without it we won't be able to show any suggestions during typing
         handlePermission(PERMISSION_READ_CONTACTS) {
             initContacts()
         }
+
     }
 
     override fun onResume() {
@@ -244,17 +246,8 @@ class NewConversationActivity : SimpleActivity() {
             val h = if (height > 0) height else 1
             binding.newConversationAppbar.titleView?.scaleX = (1 + 0.45f * verticalOffset / h)
             binding.newConversationAppbar.titleView?.scaleY = (1 + 0.45f * verticalOffset / h)
-//            Log.i("verticaloffset", String.format("%d", verticalOffset))
-//            Log.i("height", String.format("%d", height))
             vertiOffset = verticalOffset
             binding.newConversationHolder.updatePadding(0, 0, 0, height + verticalOffset - (70*resources.displayMetrics.density).toInt())
-//            if ((!isAttachmentPickerVisible && keyboardVisible) ||
-//                (isAttachmentPickerVisible && !keyboardVisible)) {
-//                binding.newConversationHolder.updatePadding(0, 0, 0, (405 * resources.displayMetrics.density).toInt() + verticalOffset)
-//            }
-//            else {
-//                binding.newConversationHolder.updatePadding(0, 0, 0, height + verticalOffset + (10*resources.displayMetrics.density).toInt())
-//            }
         }
     }
 
@@ -288,11 +281,6 @@ class NewConversationActivity : SimpleActivity() {
                     lp.bottomMargin = bottomMargin + (4 * resources.displayMetrics.density).toInt()
                 }
                 barContainer.layoutParams = lp
-//                binding.newConversationHolder.setHeight((528 * resources.displayMetrics.density).toInt())
-//                Log.i("bottom margin", String.format("%d", bottomMargin))
-//                binding.messageHolderWrapper.postDelayed({
-//                    binding.messageHolderWrapper.translationY = -30.0f * resources.displayMetrics.density
-//                }, 350)
             }
             insets
         }

@@ -141,7 +141,7 @@
         app:cardCornerRadius="@dimen/input_edit_wrapper_radius"
         app:strokeColor="@color/black"
         app:strokeWidth="@dimen/cardview_stroke"
-        app:cardElevation="4dp">
+        app:cardElevation="@dimen/cardview_elevation">
 
         <com.goodwy.commons.views.MyEditText
             android:id="@+id/threadTypeMessage"
@@ -171,7 +171,7 @@
         android:id="@+id/threadAvailableMessageCount"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:elevation="12dp"
+        android:elevation="@dimen/cardview_elevation"
         android:gravity="center"
         android:layout_marginBottom="5dp"
         android:layout_marginEnd="6dp"

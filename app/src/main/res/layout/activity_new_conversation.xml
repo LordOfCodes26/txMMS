@@ -165,7 +165,7 @@
                     android:id="@+id/new_conversation_address"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:elevation="6dp"
+                    android:elevation="@dimen/cardview_elevation"
                     android:layout_marginStart="@dimen/tx_cardview_margin_horizontal"
                     android:layout_marginEnd="@dimen/tx_cardview_margin_horizontal" />
 

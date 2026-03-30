@@ -6,7 +6,7 @@
     android:layout_height="wrap_content"
     android:gravity="center_vertical"
     android:orientation="horizontal"
-    android:paddingStart="@dimen/activity_margin"
+    android:paddingStart="@dimen/normal_margin"
     tools:ignore="RtlSymmetry">
 
     <RelativeLayout

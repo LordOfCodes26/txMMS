@@ -15,7 +15,7 @@
         android:layout_marginBottom="@dimen/activity_margin"
         android:background="@drawable/squircle_bg"
         android:contentDescription="@null"
-        android:elevation="8dp"
+        android:elevation="@dimen/cardview_default_elevation"
         android:padding="10dp"
         android:src="@drawable/ic_plus_support"
         tools:tint="@color/color_primary"/>

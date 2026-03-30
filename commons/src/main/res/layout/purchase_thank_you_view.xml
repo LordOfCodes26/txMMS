@@ -16,7 +16,7 @@
         android:layout_marginTop="@dimen/normal_margin"
         android:layout_marginBottom="@dimen/normal_margin"
         android:background="@drawable/button_white_bg_24dp"
-        android:elevation="4dp"
+        android:elevation="@dimen/cardview_default_elevation"
         android:padding="10dp"
         android:src="@drawable/ic_plus_support"
         android:tint="@color/color_primary"

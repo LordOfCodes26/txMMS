@@ -13,7 +13,7 @@
     app:cardCornerRadius="24dp"
     app:strokeColor="@color/black"
     app:strokeWidth="0.5dp"
-    app:cardElevation="4dp">
+    app:cardElevation="@dimen/cardview_default_elevation">
 
     <!-- MaxHeightScrollView clamps height so chips/text scroll instead of expanding the screen.
          fillViewport=false so chips_edit_wrapper stays compact when empty (no stretch to viewport). -->
