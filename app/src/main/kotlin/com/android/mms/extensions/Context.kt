@@ -46,6 +46,8 @@ import com.android.mms.helpers.MessagingCache
 import com.android.mms.helpers.NotificationHelper
 import com.android.mms.helpers.ShortcutHelper
 import com.android.mms.helpers.generateRandomId
+import com.android.mms.helpers.refreshConversations
+import com.android.mms.helpers.refreshMessages
 import com.android.mms.helpers.AttachmentUtils.parseAttachmentNames
 import com.android.mms.interfaces.AttachmentsDao
 import com.android.mms.interfaces.ConversationsDao
@@ -55,7 +57,9 @@ import com.android.mms.interfaces.MessagesDao
 import com.android.mms.messaging.MessagingUtils
 import com.android.mms.messaging.MessagingUtils.Companion.ADDRESS_SEPARATOR
 import com.android.mms.messaging.SmsSender
+import com.android.mms.messaging.cancelScheduleSendPendingIntent
 import com.android.mms.messaging.isShortCodeWithLetters
+import com.android.mms.messaging.sendMessageCompat
 import com.android.mms.models.Attachment
 import com.android.mms.models.Conversation
 import com.android.mms.models.Draft
@@ -1760,24 +1764,47 @@ fun Context.updateScheduledMessagesThreadId(messages: List<Message>, newThreadId
     messagesDB.insertMessages(*scheduledMessages)
 }
 
+/**
+ * Sends a scheduled message now and removes it from the local scheduled store (same as [com.android.mms.receivers.ScheduledMessageReceiver]).
+ * Cancels the exact alarm so the broadcast cannot double-send.
+ */
+fun Context.deliverScheduledMessage(message: Message) {
+    cancelScheduleSendPendingIntent(message.id)
+    val addresses = message.participants.getAddresses()
+    val attachments = message.attachment?.attachments ?: emptyList()
+    try {
+        Handler(Looper.getMainLooper()).post {
+            sendMessageCompat(message.body, addresses, message.subscriptionId, attachments)
+        }
+        // delete temporary conversation and message as it's already persisted to the telephony db now
+        deleteScheduledMessage(message.id)
+        val conversation = conversationsDB.getConversationWithThreadId(message.threadId)
+        if (conversation?.isScheduled == true) {
+            conversationsDB.deleteThreadId(message.threadId)
+        }
+        refreshMessages()
+        refreshConversations()
+    } catch (e: Exception) {
+        showErrorToast(e)
+    } catch (e: Error) {
+        showErrorToast(e.localizedMessage ?: getString(com.goodwy.commons.R.string.unknown_error_occurred))
+    }
+}
+
 fun Context.clearExpiredScheduledMessages(threadId: Long, messagesToDelete: List<Message>? = null) {
     val messages = messagesToDelete ?: messagesDB.getScheduledThreadMessages(threadId)
     val now = System.currentTimeMillis() + 500L
 
     try {
         messages.filter { it.isScheduled && it.millis() < now }.forEach { msg ->
-            messagesDB.delete(msg.id)
-        }
-        if (messages.filterNot { it.isScheduled && it.millis() < now }.isEmpty()) {
-            // delete empty temporary thread
-            val conversation = conversationsDB.getConversationWithThreadId(threadId)
-            if (conversation != null && conversation.isScheduled) {
-                conversationsDB.deleteThreadId(threadId)
+            try {
+                deliverScheduledMessage(msg)
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
         }
     } catch (e: Exception) {
         e.printStackTrace()
-        return
     }
 }
 
