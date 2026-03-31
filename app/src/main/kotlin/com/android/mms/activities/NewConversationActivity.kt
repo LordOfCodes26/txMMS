@@ -145,14 +145,16 @@ class NewConversationActivity : SimpleActivity() {
     //            }
     //        })
     //
-    //        val contentRoot = window.decorView.findViewById<View>(android.R.id.content) as ViewGroup
-    //        contentRoot.viewTreeObserver.addOnGlobalFocusChangeListener { _, hasFocus ->
-    //            if (hasFocus == null) { // If keyboard is hidden
-    //                Log.d("Keyboard", "Hidden")
-    //            } else {  // If keyboard is shown
-    //                Log.d("Keyboard", "Shown")
-    //            }
-    //        }
+            val contentRoot = window.decorView.findViewById<View>(android.R.id.content) as ViewGroup
+            contentRoot.viewTreeObserver.addOnGlobalFocusChangeListener { _, hasFocus ->
+                if (hasFocus == null) { // If keyboard is hidden
+                    Log.d("Keyboard", "Hidden")
+                } else {  // If keyboard is shown
+                    Log.d("Keyboard", "Shown")
+                    isAttachmentPickerVisible = false
+                    messageHolderHelper?.hideAttachmentPicker()
+                }
+            }
     //        binding.newConversationAddress.getEditText()?.apply {
     //            addTextChangedListener(object : TextWatcher {
     //                override fun afterTextChanged(s: Editable?) {}
