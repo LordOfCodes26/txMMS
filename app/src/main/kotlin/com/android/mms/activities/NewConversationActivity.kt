@@ -124,52 +124,17 @@ class NewConversationActivity : SimpleActivity() {
         binding.newConversationAddress.requestEditTextFocus()
         binding.newConversationAddress.hint = getString(R.string.recipients_hint)
 
-
-                //        val rootView = window.decorView.rootView as ViewGroup
-    //        var lastHeight = 0.0f
-    //
-    //        binding.newConversationAddress.viewTreeObserver.addOnGlobalLayoutListener(object : ViewTreeObserver.OnGlobalLayoutListener {
-    //            override fun onGlobalLayout() {
-    //                if (lastHeight == 0.0f) {
-    //                    lastHeight = rootView.height.toFloat()
-    //                } else {
-    //                    val newHeight  : Float = binding.newConversationAddress.y
-    //                    // If keyboard has been shown, height will decrease and vice versa
-    //                    if(lastHeight > newHeight){
-    //                        Log.d("Keyboard", "Shown")
-    //                    }else{
-    //                        Log.d("Keyboard", "Hidden")
-    //                    }
-    //                    lastHeight = newHeight
-    //                }
-    //            }
-    //        })
-    //
-            val contentRoot = window.decorView.findViewById<View>(android.R.id.content) as ViewGroup
-            contentRoot.viewTreeObserver.addOnGlobalFocusChangeListener { _, hasFocus ->
-                if (hasFocus == null) { // If keyboard is hidden
-                    Log.d("Keyboard", "Hidden")
-                } else {  // If keyboard is shown
-                    Log.d("Keyboard", "Shown")
-                    isAttachmentPickerVisible = false
-                    messageHolderHelper?.hideAttachmentPicker()
-                }
+        val contentRoot = window.decorView.findViewById<View>(android.R.id.content) as ViewGroup
+        contentRoot.viewTreeObserver.addOnGlobalFocusChangeListener { _, hasFocus ->
+            if (hasFocus == null) { // If keyboard is hidden
+                Log.d("Keyboard", "Hidden")
+            } else {  // If keyboard is shown
+                Log.d("Keyboard", "Shown")
+                isAttachmentPickerVisible = false
+                messageHolderHelper?.hideAttachmentPicker()
             }
-    //        binding.newConversationAddress.getEditText()?.apply {
-    //            addTextChangedListener(object : TextWatcher {
-    //                override fun afterTextChanged(s: Editable?) {}
-    //
-    //                override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
-    //                    val input = s.toString()
-    //                }
-    //
-    //                // This method is triggered every time text changes.
-    //                override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-    //                    val input = s.toString()
-    //                    // do something with input
-    //                }
-    //            })
-    //        }
+        }
+
         // READ_CONTACTS permission is not mandatory, but without it we won't be able to show any suggestions during typing
         handlePermission(PERMISSION_READ_CONTACTS) {
             initContacts()
