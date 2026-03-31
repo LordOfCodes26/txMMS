@@ -91,8 +91,8 @@ class MessageBubblePickerActivity : SimpleActivity() {
     private fun initBouncyListener() {
         binding.bubblePickerAppbar.setupOffsetListener { verticalOffset, height ->
             val h = if (height > 0) height else 1
-            binding.bubblePickerAppbar.titleView?.scaleX = (1 + 0.8f * verticalOffset / h)
-            binding.bubblePickerAppbar.titleView?.scaleY = (1 + 0.8f * verticalOffset / h)
+            binding.bubblePickerAppbar.titleView?.scaleX = (1 + 0.45f * verticalOffset / h)
+            binding.bubblePickerAppbar.titleView?.scaleY = (1 + 0.45f * verticalOffset / h)
         }
     }
 
@@ -108,9 +108,9 @@ class MessageBubblePickerActivity : SimpleActivity() {
                 binding.mVerticalSideFrameBottom.layoutParams.apply { height = navHeight + dp5 }
 
             val activityMargin = resources.getDimensionPixelSize(com.goodwy.commons.R.dimen.activity_margin)
-            val actionLayoutParams = binding.lytAction.layoutParams as ViewGroup.MarginLayoutParams
-            actionLayoutParams.bottomMargin = bottomInset + activityMargin
-            binding.lytAction.layoutParams = actionLayoutParams
+//            val actionLayoutParams = binding.lytAction.layoutParams as ViewGroup.MarginLayoutParams
+//            actionLayoutParams.bottomMargin = bottomInset + activityMargin
+//            binding.lytAction.layoutParams = actionLayoutParams
 
             binding.bubblePickerList.setPadding(
                 binding.bubblePickerList.paddingLeft,

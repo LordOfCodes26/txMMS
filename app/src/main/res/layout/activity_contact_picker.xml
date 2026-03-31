@@ -47,7 +47,6 @@
                 <com.goodwy.commons.views.MyRecyclerView
                     android:id="@+id/contactRecyclerView"
                     android:layout_alignParentTop="true"
-                    android:layout_marginHorizontal="@dimen/tx_setting_cardview_margin_horizontal"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:clipToPadding="false"
@@ -80,6 +79,95 @@
             android:layout_width="match_parent"
             android:layout_height="110dp"
             android:layout_gravity="top"/>
+        <LinearLayout
+            android:id="@+id/contact_picker_filter_bar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@color/tx_common_bg">
+            <LinearLayout
+                android:id="@+id/contact_picker_filter_bar_child"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:orientation="horizontal"
+                android:paddingStart="@dimen/normal_margin"
+                android:paddingTop="@dimen/small_margin"
+                android:paddingEnd="@dimen/normal_margin"
+                android:background="@color/transparent"
+                android:layout_marginTop="@dimen/tx_top_bar_expand_height">
+
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1">
+
+                    <com.goodwy.commons.views.MyTextView
+                        android:id="@+id/filter_call_log"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/ripple_all_corners"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center"
+                        android:paddingStart="@dimen/normal_margin"
+                        android:paddingTop="@dimen/small_margin"
+                        android:paddingEnd="@dimen/normal_margin"
+                        android:paddingBottom="@dimen/small_margin"
+                        android:text="@string/call_log"
+                        android:textSize="@dimen/normal_text_size"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        tools:ignore="MissingConstraints" />
+                    <ImageView
+                        android:id="@+id/filter_call_log_liner"
+                        android:layout_width="90dp"
+                        android:layout_height="1dp"
+                        android:background="@drawable/divider_settings"
+                        app:layout_constraintBottom_toBottomOf="@+id/filter_call_log"
+                        app:layout_constraintStart_toStartOf="@+id/filter_call_log"
+                        app:layout_constraintEnd_toEndOf="@+id/filter_call_log"/>
+                </androidx.constraintlayout.widget.ConstraintLayout>
+
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="start">
+                    <com.goodwy.commons.views.MyTextView
+                        android:id="@+id/filter_contacts"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/ripple_all_corners"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:paddingStart="@dimen/normal_margin"
+                        android:paddingTop="@dimen/small_margin"
+                        android:paddingEnd="@dimen/normal_margin"
+                        android:paddingBottom="@dimen/small_margin"
+                        android:text="@string/contacts"
+                        android:textSize="@dimen/normal_text_size"
+                        tools:ignore="MissingConstraints" />
+                    <ImageView
+                        android:id="@+id/filter_contacts_liner"
+                        android:layout_width="70dp"
+                        android:layout_height="1dp"
+                        android:background="@drawable/divider_settings"
+                        app:layout_constraintBottom_toBottomOf="@+id/filter_contacts"
+                        app:layout_constraintStart_toStartOf="@+id/filter_contacts"
+                        app:layout_constraintEnd_toEndOf="@+id/filter_contacts"
+                        tools:ignore="MissingConstraints" />
+                </androidx.constraintlayout.widget.ConstraintLayout>
+
+            </LinearLayout>
+            <ImageView
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginHorizontal="@dimen/tx_cardview_padding_left"
+                android:background="@drawable/divider_settings" />
+        </LinearLayout>
 
         <com.goodwy.commons.views.BlurAppBarLayout
             android:id="@+id/blur_app_bar_layout"
@@ -87,51 +175,8 @@
             android:layout_height="@dimen/tx_top_bar_expand_height"
             android:background="@color/transparent"
             android:paddingBottom="5dp" />
-        <LinearLayout
-            android:id="@+id/contact_picker_filter_bar"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_gravity="top"
-            android:layout_marginTop="@dimen/tx_top_bar_expand_height"
-            android:gravity="center"
-            android:orientation="horizontal"
-            android:paddingStart="@dimen/normal_margin"
-            android:paddingTop="@dimen/small_margin"
-            android:paddingEnd="@dimen/normal_margin"
-            android:paddingBottom="@dimen/small_margin"
-            android:background="@color/transparent">
 
-            <com.goodwy.commons.views.MyTextView
-                android:id="@+id/filter_call_log"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:background="@drawable/ripple_all_corners"
-                android:clickable="true"
-                android:focusable="true"
-                android:gravity="center_vertical"
-                android:paddingStart="@dimen/normal_margin"
-                android:paddingTop="@dimen/small_margin"
-                android:paddingEnd="@dimen/normal_margin"
-                android:paddingBottom="@dimen/small_margin"
-                android:text="@string/call_log"
-                android:textSize="@dimen/normal_text_size" />
 
-            <com.goodwy.commons.views.MyTextView
-                android:id="@+id/filter_contacts"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="@dimen/activity_margin"
-                android:background="@drawable/ripple_all_corners"
-                android:clickable="true"
-                android:focusable="true"
-                android:gravity="center_vertical"
-                android:paddingStart="@dimen/normal_margin"
-                android:paddingTop="@dimen/small_margin"
-                android:paddingEnd="@dimen/normal_margin"
-                android:paddingBottom="@dimen/small_margin"
-                android:text="@string/contacts"
-                android:textSize="@dimen/normal_text_size" />
-        </LinearLayout>
 
         <FrameLayout
             android:id="@+id/lyt_action"
@@ -143,10 +188,10 @@
             android:layout_marginBottom="@dimen/activity_margin">
             <com.android.common.view.MRippleToolBar
                 android:id="@+id/confirm_tab"
-                android:layout_gravity="center_horizontal"
-                android:layout_width="240dp"
+                android:layout_gravity="center"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:visibility="visible" />
+                android:visibility="visible"/>
         </FrameLayout>
 
         <com.android.common.view.MVSideFrame

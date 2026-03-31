@@ -12,6 +12,7 @@ import android.provider.ContactsContract
 import android.provider.ContactsContract.PhoneLookup
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -47,6 +48,8 @@ import com.android.mms.R
 import com.android.mms.adapters.ContactPickerAdapter
 import com.android.mms.models.Contact
 import com.android.mms.models.ContactPickerListRow
+import com.goodwy.commons.extensions.beGone
+import com.goodwy.commons.extensions.beInvisible
 import java.util.Calendar
 import com.goodwy.commons.helpers.SimpleContactsHelper
 import com.goodwy.commons.views.BlurAppBarLayout
@@ -110,11 +113,14 @@ class ContactPickerActivity : SimpleActivity() {
     private var isCallLogMode = false
     private var filterCallLog: MyTextView? = null
     private var filterContacts: MyTextView? = null
-    private var callLogPlaceholder: View? = null
+    private var filterCallLogLine: ImageView? = null
+    private var filterContactsLiner: ImageView? = null
+        private var callLogPlaceholder: View? = null
     private var contactPickerFilterBar: View? = null
     private var contactsLetterFastscroller: FastScrollerView? = null
     private var contactsLetterFastscrollerThumb: FastScrollerThumbView? = null
     private val callLogMeta = ArrayList<CallLogEntryMeta>()
+    private var mContent: ContactPickerActivity? = null
 
     private data class CallLogEntryMeta(val type: Int, val timestamp: Long, val groupedCount: Int = 1)
 
@@ -143,7 +149,7 @@ class ContactPickerActivity : SimpleActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_contact_picker)
-
+        mContent = this@ContactPickerActivity
         rootView = findViewById(R.id.root_view)
         initTheme()
         initMVSideFrames()
@@ -246,8 +252,8 @@ class ContactPickerActivity : SimpleActivity() {
     private fun initBouncyListener() {
         blurAppBarLayout?.setupOffsetListener { verticalOffset, height ->
             val h = if (height > 0) height else 1
-            blurAppBarLayout?.titleView?.scaleX = (1 + 0.8f * verticalOffset / h)
-            blurAppBarLayout?.titleView?.scaleY = (1 + 0.8f * verticalOffset / h)
+            blurAppBarLayout?.titleView?.scaleX = (1 + 0.45f * verticalOffset / h)
+            blurAppBarLayout?.titleView?.scaleY = (1 + 0.45f * verticalOffset / h)
         }
     }
 
@@ -260,11 +266,11 @@ class ContactPickerActivity : SimpleActivity() {
 
         val items = ArrayList<IconItem>().apply {
             add(IconItem().apply {
-                icon = com.android.common.R.drawable.ic_cmn_cancel
+                icon = com.android.common.R.drawable.ic_cmn_cancel_fill
                 title = getString(com.android.common.R.string.cancel_common)
             })
             add(IconItem().apply {
-                icon = R.drawable.ic_check_double_vector
+                icon = com.android.common.R.drawable.ic_cmn_circle_check_fill
                 title = getString(com.android.common.R.string.confirm_common)
             })
         }
@@ -369,13 +375,17 @@ class ContactPickerActivity : SimpleActivity() {
         val filterBar = contactPickerFilterBar as? ViewGroup
         callLogPlaceholder = findViewById(R.id.call_log_placeholder)
         setupFilterBarScrollBehavior()
-        if (filterBar != null && filterBar.childCount >= 2) {
-            filterCallLog = filterBar.getChildAt(0) as? MyTextView
-            filterContacts = filterBar.getChildAt(1) as? MyTextView
-        } else {
-            filterCallLog = findViewById(R.id.filter_call_log)
-            filterContacts = findViewById(R.id.filter_contacts)
-        }
+//        if (filterBar != null && filterBar.childCount >= 2) {
+//            filterCallLog = filterBar.getChildAt(0) as? MyTextView
+//            filterContacts = filterBar.getChildAt(1) as? MyTextView
+//        } else {
+//            filterCallLog = findViewById(R.id.filter_call_log)
+//            filterContacts = findViewById(R.id.filter_contacts)
+//        }
+        filterCallLog = mContent?.findViewById(R.id.filter_call_log)
+        filterContacts = mContent?.findViewById(R.id.filter_contacts)
+        filterCallLogLine = findViewById(R.id.filter_call_log_liner)
+        filterContactsLiner = findViewById(R.id.filter_contacts_liner)
 
         filterCallLog?.let { callLogTab ->
             callLogTab.isClickable = true
@@ -433,9 +443,17 @@ class ContactPickerActivity : SimpleActivity() {
         if (isCallLogMode) {
             filterCallLog?.setTextColor(primaryColor)
             filterContacts?.setTextColor(textColor)
+            filterCallLogLine?.setBackgroundColor(primaryColor)
+            filterContactsLiner?.setBackgroundColor(textColor)
+            filterCallLogLine?.visibility = View.VISIBLE
+            filterContactsLiner?.visibility = View.GONE
         } else {
             filterCallLog?.setTextColor(textColor)
             filterContacts?.setTextColor(primaryColor)
+            filterCallLogLine?.setBackgroundColor(textColor)
+            filterContactsLiner?.setBackgroundColor(primaryColor)
+            filterCallLogLine?.visibility = View.GONE
+            filterContactsLiner?.visibility = View.VISIBLE
         }
     }
 
@@ -492,8 +510,8 @@ class ContactPickerActivity : SimpleActivity() {
         val filterBar = contactPickerFilterBar ?: return
         bar.addOnOffsetChangedListener(object : AppBarLayout.OnOffsetChangedListener {
             override fun onOffsetChanged(appBarLayout: AppBarLayout, verticalOffset: Int) {
-                val expanded = verticalOffset >= -dp(8)
-                filterBar.visibility = if (expanded) View.VISIBLE else View.GONE
+//                val expanded = verticalOffset >= -dp(8)
+//                filterBar.visibility = if (expanded) View.VISIBLE else View.GONE
             }
         })
     }

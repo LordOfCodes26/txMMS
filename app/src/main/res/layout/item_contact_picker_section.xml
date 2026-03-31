@@ -4,8 +4,7 @@
     android:id="@+id/contact_picker_section_title"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginHorizontal="@dimen/tx_setting_cardview_padding_horizontal"
-    android:layout_marginTop="6dp"
-    android:layout_marginBottom="2dp"
-    android:textSize="@dimen/tx_small_text"
+    android:layout_marginHorizontal="@dimen/larger_margin"
+    android:layout_marginTop="@dimen/tiny_margin"
+    android:textSize="@dimen/tx_sub_section"
     tools:text="Today" />

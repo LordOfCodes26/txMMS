@@ -64,7 +64,7 @@
 
             <com.android.common.view.MRippleToolBar
                 android:id="@+id/confirm_tab"
-                android:layout_width="240dp"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_horizontal"
                 android:visibility="visible" />

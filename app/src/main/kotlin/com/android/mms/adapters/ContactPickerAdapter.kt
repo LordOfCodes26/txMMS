@@ -341,7 +341,7 @@ class ContactPickerAdapter(
             val act = context as? android.app.Activity ?: return
             if (row.groupedCallCount > 1) {
                 callCountView.text = "(${row.groupedCallCount})"
-                callCountView.alpha = 0.8f
+                callCountView.alpha = 0.7f
                 callCountView.setTextColor(act.getProperTextColor())
                 callCountView.visibility = View.VISIBLE
             } else {
