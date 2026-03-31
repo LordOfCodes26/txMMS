@@ -517,9 +517,9 @@
         <item name="android:layout_height">wrap_content</item>
         <item name="android:minHeight">55dp</item>
 <!--        <item name="android:background">?attr/selectableItemBackground</item>-->
-        <item name="android:paddingStart">@dimen/tx_setting_cardview_padding_left</item>
-        <item name="android:paddingTop">@dimen/tx_setting_cardview_padding_vertical</item>
-        <item name="android:paddingEnd">@dimen/tx_setting_cardview_padding_horizontal</item>
+        <item name="android:paddingStart">@dimen/tx_cardview_padding_left</item>
+        <item name="android:paddingTop">@dimen/tx_cardview_padding_vertical</item>
+        <item name="android:paddingEnd">@dimen/tx_cardview_padding_right</item>
         <item name="android:paddingBottom">@dimen/tx_setting_cardview_padding_vertical</item>
     </style>
 
@@ -586,12 +586,13 @@
         <item name="android:gravity">end</item>
         <item name="android:alpha">0.6</item>
         <item name="android:textAlignment">viewEnd</item>
+        <item name="android:paddingEnd">@dimen/smaller_margin</item>
     </style>
 
     <style name="SettingsChevronStyle">
-        <item name="android:layout_width">24dp</item>
-        <item name="android:layout_height">24dp</item>
-        <item name="android:padding">4dp</item>
+        <item name="android:layout_width">@dimen/tx_cardview_icon_size</item>
+        <item name="android:layout_height">@dimen/tx_cardview_icon_size</item>
+        <item name="android:padding">@dimen/tx_cardview_arrow_padding</item>
         <item name="android:src">@drawable/ic_cmn_arrow_right</item>
         <item name="android:tint">@color/tx_cardview_arrow_icon</item>
     </style>

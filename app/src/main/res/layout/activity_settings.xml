@@ -99,7 +99,7 @@
                                     android:layout_width="match_parent"
                                     android:layout_height="@dimen/tx_cardview_divider_thickness"
                                     android:layout_marginStart="@dimen/tx_cardview_padding_left"
-                                    android:layout_marginEnd="@dimen/tx_cardview_padding_right"
+                                    android:layout_marginEnd="@dimen/tx_cardview_divider_margin_right"
                                     android:background="@color/tx_cardview_divider" />
 
                                 <RelativeLayout
@@ -152,7 +152,8 @@
 
                                 <RelativeLayout
                                     android:id="@+id/settings_enable_delivery_reports_holder"
-                                    style="@style/SettingsHolderSwitchStyle">
+                                    style="@style/SettingsHolderSwitchStyle"
+                                    android:paddingTop="@dimen/tx_cardview_margin_vertical">
                                     <com.goodwy.commons.views.MyTextView
                                         android:id="@+id/settingsDeliveryReportLabel"
                                         style="@style/SettingsTextLabelStyle"
@@ -185,7 +186,7 @@
                                     android:layout_width="match_parent"
                                     android:layout_height="@dimen/tx_cardview_divider_thickness"
                                     android:layout_marginStart="@dimen/tx_cardview_padding_left"
-                                    android:layout_marginEnd="@dimen/tx_cardview_padding_right"
+                                    android:layout_marginEnd="@dimen/tx_cardview_divider_margin_right"
                                     android:background="@color/tx_cardview_divider" />
 
                                 <RelativeLayout
@@ -236,7 +237,7 @@
                                     android:layout_width="match_parent"
                                     android:layout_height="@dimen/tx_cardview_divider_thickness"
                                     android:layout_marginStart="@dimen/tx_cardview_padding_left"
-                                    android:layout_marginEnd="@dimen/tx_cardview_padding_right"
+                                    android:layout_marginEnd="@dimen/tx_cardview_divider_margin_right"
                                     android:background="@color/tx_cardview_divider" />
 
                                 <RelativeLayout
@@ -265,7 +266,7 @@
                                     android:layout_width="match_parent"
                                     android:layout_height="@dimen/tx_cardview_divider_thickness"
                                     android:layout_marginStart="@dimen/tx_cardview_padding_left"
-                                    android:layout_marginEnd="@dimen/tx_cardview_padding_right"
+                                    android:layout_marginEnd="@dimen/tx_cardview_divider_margin_right"
                                     android:background="@color/tx_cardview_divider" />
 
                                 <RelativeLayout
@@ -292,7 +293,7 @@
                                     android:layout_width="match_parent"
                                     android:layout_height="@dimen/tx_cardview_divider_thickness"
                                     android:layout_marginStart="@dimen/tx_cardview_padding_left"
-                                    android:layout_marginEnd="@dimen/tx_cardview_padding_right"
+                                    android:layout_marginEnd="@dimen/tx_cardview_divider_margin_right"
                                     android:background="@color/tx_cardview_divider" />
 
                                 <RelativeLayout
@@ -338,7 +339,8 @@
 
                                 <RelativeLayout
                                     android:id="@+id/settings_show_phone_number_holder"
-                                    style="@style/SettingsHolderSwitchStyle">
+                                    style="@style/SettingsHolderSwitchStyle"
+                                    android:paddingTop="@dimen/tx_cardview_margin_vertical">
 
                                     <com.goodwy.commons.views.MyTextView
                                         android:id="@+id/settingsShowPhoneNumberLabel"
@@ -371,7 +373,7 @@
                                     android:layout_width="match_parent"
                                     android:layout_height="@dimen/tx_cardview_divider_thickness"
                                     android:layout_marginStart="@dimen/tx_cardview_padding_left"
-                                    android:layout_marginEnd="@dimen/tx_cardview_padding_right"
+                                    android:layout_marginEnd="@dimen/tx_cardview_divider_margin_right"
                                     android:background="@color/tx_cardview_divider" />
 
                                 <RelativeLayout
@@ -409,7 +411,7 @@
                                     android:layout_width="match_parent"
                                     android:layout_height="@dimen/tx_cardview_divider_thickness"
                                     android:layout_marginStart="@dimen/tx_cardview_padding_left"
-                                    android:layout_marginEnd="@dimen/tx_cardview_padding_right"
+                                    android:layout_marginEnd="@dimen/tx_cardview_divider_margin_right"
                                     android:background="@color/tx_cardview_divider" />
 
                                 <RelativeLayout
@@ -428,7 +430,7 @@
                                     android:layout_width="match_parent"
                                     android:layout_height="@dimen/tx_cardview_divider_thickness"
                                     android:layout_marginStart="@dimen/tx_cardview_padding_left"
-                                    android:layout_marginEnd="@dimen/tx_cardview_padding_right"
+                                    android:layout_marginEnd="@dimen/tx_cardview_divider_margin_right"
                                     android:background="@color/tx_cardview_divider" />
 
                                 <RelativeLayout
@@ -493,7 +495,7 @@
                                     android:layout_width="match_parent"
                                     android:layout_height="@dimen/tx_cardview_divider_thickness"
                                     android:layout_marginStart="@dimen/tx_cardview_padding_left"
-                                    android:layout_marginEnd="@dimen/tx_cardview_padding_right"
+                                    android:layout_marginEnd="@dimen/tx_cardview_divider_margin_right"
                                     android:background="@color/tx_cardview_divider" />
 
                                 <RelativeLayout
@@ -636,7 +638,7 @@
                                     android:layout_width="match_parent"
                                     android:layout_height="@dimen/tx_cardview_divider_thickness"
                                     android:layout_marginStart="@dimen/tx_cardview_padding_left"
-                                    android:layout_marginEnd="@dimen/tx_cardview_padding_right"
+                                    android:layout_marginEnd="@dimen/tx_cardview_divider_margin_right"
                                     android:background="@color/tx_cardview_divider" />
 
                                 <RelativeLayout
