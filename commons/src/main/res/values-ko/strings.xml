@@ -58,7 +58,7 @@
     <string name="remove_from_favorites">즐겨찾기에서 제거</string>
     <string name="search">검색</string>
     <string name="type_2_characters">최소 한글자를 입력하십시오.</string>
-    <string name="filter">려과</string>
+    <string name="filter">주소현시</string>
     <string name="filter_pro">려과</string>
     <string name="no_items_found">항목을 찾지 못함.</string>
     <string name="change_filter">려과 변경</string>
@@ -264,6 +264,7 @@
     <string name="lock_folder_pro">등록부암호화</string>
     <string name="unlock_folder">등록부 잠금 해제</string>
     <string name="lock_folder_notice">이 보안 설정은 이 응용프로그람에서만 동작하며, 실제 체계 등록부 암호화를 대체할수 없습니다.</string>
+    <string name="now">지금</string>
     <string name="yesterday">어제</string>
     <string name="today">오늘</string>
     <string name="tomorrow">래일</string>

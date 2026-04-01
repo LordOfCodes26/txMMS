@@ -80,7 +80,7 @@ open class MySearchMenu(context: Context, attrs: AttributeSet) : MyAppBarLayout(
     fun unlockCollapsing() {
         val params = binding.searchBarContainer.layoutParams as? AppBarLayout.LayoutParams ?: return
         params.scrollFlags = savedScrollFlags
-            ?: (AppBarLayout.LayoutParams.SCROLL_FLAG_SCROLL or AppBarLayout.LayoutParams.SCROLL_FLAG_EXIT_UNTIL_COLLAPSED)
+            ?: AppBarLayout.LayoutParams.SCROLL_FLAG_NO_SCROLL
         binding.searchBarContainer.layoutParams = params
         savedScrollFlags = null
 

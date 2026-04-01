@@ -80,7 +80,6 @@
             android:layout_width="0dp"
             android:layout_height="1px"
             android:layout_marginEnd="@dimen/small_margin"
-            android:alpha="0.2"
             android:background="@drawable/divider_settings"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"

@@ -7,9 +7,14 @@ import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.graphics.Color
 import android.graphics.drawable.Drawable
+import android.graphics.drawable.GradientDrawable
 import android.util.Log
 import android.view.Gravity
+import android.view.View
 import android.view.ViewGroup
+import androidx.core.content.ContextCompat
+import androidx.core.graphics.ColorUtils
+import androidx.core.graphics.drawable.toBitmap
 import androidx.loader.content.CursorLoader
 import com.goodwy.commons.R
 import com.goodwy.commons.helpers.*
@@ -19,6 +24,53 @@ import com.goodwy.commons.models.GlobalConfig
 import com.goodwy.commons.models.isGlobalThemingEnabled
 import com.goodwy.commons.views.*
 import kotlin.math.abs
+
+/**
+ * Explicit IDs for light/dark avatar rings. Do not use [Resources.getIdentifier] here: it often returns 0
+ * for library drawables at runtime, which incorrectly fell back to legacy [R.drawable.contact_avatar_bg_1]
+ * (dark-looking browns) even when light mode was requested.
+ */
+private val CONTACT_AVATAR_BG_LIGHT_RES_IDS = intArrayOf(
+    R.drawable.contact_avatar_bg_light_1, R.drawable.contact_avatar_bg_light_2, R.drawable.contact_avatar_bg_light_3,
+    R.drawable.contact_avatar_bg_light_4, R.drawable.contact_avatar_bg_light_5, R.drawable.contact_avatar_bg_light_6,
+    R.drawable.contact_avatar_bg_light_7, R.drawable.contact_avatar_bg_light_8, R.drawable.contact_avatar_bg_light_9,
+    R.drawable.contact_avatar_bg_light_10, R.drawable.contact_avatar_bg_light_11, R.drawable.contact_avatar_bg_light_12,
+    R.drawable.contact_avatar_bg_light_13, R.drawable.contact_avatar_bg_light_14, R.drawable.contact_avatar_bg_light_15,
+    R.drawable.contact_avatar_bg_light_16, R.drawable.contact_avatar_bg_light_17, R.drawable.contact_avatar_bg_light_18,
+    R.drawable.contact_avatar_bg_light_19, R.drawable.contact_avatar_bg_light_20, R.drawable.contact_avatar_bg_light_21,
+    R.drawable.contact_avatar_bg_light_22, R.drawable.contact_avatar_bg_light_23, R.drawable.contact_avatar_bg_light_24,
+    R.drawable.contact_avatar_bg_light_25, R.drawable.contact_avatar_bg_light_26, R.drawable.contact_avatar_bg_light_27
+)
+
+private val CONTACT_AVATAR_BG_DARK_RES_IDS = intArrayOf(
+    R.drawable.contact_avatar_bg_dark_1, R.drawable.contact_avatar_bg_dark_2, R.drawable.contact_avatar_bg_dark_3,
+    R.drawable.contact_avatar_bg_dark_4, R.drawable.contact_avatar_bg_dark_5, R.drawable.contact_avatar_bg_dark_6,
+    R.drawable.contact_avatar_bg_dark_7, R.drawable.contact_avatar_bg_dark_8, R.drawable.contact_avatar_bg_dark_9,
+    R.drawable.contact_avatar_bg_dark_10, R.drawable.contact_avatar_bg_dark_11, R.drawable.contact_avatar_bg_dark_12,
+    R.drawable.contact_avatar_bg_dark_13, R.drawable.contact_avatar_bg_dark_14, R.drawable.contact_avatar_bg_dark_15,
+    R.drawable.contact_avatar_bg_dark_16, R.drawable.contact_avatar_bg_dark_17, R.drawable.contact_avatar_bg_dark_18,
+    R.drawable.contact_avatar_bg_dark_19, R.drawable.contact_avatar_bg_dark_20, R.drawable.contact_avatar_bg_dark_21,
+    R.drawable.contact_avatar_bg_dark_22, R.drawable.contact_avatar_bg_dark_23, R.drawable.contact_avatar_bg_dark_24,
+    R.drawable.contact_avatar_bg_dark_25, R.drawable.contact_avatar_bg_dark_26, R.drawable.contact_avatar_bg_dark_27
+)
+
+private fun contactAvatarBgResId(drawableIndex: Int, isDarkMode: Boolean): Int {
+    val idx = ((drawableIndex % 27) + 27) % 27
+    return if (isDarkMode) CONTACT_AVATAR_BG_DARK_RES_IDS[idx] else CONTACT_AVATAR_BG_LIGHT_RES_IDS[idx]
+}
+
+/** Same ordering as [CONTACT_AVATAR_BG_*] / contact_background: index 0 → color_1, …, index 26 → color_27 */
+private val CONTACT_CARD_OVERLAY_COLOR_RES_IDS = intArrayOf(
+    R.color.contact_card_base_color_1, R.color.contact_card_base_color_2, R.color.contact_card_base_color_3,
+    R.color.contact_card_base_color_4, R.color.contact_card_base_color_5, R.color.contact_card_base_color_6,
+    R.color.contact_card_base_color_7, R.color.contact_card_base_color_8, R.color.contact_card_base_color_9,
+    R.color.contact_card_base_color_10, R.color.contact_card_base_color_11, R.color.contact_card_base_color_12,
+    R.color.contact_card_base_color_13, R.color.contact_card_base_color_14, R.color.contact_card_base_color_15,
+    R.color.contact_card_base_color_16, R.color.contact_card_base_color_17, R.color.contact_card_base_color_18,
+    R.color.contact_card_base_color_19, R.color.contact_card_base_color_20, R.color.contact_card_base_color_21,
+    R.color.contact_card_base_color_22, R.color.contact_card_base_color_23, R.color.contact_card_base_color_24,
+    R.color.contact_card_base_color_25, R.color.contact_card_base_color_26, R.color.contact_card_base_color_27
+)
 
 fun Context.isDynamicTheme() = isSPlus() && baseConfig.isSystemThemeEnabled
 
@@ -54,7 +106,7 @@ fun Context.getProperBackgroundColor() = when {
 }
 
 fun Context.getProperPrimaryColor() = when {
-    isDynamicTheme() -> resources.getColor(com.android.common.R.color.tx_main_blue, theme)
+    isDynamicTheme() -> resources.getColor(R.color.tx_main_blue, theme)
     else -> baseConfig.primaryColor
 }
 
@@ -289,6 +341,10 @@ fun Context.getProperTextCursorColor() = when {
     else -> baseConfig.textCursorColor
 }
 
+/** Cursor color for dedicated search fields (toolbar search, pill search, SearchView [search_src_text]). */
+fun Context.getSearchFieldCursorColor(): Int =
+    resources.getColor(com.android.common.R.color.tx_main_blue, theme)
+
 /**
  * Gets the avatar color for a contact name using the same logic as avatar generation.
  * This respects the user's contact color list preference.
@@ -298,7 +354,7 @@ fun Context.getAvatarColorForName(name: String): Int {
         return getProperBackgroundColor()
     }
     val letterBackgroundColors = getLetterBackgroundColors()
-    return letterBackgroundColors[abs(name.hashCode()) % letterBackgroundColors.size].toInt()
+    return letterBackgroundColors[abs(name.toAvatarColorSeed().hashCode()) % letterBackgroundColors.size].toInt()
 }
 
 fun Context.getAvatarColorIndexForName(name: String): Int {
@@ -307,22 +363,44 @@ fun Context.getAvatarColorIndexForName(name: String): Int {
     }
     val letterBackgroundColors = getLetterBackgroundColors()
 
-    return abs(name.hashCode()) % letterBackgroundColors.size
+    return abs(name.toAvatarColorSeed().hashCode()) % letterBackgroundColors.size
 }
 
 /**
- * Gets the drawable index (0-8) for avatar background based on name's hash code.
- * There are 9 drawable backgrounds (contact_background1 through contact_background9).
+ * Drawable index (0–26) for avatar ring backgrounds from [name]'s hash.
+ * Phone-like [name] values are normalized first so formatting does not change the index.
  *
- * @param name The name to get the drawable index for
- * @return Drawable index (0-8) if colored contacts are enabled, -1 otherwise
+ * @return Index in 0..26 if colored contacts are enabled, -1 otherwise
  */
 fun Context.getAvatarDrawableIndexForName(name: String): Int {
     if (!baseConfig.useColoredContacts) {
         return -1
     }
-    // There are 9 drawable backgrounds (contact_background1-9), so indices 0-8
-    return abs(name.hashCode()) % 27
+    return abs(name.toAvatarColorSeed().hashCode()) % 27
+}
+
+/**
+ * Solid overlay tint for contact CardViews, keyed the same way as [getAvatarDrawableIndexForName]
+ * (same seed and modulo 27 as contact_background / avatar rings).
+ *
+ * @return Theme-resolved color from [contact_card_base_color_1]…[contact_card_base_color_27], or
+ * [getProperBackgroundColor] when colored contacts are disabled.
+ */
+fun Context.getContactCardOverlayColorForName(name: String): Int {
+    val index = getAvatarDrawableIndexForName(name)
+    return if (index < 0) {
+        getProperBackgroundColor()
+    } else {
+        resources.getColor(CONTACT_CARD_OVERLAY_COLOR_RES_IDS[index], theme)
+    }
+}
+
+/**
+ * Resolved overlay color for a contact-background drawable index in `0..26` (same as [createContactGradientDrawable]).
+ */
+fun Context.getContactCardOverlayColorForDrawableIndex(drawableIndex: Int): Int {
+    val idx = ((drawableIndex % 27) + 27) % 27
+    return resources.getColor(CONTACT_CARD_OVERLAY_COLOR_RES_IDS[idx], theme)
 }
 
 /**
@@ -337,26 +415,16 @@ fun Context.getAvatarDrawableIndexForName(name: String): Int {
 @SuppressLint("UseCompatLoadingForDrawables")
 fun Context.createAvatarGradientDrawable(
     drawableIndex: Int,
+    isDarkMode: Boolean = isSystemInDarkMode(),
     blendWithSurface: Boolean = true,
     glowIntensity: Float = 0.4f
 ): Drawable {
 //    val (topColor, bottomColor) = avatarColor.createGradientColors()
 
-    Log.d("CHero-createAvatarDrawable", drawableIndex.toString())
+    Log.d("CHero-createAvatarDrawable", "idx=$drawableIndex dark=$isDarkMode")
 
-    // Convert drawableIndex to resource number (1-27)
-    // drawableIndex 0 -> contact_avatar_bg_1, drawableIndex 1 -> contact_avatar_bg_2, etc.
-    val resourceNumber = (drawableIndex % 27) + 1
-    val resourceName = "contact_avatar_bg_$resourceNumber"
-    
-    val resourceId = resources.getIdentifier(resourceName, "drawable", packageName)
-    
-    return if (resourceId != 0) {
-        getDrawable(resourceId)!!
-    } else {
-        // Fallback to contact_avatar_bg_1 if resource not found
-        getDrawable(R.drawable.contact_avatar_bg_1)!!
-    }
+    val resId = contactAvatarBgResId(drawableIndex, isDarkMode)
+    return getDrawable(resId) ?: getDrawable(R.drawable.contact_avatar_bg_1)!!
 }
 fun Context.createContactGradientDrawable(
     drawableIndex: Int,
@@ -380,6 +448,86 @@ fun Context.createContactGradientDrawable(
         // Fallback to contact_avatar_bg_1 if resource not found
         getDrawable(R.drawable.contact_background_1)!!
     }
+}
+
+/**
+ * RGB color sampled from [drawable] (same asset as [createContactGradientDrawable]) for contact detail card tinting.
+ * Uses a small rasterized sample and averaged pixels so layered/gradient backgrounds read as one hue.
+ */
+fun colorFromContactBackgroundDrawable(drawable: Drawable, fallbackRgb: Int): Int {
+    val w = 48
+    val h = 48
+    return try {
+        val bitmap = drawable.toBitmap(w, h)
+        var r = 0L
+        var g = 0L
+        var b = 0L
+        var count = 0
+        var x = 0
+        while (x < w) {
+            var y = 0
+            while (y < h) {
+                val c = bitmap.getPixel(x, y)
+                r += Color.red(c)
+                g += Color.green(c)
+                b += Color.blue(c)
+                count++
+                y += 4
+            }
+            x += 4
+        }
+        bitmap.recycle()
+        if (count == 0) {
+            ColorUtils.setAlphaComponent(fallbackRgb, 255)
+        } else {
+            Color.rgb((r / count).toInt(), (g / count).toInt(), (b / count).toInt())
+        }
+    } catch (_: Exception) {
+        ColorUtils.setAlphaComponent(fallbackRgb, 255)
+    }
+}
+
+/** Same corner radius as contact detail card drawables when [tx_cardview_corner_radius] exists in the app theme. */
+fun Context.contactDetailCardCornerRadiusPx(): Float {
+    val txId = resources.getIdentifier("tx_cardview_corner_radius", "dimen", packageName)
+    if (txId != 0) {
+        return resources.getDimension(txId)
+    }
+    val fallbackId = resources.getIdentifier("contact_detail_card_corner_radius", "dimen", packageName)
+    return if (fallbackId != 0) {
+        resources.getDimension(fallbackId)
+    } else {
+        resources.getDimension(R.dimen.normal_margin)
+    }
+}
+
+/**
+ * Rounded rectangle with alpha matching app [contact_detail_card_bg] color, filled with [baseColor].
+ */
+fun Context.createContactDetailCardGradientDrawable(baseColor: Int): GradientDrawable {
+    val colorId = resources.getIdentifier("contact_detail_card_bg", "color", packageName)
+    val cardAlpha = if (colorId != 0) {
+        Color.alpha(ContextCompat.getColor(this, colorId))
+    } else {
+        0x30
+    }
+    return GradientDrawable().apply {
+        shape = GradientDrawable.RECTANGLE
+        cornerRadius = contactDetailCardCornerRadiusPx()
+        setColor(ColorUtils.setAlphaComponent(baseColor, cardAlpha))
+    }
+}
+
+fun applyContactDetailCardBackgrounds(views: Iterable<View>, base: Drawable) {
+    views.forEach { view ->
+        view.background = base.constantState?.newDrawable()?.mutate() ?: base
+    }
+}
+
+/** Default [contact_detail_card_bg] from the host app (used when resetting cards away from gradient tint). */
+fun Context.getContactDetailCardBgDrawable(): Drawable? {
+    val id = resources.getIdentifier("contact_detail_card_bg", "drawable", packageName)
+    return if (id != 0) ContextCompat.getDrawable(this, id) else null
 }
 
 //fun Context.getAvatarDrawablw(

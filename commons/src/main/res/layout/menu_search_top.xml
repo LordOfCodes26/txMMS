@@ -47,8 +47,8 @@
                 android:lines="1"
                 android:maxLines="1"
                 android:paddingStart="@dimen/normal_margin"
-
                 android:singleLine="true"
+                android:textCursorDrawable="@null"
                 android:textSize="@dimen/tx_normal_text" />
 
             <com.goodwy.commons.views.CustomToolbar

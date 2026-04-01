@@ -23,7 +23,7 @@
             layout="@layout/divider"
             android:visibility="gone" />
 
-        <LinearLayout
+        <ScrollView
             android:id="@+id/dialog_option_list_holder"
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
@@ -35,6 +35,6 @@
                 android:orientation="vertical"
                 android:paddingHorizontal="@dimen/tx_dialog_padding_horizontal"/>
 
-        </LinearLayout>
+        </ScrollView>
     </LinearLayout>
 </com.android.common.view.MBlurView>

@@ -67,7 +67,7 @@
                 android:layout_marginBottom="@dimen/section_margin"
                 app:cardBackgroundColor="@android:color/transparent"
                 app:cardCornerRadius="8dp"
-                app:cardElevation="@dimen/cardview_default_elevation">
+                app:cardElevation="16dp">
 
                 <com.goodwy.commons.views.ColorPickerSquare
                     android:id="@+id/color_picker_square"
@@ -81,7 +81,7 @@
                     android:layout_width="@dimen/colorpicker_hue_width"
                     android:layout_height="@dimen/colorpicker_hue_width"
                     android:adjustViewBounds="true"
-                    android:elevation="@dimen/cardview_default_elevation"
+                    android:elevation="16dp"
                     android:scaleType="fitCenter"
                     android:src="@drawable/ic_circle" />
             </androidx.cardview.widget.CardView>
@@ -97,7 +97,7 @@
                 android:layout_toEndOf="@id/color_picker_square_holder"
                 app:cardBackgroundColor="@color/md_grey_white"
                 app:cardCornerRadius="8dp"
-                app:cardElevation="@dimen/cardview_default_elevation">
+                app:cardElevation="10dp">
 
                 <ImageView
                     android:id="@+id/color_picker_hue"
@@ -111,7 +111,7 @@
                     android:id="@+id/color_picker_hue_cursor"
                     android:layout_width="@dimen/colorpicker_hue_width"
                     android:layout_height="@dimen/colorpicker_hue_width"
-                    android:elevation="@dimen/cardview_default_elevation"
+                    android:elevation="16dp"
                     android:src="@drawable/ic_circle" />
             </androidx.cardview.widget.CardView>
 
@@ -126,7 +126,7 @@
                 android:layout_alignStart="@+id/color_picker_square_holder"
                 app:cardBackgroundColor="@color/md_grey_white"
                 app:cardCornerRadius="8dp"
-                app:cardElevation="@dimen/cardview_default_elevation">
+                app:cardElevation="6dp">
 
                 <ImageView
                     android:id="@+id/color_picker_new_color"

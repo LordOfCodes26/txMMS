@@ -52,6 +52,7 @@ import com.goodwy.commons.helpers.*
 import com.goodwy.commons.interfaces.CopyMoveListener
 import com.goodwy.commons.models.FAQItem
 import com.goodwy.commons.models.FileDirItem
+import com.goodwy.commons.views.CustomToolbar
 import com.goodwy.commons.views.MyAppBarLayout
 import com.google.android.material.appbar.AppBarLayout
 import kotlinx.coroutines.launch
@@ -290,6 +291,7 @@ abstract class BaseSimpleActivity : EdgeToEdgeActivity() {
                     if (isQPlus()) {
                         textCursorDrawable = null
                     }
+                    applySearchFieldCursorColor()
                 }
 
             // search underline
@@ -307,6 +309,66 @@ abstract class BaseSimpleActivity : EdgeToEdgeActivity() {
                 ObjectAnimator.ofFloat(appBarLayout, "elevation", 0.0f)
             )
             appBarLayout.stateListAnimator = stateListAnimator
+        }
+    }
+
+    /**
+     * Use when [CustomToolbar] lives inside a Material [AppBarLayout] (not [MyAppBarLayout]) so system-bar
+     * top padding is not applied twice (MyAppBarLayout already pads for status bar; Main screen uses plain AppBarLayout).
+     */
+    fun setupTopAppBar(
+        customToolbar: CustomToolbar,
+        navigationIcon: NavigationIcon = NavigationIcon.None,
+        topBarColor: Int = getRequiredTopBarColor(),
+        searchMenuItem: MenuItem? = null,
+        navigationClick: Boolean = true,
+    ) {
+        val contrastColor = topBarColor.getContrastColor()
+        if (navigationIcon != NavigationIcon.None) {
+            val drawableId = if (navigationIcon == NavigationIcon.Cross) {
+                R.drawable.ic_cross_vector
+            } else {
+                R.drawable.ic_chevron_left_vector
+            }
+            customToolbar.navigationIcon =
+                resources.getColoredDrawableWithColor(drawableId, contrastColor)
+            customToolbar.setNavigationContentDescription(navigationIcon.accessibilityResId)
+        }
+
+        updateTopBarColors(customToolbar, topBarColor)
+
+        if (navigationClick) {
+            customToolbar.setNavigationOnClickListener {
+                hideKeyboard()
+                finish()
+            }
+        }
+
+        if (!isSearchBarEnabled) {
+            searchMenuItem?.actionView
+                ?.findViewById<ImageView>(androidx.appcompat.R.id.search_close_btn)
+                ?.apply {
+                    applyColorFilter(contrastColor)
+                }
+
+            searchMenuItem?.actionView
+                ?.findViewById<EditText>(androidx.appcompat.R.id.search_src_text)
+                ?.apply {
+                    setTextColor(contrastColor)
+                    setHintTextColor(contrastColor.adjustAlpha(MEDIUM_ALPHA))
+                    hint = "${getString(R.string.search)}…"
+
+                    if (isQPlus()) {
+                        textCursorDrawable = null
+                    }
+                    applySearchFieldCursorColor()
+                }
+
+            searchMenuItem?.actionView
+                ?.findViewById<View>(androidx.appcompat.R.id.search_plate)
+                ?.apply {
+                    background.setColorFilter(Color.TRANSPARENT, PorterDuff.Mode.MULTIPLY)
+                }
         }
     }
 
@@ -349,6 +411,7 @@ abstract class BaseSimpleActivity : EdgeToEdgeActivity() {
                 if (isQPlus()) {
                     textCursorDrawable = null
                 }
+                applySearchFieldCursorColor()
             }
 
             // search underline

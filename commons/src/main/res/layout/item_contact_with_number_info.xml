@@ -96,7 +96,6 @@
             android:layout_height="1px"
             android:layout_marginEnd="@dimen/small_margin"
             android:background="@drawable/divider_settings"
-            android:alpha="0.2"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="@+id/item_contact_name"
             app:layout_constraintEnd_toEndOf="parent" />

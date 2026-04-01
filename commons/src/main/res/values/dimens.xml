@@ -51,7 +51,7 @@
     <dimen name="call_icon_size">44dp</dimen>
     <dimen name="normal_icon_size">45dp</dimen>
     <dimen name="special_contact_avatar_icon_size">24dp</dimen>
-    <dimen name="medium_icon_size">@dimen/tx_toolbar_icon_size</dimen>
+    <dimen name="medium_icon_size">@dimen/tx_common_icon_size</dimen>
     <dimen name="fingerprint_size">72dp</dimen>
     <dimen name="fab_size">56dp</dimen>
     <dimen name="secondary_fab_bottom_margin">76dp</dimen>
@@ -176,6 +176,10 @@
     <dimen name="swipe_width">180dp</dimen>
 
     <!--padding-->
-    <dimen name="icon_padding">@dimen/tx_toolbar_icon_padding</dimen>
+    <dimen name="icon_padding">@dimen/tx_common_icon_padding</dimen>
     <dimen name="contact_view_card_padding_start">@dimen/activity_margin</dimen>
+    <dimen name="spacing_m">8dp</dimen>
+    <dimen name="spacing_s">4dp</dimen>
+    <dimen name="spacing_xs">2dp</dimen>
+
 </resources>

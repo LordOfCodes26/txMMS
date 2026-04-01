@@ -673,4 +673,33 @@
     <color name="random_ios_700">#FFFE9F0C</color>
     <color name="random_ios_800">#FFFECB00</color>
     <color name="random_ios_900">#FF2ED158</color>
+
+    <!-- Contact card overlay tints (aligned with contact_background / avatar index 0–26) -->
+    <color name="contact_card_base_color_1">#040f2f</color>
+    <color name="contact_card_base_color_2">#1a2418</color>
+    <color name="contact_card_base_color_3">#1d1824</color>
+    <color name="contact_card_base_color_4">#151722</color>
+    <color name="contact_card_base_color_5">#111e1b</color>
+    <color name="contact_card_base_color_6">#1e1612</color>
+    <color name="contact_card_base_color_7">#1c0f0f</color>
+    <color name="contact_card_base_color_8">#1f2330</color>
+    <color name="contact_card_base_color_9">#271521</color>
+    <color name="contact_card_base_color_10">#141a16</color>
+    <color name="contact_card_base_color_11">#231d16</color>
+    <color name="contact_card_base_color_12">#131e1d</color>
+    <color name="contact_card_base_color_13">#13171a</color>
+    <color name="contact_card_base_color_14">#1f130f</color>
+    <color name="contact_card_base_color_15">#1e0e1d</color>
+    <color name="contact_card_base_color_16">#171411</color>
+    <color name="contact_card_base_color_17">#1a110c</color>
+    <color name="contact_card_base_color_18">#0a130a</color>
+    <color name="contact_card_base_color_19">#13172d</color>
+    <color name="contact_card_base_color_20">#10142c</color>
+    <color name="contact_card_base_color_21">#161a15</color>
+    <color name="contact_card_base_color_22">#0b2021</color>
+    <color name="contact_card_base_color_23">#2f161a</color>
+    <color name="contact_card_base_color_24">#1f1611</color>
+    <color name="contact_card_base_color_25">#2d1213</color>
+    <color name="contact_card_base_color_26">#0b1e1e</color>
+    <color name="contact_card_base_color_27">#17162a</color>
 </resources>

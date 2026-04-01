@@ -14,7 +14,7 @@ import com.goodwy.commons.extensions.beVisibleIf
 import com.goodwy.commons.extensions.getContrastColor
 import com.goodwy.commons.extensions.getProperBackgroundColor
 import com.goodwy.commons.extensions.getProperPrimaryColor
-import com.goodwy.commons.extensions.getProperTextCursorColor
+import com.goodwy.commons.extensions.getSearchFieldCursorColor
 import com.goodwy.commons.extensions.getSurfaceColor
 import com.goodwy.commons.extensions.hideKeyboard
 import com.goodwy.commons.extensions.isDynamicTheme
@@ -143,7 +143,7 @@ open class MySearchMenuTop(context: Context, attrs: AttributeSet) : MyAppBarLayo
         binding.topToolbarSearch.setColors(
             contrastColor,
             primaryColor,
-            context.getProperTextCursorColor()
+            context.getSearchFieldCursorColor()
         )
 
         //No need to update the status bar when using it in a dialog

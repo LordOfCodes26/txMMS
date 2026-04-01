@@ -308,7 +308,9 @@ fun getPermissionString(id: Int) = when (id) {
 
 fun Context.launchActivityIntent(intent: Intent) {
     try {
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        if (findActivity() == null) {
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
         startActivity(intent)
     } catch (_: ActivityNotFoundException) {
         toast(R.string.no_app_found)
