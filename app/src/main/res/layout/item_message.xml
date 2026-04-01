@@ -81,21 +81,21 @@
             <Space
                 android:id="@+id/threadMessageBodySpacer"
                 android:layout_width="match_parent"
-                android:layout_height="0dp"
+                android:layout_height="@dimen/tx_cardview_summary_padding_top"
                 android:layout_weight="1" />
 
             <LinearLayout
                 android:id="@+id/threadMessageTimeSimHolder"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_gravity="end"
+                android:layout_gravity="start"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
                 android:paddingTop="@dimen/tiny_margin">
 
                 <ImageView
                     android:id="@+id/threadMessageStatusIcon"
-                    android:layout_width="@dimen/activity_margin"
+                    android:layout_width="@dimen/normal_margin"
                     android:layout_height="wrap_content"
                     android:layout_marginEnd="@dimen/small_margin"
                     android:visibility="gone"
@@ -105,7 +105,7 @@
 
                 <ImageView
                     android:id="@+id/threadMessageSimIcon"
-                    android:layout_width="@dimen/activity_margin"
+                    android:layout_width="@dimen/normal_margin"
                     android:layout_height="wrap_content"
                     android:layout_marginEnd="@dimen/small_margin"
                     android:visibility="gone"

@@ -120,6 +120,8 @@ import com.android.mms.models.ThreadItem.ThreadDateTime
 import com.android.common.helper.IconItem
 import com.mikhaellopez.rxanimation.alpha
 import android.widget.PopupMenu
+import androidx.core.view.updatePadding
+import com.behaviorule.arturdumchev.library.setHeight
 import java.util.Locale
 import kotlin.math.abs
 
@@ -1083,6 +1085,8 @@ class ThreadAdapter(
                     setCompoundDrawables(null, null, null, null)
                 }
             }
+            threadMessageBodySpacer.setHeight(0)
+            threadMessageTimeSimHolder.updatePadding(0, (-4 * resources.displayMetrics.density).toInt(), 0, 0)
         }
     }
 
@@ -1195,8 +1199,8 @@ class ThreadAdapter(
         val holder = messageBinding.threadMessageTimeSimHolder
         val isReceived = message.isReceivedMessage()
         // Received: bottom-left, order HH:mm, SIM icon. Sent: bottom-right, order status, SIM, HH:mm
-        (holder.layoutParams as? android.widget.LinearLayout.LayoutParams)?.gravity =
-            if (isReceived) android.view.Gravity.START else android.view.Gravity.END
+        (holder.layoutParams as? android.widget.LinearLayout.LayoutParams)?.gravity = android.view.Gravity.START
+//            if (isReceived) android.view.Gravity.START else android.view.Gravity.END
         if (isReceived) {
             // Reorder for received: time first, then sim (order: HH:mm, SIM icon)
             holder.removeView(messageBinding.threadMessageTime)
