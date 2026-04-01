@@ -467,7 +467,7 @@ class NewConversationActivity : SimpleActivity() {
             }
 
             filteredContacts.sortWith(compareBy { !it.name.startsWith(searchString, true) })
-            setupAdapter(filteredContacts)
+            setupAdapter(filteredContacts, searchString.isNotEmpty())
         }
 
         binding.newConversationAddress.setSpeechToTextButtonVisible(false)
@@ -552,13 +552,13 @@ class NewConversationActivity : SimpleActivity() {
                 }
 
                 runOnUiThread {
-                    setupAdapter(allContacts)
+//                    setupAdapter(allContacts)
                 }
 //            }
         }
     }
 
-    private fun setupAdapter(contacts: ArrayList<SimpleContact>) {
+    private fun setupAdapter(contacts: ArrayList<SimpleContact>, isSearchEmpty: Boolean) {
         // Expand contacts with multiple phone numbers into separate entries
         val contactPhonePairs = ArrayList<ContactPhonePair>()
         contacts.forEach { contact ->
@@ -577,8 +577,8 @@ class NewConversationActivity : SimpleActivity() {
         }
         
         val hasContacts = contactPhonePairs.isNotEmpty()
-        binding.contactsList.beVisibleIf(hasContacts)
-        binding.contactsListWrapper.beVisibleIf(hasContacts)
+//        binding.contactsList.beVisibleIf(hasContacts)
+        binding.contactsListWrapper.beVisibleIf(hasContacts && isSearchEmpty)
         binding.noContactsPlaceholder.beVisibleIf(!hasContacts)
         binding.noContactsPlaceholder2.beVisibleIf(
             !hasContacts && !hasPermission(
