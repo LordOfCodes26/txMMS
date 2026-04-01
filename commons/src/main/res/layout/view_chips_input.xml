@@ -56,7 +56,7 @@
                     android:layout_centerVertical="true"
                     android:minWidth="@dimen/line_color_picker_height"
                     android:minLines="1"
-                    android:paddingHorizontal="@dimen/tx_bottom_bar_icon_padding"
+                    android:paddingHorizontal="@dimen/tx_common_icon_padding"
                     android:background="@android:color/transparent"
                     android:gravity="center_vertical"
                     android:hint=""
