@@ -441,15 +441,15 @@ class ContactPickerActivity : SimpleActivity() {
         val textColor = getProperTextColor()
         val primaryColor = getProperPrimaryColor()
         if (isCallLogMode) {
-            filterCallLog?.setTextColor(primaryColor)
-            filterContacts?.setTextColor(textColor)
+//            filterCallLog?.setTextColor(primaryColor)
+//            filterContacts?.setTextColor(textColor)
             filterCallLogLine?.setBackgroundColor(primaryColor)
             filterContactsLiner?.setBackgroundColor(textColor)
             filterCallLogLine?.visibility = View.VISIBLE
             filterContactsLiner?.visibility = View.GONE
         } else {
-            filterCallLog?.setTextColor(textColor)
-            filterContacts?.setTextColor(primaryColor)
+//            filterCallLog?.setTextColor(textColor)
+//            filterContacts?.setTextColor(primaryColor)
             filterCallLogLine?.setBackgroundColor(textColor)
             filterContactsLiner?.setBackgroundColor(primaryColor)
             filterCallLogLine?.visibility = View.GONE

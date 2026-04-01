@@ -135,7 +135,7 @@
         android:layout_marginEnd="@dimen/smaller_margin"
         android:minHeight="@dimen/input_edit_height"
         app:cardCornerRadius="24dp"
-        app:cardElevation="@dimen/cardview_default_elevation"
+        app:cardElevation="3px"
         app:layout_constraintBottom_toBottomOf="@id/threadAddAttachmentHolder"
         app:layout_constraintEnd_toStartOf="@id/imv_emotic_btn"
         app:layout_constraintHorizontal_weight="1"

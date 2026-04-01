@@ -186,7 +186,8 @@
             android:layout_margin="@dimen/tx_mv_side_bottom_frame_height"
             android:contentDescription="@string/new_conversation"
             android:src="@drawable/ic_plus_vector"
-            app:applyWindowInsets="true" />
+            app:applyWindowInsets="true"
+            app:elevation="0dp"/>
 
     </androidx.coordinatorlayout.widget.CoordinatorLayout>
 
@@ -195,8 +196,8 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|center_horizontal"
-        android:layout_marginBottom="25dp"
-        android:elevation="@dimen/cardview_default_elevation"
+        android:layout_marginBottom="@dimen/ripple_bottom"
+        android:elevation="0dp"
         android:visibility="gone" />
 
 </FrameLayout>

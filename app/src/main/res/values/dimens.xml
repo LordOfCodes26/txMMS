@@ -70,4 +70,5 @@
     <dimen name="keyboard_add_height">350dp</dimen>
     <dimen name="cardview_input_corner_radius">26dp</dimen>
     <dimen name="cardview_stroke">0.5dp</dimen>
+    <dimen name="ripple_bottom">25dp</dimen>
 </resources>
