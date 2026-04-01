@@ -12,6 +12,7 @@ import android.util.Log
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
+import androidx.cardview.widget.CardView
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.ColorUtils
 import androidx.core.graphics.drawable.toBitmap
@@ -520,8 +521,17 @@ fun Context.createContactDetailCardGradientDrawable(baseColor: Int): GradientDra
 
 fun applyContactDetailCardBackgrounds(views: Iterable<View>, base: Drawable) {
     views.forEach { view ->
-        view.background = base.constantState?.newDrawable()?.mutate() ?: base
+        val target = contactDetailCardBackgroundTarget(view)
+        target.background = base.constantState?.newDrawable()?.mutate() ?: base
     }
+}
+
+/** When the card root is a [CardView], tint the inner surface (first child). */
+private fun contactDetailCardBackgroundTarget(view: View): View {
+    if (view is CardView && view.childCount > 0) {
+        return view.getChildAt(0)
+    }
+    return view
 }
 
 /** Default [contact_detail_card_bg] from the host app (used when resetting cards away from gradient tint). */
