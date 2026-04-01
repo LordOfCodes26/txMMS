@@ -24,7 +24,7 @@ import com.goodwy.commons.R
 import com.goodwy.commons.databinding.CustomToolbarBinding
 import com.goodwy.commons.extensions.getProperPrimaryColor
 import com.goodwy.commons.extensions.getProperTextColor
-import com.goodwy.commons.extensions.getProperTextCursorColor
+import com.goodwy.commons.extensions.getSearchFieldCursorColor
 import com.goodwy.commons.extensions.onTextChangeListener
 import java.lang.reflect.Method
 
@@ -248,7 +248,7 @@ class CustomToolbar @JvmOverloads constructor(
 
     private fun getCursorColor(): Int {
         if (cachedCursorColor == null) {
-            cachedCursorColor = context.getProperTextCursorColor()
+            cachedCursorColor = context.getSearchFieldCursorColor()
         }
         return cachedCursorColor!!
     }

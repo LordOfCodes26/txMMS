@@ -68,6 +68,10 @@ data class Contact(
         }
 
     companion object {
+        /** Injected by the app for SIM-row UI testing only (emulator / no real SIM). Not provider ids. */
+        const val DEBUG_FAKE_SIM_SLOT1_CONTACT_ID = -91001
+        const val DEBUG_FAKE_SIM_SLOT2_CONTACT_ID = -91002
+
         private const val SORT_CAT_SYMBOL = 0
         private const val SORT_CAT_KOREAN = 1
         private const val SORT_CAT_ENGLISH = 2
@@ -494,6 +498,7 @@ data class Contact(
     fun isPrivate() = source == SMT_PRIVATE
 
     fun isFromSimCard(context: Context): Boolean {
+        if (id == DEBUG_FAKE_SIM_SLOT1_CONTACT_ID || id == DEBUG_FAKE_SIM_SLOT2_CONTACT_ID) return true
         if (source.isEmpty()) return false
         val contactsHelper = ContactsHelper(context)
         val accountType = contactsHelper.getContactSourceType(source)
@@ -506,6 +511,10 @@ data class Contact(
      * Returns 0 for phone storage contacts or if SIM index cannot be determined.
      */
     fun getSimCardIndex(context: Context): Int {
+        when (id) {
+            DEBUG_FAKE_SIM_SLOT1_CONTACT_ID -> return 1
+            DEBUG_FAKE_SIM_SLOT2_CONTACT_ID -> return 2
+        }
         if (source.isEmpty()) return 0
         if (!isFromSimCard(context)) return 0
         
@@ -581,6 +590,26 @@ data class Contact(
         }
         
         return 0
+    }
+
+    /** Short label for contact lists, e.g. "SIM 1" / "SIM 2" / "SIM"; null if not stored on a SIM. */
+    fun getSimListLabel(context: Context): String? {
+        if (!isFromSimCard(context)) return null
+        return when (val idx = getSimCardIndex(context)) {
+            1 -> context.getString(com.goodwy.commons.R.string.contact_list_sim_slot, 1)
+            2 -> context.getString(com.goodwy.commons.R.string.contact_list_sim_slot, 2)
+            else -> context.getString(com.goodwy.commons.R.string.contact_list_sim)
+        }
+    }
+
+    /** Drawable for SIM slot in lists (ic_cmn_sim1 / ic_cmn_sim2 / ic_cmn_sim); null if not on a SIM. */
+    fun getSimListLabelDrawableRes(context: Context): Int? {
+        if (!isFromSimCard(context)) return null
+        return when (getSimCardIndex(context)) {
+            1 -> com.android.common.R.drawable.ic_cmn_sim1
+            2 -> com.android.common.R.drawable.ic_cmn_sim2
+            else -> com.android.common.R.drawable.ic_cmn_sim1
+        }
     }
 
     fun getSignatureKey() = photoUri.ifEmpty { hashCode() }

@@ -18,6 +18,8 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.core.view.isVisible
 import com.goodwy.commons.R
+import com.goodwy.commons.extensions.createAvatarGradientDrawable
+import com.goodwy.commons.extensions.isSystemInDarkMode
 import com.goodwy.commons.helpers.AvatarSource
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.DataSource
@@ -48,18 +50,8 @@ class ContactAvatarView @JvmOverloads constructor(
 ) : FrameLayout(context, attrs, defStyleAttr) {
 
     companion object {
-        /** Cached resource IDs for contact_avatar_bg_1..27 to avoid getIdentifier() in bind. */
-        private val AVATAR_BG_RES_IDS = intArrayOf(
-            R.drawable.contact_avatar_bg_1, R.drawable.contact_avatar_bg_2, R.drawable.contact_avatar_bg_3,
-            R.drawable.contact_avatar_bg_4, R.drawable.contact_avatar_bg_5, R.drawable.contact_avatar_bg_6,
-            R.drawable.contact_avatar_bg_7, R.drawable.contact_avatar_bg_8, R.drawable.contact_avatar_bg_9,
-            R.drawable.contact_avatar_bg_10, R.drawable.contact_avatar_bg_11, R.drawable.contact_avatar_bg_12,
-            R.drawable.contact_avatar_bg_13, R.drawable.contact_avatar_bg_14, R.drawable.contact_avatar_bg_15,
-            R.drawable.contact_avatar_bg_16, R.drawable.contact_avatar_bg_17, R.drawable.contact_avatar_bg_18,
-            R.drawable.contact_avatar_bg_19, R.drawable.contact_avatar_bg_20, R.drawable.contact_avatar_bg_21,
-            R.drawable.contact_avatar_bg_22, R.drawable.contact_avatar_bg_23, R.drawable.contact_avatar_bg_24,
-            R.drawable.contact_avatar_bg_25, R.drawable.contact_avatar_bg_26, R.drawable.contact_avatar_bg_27
-        )
+        /** Inset on each side as a fraction of avatar size; larger = smaller drawn ic_person. */
+        private const val PROFILE_ICON_INSET_RATIO = 0.16f
     }
 
     // View references
@@ -76,6 +68,21 @@ class ContactAvatarView @JvmOverloads constructor(
     private val PREVIEW_MAX_SIZE = 96
     // Track whether current bind is used in compact list/preview UI.
     private var currentPreviewMode: Boolean = false
+
+    /** When true, avatar shows ic_person; padding must track view size (RecyclerView pre-layout bind). */
+    private var showingDefaultProfileIcon: Boolean = false
+
+    /** Drawable bind with ratio-based insets (no fixed iconSizePx); padding must track view size. */
+    private var drawableIconInsetRatio: Float? = null
+
+    /** Optional explicit avatar background mode. Null means follow system mode. */
+    private var avatarDarkModeOverride: Boolean? = null
+
+    fun setAvatarDarkModeOverride(isDarkMode: Boolean?) {
+        avatarDarkModeOverride = isDarkMode
+    }
+
+    private fun isAvatarDarkMode(): Boolean = avatarDarkModeOverride ?: context.isSystemInDarkMode()
 
     /**
      * Returns the pixel size to use for Glide override so the image fills the avatar
@@ -176,6 +183,8 @@ class ContactAvatarView @JvmOverloads constructor(
         previewMode: Boolean = false,
         isSamePhotoReload: Boolean = false
     ) {
+        showingDefaultProfileIcon = false
+        drawableIconInsetRatio = null
         background = null
         avatarBackgroundLayer.background = null
         avatarBackgroundLayer.isVisible = false
@@ -270,12 +279,15 @@ class ContactAvatarView @JvmOverloads constructor(
         iconInsetRatio: Float = 0.2f,
         iconSizePx: Int? = null
     ) {
+        showingDefaultProfileIcon = false
+        drawableIconInsetRatio = if (iconSizePx != null && iconSizePx > 0) null else iconInsetRatio.coerceIn(0.05f, 0.45f)
         avatarImage.isVisible = true
         avatarInitials.isVisible = false
         if (backgroundDrawableIndex != null) {
-            val resId = AVATAR_BG_RES_IDS[backgroundDrawableIndex % 27]
-            @SuppressLint("UseCompatLoadingForDrawables")
-            avatarBackgroundLayer.background = context.getDrawable(resId)
+            avatarBackgroundLayer.background = context.createAvatarGradientDrawable(
+                drawableIndex = backgroundDrawableIndex,
+                isDarkMode = isAvatarDarkMode()
+            )
         } else {
             avatarBackgroundLayer.background = GradientDrawable().apply {
                 setColor(backgroundColor)
@@ -305,9 +317,10 @@ class ContactAvatarView @JvmOverloads constructor(
         if (iconSizePx != null && iconSizePx > 0) {
             avatarImage.setPadding(0, 0, 0, 0)
         } else {
-            val size = minOf(width, height).takeIf { it > 0 } ?: (resources.displayMetrics.density * 48f).toInt()
-            val inset = (size * iconInsetRatio.coerceIn(0.05f, 0.45f)).toInt().coerceAtLeast(4)
-            avatarImage.setPadding(inset, inset, inset, inset)
+            applyDrawableIconInsets(iconInsetRatio)
+            if (width <= 0 || height <= 0) {
+                post { if (drawableIconInsetRatio != null) applyDrawableIconInsets(drawableIconInsetRatio!!) }
+            }
         }
         avatarImage.setImageResource(drawableResId)
         avatarImage.imageTintList = ColorStateList.valueOf(tintColor)
@@ -331,9 +344,10 @@ class ContactAvatarView @JvmOverloads constructor(
         val monogramChar = extractFirstMonogramCharacter(initials)
 
         if (drawableIndex != null) {
-            val resId = AVATAR_BG_RES_IDS[drawableIndex % 27]
-            @SuppressLint("UseCompatLoadingForDrawables")
-            avatarBackgroundLayer.background = context.getDrawable(resId)
+            avatarBackgroundLayer.background = context.createAvatarGradientDrawable(
+                drawableIndex = drawableIndex,
+                isDarkMode = isAvatarDarkMode()
+            )
         } else {
             avatarBackgroundLayer.background = GradientDrawable().apply {
                 orientation = GradientDrawable.Orientation.TOP_BOTTOM
@@ -355,6 +369,8 @@ class ContactAvatarView @JvmOverloads constructor(
             bindDefaultProfileIcon()
             return
         }
+
+        showingDefaultProfileIcon = false
 
         // Always show the first user-visible character for monogram mode.
         avatarImage.isVisible = false
@@ -381,6 +397,8 @@ class ContactAvatarView @JvmOverloads constructor(
     }
 
     private fun bindDefaultProfileIcon() {
+        showingDefaultProfileIcon = true
+        drawableIconInsetRatio = null
         avatarImage.layoutParams = FrameLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.MATCH_PARENT,
@@ -389,11 +407,30 @@ class ContactAvatarView @JvmOverloads constructor(
         avatarImage.isVisible = true
         avatarInitials.isVisible = false
         avatarImage.scaleType = ImageView.ScaleType.FIT_CENTER
-        val iconInset = (minOf(width, height).takeIf { it > 0 } ?: resources.displayMetrics.density.times(150f).toInt()) * 0.04f
-        avatarImage.setPadding(iconInset.toInt(), iconInset.toInt(), iconInset.toInt(), iconInset.toInt())
+        applyDefaultProfileIconInsets()
+        if (width <= 0 || height <= 0) {
+            post { if (showingDefaultProfileIcon) applyDefaultProfileIconInsets() }
+        }
         avatarImage.setImageResource(R.drawable.ic_person)
         avatarImage.imageTintList = ColorStateList.valueOf(Color.WHITE)
         avatarImage.background = null
+    }
+
+    /** Same fallback as ratio-based drawable icons when size not known yet (~48dp). */
+    private fun avatarSizeForInsets(): Int {
+        val s = minOf(width, height)
+        return if (s > 0) s else (resources.displayMetrics.density * 48f).toInt()
+    }
+
+    private fun applyDefaultProfileIconInsets() {
+        val inset = (avatarSizeForInsets() * PROFILE_ICON_INSET_RATIO).toInt().coerceAtLeast(1)
+        avatarImage.setPadding(inset, inset, inset, inset)
+    }
+
+    private fun applyDrawableIconInsets(iconInsetRatio: Float) {
+        val ratio = iconInsetRatio.coerceIn(0.05f, 0.45f)
+        val inset = (avatarSizeForInsets() * ratio).toInt().coerceAtLeast(4)
+        avatarImage.setPadding(inset, inset, inset, inset)
     }
     
     /**
@@ -422,6 +459,8 @@ class ContactAvatarView @JvmOverloads constructor(
      * until rebound (avoids blank avatar when scrolling back).
      */
     private fun clearImageRequest() {
+        showingDefaultProfileIcon = false
+        drawableIconInsetRatio = null
         if (currentImageRequest != null) {
             try {
                 Glide.with(context.applicationContext).clear(avatarImage)
@@ -447,6 +486,8 @@ class ContactAvatarView @JvmOverloads constructor(
             invalidateOutline()
             avatarBackgroundLayer.invalidateOutline()
             if (avatarInitials.isVisible) updateMonogramTextSize()
+            if (showingDefaultProfileIcon) applyDefaultProfileIconInsets()
+            drawableIconInsetRatio?.let { applyDrawableIconInsets(it) }
         }
     }
 }

@@ -1,6 +1,7 @@
 package com.goodwy.commons.helpers
 
 import com.goodwy.commons.extensions.isPhoneNumber
+import com.goodwy.commons.extensions.toAvatarColorSeed
 
 /**
  * Sealed class representing different sources for contact avatars.
@@ -56,7 +57,8 @@ object AvatarResolver {
         preferProfileIconForPhoneIdentity: Boolean = false
     ): AvatarSource {
         val initials = MonogramGenerator.generateInitials(displayName)
-        val drawableIndex = kotlin.math.abs(displayName.hashCode()) % 27
+        val colorSeed = displayName.toAvatarColorSeed()
+        val drawableIndex = kotlin.math.abs(colorSeed.hashCode()) % 27
         val gradientColors = MonogramGenerator.generateGradientColors(displayName)
         val monogram = AvatarSource.Monogram(
             initials = initials,

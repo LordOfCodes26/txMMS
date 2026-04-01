@@ -182,14 +182,31 @@ fun String.highlightTextPart(textToHighlight: String, color: Int, highlightAll: 
         return spannableString
     }
 
-    var startIndex = normalizeString().indexOf(textToHighlight, 0, true)
+    val nfcQuery = Normalizer.normalize(textToHighlight, Normalizer.Form.NFC)
+    val normalizedSource = normalizeString()
+    var query = nfcQuery
+    var startIndex = indexOf(query, 0, true)
+    if (startIndex < 0) {
+        query = textToHighlight
+        startIndex = indexOf(query, 0, true)
+    }
+    var useNormalizedFallback = false
+    if (startIndex < 0) {
+        query = textToHighlight
+        startIndex = normalizedSource.indexOf(query, 0, true)
+        useNormalizedFallback = true
+    }
     val indexes = ArrayList<Int>()
     while (startIndex >= 0) {
         if (startIndex != -1) {
             indexes.add(startIndex)
         }
 
-        startIndex = normalizeString().indexOf(textToHighlight, startIndex + textToHighlight.length, true)
+        startIndex = if (useNormalizedFallback) {
+            normalizedSource.indexOf(query, startIndex + query.length, true)
+        } else {
+            indexOf(query, startIndex + query.length, true)
+        }
         if (!highlightAll) {
             break
         }
@@ -198,9 +215,10 @@ fun String.highlightTextPart(textToHighlight: String, color: Int, highlightAll: 
     // handle cases when we search for 643, but in reality the string contains it like 6-43
     if (ignoreCharsBetweenDigits && indexes.isEmpty()) {
         try {
-            val regex = TextUtils.join("(\\D*)", textToHighlight.toCharArray().toTypedArray())
+            val regex = TextUtils.join("(\\D*)", query.toCharArray().toTypedArray())
             val pattern = Pattern.compile(regex)
-            val result = pattern.matcher(normalizeString())
+            val target = if (useNormalizedFallback) normalizedSource else this
+            val result = pattern.matcher(target)
             if (result.find()) {
                 spannableString.setSpan(ForegroundColorSpan(color), result.start(), result.end(), Spannable.SPAN_EXCLUSIVE_INCLUSIVE)
             }
@@ -211,7 +229,7 @@ fun String.highlightTextPart(textToHighlight: String, color: Int, highlightAll: 
     }
 
     indexes.forEach {
-        val endIndex = Math.min(it + textToHighlight.length, length)
+        val endIndex = Math.min(it + query.length, length)
         try {
             spannableString.setSpan(ForegroundColorSpan(color), it, endIndex, Spannable.SPAN_EXCLUSIVE_INCLUSIVE)
         } catch (_: IndexOutOfBoundsException) {
@@ -332,6 +350,16 @@ fun String.toFastScrollBucket(): String {
 // checks if string is a phone number
 fun String.isPhoneNumber(): Boolean {
     return this.matches("^[0-9+\\-\\)\\( *#]+\$".toRegex())
+}
+
+/**
+ * String used for avatar background / gradient hashing. Phone-like values are normalized so
+ * "1915882855", "191 588 2855", and "191-588-2855" share the same drawable index and colors.
+ */
+fun String.toAvatarColorSeed(): String {
+    val trimmed = trim()
+    if (trimmed.isEmpty()) return trimmed
+    return if (trimmed.isPhoneNumber()) trimmed.normalizePhoneNumber() else trimmed
 }
 
 // if we are comparing phone numbers, compare just the last 9 digits

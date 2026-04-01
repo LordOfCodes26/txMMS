@@ -1,11 +1,14 @@
 package com.goodwy.commons.extensions
 
+import android.annotation.SuppressLint
 import android.text.Editable
 import android.text.Spannable
 import android.text.TextWatcher
 import android.text.style.BackgroundColorSpan
 import android.widget.EditText
 import androidx.core.graphics.ColorUtils
+import com.goodwy.commons.R
+import com.goodwy.commons.helpers.isQPlus
 
 val EditText.value: String get() = text.toString().trim()
 
@@ -18,6 +21,18 @@ fun EditText.onTextChangeListener(onTextChangedAction: (newText: String) -> Unit
 
     override fun onTextChanged(s: CharSequence, start: Int, before: Int, count: Int) {}
 })
+
+@SuppressLint("DiscouragedPrivateApi")
+fun EditText.applySearchFieldCursorColor() {
+    val color = context.getSearchFieldCursorColor()
+    if (!isQPlus()) return
+    textCursorDrawable = resources.getColoredDrawableWithColor(R.drawable.cursor_text_vertical, color)
+    if (!context.baseConfig.isMiui) {
+        setTextSelectHandle(resources.getColoredDrawableWithColor(R.drawable.ic_drop_vector, color))
+        setTextSelectHandleLeft(resources.getColoredDrawableWithColor(R.drawable.ic_drop_left_vector, color))
+        setTextSelectHandleRight(resources.getColoredDrawableWithColor(R.drawable.ic_drop_right_vector, color))
+    }
+}
 
 fun EditText.highlightText(highlightText: String, color: Int) {
     val content = text.toString()

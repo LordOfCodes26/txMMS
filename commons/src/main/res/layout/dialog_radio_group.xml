@@ -9,52 +9,40 @@
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
-        <com.goodwy.commons.views.MyTextView
+        <TextView
             android:id="@+id/dialog_title"
             style="@style/DialogTitleStyle"
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:textColor="@color/tx_main_letter"
+            android:layout_gravity="center"
             android:visibility="gone" />
 
         <ScrollView
             android:id="@+id/dialog_radio_holder"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            android:layout_height="wrap_content"
+            android:paddingStart="@dimen/tx_dialog_padding_horizontal">
 
             <RadioGroup
                 android:id="@+id/dialog_radio_group"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:paddingLeft="@dimen/normal_margin"
-                android:paddingTop="@dimen/normal_margin"
-                android:paddingRight="@dimen/normal_margin"
-                android:paddingBottom="@dimen/normal_margin" />
+                android:layout_height="wrap_content"/>
 
         </ScrollView>
 
+        <include
+            android:id="@+id/dialog_radio_holder_divider"
+            layout="@layout/divider" />
+
         <LinearLayout
-            android:id="@+id/buttons_container"
-            style="@style/DialogButtonContainerStyle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:visibility="gone">
+            android:paddingHorizontal="@dimen/tx_dialog_padding_horizontal"
+            android:orientation="horizontal">
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/neutral_button"
-                style="@style/Widget.Material3.Button.TextButton.Dialog"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/default_color"
-                android:visibility="gone" />
+            <include layout="@layout/layout_confirm_tx_blur" />
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/positive_button"
-                style="@style/Widget.Material3.Button.TextButton.Dialog"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="@dimen/normal_margin"
-                android:text="@string/ok"
-                android:visibility="gone" />
 
         </LinearLayout>
     </LinearLayout>

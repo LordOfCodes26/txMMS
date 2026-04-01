@@ -3,7 +3,7 @@ package com.goodwy.commons.dialogs
 import android.app.Activity
 import android.view.View
 import android.view.ViewGroup
-import android.widget.RadioButton
+import android.widget.TextView
 import android.widget.RadioGroup
 import com.android.common.view.MDialog
 import androidx.compose.foundation.layout.Box
@@ -36,6 +36,8 @@ import com.goodwy.commons.compose.extensions.MyDevices
 import com.goodwy.commons.compose.theme.AppThemeSurface
 import com.goodwy.commons.compose.theme.SimpleTheme
 import com.goodwy.commons.databinding.DialogRadioGroupBinding
+import com.goodwy.commons.databinding.RadioGroupItemBinding
+import com.goodwy.commons.databinding.RadioButtonIconBinding
 import com.goodwy.commons.extensions.*
 import com.goodwy.commons.models.RadioItem
 import eightbitlab.com.blurview.BlurTarget
@@ -46,38 +48,94 @@ class RadioGroupDialog(
     val checkedItemId: Int = -1,
     val titleId: Int = 0,
     showOKButton: Boolean = false,
+    val requireConfirmButton: Boolean = false,
     val defaultItemId: Int? = null,
     val cancelCallback: (() -> Unit)? = null,
     blurTarget: BlurTarget,
     val callback: (newValue: Any) -> Unit
 ) {
     private var dialog: MDialog? = null
-    private var wasInit = false
+    /** Selected row index in [items], not [RadioItem.id]. */
     private var selectedItemId = -1
 
     init {
         val view = DialogRadioGroupBinding.inflate(activity.layoutInflater, null, false)
+        var refreshConfirmUi: (() -> Unit)? = null
         view.dialogRadioGroup.apply {
             for (i in 0 until items.size) {
-                val radioButton = (activity.layoutInflater.inflate(R.layout.radio_button, null) as RadioButton).apply {
-                    text = items[i].title
-                    isChecked = items[i].id == checkedItemId
-                    id = i
-                    setOnClickListener { itemSelected(i) }
+                val item = items[i]
+                val radioGroup = this@apply
+                if (item.icon != null || item.drawable != null) {
+                    RadioButtonIconBinding.inflate(activity.layoutInflater, radioGroup, false).apply {
+                        dialogRadioButton.apply {
+                            text = item.title
+                            isChecked = item.id == checkedItemId
+                            id = i
+                            setOnClickListener {
+                                radioGroup.check(id)
+                                if (requireConfirmButton) {
+                                    selectedItemId = i
+                                    refreshConfirmUi?.invoke()
+                                } else {
+                                    itemSelected(i)
+                                }
+                            }
+                        }
+                        dialogRadioButtonIcon.apply {
+                            val d = item.drawable
+                            val ic = item.icon
+                            if (d != null) {
+                                setImageDrawable(d)
+                            } else if (ic != null) {
+                                setImageResource(ic)
+                                setColorFilter(activity.getProperTextColor())
+                            }
+                        }
+                        if (item.id == checkedItemId) {
+                            selectedItemId = i
+                        }
+                        addView(root)
+                    }
+                } else {
+                    RadioGroupItemBinding.inflate(activity.layoutInflater, radioGroup, false).apply {
+                        dialogRadioItemTitle.apply {
+                            text = item.title
+                            setTextColor(activity.getProperTextColor())
+                        }
+                        dialogRadioButton.apply {
+                            isChecked = item.id == checkedItemId
+                            id = i
+                        }
+                        if (item.id == checkedItemId) {
+                            selectedItemId = i
+                        }
+                        val onRowClick = View.OnClickListener {
+                            radioGroup.check(dialogRadioButton.id)
+                            if (requireConfirmButton) {
+                                selectedItemId = i
+                                refreshConfirmUi?.invoke()
+                            } else {
+                                itemSelected(i)
+                            }
+                        }
+                        root.setOnClickListener(onRowClick)
+                        // Nested radio: taps on the circle don't reach the row; route through RadioGroup explicitly.
+                        dialogRadioButton.setOnClickListener(onRowClick)
+                        radioGroup.addView(root, RadioGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+                    }
                 }
-
-                if (items[i].id == checkedItemId) {
-                    selectedItemId = i
-                }
-
-                addView(radioButton, RadioGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+            }
+            // RadioButtons are nested under row views; setting isChecked during inflation does not
+            // update RadioGroup's mCheckedId. Without this, check() on tap never unchecks the prior row.
+            if (selectedItemId != -1) {
+                check(selectedItemId)
             }
         }
 
         val blurView = view.blurView
 
         // Setup title inside BlurView
-        val titleTextView = view.root.findViewById<com.goodwy.commons.views.MyTextView>(R.id.dialog_title)
+        val titleTextView = view.root.findViewById<TextView>(R.id.dialog_title)
         if (titleId != 0) {
             titleTextView?.apply {
                 beVisible()
@@ -89,29 +147,70 @@ class RadioGroupDialog(
 
         // Setup custom buttons inside BlurView
         val primaryColor = activity.getProperPrimaryColor()
+        val cancelButton = view.root.findViewById<TextView>(com.android.common.R.id.btn_cancel)
+        val negativeButton = view.root.findViewById<com.google.android.material.button.MaterialButton>(R.id.negative_button)
+        val confirmButton = view.root.findViewById<TextView>(com.android.common.R.id.btn_confirm)
         val positiveButton = view.root.findViewById<com.google.android.material.button.MaterialButton>(R.id.positive_button)
+        /** TX layout uses [com.android.common.R.id.btn_confirm]; older layouts use [R.id.positive_button]. */
+        val confirmTarget: View? = confirmButton ?: positiveButton
         val neutralButton = view.root.findViewById<com.google.android.material.button.MaterialButton>(R.id.neutral_button)
         val buttonsContainer = view.root.findViewById<android.widget.LinearLayout>(R.id.buttons_container)
 
-        // Setup positive button (OK)
-        if (selectedItemId != -1 && showOKButton) {
-            buttonsContainer?.visibility = android.view.View.VISIBLE
-            if (positiveButton != null) {
-                positiveButton.visibility = android.view.View.VISIBLE
-                positiveButton.setTextColor(primaryColor)
-                positiveButton.setOnClickListener { itemSelected(selectedItemId) }
+        refreshConfirmUi = {
+            if (requireConfirmButton) {
+                buttonsContainer?.visibility = View.VISIBLE
+                confirmTarget?.apply {
+                    visibility = if (selectedItemId != -1) View.VISIBLE else View.GONE
+                    if (this is TextView) {
+                        setTextColor(primaryColor)
+                    } else if (this is com.google.android.material.button.MaterialButton) {
+                        setTextColor(primaryColor)
+                    }
+                }
+            }
+        }
+
+        // Confirm / OK appearance — click listeners attached after [dialog] is created (see below)
+        if (requireConfirmButton) {
+            buttonsContainer?.visibility = View.VISIBLE
+            confirmTarget?.apply {
+                if (this is TextView) {
+                    setTextColor(primaryColor)
+                } else if (this is com.google.android.material.button.MaterialButton) {
+                    setTextColor(primaryColor)
+                }
+                visibility = if (selectedItemId != -1) View.VISIBLE else View.GONE
+            }
+        } else if (selectedItemId != -1 && showOKButton) {
+            buttonsContainer?.visibility = View.VISIBLE
+            confirmTarget?.apply {
+                visibility = View.VISIBLE
+                if (this is TextView) {
+                    setTextColor(primaryColor)
+                } else if (this is com.google.android.material.button.MaterialButton) {
+                    setTextColor(primaryColor)
+                }
             }
         }
 
         // Setup neutral button (Default)
         if (defaultItemId != null) {
-            buttonsContainer?.visibility = android.view.View.VISIBLE
-            if (neutralButton != null) {
-                neutralButton.visibility = android.view.View.VISIBLE
-                neutralButton.setTextColor(primaryColor)
-                neutralButton.setOnClickListener {
+            buttonsContainer?.visibility = View.VISIBLE
+            neutralButton?.apply {
+                visibility = View.VISIBLE
+                setTextColor(primaryColor)
+                setOnClickListener {
                     val checkedId = items.indexOfFirst { it.id == defaultItemId }
-                    itemSelected(checkedId)
+                    if (checkedId < 0) {
+                        return@setOnClickListener
+                    }
+                    view.dialogRadioGroup.check(checkedId)
+                    selectedItemId = checkedId
+                    if (requireConfirmButton) {
+                        refreshConfirmUi?.invoke()
+                    } else {
+                        itemSelected(checkedId)
+                    }
                 }
             }
         }
@@ -124,6 +223,30 @@ class RadioGroupDialog(
             cancelListener = { cancelCallback?.invoke() }
         ) { mDialog ->
             dialog = mDialog
+            val cancelTarget: View? = cancelButton ?: negativeButton
+            cancelTarget?.setOnClickListener {
+                mDialog.dismiss()
+            }
+            confirmTarget?.apply {
+                when {
+                    requireConfirmButton -> setOnClickListener {
+                        val fromGroup = view.dialogRadioGroup.checkedRadioButtonId
+                        val index = when {
+                            fromGroup in items.indices -> fromGroup
+                            selectedItemId in items.indices -> selectedItemId
+                            else -> return@setOnClickListener
+                        }
+                        callback(items[index].value)
+                        mDialog.dismiss()
+                    }
+                    selectedItemId != -1 && showOKButton -> setOnClickListener {
+                        if (selectedItemId in items.indices) {
+                            callback(items[selectedItemId].value)
+                            mDialog.dismiss()
+                        }
+                    }
+                }
+            }
         }
 
         if (selectedItemId != -1) {
@@ -134,14 +257,14 @@ class RadioGroupDialog(
             }
         }
 
-        wasInit = true
     }
 
     private fun itemSelected(checkedId: Int) {
-        if (wasInit) {
-            callback(items[checkedId].value)
-            dialog?.dismiss()
+        if (checkedId !in items.indices) {
+            return
         }
+        callback(items[checkedId].value)
+        dialog?.dismiss()
     }
 }
 

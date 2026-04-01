@@ -4,6 +4,7 @@ import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import com.goodwy.commons.extensions.getNameLetter
 import com.goodwy.commons.extensions.isEmoji
+import com.goodwy.commons.extensions.toAvatarColorSeed
 import kotlin.math.abs
 
 /**
@@ -106,7 +107,7 @@ object MonogramGenerator {
     fun generateGradientColors(name: String): List<Int> {
         // Use name hash to generate consistent colors
         // Use absolute value to ensure positive numbers
-        val hash = abs(name.hashCode())
+        val hash = abs(name.toAvatarColorSeed().hashCode())
         
         // Generate base color using HSV for better color distribution
         // Hue: 0-360 (full color spectrum)
