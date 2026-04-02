@@ -17,8 +17,9 @@ import android.view.*
 import android.view.MenuItem
 import android.view.ScaleGestureDetector
 import android.widget.LinearLayout
-import com.goodwy.commons.views.BlurPopupMenu
 import android.widget.RelativeLayout
+import androidx.appcompat.view.menu.MenuBuilder
+import com.goodwy.commons.views.showMPopupMenu
 import androidx.annotation.DrawableRes
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.constraintlayout.widget.ConstraintSet
@@ -637,38 +638,45 @@ class ThreadAdapter(
     }
 
     private fun showLinkPopupMenu(context: Context, url: String, view: View) {
-        val popupMenu = BlurPopupMenu(activity, view, Gravity.START)
+        val menu = MenuBuilder(context)
         val text = url.toUri().schemeSpecificPart
         val (title, icon) = getActionTitleAndIcon(url)
 
         // Use only 24dp icons
-        popupMenu.menu.add(1, 0, 0, text).setIcon(R.drawable.ic_empty)
-        popupMenu.menu.add(1, 1, 1, title).setIcon(icon)
-        if (title == com.goodwy.commons.R.string.call) popupMenu.menu.add(1, 2, 2, com.goodwy.strings.R.string.message).setIcon(R.drawable.ic_comment)
-        popupMenu.menu.add(1, 3, 3, com.goodwy.strings.R.string.search_the_web).setIcon(R.drawable.ic_internet)
-        popupMenu.menu.add(1, 4, 4, com.goodwy.commons.R.string.share).setIcon(com.goodwy.commons.R.drawable.ic_ios_share)
-        popupMenu.menu.add(1, 5, 5, com.goodwy.commons.R.string.copy).setIcon(com.goodwy.commons.R.drawable.ic_copy_vector)
+        menu.add(1, 0, 0, text).setIcon(R.drawable.ic_empty)
+        menu.add(1, 1, 1, title).setIcon(icon)
+        if (title == com.goodwy.commons.R.string.call) menu.add(1, 2, 2, com.goodwy.strings.R.string.message).setIcon(R.drawable.ic_comment)
+        menu.add(1, 3, 3, com.goodwy.strings.R.string.search_the_web).setIcon(R.drawable.ic_internet)
+        menu.add(1, 4, 4, com.goodwy.commons.R.string.share).setIcon(com.goodwy.commons.R.drawable.ic_ios_share)
+        menu.add(1, 5, 5, com.goodwy.commons.R.string.copy).setIcon(com.goodwy.commons.R.drawable.ic_copy_vector)
 
-        popupMenu.setOnMenuItemClickListener { item ->
-            when (item.itemId) {
-                0 -> activity.copyToClipboard(text)
+        val blurTarget = activity.findViewById<eightbitlab.com.blurview.BlurTarget>(com.android.mms.R.id.mainBlurTarget)
+        showMPopupMenu(
+            context = activity,
+            anchor = view,
+            menu = menu,
+            gravity = Gravity.START,
+            blurTarget = blurTarget,
+            listener = MenuItem.OnMenuItemClickListener { item ->
+                when (item.itemId) {
+                    0 -> activity.copyToClipboard(text)
 
-                2 -> activity.launchSendSMSIntent(text)
+                    2 -> activity.launchSendSMSIntent(text)
 
-                3 -> activity.launchInternetSearch(text)
+                    3 -> activity.launchInternetSearch(text)
 
-                4 -> activity.shareTextIntent(text)
+                    4 -> activity.shareTextIntent(text)
 
-                5 -> activity.copyToClipboard(text)
+                    5 -> activity.copyToClipboard(text)
 
-                else -> {
-                    val intent = Intent(Intent.ACTION_VIEW, url.toUri())
-                    context.startActivity(intent)
+                    else -> {
+                        val intent = Intent(Intent.ACTION_VIEW, url.toUri())
+                        context.startActivity(intent)
+                    }
                 }
-            }
-            true
-        }
-        popupMenu.show()
+                true
+            },
+        )
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -803,23 +811,23 @@ class ThreadAdapter(
     }
 
     private fun showPopupMenu(message: Message, view: View) {
-        val popupMenu = BlurPopupMenu(activity, view, Gravity.END)
+        val menu = MenuBuilder(activity)
         val text = message.body
         val numbersList = text.getListNumbersFromText()
         val colorRed = resources.getColor(R.color.red_call, activity.theme)
-        
-        val deleteItem = popupMenu.menu.add(1, 1, 1, com.goodwy.commons.R.string.delete).setIcon(com.goodwy.commons.R.drawable.ic_delete_outline)
+
+        val deleteItem = menu.add(1, 1, 1, com.goodwy.commons.R.string.delete).setIcon(com.goodwy.commons.R.drawable.ic_delete_outline)
         // Set red color for delete item title
         val coloredText = SpannableString(deleteItem.title).apply {
             setSpan(ForegroundColorSpan(colorRed), 0, length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
         }
         deleteItem.title = coloredText
-        
-        popupMenu.menu.add(1, 3, 3, com.goodwy.commons.R.string.share).setIcon(com.goodwy.commons.R.drawable.ic_ios_share)
-        popupMenu.menu.add(1, 4, 4, com.goodwy.commons.R.string.properties).setIcon(com.goodwy.commons.R.drawable.ic_info_vector)
-        popupMenu.menu.add(1, 5, 5, R.string.forward_message).setIcon(R.drawable.ic_redo_vector)
-        popupMenu.menu.add(1, 6, 6, android.R.string.selectTextMode).setIcon(R.drawable.ic_text_select)
-        popupMenu.menu.add(1, 7, 7, com.goodwy.commons.R.string.copy).setIcon(com.goodwy.commons.R.drawable.ic_copy_vector)
+
+        menu.add(1, 3, 3, com.goodwy.commons.R.string.share).setIcon(com.goodwy.commons.R.drawable.ic_ios_share)
+        menu.add(1, 4, 4, com.goodwy.commons.R.string.properties).setIcon(com.goodwy.commons.R.drawable.ic_info_vector)
+        menu.add(1, 5, 5, R.string.forward_message).setIcon(R.drawable.ic_redo_vector)
+        menu.add(1, 6, 6, android.R.string.selectTextMode).setIcon(R.drawable.ic_text_select)
+        menu.add(1, 7, 7, com.goodwy.commons.R.string.copy).setIcon(com.goodwy.commons.R.drawable.ic_copy_vector)
         val staticItem = 8
         if (numbersList.isNotEmpty()) {
             numbersList.apply {
@@ -828,73 +836,87 @@ class ThreadAdapter(
                 for (index in range) {
                     val item = this[index]
                     val menuName = activity.getString(com.goodwy.commons.R.string.copy) + " \"${item}\""
-                    popupMenu.menu.add(1, staticItem + index, staticItem + index, menuName).setIcon(com.goodwy.commons.R.drawable.ic_copy_vector)
+                    menu.add(1, staticItem + index, staticItem + index, menuName).setIcon(com.goodwy.commons.R.drawable.ic_copy_vector)
                 }
             }
         }
-        popupMenu.setOnMenuItemClickListener { item ->
-            when (item.itemId) {
-                1 -> askConfirmDelete(message)
+        val blurTarget = activity.findViewById<eightbitlab.com.blurview.BlurTarget>(com.android.mms.R.id.mainBlurTarget)
+        showMPopupMenu(
+            context = activity,
+            anchor = view,
+            menu = menu,
+            gravity = Gravity.END,
+            blurTarget = blurTarget,
+            listener = MenuItem.OnMenuItemClickListener { item ->
+                when (item.itemId) {
+                    1 -> askConfirmDelete(message)
 
-                3 -> activity.shareTextIntent(text)
+                    3 -> activity.shareTextIntent(text)
 
-                4 -> {
-                    val blurTarget = activity.findViewById<eightbitlab.com.blurview.BlurTarget>(com.android.mms.R.id.mainBlurTarget)
-                        ?: throw IllegalStateException("mainBlurTarget not found")
-                    MessageDetailsDialog(activity, message, blurTarget)
-                }
+                    4 -> {
+                        val bt = activity.findViewById<eightbitlab.com.blurview.BlurTarget>(com.android.mms.R.id.mainBlurTarget)
+                            ?: throw IllegalStateException("mainBlurTarget not found")
+                        MessageDetailsDialog(activity, message, bt)
+                    }
 
-                5 -> {
-                    val attachments = message.attachment?.attachments.orEmpty()
-                    Intent(activity, NewConversationActivity::class.java).apply {
-                        action = Intent.ACTION_SEND
-                        putExtra(Intent.EXTRA_TEXT, message.body)
+                    5 -> {
+                        val attachments = message.attachment?.attachments.orEmpty()
+                        Intent(activity, NewConversationActivity::class.java).apply {
+                            action = Intent.ACTION_SEND
+                            putExtra(Intent.EXTRA_TEXT, message.body)
 
-                        if (attachments.size == 1) {
-                            putExtra(Intent.EXTRA_STREAM, attachments.first().getUri())
-                        } else if (attachments.size > 1) {
-                            action = Intent.ACTION_SEND_MULTIPLE
-                            putParcelableArrayListExtra(Intent.EXTRA_STREAM, ArrayList(attachments.map { it.getUri() }))
+                            if (attachments.size == 1) {
+                                putExtra(Intent.EXTRA_STREAM, attachments.first().getUri())
+                            } else if (attachments.size > 1) {
+                                action = Intent.ACTION_SEND_MULTIPLE
+                                putParcelableArrayListExtra(Intent.EXTRA_STREAM, ArrayList(attachments.map { it.getUri() }))
+                            }
+
+                            activity.startActivity(this)
                         }
+                    }
 
-                        activity.startActivity(this)
+                    6 -> {
+                        val bt = activity.findViewById<eightbitlab.com.blurview.BlurTarget>(com.android.mms.R.id.mainBlurTarget)
+                            ?: throw IllegalStateException("mainBlurTarget not found")
+                        SelectTextDialog(activity, text, bt)
+                    }
+
+                    7 -> activity.copyToClipboard(text)
+
+                    else -> {
+                        if (numbersList.isNotEmpty()) activity.copyToClipboard(numbersList[item.itemId - staticItem])
                     }
                 }
-
-                6 -> {
-                    val blurTarget = activity.findViewById<eightbitlab.com.blurview.BlurTarget>(com.android.mms.R.id.mainBlurTarget)
-                        ?: throw IllegalStateException("mainBlurTarget not found")
-                    SelectTextDialog(activity, text, blurTarget)
-                }
-
-                7 -> activity.copyToClipboard(text)
-
-                else -> {
-                    if (numbersList.isNotEmpty()) activity.copyToClipboard(numbersList[item.itemId - staticItem])
-                }
-            }
-            true
-        }
-        popupMenu.show()
+                true
+            },
+        )
     }
 
     private fun showPopupMenuCopyNumbers(numbersList: List<String>, view: View) {
-        val popupMenu = BlurPopupMenu(activity, view, Gravity.END)
+        val menu = MenuBuilder(activity)
         if (numbersList.isNotEmpty()) {
             numbersList.apply {
                 val size = numbersList.size
                 for (index in 0 until size) {
                     val item = this[index]
                     val menuName = activity.getString(com.goodwy.commons.R.string.copy) + " \"${item}\""
-                    popupMenu.menu.add(1, index, index, menuName).setIcon(com.goodwy.commons.R.drawable.ic_copy_vector)
+                    menu.add(1, index, index, menuName).setIcon(com.goodwy.commons.R.drawable.ic_copy_vector)
                 }
             }
         }
-        popupMenu.setOnMenuItemClickListener { item ->
-            if (numbersList.isNotEmpty()) activity.copyToClipboard(numbersList[item.itemId])
-            true
-        }
-        popupMenu.show()
+        val blurTarget = activity.findViewById<eightbitlab.com.blurview.BlurTarget>(com.android.mms.R.id.mainBlurTarget)
+        showMPopupMenu(
+            context = activity,
+            anchor = view,
+            menu = menu,
+            gravity = Gravity.END,
+            blurTarget = blurTarget,
+            listener = MenuItem.OnMenuItemClickListener { item ->
+                if (numbersList.isNotEmpty()) activity.copyToClipboard(numbersList[item.itemId])
+                true
+            },
+        )
     }
 
     private fun View.applyDrawablePadding(drawable: Drawable?) {

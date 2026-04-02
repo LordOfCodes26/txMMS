@@ -3,6 +3,7 @@ package com.goodwy.commons.views
 import android.animation.AnimatorListenerAdapter
 import android.animation.ValueAnimator
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.content.Context
 import android.content.res.ColorStateList
 import android.graphics.drawable.Drawable
@@ -18,14 +19,17 @@ import android.view.View
 import android.view.animation.DecelerateInterpolator
 import android.view.inputmethod.InputMethodManager
 import android.widget.LinearLayout
+import androidx.annotation.ColorInt
 import androidx.core.view.isVisible
 import androidx.appcompat.view.menu.MenuBuilder
+import com.android.common.view.MActionBar
 import com.goodwy.commons.R
 import com.goodwy.commons.databinding.CustomToolbarBinding
 import com.goodwy.commons.extensions.getProperPrimaryColor
 import com.goodwy.commons.extensions.getProperTextColor
 import com.goodwy.commons.extensions.getSearchFieldCursorColor
 import com.goodwy.commons.extensions.onTextChangeListener
+import eightbitlab.com.blurview.BlurTarget
 import java.lang.reflect.Method
 
 /**
@@ -92,6 +96,8 @@ class CustomToolbar @JvmOverloads constructor(
 
     private var overflowIconDrawable: Drawable? = null
     private var navigationIconDrawable: Drawable? = null
+    /** Blur target for overflow popups and optional wiring; set via [bindBlurTarget]. */
+    private var boundBlurTarget: BlurTarget? = null
     private var isSearchBound = false
     private var searchAnimator: ValueAnimator? = null
 
@@ -102,6 +108,10 @@ class CustomToolbar @JvmOverloads constructor(
         val currentBinding = binding ?: return null
         return currentBinding.root.findViewById(R.id.navigationIconView)
     }
+
+    private fun navigationMActionBar(): MActionBar? = navigationActionBarView() as? MActionBar
+
+    private fun actionMActionBar(): MActionBar? = binding?.actionBar as? MActionBar
 
     private fun navigationActionBarMenu(): Menu? {
         val actionBar = navigationActionBarView() ?: return null
@@ -681,6 +691,49 @@ class CustomToolbar @JvmOverloads constructor(
 
     fun getActionBar() = binding?.actionBar
 
+    /**
+     * Binds [BlurTarget] on both navigation and action [MActionBar] pills (same contract as
+     * [MActionBar.bindBlurTarget]).
+     */
+    fun bindBlurTarget(activity: Activity, blurTarget: BlurTarget) {
+        boundBlurTarget = blurTarget
+        navigationMActionBar()?.bindBlurTarget(activity, blurTarget)
+        actionMActionBar()?.bindBlurTarget(activity, blurTarget)
+    }
+
+    /**
+     * Binds blur target with optional overlay tint (`0` keeps each bar’s current resolved overlay).
+     */
+    fun bindBlurTarget(activity: Activity, blurTarget: BlurTarget, @ColorInt overlayColor: Int) {
+        boundBlurTarget = blurTarget
+        val nav = navigationMActionBar()
+        val action = actionMActionBar()
+        if (overlayColor != 0) {
+            nav?.bindBlurTarget(activity, blurTarget, overlayColor)
+            action?.bindBlurTarget(activity, blurTarget, overlayColor)
+        } else {
+            nav?.bindBlurTarget(activity, blurTarget)
+            action?.bindBlurTarget(activity, blurTarget)
+        }
+    }
+
+    /**
+     * Sets blur overlay color on both action bars. Pass `0` to restore each bar’s default
+     * ([MActionBar.setOverlay]).
+     */
+    fun setActionBarsOverlay(@ColorInt overlayColor: Int) {
+        navigationMActionBar()?.setOverlay(overlayColor)
+        actionMActionBar()?.setOverlay(overlayColor)
+    }
+
+    /**
+     * @param keepDefaultAlpha When true, only RGB is replaced; alpha comes from the bar default overlay.
+     */
+    fun setActionBarsOverlay(@ColorInt overlayColor: Int, keepDefaultAlpha: Boolean) {
+        navigationMActionBar()?.setOverlay(overlayColor, keepDefaultAlpha)
+        actionMActionBar()?.setOverlay(overlayColor, keepDefaultAlpha)
+    }
+
     private fun getLiveActionBarMenu(): Menu? {
         val actionBar = binding?.actionBar ?: return null
         return getMenuViaReflection(actionBar)
@@ -750,6 +803,8 @@ class CustomToolbar @JvmOverloads constructor(
         }
         menuInflater?.inflate(menuResId, _menu)
 
+        boundBlurTarget = blurTargetView as? BlurTarget ?: boundBlurTarget
+
         val popupAnchor = actionBar as? View ?: return false
         val fallbackClickListener = MenuItem.OnMenuItemClickListener { clickedItem ->
             if (clickedItem.itemId == moreItemId) {
@@ -768,18 +823,24 @@ class CustomToolbar @JvmOverloads constructor(
         listener: MenuItem.OnMenuItemClickListener
     ) {
         val sourceMenu = _menu ?: return
-        val popupMenu = BlurPopupMenu(context, anchor, Gravity.END)
+        val menu = MenuBuilder(context)
         for (i in 0 until sourceMenu.size()) {
             val item = sourceMenu.getItem(i)
-            val popupItem = popupMenu.menu.add(item.groupId, item.itemId, item.order, item.title)
+            val popupItem = menu.add(item.groupId, item.itemId, item.order, item.title)
             popupItem.icon = item.icon
             popupItem.isVisible = item.isVisible
             popupItem.isEnabled = item.isEnabled
             popupItem.isCheckable = item.isCheckable
             popupItem.isChecked = item.isChecked
         }
-        popupMenu.setOnMenuItemClickListener(listener)
-        popupMenu.show()
+        showMPopupMenu(
+            context = context,
+            anchor = anchor,
+            menu = menu,
+            gravity = Gravity.END,
+            blurTarget = boundBlurTarget,
+            listener = listener,
+        )
     }
 
     fun inflateMenu(actionMenuResId: Int) {
@@ -837,5 +898,6 @@ class CustomToolbar @JvmOverloads constructor(
         cachedTextColor = null
         cachedPrimaryColor = null
         cachedCursorColor = null
+        boundBlurTarget = null
     }
 }
