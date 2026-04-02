@@ -102,6 +102,13 @@
                     android:src="@drawable/ic_check_vector"
                     tools:ignore="ContentDescription"
                     tools:visibility="visible" />
+                <TextView
+                    android:id="@+id/threadMessageTime"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="@dimen/small_margin"
+                    android:textSize="@dimen/smaller_text_size"
+                    tools:text="14:30" />
 
                 <ImageView
                     android:id="@+id/threadMessageSimIcon"
@@ -112,13 +119,6 @@
                     android:src="@drawable/ic_sim_vector"
                     tools:ignore="ContentDescription"
                     tools:visibility="visible" />
-
-                <TextView
-                    android:id="@+id/threadMessageTime"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textSize="@dimen/smaller_text_size"
-                    tools:text="14:30" />
             </LinearLayout>
         </LinearLayout>
     </RelativeLayout>
