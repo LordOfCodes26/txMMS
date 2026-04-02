@@ -162,10 +162,50 @@
         android:layout_width="@dimen/emotic_icon_size"
         android:layout_height="@dimen/emotic_icon_size"
         android:background="@drawable/ic_sms_emotic"
-        app:layout_constraintEnd_toStartOf="@id/threadSendMessageWrapper"
+        app:layout_constraintEnd_toStartOf="@id/threadSelectSimIconHolder"
         app:layout_constraintStart_toEndOf="@+id/threadTypeMessageWrapper"
         app:layout_constraintBottom_toBottomOf="@id/threadTypeMessageWrapper"
         android:layout_marginBottom="@dimen/medium_margin"/>
+
+    <LinearLayout
+        android:id="@+id/threadSelectSimIconHolder"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="@dimen/smaller_margin"
+        android:orientation="horizontal"
+        android:background="?selectableItemBackgroundBorderless"
+        app:layout_constraintEnd_toStartOf="@id/threadSendMessageWrapper"
+        app:layout_constraintBottom_toBottomOf="@id/threadAddAttachmentHolder"
+        android:visibility="gone"
+        tools:visibility="visible"
+        tools:ignore="RtlHardcoded">
+
+        <ImageView
+            android:id="@+id/threadSelectSimIcon"
+            android:layout_width="@dimen/colorpicker_items_height"
+            android:layout_height="@dimen/colorpicker_items_height"
+            android:alpha="0.9"
+            android:contentDescription="@null"
+            android:paddingHorizontal="@dimen/smaller_margin"
+            android:paddingVertical="@dimen/tiny_margin"
+            android:src="@drawable/ic_sim_vector" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/thread_select_sim_number"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:textSize="@dimen/smaller_text_size"
+        android:textStyle="bold"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="@+id/threadSelectSimIconHolder"
+        app:layout_constraintLeft_toLeftOf="@+id/threadSelectSimIconHolder"
+        app:layout_constraintRight_toRightOf="@+id/threadSelectSimIconHolder"
+        app:layout_constraintTop_toTopOf="@+id/threadSelectSimIconHolder"
+        tools:text="1"
+        tools:textColor="@color/bw_30"
+        tools:visibility="visible" />
 
     <com.goodwy.commons.views.MyTextView
         android:id="@+id/threadAvailableMessageCount"
