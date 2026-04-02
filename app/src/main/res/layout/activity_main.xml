@@ -6,33 +6,36 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <androidx.coordinatorlayout.widget.CoordinatorLayout
-        android:id="@+id/main_coordinator"
-        android:clipChildren="false"
-        android:clipToPadding="false"
+    <eightbitlab.com.blurview.BlurTarget
+        android:id="@+id/mainBlurTarget"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="@color/transparent">
+        android:layout_height="match_parent">
 
-        <eightbitlab.com.blurview.BlurTarget
-            android:id="@+id/mainBlurTarget"
-            android:background="@color/tx_common_bg"
+        <androidx.coordinatorlayout.widget.CoordinatorLayout
+            android:id="@+id/main_coordinator"
+            android:clipChildren="false"
+            android:clipToPadding="false"
             android:layout_width="match_parent"
-            android:layout_height="match_parent">
-            <RelativeLayout
-                android:id="@+id/main_nested_scrollview"
+            android:layout_height="match_parent"
+            android:background="@color/transparent">
+
+            <eightbitlab.com.blurview.BlurTarget
+                android:id="@+id/blurTarget"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:scrollbars="none"
-                android:scrollingCache="true"
+                android:background="@color/tx_common_bg"
                 app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
-                <androidx.coordinatorlayout.widget.CoordinatorLayout
-                    android:id="@+id/main_coordinator_wrapper"
+                <!-- txDial-style: NestedScrollView so Coordinator/AppBar gets nested scroll; single child required — FrameLayout holds list + overlay. -->
+                <androidx.core.widget.NestedScrollView
+                    android:id="@+id/conversations_nested_scroll"
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent">
-                    <RelativeLayout
-                        android:id="@+id/main_holder"
+                    android:layout_height="match_parent"
+                    android:fillViewport="true"
+                    android:scrollbars="none"
+                    app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+                    <FrameLayout
                         android:layout_width="match_parent"
                         android:layout_height="match_parent">
 
@@ -42,15 +45,12 @@
                             android:layout_height="match_parent"
                             android:clipToPadding="false"
                             android:layoutAnimation="@anim/layout_animation"
-                            android:paddingTop="@dimen/nest_bouncy_content_padding_top"
                             android:scrollbars="none"
-                            app:layout_behavior="@string/appbar_scrolling_view_behavior"
-                            app:layoutManager="com.goodwy.commons.views.MyLinearLayoutManager"/>
+                            app:layoutManager="com.goodwy.commons.views.MyLinearLayoutManager" />
 
                         <RelativeLayout
                             android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:paddingTop="@dimen/nest_bouncy_content_padding_top">
+                            android:layout_height="match_parent">
 
                             <com.google.android.material.progressindicator.LinearProgressIndicator
                                 android:id="@+id/conversations_progress_bar"
@@ -92,104 +92,103 @@
 
                         </RelativeLayout>
 
-                    </RelativeLayout>
+                    </FrameLayout>
+                </androidx.core.widget.NestedScrollView>
 
+                <RelativeLayout
+                    android:id="@+id/search_holder"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:alpha="0"
+                    android:visibility="gone"
+                    tools:visibility="visible">
                     <RelativeLayout
-                        android:id="@+id/search_holder"
                         android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:alpha="0"
-                        android:visibility="gone"
-                        tools:visibility="visible">
-                        <RelativeLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:paddingTop="@dimen/nest_bouncy_content_padding_top">
-                            <com.goodwy.commons.views.MyTextView
-                                android:id="@+id/search_placeholder"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:layout_centerHorizontal="true"
-                                android:layout_marginTop="@dimen/activity_margin"
-                                android:alpha="0.8"
-                                android:gravity="center"
-                                android:paddingStart="@dimen/activity_margin"
-                                android:paddingEnd="@dimen/activity_margin"
-                                android:text="@string/no_items_found"
-                                android:textSize="@dimen/bigger_text_size"
-                                android:textStyle="italic" />
-
-                            <com.goodwy.commons.views.MyTextView
-                                android:id="@+id/search_placeholder_2"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:layout_below="@+id/search_placeholder"
-                                android:layout_centerHorizontal="true"
-                                android:alpha="0.8"
-                                android:gravity="center"
-                                android:paddingStart="@dimen/activity_margin"
-                                android:paddingTop="@dimen/medium_margin"
-                                android:paddingEnd="@dimen/activity_margin"
-                                android:paddingBottom="@dimen/medium_margin"
-                                android:text="@string/type_2_characters"
-                                android:textSize="@dimen/bigger_text_size"
-                                android:textStyle="italic" />
-                        </RelativeLayout>
-                        <RelativeLayout
+                        android:layout_height="match_parent">
+                        <com.goodwy.commons.views.MyTextView
+                            android:id="@+id/search_placeholder"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:paddingTop="@dimen/normal_margin"
-                            app:layout_behavior="@string/appbar_scrolling_view_behavior">
-                            <com.goodwy.commons.views.MyRecyclerView
-                                android:id="@+id/search_results_list"
-                                android:layout_width="match_parent"
-                                android:layout_height="match_parent"
-                                android:paddingTop="@dimen/nest_bouncy_content_padding_top"
-                                android:clipToPadding="false"
-                                android:scrollbars="vertical"
-                                app:layoutManager="com.goodwy.commons.views.MyLinearLayoutManager" />
-                        </RelativeLayout>
+                            android:layout_centerHorizontal="true"
+                            android:layout_marginTop="@dimen/activity_margin"
+                            android:alpha="0.8"
+                            android:gravity="center"
+                            android:paddingStart="@dimen/activity_margin"
+                            android:paddingEnd="@dimen/activity_margin"
+                            android:text="@string/no_items_found"
+                            android:textSize="@dimen/bigger_text_size"
+                            android:textStyle="italic" />
 
-
+                        <com.goodwy.commons.views.MyTextView
+                            android:id="@+id/search_placeholder_2"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_below="@+id/search_placeholder"
+                            android:layout_centerHorizontal="true"
+                            android:alpha="0.8"
+                            android:gravity="center"
+                            android:paddingStart="@dimen/activity_margin"
+                            android:paddingTop="@dimen/medium_margin"
+                            android:paddingEnd="@dimen/activity_margin"
+                            android:paddingBottom="@dimen/medium_margin"
+                            android:text="@string/type_2_characters"
+                            android:textSize="@dimen/bigger_text_size"
+                            android:textStyle="italic" />
                     </RelativeLayout>
 
-                </androidx.coordinatorlayout.widget.CoordinatorLayout>
-            </RelativeLayout>
-        </eightbitlab.com.blurview.BlurTarget>
+                    <androidx.core.widget.NestedScrollView
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:fillViewport="true"
+                        android:paddingTop="@dimen/normal_margin"
+                        android:scrollbars="none">
 
-        <com.android.common.view.MVSideFrame
-            android:id="@+id/m_vertical_side_frame_top"
-            android:layout_width="match_parent"
-            android:layout_height="@dimen/tx_mv_side_top_frame_height"
-            android:layout_alignParentTop="true"/>
+                        <com.goodwy.commons.views.MyRecyclerView
+                            android:id="@+id/search_results_list"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:clipToPadding="false"
+                            android:scrollbars="vertical"
+                            app:layoutManager="com.goodwy.commons.views.MyLinearLayoutManager" />
+                    </androidx.core.widget.NestedScrollView>
+                </RelativeLayout>
+            </eightbitlab.com.blurview.BlurTarget>
 
-        <com.goodwy.commons.views.BlurAppBarLayout
-            android:id="@+id/main_menu"
-            android:layout_width="match_parent"
-            android:layout_height="@dimen/tx_top_bar_expand_height"
-            android:background="@color/transparent"
-            android:paddingBottom="0dp" />
+            <com.android.common.view.MVSideFrame
+                android:id="@+id/m_vertical_side_frame_top"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/tx_mv_side_top_frame_height"
+                android:layout_alignParentTop="true"/>
 
-        <com.android.common.view.MVSideFrame
-            android:id="@+id/m_vertical_side_frame_bottom"
-            android:layout_width="match_parent"
-            android:layout_height="@dimen/tx_mv_side_top_frame_height"
-            android:layout_gravity="bottom"
-            app:isTopFrame="false"/>
+            <com.goodwy.commons.views.MySearchMenu
+                android:id="@+id/main_menu"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@color/transparent"
+                android:paddingBottom="0dp" />
+
+            <com.android.common.view.MVSideFrame
+                android:id="@+id/m_vertical_side_frame_bottom"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/tx_mv_side_top_frame_height"
+                android:layout_gravity="bottom"
+                app:isTopFrame="false"/>
 
 
-        <com.goodwy.commons.views.MyFloatingActionButton
-            android:id="@+id/conversations_fab"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="bottom|end"
-            android:layout_margin="@dimen/tx_mv_side_bottom_frame_height"
-            android:contentDescription="@string/new_conversation"
-            android:src="@drawable/ic_plus_vector"
-            app:applyWindowInsets="true"
-            app:elevation="0dp"/>
+            <com.goodwy.commons.views.MyFloatingActionButton
+                android:id="@+id/conversations_fab"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="bottom|end"
+                android:layout_margin="@dimen/tx_mv_side_bottom_frame_height"
+                android:contentDescription="@string/new_conversation"
+                android:src="@drawable/ic_plus_vector"
+                app:applyWindowInsets="true"
+                app:elevation="0dp"/>
 
-    </androidx.coordinatorlayout.widget.CoordinatorLayout>
+        </androidx.coordinatorlayout.widget.CoordinatorLayout>
+
+    </eightbitlab.com.blurview.BlurTarget>
 
     <com.android.common.view.MRippleToolBar
         android:id="@+id/action_mode_ripple_toolbar"

@@ -25,7 +25,6 @@ import com.android.mms.dialogs.ExportMessagesDialog
 import com.android.mms.extensions.*
 import com.android.mms.helpers.*
 import com.android.common.view.MVSideFrame
-import com.goodwy.commons.views.BlurAppBarLayout
 import eightbitlab.com.blurview.BlurTarget
 
 class SettingsActivity : SimpleActivity() {
@@ -127,7 +126,6 @@ class SettingsActivity : SimpleActivity() {
         initMVSideFrames()
         makeSystemBarsToTransparent()
         initBouncy()
-        initBouncyListener()
         setupOptionsMenu()
         setupSettingsTopAppBar()
 
@@ -169,39 +167,26 @@ class SettingsActivity : SimpleActivity() {
         }
     }
 
-    private fun initBouncyListener() {
-        binding.settingsMenu.setupOffsetListener { verticalOffset, height ->
-            val h = if (height > 0) height else 1
-            binding.settingsMenu.titleView?.scaleX = (1 + 0.45f * verticalOffset / h)
-            binding.settingsMenu.titleView?.scaleY = (1 + 0.45f * verticalOffset / h)
-        }
-    }
-
     private fun setupSettingsTopAppBar() {
         val topBarColor = getRequiredTopBarColor()
-        binding.settingsMenu.setTitle(getString(com.goodwy.commons.R.string.settings))
-        binding.settingsMenu.toolbar?.let { toolbar ->
-            toolbar.navigationIcon =
+        binding.settingsMenu.applyLargeTitleOnly(getString(com.goodwy.commons.R.string.settings))
+        binding.settingsMenu.requireCustomToolbar().apply {
+            navigationIcon =
                 resources.getColoredDrawableWithColor(
-                    this,
+                    this@SettingsActivity,
                     com.android.common.R.drawable.ic_cmn_arrow_left_fill,
                     topBarColor.getContrastColor()
                 )
-            toolbar.setNavigationContentDescription(NavigationIcon.Arrow.accessibilityResId)
-            toolbar.setNavigationOnClickListener {
+            setNavigationContentDescription(NavigationIcon.Arrow.accessibilityResId)
+            setNavigationOnClickListener {
                 hideKeyboard()
                 finish()
             }
         }
-        updateTopBarColors(
-            binding.settingsMenu,
-            topBarColor,
-            binding.settingsMenu.toolbar,
-            setAppBarViewBackground = false
-        )
+        updateTopBarColors(binding.settingsMenu, topBarColor)
         binding.settingsMenu.searchBeVisibleIf(false)
         // Keep collapsed title clear of the back button hit area.
-        binding.settingsMenu.titleView?.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+        binding.settingsMenu.binding.collapsingTitle.updateLayoutParams<ViewGroup.MarginLayoutParams> {
             marginStart = (64 * resources.displayMetrics.density).toInt()
         }
     }
@@ -293,7 +278,7 @@ class SettingsActivity : SimpleActivity() {
                     com.android.common.R.color.tx_cardview_summary)
             }
 
-            settingsMenu.toolbar?.menu?.let { updateMenuItemColors(it) }
+            settingsMenu.requireCustomToolbar().menu.let { updateMenuItemColors(it) }
         }
         isRebindingSettings = false
 
@@ -698,7 +683,7 @@ class SettingsActivity : SimpleActivity() {
     }
 
     private fun setupOptionsMenu() {
-        binding.settingsMenu.toolbar?.apply {
+        binding.settingsMenu.requireCustomToolbar().apply {
             inflateMenu(R.menu.menu_settings)
             setOnMenuItemClickListener { menuItem ->
                 when (menuItem.itemId) {

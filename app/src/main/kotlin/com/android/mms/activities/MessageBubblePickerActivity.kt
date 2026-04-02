@@ -14,6 +14,7 @@ import com.android.common.view.MVSideFrame
 import com.android.mms.R
 import com.android.mms.adapters.MessageBubblePickerAdapter
 import com.android.mms.databinding.ActivityMessageBubblePickerBinding
+import com.android.mms.extensions.applyLargeTitleOnly
 import com.android.mms.extensions.config
 import com.android.mms.helpers.BUBBLE_DRAWABLE_OPTIONS
 import com.android.mms.helpers.refreshMessages
@@ -40,7 +41,6 @@ class MessageBubblePickerActivity : SimpleActivity() {
         initTheme()
         initMVSideFrames()
         initBouncy()
-        initBouncyListener()
         makeSystemBarsToTransparent()
         setupTopBar()
         setupActionTabs()
@@ -88,14 +88,6 @@ class MessageBubblePickerActivity : SimpleActivity() {
         }
     }
 
-    private fun initBouncyListener() {
-        binding.bubblePickerAppbar.setupOffsetListener { verticalOffset, height ->
-            val h = if (height > 0) height else 1
-            binding.bubblePickerAppbar.titleView?.scaleX = (1 + 0.45f * verticalOffset / h)
-            binding.bubblePickerAppbar.titleView?.scaleY = (1 + 0.45f * verticalOffset / h)
-        }
-    }
-
     private fun makeSystemBarsToTransparent() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
@@ -123,8 +115,8 @@ class MessageBubblePickerActivity : SimpleActivity() {
     }
 
     private fun setupTopBar() {
-        binding.bubblePickerAppbar.setTitle(getString(com.goodwy.strings.R.string.speech_bubble))
-        binding.bubblePickerAppbar.toolbar?.apply {
+        binding.bubblePickerAppbar.applyLargeTitleOnly(getString(com.goodwy.strings.R.string.speech_bubble))
+        binding.bubblePickerAppbar.requireCustomToolbar().apply {
             val textColor = getProperTextColor()
             navigationIcon = resources.getColoredDrawableWithColor(
                 this@MessageBubblePickerActivity,
@@ -134,7 +126,7 @@ class MessageBubblePickerActivity : SimpleActivity() {
             setNavigationOnClickListener { cancelAndFinish() }
             setNavigationContentDescription(com.goodwy.commons.R.string.back)
         }
-        binding.bubblePickerAppbar.titleView?.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+        binding.bubblePickerAppbar.binding.collapsingTitle.updateLayoutParams<ViewGroup.MarginLayoutParams> {
             marginStart = (64 * resources.displayMetrics.density).toInt()
         }
     }

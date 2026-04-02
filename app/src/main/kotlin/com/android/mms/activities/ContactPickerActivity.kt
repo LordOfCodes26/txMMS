@@ -42,9 +42,9 @@ import com.goodwy.commons.views.MyRecyclerView
 import com.goodwy.commons.views.MyTextView
 import com.android.common.helper.IconItem
 import com.android.common.view.MRippleToolBar
-import com.android.common.view.MSearchView
 import com.android.common.view.MVSideFrame
 import com.android.mms.R
+import com.android.mms.extensions.applyLargeTitleOnly
 import com.android.mms.adapters.ContactPickerAdapter
 import com.android.mms.models.Contact
 import com.android.mms.models.ContactPickerListRow
@@ -52,7 +52,7 @@ import com.goodwy.commons.extensions.beGone
 import com.goodwy.commons.extensions.beInvisible
 import java.util.Calendar
 import com.goodwy.commons.helpers.SimpleContactsHelper
-import com.goodwy.commons.views.BlurAppBarLayout
+import com.goodwy.commons.views.MySearchMenu
 import com.reddit.indicatorfastscroll.FastScrollerThumbView
 import com.reddit.indicatorfastscroll.FastScrollerView
 import eightbitlab.com.blurview.BlurTarget
@@ -94,7 +94,7 @@ class ContactPickerActivity : SimpleActivity() {
     }
 
     private var scrollView: View? = null
-    private var blurAppBarLayout: BlurAppBarLayout? = null
+    private var blurAppBarLayout: MySearchMenu? = null
     private var totalOffset = 0
     private var rootView: View? = null
     private var contactRecyclerView: MyRecyclerView? = null
@@ -154,7 +154,6 @@ class ContactPickerActivity : SimpleActivity() {
         initTheme()
         initMVSideFrames()
         initBouncy()
-        initBouncyListener()
         initComponent()
         makeSystemBarsToTransparent()
 
@@ -249,16 +248,8 @@ class ContactPickerActivity : SimpleActivity() {
         }
     }
 
-    private fun initBouncyListener() {
-        blurAppBarLayout?.setupOffsetListener { verticalOffset, height ->
-            val h = if (height > 0) height else 1
-            blurAppBarLayout?.titleView?.scaleX = (1 + 0.45f * verticalOffset / h)
-            blurAppBarLayout?.titleView?.scaleY = (1 + 0.45f * verticalOffset / h)
-        }
-    }
-
     private fun initComponent() {
-        blurAppBarLayout?.setTitle(getString(R.string.select_contacts))
+        blurAppBarLayout?.applyLargeTitleOnly(getString(R.string.select_contacts))
         setupTopBarNavigation()
 
         bottomBarContainer = findViewById(R.id.lyt_action)
@@ -287,34 +278,36 @@ class ContactPickerActivity : SimpleActivity() {
             }
         }
 
-        blurAppBarLayout?.toolbar?.apply {
+        blurAppBarLayout?.requireCustomToolbar()?.apply {
             inflateMenu(R.menu.menu_contact_picker)
             setOnMenuItemClickListener { item ->
                 if (item.itemId == R.id.search) {
-                    blurAppBarLayout?.startSearch()
+                    expandSearch()
+                    blurAppBarLayout?.binding?.collapsingTitle?.visibility = View.GONE
                     true
                 } else false
             }
-        }
-        blurAppBarLayout?.setOnSearchStateListener(object : BlurAppBarLayout.OnSearchStateListener {
-            override fun onState(state: Int) {
-                when (state) {
-                    MSearchView.SEARCH_START -> {
-                        hideTopBarNavigation()
-                        contactRecyclerView?.isNestedScrollingEnabled = false
-                        contactRecyclerView?.scrollToPosition((contactAdapter?.itemCount ?: 1) - 1)
-                    }
-                    MSearchView.SEARCH_END -> {
-                        setupTopBarNavigation()
-                        contactRecyclerView?.isNestedScrollingEnabled = true
-                    }
-                }
+            setOnSearchExpandListener {
+                val bar = blurAppBarLayout ?: return@setOnSearchExpandListener
+                bar.collapseAndLockCollapsing()
+                bar.binding.collapsingTitle.visibility = View.GONE
+                hideTopBarNavigation()
+                contactRecyclerView?.isNestedScrollingEnabled = false
+                contactRecyclerView?.scrollToPosition((contactAdapter?.itemCount ?: 1) - 1)
             }
-            override fun onSearchTextChanged(s: String?) {
+            setOnSearchBackClickListener {
+                val bar = blurAppBarLayout ?: return@setOnSearchBackClickListener
+                bar.unlockCollapsing()
+                bar.setExpanded(true, true)
+                bar.binding.collapsingTitle.visibility = View.VISIBLE
+                setupTopBarNavigation()
+                contactRecyclerView?.isNestedScrollingEnabled = true
+            }
+            setOnSearchTextChangedListener { s ->
                 searchString = s ?: ""
                 searchListByQuery(searchString)
             }
-        })
+        }
 
         contactRecyclerView = findViewById<MyRecyclerView>(R.id.contactRecyclerView).apply {
             layoutManager = LinearLayoutManager(this@ContactPickerActivity)
@@ -413,7 +406,7 @@ class ContactPickerActivity : SimpleActivity() {
     }
 
     private fun setupTopBarNavigation() {
-        blurAppBarLayout?.toolbar?.apply {
+        blurAppBarLayout?.requireCustomToolbar()?.apply {
             val textColor = getProperTextColor()
             navigationIcon = resources.getColoredDrawableWithColor(
                 this@ContactPickerActivity,
@@ -425,13 +418,13 @@ class ContactPickerActivity : SimpleActivity() {
                 finish()
             }
         }
-        blurAppBarLayout?.titleView?.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+        blurAppBarLayout?.binding?.collapsingTitle?.updateLayoutParams<ViewGroup.MarginLayoutParams> {
             marginStart = (64 * resources.displayMetrics.density).toInt()
         }
     }
 
     private fun hideTopBarNavigation() {
-        blurAppBarLayout?.toolbar?.apply {
+        blurAppBarLayout?.requireCustomToolbar()?.apply {
             navigationIcon = null
             setNavigationOnClickListener(null)
         }

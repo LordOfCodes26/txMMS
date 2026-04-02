@@ -212,13 +212,8 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         else binding.topDetailsLarge.beGone()
 
         val topBarColor = getColoredMaterialStatusBarColor()
-        // Use updateTopBarColors for AppBarLayout + CustomToolbar (not MyAppBarLayout)
-        updateTopBarColors(
-            appBarView = binding.threadAppbar,
-            colorBackground = topBarColor,
-            customToolbar = binding.threadToolbar,
-            setAppBarViewBackground = false
-        )
+        // Thread uses Material AppBarLayout + CustomToolbar — commons overload is CustomToolbar-only (no MyAppBarLayout).
+        updateTopBarColors(binding.threadToolbar, topBarColor)
         // Zero elevation for app bar
         val stateListAnimator = StateListAnimator()
         stateListAnimator.addState(
@@ -345,7 +340,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
     }
 
     /**
-     * Applies app bar background and behavior like [com.goodwy.commons.views.BlurAppBarLayout]:
+     * Applies app bar background and behavior like [com.goodwy.commons.views.MySearchMenu]:
      * - Sets appBarBackground drawable programmatically (AppBarLayout may not apply it from XML).
      * - Zero elevation and disables lift-on-scroll so the bar stays consistent.
      */
@@ -802,12 +797,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                     } else {
                         getColoredMaterialStatusBarColor()
                     }
-                    updateTopBarColors(
-                        binding.threadAppbar,
-                        color,
-                        binding.threadToolbar,
-                        setAppBarViewBackground = false
-                    )
+                    updateTopBarColors(binding.threadToolbar, color)
                     val contrastColor = color.getContrastColor()
                     val itemColor = if (baseConfig.topAppBarColorIcon) getProperPrimaryColor() else contrastColor
                     setupThreadToolbarNavigation(color = itemColor)

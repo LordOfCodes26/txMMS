@@ -169,17 +169,17 @@ class NewConversationActivity : SimpleActivity() {
         }
         val useSurfaceColor = isDynamicTheme() && !isSystemInDarkMode()
         val backgroundColor = if (useSurfaceColor) getSurfaceColor() else getProperBackgroundColor()
-        // Match ContactPickerActivity: BlurAppBarLayout with same setupTopBarNavigation pattern
+        // Match ContactPickerActivity: MySearchMenu with same top bar pattern
         binding.root.setBackgroundColor(backgroundColor)
-        binding.newConversationAppbar.setTitle(getString(R.string.new_conversation))
-        binding.newConversationAppbar.titleView?.apply {
+        binding.newConversationAppbar.applyLargeTitleOnly(getString(R.string.new_conversation))
+        binding.newConversationAppbar.binding.collapsingTitle.apply {
             setTextColor(getProperTextColor())
             setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, getTextSize())
         }
-        binding.newConversationAppbar.titleView?.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+        binding.newConversationAppbar.binding.collapsingTitle.updateLayoutParams<ViewGroup.MarginLayoutParams> {
             marginStart = (64 * resources.displayMetrics.density).toInt()
         }
-        binding.newConversationAppbar.toolbar?.apply {
+        binding.newConversationAppbar.requireCustomToolbar().apply {
             val textColor = getProperTextColor()
             navigationIcon = resources.getColoredDrawableWithColor(
                 this@NewConversationActivity,
@@ -216,12 +216,10 @@ class NewConversationActivity : SimpleActivity() {
         }
     }
     
-    /** Match ContactPickerActivity: scale title based on app bar scroll offset. */
+    /** Keep content padding in sync with app bar collapse (title scale is handled inside MySearchMenu). */
     private fun setupTitleScrollAnimation() {
-        binding.newConversationAppbar.setupOffsetListener { verticalOffset, height ->
-            val h = if (height > 0) height else 1
-            binding.newConversationAppbar.titleView?.scaleX = (1 + 0.45f * verticalOffset / h)
-            binding.newConversationAppbar.titleView?.scaleY = (1 + 0.45f * verticalOffset / h)
+        binding.newConversationAppbar.addOnOffsetChangedListener { _, verticalOffset ->
+            val height = binding.newConversationAppbar.height
             vertiOffset = verticalOffset
             binding.newConversationHolder.updatePadding(0, 0, 0, height + verticalOffset - (70*resources.displayMetrics.density).toInt())
         }
