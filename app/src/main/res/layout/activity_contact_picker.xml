@@ -169,10 +169,10 @@
                 android:background="@drawable/divider_settings" />
         </LinearLayout>
 
-        <com.goodwy.commons.views.BlurAppBarLayout
+        <com.goodwy.commons.views.MySearchMenu
             android:id="@+id/blur_app_bar_layout"
             android:layout_width="match_parent"
-            android:layout_height="@dimen/tx_top_bar_expand_height"
+            android:layout_height="wrap_content"
             android:background="@color/transparent"
             android:paddingBottom="5dp" />
 

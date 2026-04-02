@@ -47,10 +47,10 @@
             android:layout_height="110dp"
             android:layout_gravity="top" />
 
-        <com.goodwy.commons.views.BlurAppBarLayout
+        <com.goodwy.commons.views.MySearchMenu
             android:id="@+id/bubblePickerAppbar"
             android:layout_width="match_parent"
-            android:layout_height="@dimen/tx_top_bar_expand_height"
+            android:layout_height="wrap_content"
             android:background="@android:color/transparent" />
 
         <FrameLayout

@@ -14,6 +14,7 @@ import android.graphics.drawable.LayerDrawable
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import android.provider.Telephony
 import android.speech.RecognizerIntent
 import android.text.TextUtils
@@ -30,16 +31,16 @@ import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updateLayoutParams
 import androidx.core.view.updatePadding
 import androidx.appcompat.widget.SearchView
 import androidx.core.view.MenuItemCompat
 import androidx.recyclerview.widget.RecyclerView
-import com.android.common.view.MSearchView
 import com.android.common.view.MVSideFrame
 import com.goodwy.commons.dialogs.PermissionRequiredDialog
 import com.goodwy.commons.extensions.*
 import com.goodwy.commons.helpers.*
-import com.goodwy.commons.views.BlurAppBarLayout
+import com.goodwy.commons.views.MyRecyclerView
 import com.goodwy.commons.views.TwoFingerSlideGestureDetector
 import com.android.mms.BuildConfig
 import com.android.mms.R
@@ -66,6 +67,7 @@ import kotlin.text.toFloat
 
 class MainActivity : SimpleActivity(), ActionModeToolbarHost {
     companion object {
+        private const val TAG = "MessagesMainActivity"
         private const val SECRET_BOX_PACKAGE = "chonha.get.secret.number"
         private const val SECRET_NUMBER_EXTRA = "secret_number"
         private const val INVALID_CIPHER = -1
@@ -102,15 +104,17 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
 
     private val binding by viewBinding(ActivityMainBinding::inflate)
 
+    private var menuHeightAnimator: android.animation.ValueAnimator? = null
+    private var currentMenuHeight: Int = -1
+    private var fullMenuHeight: Int = -1
+    private val mainMenuOverscrollFactor = 0.35f
+
     @SuppressLint("InlinedApi")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
         initTheme()
         setupTwoFingerSwipeGesture()
-        initMVSideFrames()
-        initBouncy()
-        initBouncyListener()
         makeSystemBarsToTransparent()
         val isFirstLaunch = baseConfig.appRunCount == 0
         appLaunched(BuildConfig.APPLICATION_ID)
@@ -122,15 +126,7 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         }
         setupOptionsMenu()
         refreshMenuItemsAndTitle()
-        setupEdgeToEdge(padBottomImeAndSystem = listOf(binding.conversationsList, binding.searchResultsList))
-        if (config.changeColourTopBar) {
-            val useSurfaceColor = isDynamicTheme() && !isSystemInDarkMode()
-            setupSearchMenuScrollListener(
-                scrollingView = binding.conversationsList,
-                searchMenu = binding.mainMenu,
-                surfaceColor = useSurfaceColor
-            )
-        }
+        setupEdgeToEdge()
         checkWhatsNewDialog()
         storeStateVariables()
 
@@ -144,6 +140,35 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         }
 
         unreadCountHash = getUnreadCountsByThread() as HashMap<Long, Int>
+
+        setupVerticalSideFrameBlur()
+        binding.conversationsList.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
+                super.onScrollStateChanged(recyclerView, newState)
+                hideKeyboard()
+            }
+
+            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                super.onScrolled(recyclerView, dx, dy)
+                setMainMenuTransparentBackground()
+            }
+        })
+        binding.searchResultsList.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
+                super.onScrollStateChanged(recyclerView, newState)
+                hideKeyboard()
+            }
+
+            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                super.onScrolled(recyclerView, dx, dy)
+                setMainMenuTransparentBackground()
+            }
+        })
+        binding.conversationsNestedScroll.post {
+            setMainMenuHeight(null, animated = false)
+            setupMainMenuSpringSync()
+            if (config.changeColourTopBar) scrollChange()
+        }
     }
 
     @SuppressLint("UnsafeIntentLaunch")
@@ -162,7 +187,13 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
             return
         }
 
-        updateMenuColors()
+        binding.mainMenu.updateColors(
+            background = getStartRequiredStatusBarColor(),
+            scrollOffset = scrollingView?.computeVerticalScrollOffset() ?: 0
+        )
+        setMainMenuTransparentBackground()
+        binding.mainMenu.requireCustomToolbar().updateSearchColors()
+
         refreshMenuItemsAndTitle()
 
         getOrCreateConversationsAdapter().apply {
@@ -186,13 +217,13 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
             scheduleGroupedTodayTimeRefresh()
         }
 
-        updateTextColors(binding.mainCoordinator)
+        updateTextColors(binding.conversationsNestedScroll)
         // Use same background logic as Contacts: surface color only for dynamic theme + light mode, else proper background
         val useSurfaceColor = isDynamicTheme() && !isSystemInDarkMode()
         val backgroundColor = if (useSurfaceColor) getSurfaceColor() else getProperBackgroundColor()
         binding.searchHolder.setBackgroundColor(backgroundColor)
 //        binding.conversationsFastscroller.setBackgroundColor(backgroundColor)
-        binding.mainHolder.setBackgroundColor(backgroundColor)
+        binding.conversationsNestedScroll.setBackgroundColor(backgroundColor)
         binding.conversationsList.setBackgroundColor(backgroundColor)
         binding.searchResultsList.setBackgroundColor(backgroundColor)
 
@@ -204,34 +235,49 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         binding.conversationsProgressBar.trackColor = properPrimaryColor.adjustAlpha(LOWER_ALPHA)
         checkShortcut()
 
-        binding.conversationsList.addOnScrollListener(object : RecyclerView.OnScrollListener() {
-            override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
-                super.onScrollStateChanged(recyclerView, newState)
-                hideKeyboard()
-            }
-        })
-
-        binding.searchResultsList.addOnScrollListener(object : RecyclerView.OnScrollListener() {
-            override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
-                super.onScrollStateChanged(recyclerView, newState)
-                hideKeyboard()
-            }
-        })
-
         setFabIconColor()
+
+        if (fullMenuHeight == -1) {
+            val menu = binding.mainMenu
+            if (menu.height == 0) {
+                menu.viewTreeObserver.addOnGlobalLayoutListener(object : android.view.ViewTreeObserver.OnGlobalLayoutListener {
+                    override fun onGlobalLayout() {
+                        menu.viewTreeObserver.removeOnGlobalLayoutListener(this)
+                        if (fullMenuHeight == -1 && menu.height > 0) {
+                            fullMenuHeight = menu.height
+                            if (currentMenuHeight == -1) {
+                                currentMenuHeight = fullMenuHeight
+                            }
+                            syncTopSideFrameHeight(fullMenuHeight)
+                        }
+                    }
+                })
+            } else if (menu.height > 0) {
+                fullMenuHeight = menu.height
+                if (currentMenuHeight == -1) {
+                    currentMenuHeight = fullMenuHeight
+                }
+                syncTopSideFrameHeight(fullMenuHeight)
+            }
+        }
+
+        binding.mainMenu.post { setMainMenuHeight(null, animated = true) }
+
+        binding.root.post { setupVerticalSideFrameBlur() }
 
         refreshSideFrameBlurAndInsets()
 
         (binding.searchResultsList.adapter as? SearchResultsAdapter)?.scheduleGroupedTodayTimeRefresh()
     }
 
-    /** BlurView + MVSideFrame can stop updating after another activity was shown; re-apply insets and re-bind. */
+    /** BlurView/BlurTarget links are invalidated when the activity is paused; re-bind like txDial [setupVerticalSideFrameBlur]. */
     private fun refreshSideFrameBlurAndInsets() {
         binding.root.post {
             ViewCompat.requestApplyInsets(binding.root)
             binding.mainBlurTarget.invalidate()
-            binding.mVerticalSideFrameTop.bindBlurTarget(binding.mainBlurTarget)
-            binding.mVerticalSideFrameBottom.bindBlurTarget(binding.mainBlurTarget)
+            binding.blurTarget.invalidate()
+            setupVerticalSideFrameBlur()
+            setMainMenuTransparentBackground()
         }
     }
 
@@ -251,6 +297,7 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
 
     override fun onDestroy() {
         super.onDestroy()
+        clearMainMenuSpringSync()
         config.needRestart = false
         bus?.unregister(this)
     }
@@ -258,12 +305,131 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
     override fun onBackPressedCompat(): Boolean {
         val customToolbar = binding.mainMenu.requireCustomToolbar()
         return if (customToolbar.isSearchExpanded) {
-            // Single collapse + restore AppBar (setExpanded) + SEARCH_END — not collapseSearch + searchBeVisibleIf (double animation).
-            binding.mainMenu.endSearchMode()
+            endMainMenuSearchMode()
             true
         } else {
             appLockManager.lock()
             false
+        }
+    }
+
+    fun getMainMenuVisibleHeight(): Int {
+        return binding.mainMenu.height
+            .takeIf { it > 0 }
+            ?: binding.mainMenu.measuredHeight.takeIf { it > 0 }
+            ?: currentMenuHeight.takeIf { it > 0 }
+            ?: fullMenuHeight.takeIf { it > 0 }
+            ?: 0
+    }
+
+    /**
+     * Top padding for [R.id.conversations_list]: distance from the list’s top edge to the bottom of
+     * [R.id.main_menu] on screen. Using [View.getHeight] alone double-counts with CoordinatorLayout /
+     * negative [R.id.blur_target] margin and produced a large empty band under the title.
+     */
+    fun getRecentsListTopInsetPx(): Int {
+        val menu = binding.mainMenu
+        val list = binding.conversationsList
+        var base = getMainMenuVisibleHeight()
+        if (
+            list.visibility == View.VISIBLE &&
+            menu.visibility == View.VISIBLE &&
+            menu.isLaidOut &&
+            list.isLaidOut &&
+            menu.height > 0
+        ) {
+            val mLoc = IntArray(2)
+            val lLoc = IntArray(2)
+            menu.getLocationOnScreen(mLoc)
+            list.getLocationOnScreen(lLoc)
+            val inset = (mLoc[1] + menu.height) - lLoc[1]
+            if (inset > 0 && inset < menu.height * 3) {
+                base = inset
+            }
+        }
+        // Locked AppBar height can be smaller than the visible search row; ensure we never under-pad.
+        if (menu.requireCustomToolbar().isSearchExpanded) {
+            val minSearchListTop = resources.getDimensionPixelSize(R.dimen.nest_bouncy_content_padding_top)
+            return maxOf(base, minSearchListTop)
+        }
+        return base
+    }
+
+    fun getMainMenuHeightForRecentsInset(): Int = getRecentsListTopInsetPx()
+
+    private fun getMainMenuHeightWithFallback(): Int = getRecentsListTopInsetPx()
+
+    /** Debug: filter logcat with [TAG] and `recentsTopPadding`. */
+    private fun logRecentsListTopPadding(phase: String, recentsList: MyRecyclerView) {
+        if (!BuildConfig.DEBUG) return
+        Log.d(
+            TAG,
+            "recentsTopPadding phase=$phase paddingTop=${recentsList.paddingTop}px translationY=${recentsList.translationY} " +
+                "mainMenuInset=${getMainMenuHeightWithFallback()}px mainMenuVisible=${getMainMenuVisibleHeight()}px",
+        )
+    }
+
+    /** Re-apply when the app bar finishes layout (e.g. after unlockCollapsing); based on txDial MainActivityRecents (no dialpad in Messages). */
+    private fun applyFinalRecentsListTopPadding(recentsList: MyRecyclerView) {
+        var inset = getMainMenuHeightWithFallback()
+        if (inset > 0) {
+            recentsList.updatePadding(top = inset)
+            logRecentsListTopPadding("applyFinal(immediate inset=$inset)", recentsList)
+            return
+        }
+        findViewById<View>(R.id.main_menu)?.post {
+            inset = getMainMenuHeightWithFallback()
+            if (inset > 0) {
+                recentsList.updatePadding(top = inset)
+                logRecentsListTopPadding("applyFinal(posted inset=$inset)", recentsList)
+            } else {
+                logRecentsListTopPadding("applyFinal(posted inset still 0)", recentsList)
+            }
+        }
+    }
+
+    private fun animateTopOffsets(duration: Long) {
+        if (duration > 0L) {
+            return
+        }
+        val conv = binding.conversationsList as MyRecyclerView
+        val searchRv = binding.searchResultsList as MyRecyclerView
+        // Search mode: [getRecentsListTopInsetPx] uses max(geometry, nest_bouncy_content_padding_top)
+        // so list padding clears the visible search row despite locked short AppBar height.
+        applyFinalRecentsListTopPadding(conv)
+        applyFinalRecentsListTopPadding(searchRv)
+        if (binding.searchHolder.childCount > 0) {
+            val inset = getMainMenuHeightWithFallback()
+            binding.searchHolder.getChildAt(0)!!.updatePadding(top = if (inset > 0) inset else 0)
+        }
+        val mainMenuHeight = getMainMenuHeightWithFallback()
+        logRecentsListTopPadding(
+            "animateTopOffsets snap targetTopPad=${mainMenuHeight}px mainMenuHAtCall=${mainMenuHeight}px",
+            conv,
+        )
+    }
+
+    private fun syncRecentsTopInsetWithToolbar() {
+        fun apply() {
+            animateTopOffsets(duration = 0L)
+        }
+        apply()
+        if (getMainMenuHeightWithFallback() == 0) {
+            binding.root.post { apply() }
+        }
+        findViewById<View>(R.id.main_menu)?.post { apply() }
+    }
+
+    fun requestTopInsetSync() {
+        binding.root.post {
+            fun apply() {
+                animateTopOffsets(duration = 0L)
+            }
+            apply()
+            if (getMainMenuHeightWithFallback() == 0) {
+                binding.root.post { apply() }
+            }
+            findViewById<View>(R.id.main_menu)?.post { apply() }
         }
     }
 
@@ -332,43 +498,60 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
 
     override fun getBlurTargetView() = binding.mainBlurTarget
 
+    private fun endMainMenuSearchMode() {
+        val menu = binding.mainMenu
+        val tb = menu.requireCustomToolbar()
+        if (!tb.isSearchExpanded) return
+        tb.collapseSearch()
+        menu.unlockCollapsing()
+        menu.setExpanded(true, true)
+        menu.binding.collapsingTitle.visibility = View.VISIBLE
+        isSearchOpen = false
+        fadeOutSearch()
+        menu.post { requestTopInsetSync() }
+    }
+
     private fun setupOptionsMenu() {
         binding.apply {
-            val toolbar = mainMenu.requireCustomToolbar()
+            val menu = mainMenu
+            val toolbar = menu.requireCustomToolbar()
             toolbar.inflateMenu(R.menu.action_menu_main)
             updateMenuItemColors(toolbar.menu)
             toolbar.updateSearchColors()
 
-            mainMenu.setOnSearchStateListener(object : BlurAppBarLayout.OnSearchStateListener {
-                override fun onState(state: Int) {
-                    when (state) {
-                        MSearchView.SEARCH_START -> isSearchOpen = true
-                        MSearchView.SEARCH_END -> {
-                            fadeOutSearch()
-                            isSearchOpen = false
-                        }
+            toolbar.setOnSearchExpandListener {
+                menuHeightAnimator?.cancel()
+                menu.collapseAndLockCollapsing()
+                menu.binding.collapsingTitle.visibility = View.GONE
+                isSearchOpen = true
+                menu.post { requestTopInsetSync() }
+            }
+            toolbar.setOnSearchBackClickListener {
+                menu.unlockCollapsing()
+                menu.setExpanded(true, true)
+                menu.binding.collapsingTitle.visibility = View.VISIBLE
+                fadeOutSearch()
+                isSearchOpen = false
+                menu.post { requestTopInsetSync() }
+            }
+            toolbar.setOnSearchTextChangedListener { s ->
+                val text = s ?: ""
+                searchQuery = text
+                if (text.isNotEmpty()) {
+                    if (searchHolder.alpha < 1f) {
+                        searchHolder.fadeIn()
                     }
+                } else {
+                    fadeOutSearch()
                 }
-
-                override fun onSearchTextChanged(s: String?) {
-                    val text = s ?: ""
-                    searchQuery = text
-                    if (text.isNotEmpty()) {
-                        if (searchHolder.alpha < 1f) {
-                            searchHolder.fadeIn()
-                        }
-                    } else {
-                        fadeOutSearch()
-                    }
-                    searchTextChanged(text)
-                    if (isSearchAlwaysShow) mainMenu.clearSearch()
-                }
-            })
+                searchTextChanged(text)
+                if (isSearchAlwaysShow) toolbar.setSearchText("")
+            }
 
             toolbar.setOnMenuItemClickListener { menuItem ->
                 handleToolbarMenuItemClick(menuItem)
             }
-            toolbar.getActionBar()?.bindBlurTarget(this@MainActivity, mainBlurTarget)
+            toolbar.getActionBar()?.bindBlurTarget(this@MainActivity, blurTarget)
             toolbar.setPopupForMoreItem(
                 R.id.more,
                 R.menu.menu_main,
@@ -381,7 +564,7 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
             )
             toolbar.invalidateMenu()
 
-            mainMenu.clearSearch()
+            toolbar.setSearchText("")
         }
     }
 
@@ -389,13 +572,17 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         when (menuItem.itemId) {
             R.id.search -> {
                 if (!binding.mainMenu.requireCustomToolbar().isSearchExpanded) {
-                    binding.mainMenu.startSearch()
+                    menuHeightAnimator?.cancel()
+                    binding.mainMenu.collapseAndLockCollapsing()
+                    binding.mainMenu.requireCustomToolbar().expandSearch()
+                    binding.mainMenu.binding.collapsingTitle.visibility = View.GONE
                     isSearchOpen = true
+                    binding.mainMenu.post { requestTopInsetSync() }
                 }
             }
             R.id.select_conversations -> {
                 if (binding.mainMenu.requireCustomToolbar().isSearchExpanded) {
-                    binding.mainMenu.endSearchMode()
+                    endMainMenuSearchMode()
                 }
                 getOrCreateConversationsAdapter().startActMode()
             }
@@ -550,7 +737,7 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
 //            findItem(R.id.show_blocked_numbers)?.isVisible = !isSecureMode
         }
 
-        binding.mainMenu.setTitle(
+        binding.mainMenu.applyLargeTitleOnly(
             if (isSecureMode) getString(R.string.secure_box)
             else getString(R.string.messages)
         )
@@ -674,7 +861,7 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
 
                 val speechToText =  Objects.requireNonNull(res)[0]
                 if (speechToText.isNotEmpty()) {
-                    binding.mainMenu.setText(speechToText)
+                    binding.mainMenu.requireCustomToolbar().setSearchText(speechToText)
                 }
             }
         }
@@ -685,65 +872,211 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         window.statusBarColor = Color.TRANSPARENT
     }
 
-    private fun initMVSideFrames() {
-        binding.mVerticalSideFrameTop.bindBlurTarget(binding.mainBlurTarget)
-        binding.mVerticalSideFrameBottom.bindBlurTarget(binding.mainBlurTarget)
+    private fun setMainMenuHeight(height: Int?, animated: Boolean = true) {
+        binding.mainMenu.apply {
+            if (height != 0) {
+                beVisible()
+            }
+
+            val actualCurrentHeight = if (this.height > 0) this.height else {
+                if (layoutParams.height > 0 && layoutParams.height != ViewGroup.LayoutParams.WRAP_CONTENT) {
+                    layoutParams.height
+                } else {
+                    -1
+                }
+            }
+
+            if (currentMenuHeight == -1 && actualCurrentHeight > 0) {
+                currentMenuHeight = actualCurrentHeight
+            }
+
+            if (height == null) {
+                menuHeightAnimator?.cancel()
+
+                // Toolbar search uses collapseAndLockCollapsing() (fixed small height). Animating toward
+                // [fullMenuHeight] overwrites that lock, resizes blur margin every frame, and re-runs
+                // list inset sync — content jumps after ~300ms or the next onResume (e.g. IME).
+                if (requireCustomToolbar().isSearchExpanded) {
+                    val h = this.height.takeIf { it > 0 } ?: this.measuredHeight.takeIf { it > 0 }
+                        ?: if (layoutParams.height > 0 && layoutParams.height != ViewGroup.LayoutParams.WRAP_CONTENT) {
+                            layoutParams.height
+                        } else {
+                            0
+                        }
+                    if (h > 0) {
+                        currentMenuHeight = h
+                        syncTopSideFrameHeight(h)
+                    }
+                    return
+                }
+
+                if (animated && fullMenuHeight > 0) {
+                    val menuView = this
+                    val startHeight = if (currentMenuHeight > 0) currentMenuHeight else actualCurrentHeight.takeIf { it > 0 } ?: 0
+                    val targetHeight = fullMenuHeight
+
+                    if (startHeight != targetHeight) {
+                        menuHeightAnimator = android.animation.ValueAnimator.ofInt(startHeight, targetHeight).apply {
+                            duration = 300
+                            interpolator = android.view.animation.DecelerateInterpolator(1.5f)
+                            addUpdateListener { animator ->
+                                val animatedHeight = animator.animatedValue as Int
+                                currentMenuHeight = animatedHeight
+                                menuView.updateLayoutParams<ViewGroup.LayoutParams> {
+                                    this.height = animatedHeight.coerceAtLeast(0)
+                                }
+                                syncTopSideFrameHeight(animatedHeight)
+                            }
+                            addListener(object : android.animation.AnimatorListenerAdapter() {
+                                override fun onAnimationEnd(animation: android.animation.Animator) {
+                                    menuView.post {
+                                        menuView.updateLayoutParams<ViewGroup.LayoutParams> {
+                                            this.height = ViewGroup.LayoutParams.WRAP_CONTENT
+                                        }
+                                        menuView.post {
+                                            if (menuView.height > 0) {
+                                                fullMenuHeight = menuView.height
+                                                currentMenuHeight = fullMenuHeight
+                                                syncTopSideFrameHeight(fullMenuHeight)
+                                            }
+                                        }
+                                    }
+                                }
+                            })
+                            start()
+                        }
+                    } else {
+                        updateLayoutParams<ViewGroup.LayoutParams> {
+                            this.height = ViewGroup.LayoutParams.WRAP_CONTENT
+                        }
+                        post {
+                            if (this.height > 0) {
+                                fullMenuHeight = this.height
+                                currentMenuHeight = fullMenuHeight
+                                syncTopSideFrameHeight(fullMenuHeight)
+                            }
+                        }
+                    }
+                } else {
+                    updateLayoutParams<ViewGroup.LayoutParams> {
+                        this.height = ViewGroup.LayoutParams.WRAP_CONTENT
+                    }
+                    post {
+                        if (this.height > 0) {
+                            fullMenuHeight = this.height
+                            currentMenuHeight = fullMenuHeight
+                            syncTopSideFrameHeight(fullMenuHeight)
+                        }
+                    }
+                }
+                return
+            }
+
+            val targetHeight = height
+
+            if (currentMenuHeight == targetHeight && currentMenuHeight >= 0) {
+                return
+            }
+
+            menuHeightAnimator?.cancel()
+
+            if (animated && targetHeight > 0) {
+                val menuView = this
+                val startHeight = if (currentMenuHeight > 0) currentMenuHeight else actualCurrentHeight.takeIf { it > 0 } ?: targetHeight
+                menuHeightAnimator = android.animation.ValueAnimator.ofInt(startHeight, targetHeight).apply {
+                    duration = 300
+                    interpolator = android.view.animation.DecelerateInterpolator(1.5f)
+                    addUpdateListener { animator ->
+                        val animatedHeight = animator.animatedValue as Int
+                        currentMenuHeight = animatedHeight
+                        menuView.updateLayoutParams<ViewGroup.LayoutParams> {
+                            this.height = animatedHeight.coerceAtLeast(0)
+                        }
+                        syncTopSideFrameHeight(animatedHeight)
+                    }
+                    addListener(object : android.animation.AnimatorListenerAdapter() {
+                        override fun onAnimationEnd(animation: android.animation.Animator) {
+                            currentMenuHeight = targetHeight
+                            syncTopSideFrameHeight(targetHeight)
+                        }
+                    })
+                    start()
+                }
+            } else {
+                updateLayoutParams<ViewGroup.LayoutParams> {
+                    this.height = targetHeight
+                }
+                currentMenuHeight = targetHeight
+                syncTopSideFrameHeight(targetHeight)
+
+                if (targetHeight == 0) {
+                    beGone()
+                }
+            }
+        }
     }
 
-    private fun initBouncy() {
-        binding.mainMenu.post {
-            // totalScrollRange is used by bouncy/offset logic if needed
+    private fun syncTopSideFrameHeight(height: Int) {
+        if (height < 0) return
+        binding.mVerticalSideFrameTop.updateLayoutParams<ViewGroup.LayoutParams> {
+            if (this.height != height) {
+                this.height = height / 2
+            }
+        }
+        syncBlurTargetTopMargin(height)
+        syncRecentsTopInsetWithToolbar()
+    }
+
+    private fun syncBlurTargetTopMargin(menuHeight: Int) {
+        if (menuHeight < 0) return
+        val targetTopMargin = -menuHeight
+        binding.blurTarget.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+            if (topMargin != targetTopMargin) {
+                topMargin = targetTopMargin
+            }
         }
     }
 
-    private fun initBouncyListener() {
-        binding.mainMenu.setupOffsetListener { verticalOffset, height ->
-            val h = if (height > 0) height else 1
-            binding.mainMenu.titleView?.scaleX = (1 + 0.45f * verticalOffset / h)
-            binding.mainMenu.titleView?.scaleY = (1 + 0.45f * verticalOffset / h)
-            // AppBarLayout's measured height stays at the expanded size while collapsing; offset is negative.
-            applyConversationsPaddingForAppBar(height, verticalOffset)
-        }
-        binding.mainMenu.post {
-            applyConversationsPaddingForAppBar(binding.mainMenu.height, 0)
+    private fun setupVerticalSideFrameBlur() {
+        arrayOf(
+            binding.mVerticalSideFrameTop,
+            binding.mVerticalSideFrameBottom,
+        ).forEach {
+            it.bindBlurTarget(binding.blurTarget)
         }
     }
 
-    /**
-     * Keep list / placeholder top inset in sync with the visible app bar region.
-     * [AppBarLayout] height does not shrink when the bar collapses — use [verticalOffset] (≤ 0) so that
-     * effective inset is layoutHeight + adjusted offset, matching Material’s collapse behavior.
-     * Offset is shifted by (nest_bouncy_content_padding_top − tx_top_bar_expand_height) px vs raw listener values.
-     */
-    private fun applyConversationsPaddingForAppBar(appBarLayoutHeightPx: Int, verticalOffset: Int) {
-        val maxPad = resources.getDimensionPixelSize(R.dimen.nest_bouncy_content_padding_top)
-        val txTopBarExpandPx =
-            resources.getDimensionPixelSize(com.android.common.R.dimen.tx_top_bar_expand_height)
-        val adjustedVerticalOffset = verticalOffset + (maxPad - txTopBarExpandPx)
-        val expandedH = if (appBarLayoutHeightPx > 0) {
-            appBarLayoutHeightPx
-        } else {
-            maxPad
+    private fun setupMainMenuSpringSync() {
+        fun bindOverscrollSync(recyclerView: MyRecyclerView?) {
+            recyclerView?.onOverscrollTranslationChanged = { translationY ->
+                binding.mainMenu.translationY = translationY * mainMenuOverscrollFactor
+            }
         }
-        // Search mode collapses the app bar (setExpanded(false)); offset would shrink padding. Keep the same
-        // inset as XML (@dimen/nest_bouncy_content_padding_top) so conversation/search content does not jump up.
-        val topPad = if (binding.mainMenu.requireCustomToolbar().isSearchExpanded) {
-            maxPad
-        } else {
-            (expandedH + adjustedVerticalOffset).coerceIn(0, maxPad)
-        }
-        fun syncRecyclerTopPadding(rv: RecyclerView, newTop: Int) {
-            if (rv.paddingTop == newTop) return
-            val delta = rv.paddingTop - newTop
-            rv.updatePadding(top = newTop)
-            rv.scrollBy(0, delta)
-        }
-        syncRecyclerTopPadding(binding.conversationsList, topPad)
-        syncRecyclerTopPadding(binding.searchResultsList, topPad)
-        binding.mainHolder.getChildAt(0)?.updatePadding(top = topPad)
-        if (binding.searchHolder.childCount > 0) {
-            binding.searchHolder.getChildAt(0)?.updatePadding(top = topPad)
-        }
+
+        bindOverscrollSync(binding.conversationsList as? MyRecyclerView)
+        bindOverscrollSync(binding.searchResultsList as? MyRecyclerView)
+    }
+
+    private fun clearMainMenuSpringSync() {
+        (binding.conversationsList as? MyRecyclerView)?.onOverscrollTranslationChanged = null
+        (binding.searchResultsList as? MyRecyclerView)?.onOverscrollTranslationChanged = null
+        binding.mainMenu.translationY = 0f
+    }
+
+    private fun scrollChange() {
+        scrollingView = binding.conversationsList
+        val scrollingViewOffset = scrollingView?.computeVerticalScrollOffset() ?: 0
+        val useSurfaceColor = isDynamicTheme() && !isSystemInDarkMode()
+        val backgroundColor = if (useSurfaceColor) getSurfaceColor() else getProperBackgroundColor()
+        val statusBarColor = if (config.changeColourTopBar) getRequiredStatusBarColor(useSurfaceColor) else backgroundColor
+        binding.mainMenu.updateColors(statusBarColor, scrollingViewOffset)
+        setMainMenuTransparentBackground()
+        binding.mainMenu.requireCustomToolbar().updateSearchColors()
+        setupSearchMenuScrollListener(
+            scrollingView = binding.conversationsList,
+            searchMenu = binding.mainMenu,
+            surfaceColor = useSurfaceColor
+        )
     }
 
     private fun makeSystemBarsToTransparent() {
@@ -758,8 +1091,7 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
             val bottomOffset = (0 * resources.displayMetrics.density).toInt()
             val fabLp = binding.conversationsFab.layoutParams as? ViewGroup.MarginLayoutParams
             if (fabLp != null) {
-                // Don't add navHeight to margin: setupEdgeToEdge already pads barContainer bottom.
-                // Use only a small offset so we don't double-apply insets (avoids huge gap in gesture nav).
+                // Lists are not in padBottomImeAndSystem (txDial recents pattern); lift FAB above IME only.
                 fabLp.bottomMargin = if (ime.bottom > 0) ime.bottom + bottomOffset else bottomOffset
                 fabLp.rightMargin = (32 * resources.displayMetrics.density).toInt()
                 binding.conversationsFab.layoutParams = fabLp
@@ -785,12 +1117,10 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         config.needRestart = false
     }
 
-    private fun updateMenuColors() {
-        val useSurfaceColor = isDynamicTheme() && !isSystemInDarkMode()
-        val backgroundColor = if (useSurfaceColor) getSurfaceColor() else getProperBackgroundColor()
-        val statusBarColor = if (config.changeColourTopBar) getRequiredStatusBarColor(useSurfaceColor) else backgroundColor
-        binding.mainMenu.updateColors(statusBarColor, scrollingView?.computeVerticalScrollOffset() ?: 0)
-        binding.mainMenu.requireCustomToolbar().updateSearchColors()
+    /** After updateColors, restore transparent app bar so blur/glass shows (txDial MainActivity pattern). */
+    private fun setMainMenuTransparentBackground() {
+        binding.mainMenu.setBackgroundColor(Color.TRANSPARENT)
+        binding.mainMenu.binding.searchBarContainer.setBackgroundColor(Color.TRANSPARENT)
     }
 
     private fun loadMessages() {
@@ -1201,7 +1531,7 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
             binding.searchResultsList.beGone()
         }
         if (isSearchAlwaysShow)
-            binding.mainMenu.clearSearch()
+            binding.mainMenu.requireCustomToolbar().setSearchText("")
     }
 
     private fun showSearchResults(

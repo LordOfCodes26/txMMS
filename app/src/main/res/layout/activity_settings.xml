@@ -674,10 +674,10 @@
             android:layout_height="110dp"
             android:layout_alignParentTop="true" />
 
-        <com.goodwy.commons.views.BlurAppBarLayout
+        <com.goodwy.commons.views.MySearchMenu
             android:id="@+id/settings_menu"
             android:layout_width="match_parent"
-            android:layout_height="@dimen/tx_top_bar_expand_height"
+            android:layout_height="wrap_content"
             android:background="@color/transparent" />
 
         <com.android.common.view.MVSideFrame
