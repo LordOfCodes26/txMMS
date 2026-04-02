@@ -5,47 +5,32 @@ import android.content.Context
 import android.os.Build
 import android.view.Gravity
 import android.view.Menu
-import android.view.MenuInflater
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewTreeObserver
 import android.widget.PopupWindow
-import androidx.appcompat.view.menu.MenuBuilder
 import com.android.common.view.MPopup
 import com.goodwy.commons.R
 import eightbitlab.com.blurview.BlurTarget
 
-/**
- * Kotlin wrapper around txCommon's [MPopup] that keeps the existing BlurPopupMenu API.
- *
- * Toolbar-style placement: [MPopup] lays out at default END, then [applyMpopupAnchorAdjustments] applies
- * inset/pull-up **on the first [ViewTreeObserver.OnPreDrawListener]**, while the popup content stays
- * **invisible** until then—so you should not see a one-frame “stuck right then jump”.
- *
- * @param horizontalEndInsetPx LTR: shift popup left from the screen edge by this many px.
- *        [USE_DEFAULT_END_INSET] uses [R.dimen.activity_margin] for end-aligned, non-touch anchors.
- */
-class BlurPopupMenu(
-    private val context: Context,
-    private val anchor: View,
-    private val gravity: Int = Gravity.NO_GRAVITY,
-    private val touchX: Float = -1f,
+/** Use [R.dimen.activity_margin] for end-aligned anchors when unset. */
+const val MPOPUP_USE_DEFAULT_END_INSET = Int.MIN_VALUE
+
+/** Shows [MPopup] with optional blur and toolbar-style end inset. */
+fun showMPopupMenu(
+    context: Context,
+    anchor: View,
+    menu: Menu,
+    gravity: Int = Gravity.NO_GRAVITY,
+    touchX: Float = -1f,
     touchY: Float = -1f,
     xThreshold: Float = 0.5f,
     yThreshold: Float = 0.5f,
-    private val horizontalEndInsetPx: Int = USE_DEFAULT_END_INSET,
+    blurTarget: BlurTarget? = null,
+    horizontalEndInsetPx: Int = MPOPUP_USE_DEFAULT_END_INSET,
+    listener: MenuItem.OnMenuItemClickListener?,
 ) {
-    companion object {
-        const val USE_DEFAULT_END_INSET = Int.MIN_VALUE
-    }
-
-    val menu: Menu = MenuBuilder(context)
-    private val menuInflater = MenuInflater(context)
-    private var onMenuItemClickListener: MenuItem.OnMenuItemClickListener? = null
-    private var onDismissListener: PopupWindow.OnDismissListener? = null
-    private var blurTarget: BlurTarget? = null
-
-    private val popupDelegate = MPopup(
+    val popupDelegate = MPopup(
         context,
         anchor,
         gravity,
@@ -54,118 +39,61 @@ class BlurPopupMenu(
         xThreshold.coerceIn(0f, 1f),
         yThreshold.coerceIn(0f, 1f),
     )
+    removeAllMenuIcons(menu)
+    assignMenuToMpopup(popupDelegate, menu)
+    popupDelegate.setOnMenuItemClickListener(listener)
 
-    fun inflate(menuRes: Int) {
-        menuInflater.inflate(menuRes, menu)
+    val resolvedBlurTarget = blurTarget ?: (context as? Activity)?.findViewById(R.id.mainBlurTarget)
+    if (resolvedBlurTarget != null) {
+        popupDelegate.setBlurTarget(resolvedBlurTarget)
     }
 
-    fun setOnMenuItemClickListener(listener: MenuItem.OnMenuItemClickListener?) {
-        onMenuItemClickListener = listener
-        popupDelegate.setOnMenuItemClickListener(listener)
+    val endInset = resolveHorizontalEndInsetPx(context, gravity, touchX, horizontalEndInsetPx)
+    val pullUp = 0
+    val activity = context as? Activity
+    val wantToolbarOffset =
+        resolvedBlurTarget != null &&
+            activity != null &&
+            (endInset > 0 || pullUp > 0)
+
+    clearMpopupAnchorOffset(popupDelegate)
+    popupDelegate.show()
+
+    if (wantToolbarOffset && activity != null) {
+        applyMpopupAnchorAdjustments(popupDelegate, activity, endInset, pullUp)
     }
+}
 
-    fun setOnDismissListener(listener: PopupWindow.OnDismissListener?) {
-        onDismissListener = listener
+private fun resolveHorizontalEndInsetPx(
+    context: Context,
+    gravity: Int,
+    touchX: Float,
+    horizontalEndInsetPx: Int,
+): Int {
+    if (horizontalEndInsetPx >= 0) {
+        return horizontalEndInsetPx
     }
-
-    fun setBlurTarget(blurTarget: BlurTarget?) {
-        this.blurTarget = blurTarget
-        blurTarget?.let { popupDelegate.setBlurTarget(it) }
-    }
-
-    fun show() {
-        removeAllMenuIcons(menu)
-        syncDelegateMenu()
-        popupDelegate.setOnMenuItemClickListener(onMenuItemClickListener)
-
-        val resolvedBlurTarget = blurTarget ?: (context as? Activity)?.findViewById<BlurTarget>(R.id.mainBlurTarget)
-        if (resolvedBlurTarget != null) {
-            popupDelegate.setBlurTarget(resolvedBlurTarget)
-        }
-
-        val endInset = resolveHorizontalEndInsetPx()
-        val pullUp = resolveVerticalPullUpPx()
-        val activity = context as? Activity
-        val wantToolbarOffset =
-            resolvedBlurTarget != null &&
-                activity != null &&
-                (endInset > 0 || pullUp > 0)
-
-        clearMpopupAnchorOffset(popupDelegate)
-
-        popupDelegate.show()
-        bridgeDismissListener()
-
-        if (wantToolbarOffset && activity != null) {
-            applyMpopupAnchorAdjustments(popupDelegate, activity, endInset, pullUp)
-        }
-    }
-
-    private fun resolveHorizontalEndInsetPx(): Int {
-        if (horizontalEndInsetPx >= 0) {
-            return horizontalEndInsetPx
-        }
-        if (touchX >= 0f) {
-            return 0
-        }
-        val endAligned = gravity == Gravity.END ||
-            gravity == Gravity.RIGHT ||
-            gravity == Gravity.NO_GRAVITY
-        if (!endAligned) {
-            return 0
-        }
-        return runCatching {
-            context.resources.getDimensionPixelSize(R.dimen.activity_margin)
-        }.getOrDefault(0)
-    }
-
-    /** Keep default MPopup Y; avoid post-show vertical motion/jump. */
-    private fun resolveVerticalPullUpPx(): Int {
+    if (touchX >= 0f) {
         return 0
     }
-
-    fun dismiss() {
-        popupDelegate.dismiss()
+    val endAligned = gravity == Gravity.END ||
+        gravity == Gravity.RIGHT ||
+        gravity == Gravity.NO_GRAVITY
+    if (!endAligned) {
+        return 0
     }
+    return runCatching {
+        context.resources.getDimensionPixelSize(R.dimen.activity_margin)
+    }.getOrDefault(0)
+}
 
-    fun isShowing(): Boolean = popupDelegate.isShowing
-
-    fun updateMenuItemTitle(itemId: Int, newTitle: CharSequence): Boolean {
-        val item = menu.findItem(itemId) ?: return false
-        item.title = newTitle
-        syncDelegateMenu()
-        return popupDelegate.updateMenuItemTitle(itemId, newTitle)
-    }
-
-    fun setMenuItemVisible(itemId: Int, visible: Boolean): Boolean {
-        val item = menu.findItem(itemId) ?: return false
-        item.isVisible = visible
-        syncDelegateMenu()
-        return popupDelegate.setMenuItemVisible(itemId, visible)
-    }
-
-    private fun syncDelegateMenu() {
-        assignMenuToMpopup(popupDelegate, menu)
-    }
-
-    private fun removeAllMenuIcons(targetMenu: Menu) {
-        for (index in 0 until targetMenu.size()) {
-            val item = targetMenu.getItem(index)
-            item.icon = null
-            val subMenu = item.subMenu
-            if (subMenu != null) {
-                removeAllMenuIcons(subMenu)
-            }
-        }
-    }
-
-    private fun bridgeDismissListener() {
-        if (onDismissListener == null) {
-            return
-        }
-
-        getMpopupPopupWindow(popupDelegate)?.setOnDismissListener {
-            onDismissListener?.onDismiss()
+internal fun removeAllMenuIcons(targetMenu: Menu) {
+    for (index in 0 until targetMenu.size()) {
+        val item = targetMenu.getItem(index)
+        item.icon = null
+        val subMenu = item.subMenu
+        if (subMenu != null) {
+            removeAllMenuIcons(subMenu)
         }
     }
 }
@@ -202,7 +130,6 @@ internal fun assignMenuToMpopup(popup: MPopup, menu: Menu): Boolean {
 
 /**
  * Clears [MPopup] anchor offset so the next [MPopup.show] uses touch/gravity positioning again.
- * Required because [BlurPopupMenu] reuses one [MPopup] instance.
  */
 internal fun clearMpopupAnchorOffset(popup: MPopup) {
     runCatching {
@@ -219,7 +146,6 @@ internal fun clearMpopupAnchorOffset(popup: MPopup) {
 /**
  * Applies horizontal end inset and/or vertical pull-up after [MPopup.show], **before the first draw**:
  * hides content, runs [PopupWindow.update], then shows. Avoids a visible frame at default END + post jump.
- * [verticalPullUpPx] is signed: positive pulls popup up, negative pushes it down.
  */
 internal fun applyMpopupAnchorAdjustments(
     popup: MPopup,

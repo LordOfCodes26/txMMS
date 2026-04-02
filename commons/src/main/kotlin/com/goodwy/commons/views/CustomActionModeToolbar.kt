@@ -365,7 +365,7 @@ class CustomActionModeToolbar @JvmOverloads constructor(
     }
 
     /**
-     * Right-side overflow using txCommon [MPopup] (blur + rounded menu), same visuals as [BlurPopupMenu].
+     * Right-side overflow using txCommon [MPopup] (blur + rounded menu).
      */
     private fun showOverflowMPopup(
         anchor: View,
@@ -523,7 +523,7 @@ class CustomActionModeToolbar @JvmOverloads constructor(
     /**
      * Updates the select all button icon based on selection state.
      * If all items are selected, shows a checkmark icon; otherwise shows select all icon.
-     * 
+     *
      * @param menuItemId The menu item ID for the select all button
      * @param allSelected True if all items are selected, false otherwise
      */
