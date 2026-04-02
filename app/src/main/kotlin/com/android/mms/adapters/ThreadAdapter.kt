@@ -1283,6 +1283,7 @@ class ThreadAdapter(
         }
     }
 
+    @SuppressLint("SetTextI18n")
     private fun setupDateTime(view: View, dateTime: ThreadDateTime) {
         ItemThreadDateTimeBinding.bind(view).apply {
             threadDateTime.apply {
@@ -1294,6 +1295,12 @@ class ThreadAdapter(
                     hideTodaysDate = false,
                     dateFormat = "MM.dd"
                 )
+                val strDateArray = text.split("\\.".toRegex())
+                val strDateMonth = strDateArray[0]
+                val strDateDay = strDateArray[1]
+                val nMonth = strDateMonth.toInt()
+                val nDay = strDateDay.toInt()
+                text = nMonth.toString() + context.getString(R.string.month) + " " + nDay.toString() + context.getString(R.string.day)
                 setTextSize(TypedValue.COMPLEX_UNIT_PX, fontSizeMessage)
             }
             threadDateTime.setTextColor(secondTextColor)

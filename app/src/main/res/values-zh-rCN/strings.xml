@@ -183,4 +183,6 @@
     <string name="dial_number_copy">拨号并复制</string>
     <string name="history_delete">历史记录删除</string>
     <string name="message_conversion">消息转换</string>
+    <string name="month">月</string>
+    <string name="day">日</string>
 </resources>

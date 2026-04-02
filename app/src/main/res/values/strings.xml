@@ -216,4 +216,6 @@
     <string name="dial_number_copy">Dial number copy</string>
     <string name="history_delete">History delete</string>
     <string name="message_conversion">Message Conversion</string>
+    <string name="month">Month</string>
+    <string name="day">Day</string>
 </resources>
