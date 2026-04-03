@@ -121,7 +121,9 @@ import com.android.common.helper.IconItem
 import com.mikhaellopez.rxanimation.alpha
 import android.widget.PopupMenu
 import androidx.core.view.updatePadding
+import com.android.common.dialogs.MConfirmDialog
 import com.behaviorule.arturdumchev.library.setHeight
+import eightbitlab.com.blurview.BlurTarget
 import java.util.Locale
 import kotlin.math.abs
 
@@ -515,15 +517,33 @@ class ThreadAdapter(
 
         val blurTarget = activity.findViewById<eightbitlab.com.blurview.BlurTarget>(com.android.mms.R.id.mainBlurTarget)
             ?: throw IllegalStateException("mainBlurTarget not found")
-        DeleteConfirmationDialog(activity, question, activity.config.useRecycleBin && !isRecycleBin, blurTarget) { skipRecycleBin ->
-            ensureBackgroundThread {
-                val messagesToRemove = if (message != null) arrayListOf(message) else getSelectedItems()
-                if (messagesToRemove.isNotEmpty()) {
-                    val toRecycleBin = !skipRecycleBin && activity.config.useRecycleBin && !isRecycleBin
-                    deleteMessages(messagesToRemove.filterIsInstance<Message>(), toRecycleBin, false, message != null)
+//        DeleteConfirmationDialog(activity, question, activity.config.useRecycleBin && !isRecycleBin, blurTarget) { skipRecycleBin ->
+//            ensureBackgroundThread {
+//                val messagesToRemove = if (message != null) arrayListOf(message) else getSelectedItems()
+//                if (messagesToRemove.isNotEmpty()) {
+//                    val toRecycleBin = !skipRecycleBin && activity.config.useRecycleBin && !isRecycleBin
+//                    deleteMessages(messagesToRemove.filterIsInstance<Message>(), toRecycleBin, false, message != null)
+//                }
+//            }
+//        }
+        val dialog = MConfirmDialog(activity)
+        dialog.bindBlurTarget(blurTarget)
+        dialog.setContent(question)
+        dialog.setConfirmTitle(resources.getString(com.goodwy.commons.R.string.ok))
+        dialog.setCancelTitle(resources.getString(com.goodwy.commons.R.string.cancel))
+        dialog.setCanceledOnTouchOutside(true)
+        dialog.setOnCompleteListener { isConfirm ->
+            if (isConfirm) {
+                ensureBackgroundThread {
+                    val messagesToRemove = if (message != null) arrayListOf(message) else getSelectedItems()
+                    if (messagesToRemove.isNotEmpty()) {
+                        val toRecycleBin = activity.config.useRecycleBin && !isRecycleBin
+                        deleteMessages(messagesToRemove.filterIsInstance<Message>(), toRecycleBin, false, message != null)
+                    }
                 }
             }
         }
+        dialog.show()
     }
 
     private fun askConfirmRestore() {
