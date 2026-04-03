@@ -20,6 +20,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updateLayoutParams
+import androidx.core.view.updatePadding
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.reddit.indicatorfastscroll.FastScrollItemIndicator
@@ -45,6 +46,11 @@ import com.android.common.view.MRippleToolBar
 import com.android.common.view.MVSideFrame
 import com.android.mms.R
 import com.android.mms.extensions.applyLargeTitleOnly
+import com.android.mms.extensions.applyMySearchMenuListTopPadding
+import com.android.mms.extensions.clearMySearchMenuSpringSync
+import com.android.mms.extensions.config
+import com.android.mms.extensions.postSyncMySearchMenuToolbarGeometry
+import com.android.mms.extensions.setupMySearchMenuSpringSync
 import com.android.mms.adapters.ContactPickerAdapter
 import com.android.mms.models.Contact
 import com.android.mms.models.ContactPickerListRow
@@ -95,7 +101,6 @@ class ContactPickerActivity : SimpleActivity() {
 
     private var scrollView: View? = null
     private var blurAppBarLayout: MySearchMenu? = null
-    private var totalOffset = 0
     private var rootView: View? = null
     private var contactRecyclerView: MyRecyclerView? = null
     private var contactAdapter: ContactPickerAdapter? = null
@@ -156,6 +161,21 @@ class ContactPickerActivity : SimpleActivity() {
         initBouncy()
         initComponent()
         makeSystemBarsToTransparent()
+        setupEdgeToEdge()
+
+        findViewById<View>(R.id.nest_scroll).post {
+            val menu = blurAppBarLayout ?: return@post
+            val blur = findViewById<BlurTarget>(R.id.blurTarget)
+            val top = findViewById<View>(R.id.m_vertical_side_frame_top)
+            val rv = contactRecyclerView ?: return@post
+            postSyncMySearchMenuToolbarGeometry(rootView!!, menu, blur, top, rv)
+            setupMySearchMenuSpringSync(menu, rv)
+            if (config.changeColourTopBar) {
+                scrollingView = contactRecyclerView
+                val useSurfaceColor = isDynamicTheme() && !isSystemInDarkMode()
+                setupSearchMenuScrollListener(contactRecyclerView!!, menu, useSurfaceColor)
+            }
+        }
 
         if (checkContactsPermission()) {
             loadContacts()
@@ -195,6 +215,12 @@ class ContactPickerActivity : SimpleActivity() {
         scrollView?.setBackgroundColor(backgroundColor)
         contactRecyclerView?.setBackgroundColor(backgroundColor)
         setupTopBarNavigation()
+        scrollingView = contactRecyclerView
+        blurAppBarLayout?.updateColors(
+            getStartRequiredStatusBarColor(),
+            scrollingView?.computeVerticalScrollOffset() ?: 0,
+        )
+        setContactPickerTransparentAppBarBackground()
         if (isCallLogMode) {
             contactAdapter?.scheduleGroupedTodayTimeRefresh()
         }
@@ -206,9 +232,10 @@ class ContactPickerActivity : SimpleActivity() {
     }
 
     override fun onDestroy() {
-        super.onDestroy()
+        blurAppBarLayout?.let { clearMySearchMenuSpringSync(it, contactRecyclerView) }
         contactsCursor?.takeIf { !it.isClosed }?.close()
         contactsCursor = null
+        super.onDestroy()
     }
 
     private fun makeSystemBarsToTransparent() {
@@ -228,24 +255,33 @@ class ContactPickerActivity : SimpleActivity() {
                 val bottomOffset = dp(0)
                 if (ime.bottom > 0) {
                     bottomBarLp.bottomMargin = ime.bottom + bottomOffset
-                    contactRecyclerView?.setPadding(0, dp(150), 0, dp(40) + navHeight + ime.bottom)
                     contactRecyclerView?.scrollToPosition((contactAdapter?.itemCount ?: 1) - 1)
                 } else {
                     bottomBarLp.bottomMargin = navHeight + bottomOffset
-                    contactRecyclerView?.setPadding(0, dp(150), 0, dp(90) + navHeight)
                 }
                 barContainer.layoutParams = bottomBarLp
             }
+            applyContactPickerListBottomInset(navHeight, ime.bottom)
             insets
         }
+    }
+
+    private fun applyContactPickerListBottomInset(navHeight: Int, imeBottom: Int) {
+        val rv = contactRecyclerView ?: return
+        val activityMargin = resources.getDimensionPixelSize(com.goodwy.commons.R.dimen.activity_margin)
+        val bottomInset = if (imeBottom > 0) imeBottom else navHeight
+        rv.updatePadding(bottom = bottomInset + activityMargin + dp(90))
+    }
+
+    private fun setContactPickerTransparentAppBarBackground() {
+        val menu = blurAppBarLayout ?: return
+        menu.setBackgroundColor(Color.TRANSPARENT)
+        menu.binding.searchBarContainer.setBackgroundColor(Color.TRANSPARENT)
     }
 
     private fun initBouncy() {
         blurAppBarLayout = findViewById(R.id.blur_app_bar_layout)
         scrollView = findViewById(R.id.nest_scroll)
-        blurAppBarLayout?.post {
-            totalOffset = blurAppBarLayout?.totalScrollRange ?: 0
-        }
     }
 
     private fun initComponent() {
@@ -294,6 +330,10 @@ class ContactPickerActivity : SimpleActivity() {
                 hideTopBarNavigation()
                 contactRecyclerView?.isNestedScrollingEnabled = false
                 contactRecyclerView?.scrollToPosition((contactAdapter?.itemCount ?: 1) - 1)
+                bar.post {
+                    val rv = contactRecyclerView ?: return@post
+                    applyMySearchMenuListTopPadding(bar, rv)
+                }
             }
             setOnSearchBackClickListener {
                 val bar = blurAppBarLayout ?: return@setOnSearchBackClickListener
@@ -302,6 +342,10 @@ class ContactPickerActivity : SimpleActivity() {
                 bar.binding.collapsingTitle.visibility = View.VISIBLE
                 setupTopBarNavigation()
                 contactRecyclerView?.isNestedScrollingEnabled = true
+                bar.post {
+                    val rv = contactRecyclerView ?: return@post
+                    applyMySearchMenuListTopPadding(bar, rv)
+                }
             }
             setOnSearchTextChangedListener { s ->
                 searchString = s ?: ""

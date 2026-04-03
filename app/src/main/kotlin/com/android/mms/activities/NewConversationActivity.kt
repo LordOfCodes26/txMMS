@@ -98,7 +98,6 @@ class NewConversationActivity : SimpleActivity() {
     private var currentSIMCardIndex = 0
     private var scheduledDateTime = DateTime.now().plusMinutes(5)
     private var isScheduledMessage = false
-    private var vertiOffset = 0
     private val binding by viewBinding(ActivityNewConversationBinding::inflate)
     
     companion object {
@@ -112,22 +111,30 @@ class NewConversationActivity : SimpleActivity() {
         setContentView(binding.root)
         title = getString(R.string.new_conversation)
         updateTextColors(binding.newConversationHolder)
-        // Match ContactPickerActivity: transparent status/nav bars
-        window.navigationBarColor = Color.TRANSPARENT
-        window.statusBarColor = Color.TRANSPARENT
-
+        initTheme()
         WindowCompat.setDecorFitsSystemWindows(window, false)
-        setupEdgeToEdge(
-            padBottomImeAndSystem = listOf(binding.contactsList),
-            animateIme = true
-        )
+        setupEdgeToEdge()
         setupMessageHolderKeyboardSpacing()
         binding.root.post { ViewCompat.requestApplyInsets(binding.root) }
-        setupTitleScrollAnimation()
-//        setupMaterialScrollListener(
-//            scrollingView = binding.contactsList,
-//            topAppBar = binding.newConversationAppbar
-//        )
+        binding.nestScroll.post {
+            postSyncMySearchMenuToolbarGeometry(
+                binding.root,
+                binding.newConversationAppbar,
+                binding.conversationScrollBlur,
+                topSideFrame = null,
+                binding.newConversationHolder,
+            )
+            setupMySearchMenuSpringSync(binding.newConversationAppbar, binding.contactsList)
+            scrollingView = binding.nestScroll
+            if (config.changeColourTopBar) {
+                val useSurfaceColor = isDynamicTheme() && !isSystemInDarkMode()
+                setupSearchMenuScrollListener(
+                    binding.nestScroll,
+                    binding.newConversationAppbar,
+                    useSurfaceColor,
+                )
+            }
+        }
 
         window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE)
         binding.newConversationAddress.requestEditTextFocus()
@@ -192,10 +199,18 @@ class NewConversationActivity : SimpleActivity() {
                 finish()
             }
         }
+        scrollingView = binding.nestScroll
+        binding.newConversationAppbar.updateColors(
+            getStartRequiredStatusBarColor(),
+            scrollingView?.computeVerticalScrollOffset() ?: 0,
+        )
+        binding.newConversationAppbar.setBackgroundColor(Color.TRANSPARENT)
+        binding.newConversationAppbar.binding.searchBarContainer.setBackgroundColor(Color.TRANSPARENT)
 //        binding.newConversationHolder.setBackgroundColor(backgroundColor)
 //        binding.newConversationAddress.setBackgroundColor(backgroundColor)
 //        binding.suggestionsOverlay.setBackgroundColor(backgroundColor)
         binding.suggestionsOverlay.beGone()
+        binding.conversationScrollBlur.setBackgroundColor(backgroundColor)
 
         binding.noContactsPlaceholder2.setTextColor(getProperPrimaryColor)
         binding.noContactsPlaceholder2.underlineText()
@@ -207,6 +222,8 @@ class NewConversationActivity : SimpleActivity() {
                 hideKeyboard()
             }
         })
+
+        refreshNewConversationInsetsAndToolbarGeometry()
         
         setupMessageHolder()
         handlePermission(PERMISSION_READ_PHONE_STATE) @androidx.annotation.RequiresPermission(android.Manifest.permission.READ_PHONE_STATE) {
@@ -215,19 +232,35 @@ class NewConversationActivity : SimpleActivity() {
             }
         }
     }
-    
-    /** Keep content padding in sync with app bar collapse (title scale is handled inside MySearchMenu). */
-    private fun setupTitleScrollAnimation() {
-        binding.newConversationAppbar.addOnOffsetChangedListener { _, verticalOffset ->
-            val height = binding.newConversationAppbar.height
-            vertiOffset = verticalOffset
-            binding.newConversationHolder.updatePadding(0, 0, 0, height + verticalOffset - (70*resources.displayMetrics.density).toInt())
+
+    override fun onDestroy() {
+        clearMySearchMenuSpringSync(binding.newConversationAppbar, binding.contactsList)
+        super.onDestroy()
+    }
+
+    private fun initTheme() {
+        window.navigationBarColor = Color.TRANSPARENT
+        window.statusBarColor = Color.TRANSPARENT
+    }
+
+    /** Same idea as [SettingsActivity.refreshSideFrameBlurAndInsets]: blur + toolbar geometry after resume. */
+    private fun refreshNewConversationInsetsAndToolbarGeometry() {
+        binding.root.post {
+            ViewCompat.requestApplyInsets(binding.root)
+            binding.conversationScrollBlur.invalidate()
+            postSyncMySearchMenuToolbarGeometry(
+                binding.root,
+                binding.newConversationAppbar,
+                binding.conversationScrollBlur,
+                topSideFrame = null,
+                binding.newConversationHolder,
+            )
         }
     }
 
     /**
      * Add space between the message holder and screen bottom / keyboard,
-     * matching ThreadActivity behavior (makeSystemBarsToTransparent + setupEdgeToEdge).
+     * matching ThreadActivity edge-to-edge compose bar handling.
      */
     private fun setupMessageHolderKeyboardSpacing() {
         val barContainer = binding.messageHolder.root

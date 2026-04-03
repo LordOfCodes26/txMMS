@@ -326,6 +326,11 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
      * Top padding for [R.id.conversations_list]: distance from the list’s top edge to the bottom of
      * [R.id.main_menu] on screen. Using [View.getHeight] alone double-counts with CoordinatorLayout /
      * negative [R.id.blur_target] margin and produced a large empty band under the title.
+     *
+     * Screens that use [com.goodwy.commons.views.MySearchMenu] over a [eightbitlab.com.blurview.BlurTarget]
+     * must wire the same CoordinatorLayout scrolling as [R.layout.activity_main]: set
+     * `app:layout_behavior="@string/appbar_scrolling_view_behavior"` on the blur target and on the
+     * nested scrolling child (see [R.layout.activity_message_bubble_picker], [R.layout.activity_settings]).
      */
     fun getRecentsListTopInsetPx(): Int {
         val menu = binding.mainMenu

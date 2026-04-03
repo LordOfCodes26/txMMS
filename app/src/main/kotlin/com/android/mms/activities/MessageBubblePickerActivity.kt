@@ -8,6 +8,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updateLayoutParams
+import androidx.core.view.updatePadding
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.android.common.helper.IconItem
 import com.android.common.view.MVSideFrame
@@ -15,7 +16,10 @@ import com.android.mms.R
 import com.android.mms.adapters.MessageBubblePickerAdapter
 import com.android.mms.databinding.ActivityMessageBubblePickerBinding
 import com.android.mms.extensions.applyLargeTitleOnly
+import com.android.mms.extensions.clearMySearchMenuSpringSync
 import com.android.mms.extensions.config
+import com.android.mms.extensions.postSyncMySearchMenuToolbarGeometry
+import com.android.mms.extensions.setupMySearchMenuSpringSync
 import com.android.mms.helpers.BUBBLE_DRAWABLE_OPTIONS
 import com.android.mms.helpers.refreshMessages
 import com.goodwy.commons.extensions.getColoredDrawableWithColor
@@ -30,8 +34,6 @@ import eightbitlab.com.blurview.BlurTarget
 class MessageBubblePickerActivity : SimpleActivity() {
     private lateinit var binding: ActivityMessageBubblePickerBinding
     private var pendingSelectedOptionId = 0
-    private var scrollView: View? = null
-    private var totalOffset = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -40,11 +42,30 @@ class MessageBubblePickerActivity : SimpleActivity() {
         pendingSelectedOptionId = config.bubbleDrawableSet
         initTheme()
         initMVSideFrames()
-        initBouncy()
+        setupEdgeToEdge()
         makeSystemBarsToTransparent()
         setupTopBar()
         setupActionTabs()
         setupList()
+        binding.nestScroll.post {
+            postSyncMySearchMenuToolbarGeometry(
+                binding.root,
+                binding.bubblePickerAppbar,
+                binding.mainBlurTarget,
+                binding.mVerticalSideFrameTop,
+                binding.bubblePickerList,
+            )
+            setupMySearchMenuSpringSync(binding.bubblePickerAppbar, binding.bubblePickerList)
+            if (config.changeColourTopBar) {
+                scrollingView = binding.bubblePickerList
+                val useSurfaceColor = isDynamicTheme() && !isSystemInDarkMode()
+                setupSearchMenuScrollListener(
+                    binding.bubblePickerList,
+                    binding.bubblePickerAppbar,
+                    useSurfaceColor,
+                )
+            }
+        }
     }
 
     override fun onResume() {
@@ -68,6 +89,17 @@ class MessageBubblePickerActivity : SimpleActivity() {
         binding.bubblePickerList.setBackgroundColor(backgroundColor)
         updateTextColors(binding.rootView)
         setupTopBar()
+        scrollingView = binding.bubblePickerList
+        binding.bubblePickerAppbar.updateColors(
+            getStartRequiredStatusBarColor(),
+            scrollingView?.computeVerticalScrollOffset() ?: 0,
+        )
+        setBubblePickerTransparentAppBarBackground()
+    }
+
+    override fun onDestroy() {
+        clearMySearchMenuSpringSync(binding.bubblePickerAppbar, binding.bubblePickerList)
+        super.onDestroy()
     }
 
     private fun initTheme() {
@@ -81,37 +113,31 @@ class MessageBubblePickerActivity : SimpleActivity() {
         findViewById<MVSideFrame>(R.id.m_vertical_side_frame_bottom).bindBlurTarget(blurTarget)
     }
 
-    private fun initBouncy() {
-        scrollView = findViewById(R.id.nest_scroll)
-        binding.bubblePickerAppbar.post {
-            totalOffset = binding.bubblePickerAppbar.totalScrollRange
-        }
-    }
-
     private fun makeSystemBarsToTransparent() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
             val nav = insets.getInsets(WindowInsetsCompat.Type.navigationBars())
             val navHeight = nav.bottom
             val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
-            val bottomInset = if (ime.bottom > 0) ime.bottom else navHeight
             val dp5 = (5 * resources.displayMetrics.density).toInt()
             binding.mVerticalSideFrameBottom.layoutParams =
                 binding.mVerticalSideFrameBottom.layoutParams.apply { height = navHeight + dp5 }
-
-            val activityMargin = resources.getDimensionPixelSize(com.goodwy.commons.R.dimen.activity_margin)
-//            val actionLayoutParams = binding.lytAction.layoutParams as ViewGroup.MarginLayoutParams
-//            actionLayoutParams.bottomMargin = bottomInset + activityMargin
-//            binding.lytAction.layoutParams = actionLayoutParams
-
-            binding.bubblePickerList.setPadding(
-                binding.bubblePickerList.paddingLeft,
-                binding.bubblePickerList.paddingTop,
-                binding.bubblePickerList.paddingRight,
-                bottomInset + activityMargin + dp(90)
-            )
+            applyBubbleListBottomInset(navHeight, ime.bottom)
             insets
         }
+    }
+
+    private fun applyBubbleListBottomInset(navHeight: Int, imeBottom: Int) {
+        val activityMargin = resources.getDimensionPixelSize(com.goodwy.commons.R.dimen.activity_margin)
+        val bottomInset = if (imeBottom > 0) imeBottom else navHeight
+        binding.bubblePickerList.updatePadding(
+            bottom = bottomInset + activityMargin + dp(90),
+        )
+    }
+
+    private fun setBubblePickerTransparentAppBarBackground() {
+        binding.bubblePickerAppbar.setBackgroundColor(Color.TRANSPARENT)
+        binding.bubblePickerAppbar.binding.searchBarContainer.setBackgroundColor(Color.TRANSPARENT)
     }
 
     private fun setupTopBar() {
