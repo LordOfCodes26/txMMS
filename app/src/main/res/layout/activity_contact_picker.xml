@@ -18,15 +18,24 @@
             android:id="@+id/blurTarget"
             android:background="@color/tx_common_bg"
             android:layout_width="match_parent"
-            android:layout_height="match_parent">
+            android:layout_height="match_parent"
+            app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
-            <RelativeLayout
+            <androidx.core.widget.NestedScrollView
                 android:id="@+id/nest_scroll"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
+                android:fillViewport="true"
                 android:scrollbars="none"
-                android:scrollingCache="true"
-                app:layout_behavior="com.google.android.material.appbar.AppBarLayout$ScrollingViewBehavior">
+                app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+                <FrameLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent">
+
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
 
                 <com.goodwy.commons.views.MyTextView
                     android:id="@+id/call_log_placeholder"
@@ -50,7 +59,6 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:clipToPadding="false"
-                    app:layout_behavior="com.google.android.material.appbar.AppBarLayout$ScrollingViewBehavior"
                     android:nestedScrollingEnabled="true" />
 
                 <com.reddit.indicatorfastscroll.FastScrollerView
@@ -72,12 +80,14 @@
                     android:layout_marginEnd="@dimen/activity_margin"
                     android:layout_toStartOf="@id/contactsLetterFastscroller" />
             </RelativeLayout>
+                </FrameLayout>
+            </androidx.core.widget.NestedScrollView>
         </eightbitlab.com.blurview.BlurTarget>
 
         <com.android.common.view.MVSideFrame
             android:id="@+id/m_vertical_side_frame_top"
             android:layout_width="match_parent"
-            android:layout_height="110dp"
+            android:layout_height="@dimen/tx_mv_side_top_frame_height"
             android:layout_gravity="top"/>
         <LinearLayout
             android:id="@+id/contact_picker_filter_bar"
@@ -174,7 +184,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:background="@color/transparent"
-            android:paddingBottom="5dp" />
+            android:paddingBottom="0dp" />
 
 
 
@@ -197,7 +207,7 @@
         <com.android.common.view.MVSideFrame
             android:id="@+id/m_vertical_side_frame_bottom"
             android:layout_width="match_parent"
-            android:layout_height="100dp"
+            android:layout_height="@dimen/tx_mv_side_top_frame_height"
             android:layout_gravity="bottom"
             app:isTopFrame="false"/>
 

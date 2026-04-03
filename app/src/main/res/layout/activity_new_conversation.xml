@@ -20,163 +20,185 @@
             android:clipChildren="false"
             android:clipToPadding="false">
 
+            <eightbitlab.com.blurview.BlurTarget
+                android:id="@+id/conversation_scroll_blur"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@color/transparent"
+                app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+                <androidx.core.widget.NestedScrollView
+                    android:id="@+id/nest_scroll"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:fillViewport="true"
+                    android:paddingHorizontal="@dimen/activity_padding_left_right"
+                    android:scrollbars="none"
+                    app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+                    <FrameLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content">
+
+                        <RelativeLayout
+                            android:id="@+id/new_conversation_holder"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:clipChildren="false"
+                            android:clipToPadding="false">
+
+                            <com.goodwy.commons.views.MyTextView
+                                android:id="@+id/no_contacts_placeholder"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_below="@+id/suggestions_overlay"
+                                android:layout_centerHorizontal="true"
+                                android:background="@drawable/ripple_all_corners"
+                                android:padding="@dimen/activity_margin"
+                                android:alpha="0.8"
+                                android:gravity="center"
+                                android:text="@string/no_access_to_contacts"
+                                android:textSize="@dimen/tx_normal_text"
+                                android:visibility="gone" />
+
+                            <com.goodwy.commons.views.MyTextView
+                                android:id="@+id/no_contacts_placeholder_2"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_below="@+id/no_contacts_placeholder"
+                                android:layout_centerHorizontal="true"
+                                android:background="@drawable/ripple_all_corners"
+                                android:padding="@dimen/activity_margin"
+                                android:alpha="0.8"
+                                android:gravity="center"
+                                android:text="@string/request_the_required_permissions"
+                                android:textSize="@dimen/tx_normal_text"
+                                android:visibility="gone" />
+
+                            <com.google.android.material.card.MaterialCardView
+                                android:id="@+id/contacts_list_wrapper"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_below="@+id/suggestions_overlay"
+                                android:layout_marginHorizontal="@dimen/tx_cardview_margin_horizontal"
+                                android:layout_marginVertical="@dimen/tx_cardview_margin_vertical"
+                                android:visibility="gone"
+                                app:contentPaddingBottom="@dimen/medium_margin"
+                                app:contentPaddingTop="@dimen/medium_margin"
+                                app:cardBackgroundColor="@color/tx_cardview_bg"
+                                app:cardCornerRadius="@dimen/tx_cardview_corner_radius"
+                                app:strokeColor="@color/black"
+                                app:strokeWidth="@dimen/cardview_stroke"
+                                app:cardElevation="@dimen/cardview_default_elevation">
+                                <com.goodwy.commons.views.MyRecyclerView
+                                    android:id="@+id/contacts_list"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="match_parent"
+                                    android:clipToPadding="false"
+                                    android:layoutAnimation="@anim/layout_animation"
+                                    android:nestedScrollingEnabled="true"
+                                    android:overScrollMode="ifContentScrolls"
+                                    android:scrollbars="none"
+                                    app:layoutManager="com.goodwy.commons.views.MyLinearLayoutManager" />
+                            </com.google.android.material.card.MaterialCardView>
+
+
+                            <com.reddit.indicatorfastscroll.FastScrollerView
+                                android:id="@+id/contactsLetterFastscroller"
+                                android:layout_width="26dp"
+                                android:layout_height="match_parent"
+                                android:layout_alignTop="@+id/contacts_list_wrapper"
+                                android:layout_alignParentEnd="true"
+                                android:layout_centerVertical="true"
+                                android:paddingStart="@dimen/normal_margin"
+                                android:textAppearance="@style/LetterFastscrollerStyleSmall" />
+
+                            <com.reddit.indicatorfastscroll.FastScrollerThumbView
+                                android:id="@+id/contacts_letter_fastscroller_thumb"
+                                android:layout_width="@dimen/fab_size"
+                                android:layout_height="match_parent"
+                                android:layout_alignTop="@+id/contactsLetterFastscroller"
+                                android:layout_alignBottom="@+id/contactsLetterFastscroller"
+                                android:layout_marginEnd="@dimen/activity_margin"
+                                android:layout_toStartOf="@+id/contactsLetterFastscroller" />
+
+                            <LinearLayout
+                                android:id="@+id/suggestions_overlay"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_below="@+id/new_conversation_address"
+                                android:orientation="vertical">
+
+                                <!--                <com.goodwy.commons.views.MyTextView-->
+                                <!--                    android:id="@+id/suggestions_label"-->
+                                <!--                    style="@style/MaterialSectionLabelStyle"-->
+                                <!--                    android:layout_width="wrap_content"-->
+                                <!--                    android:layout_height="wrap_content"-->
+                                <!--                    android:layout_marginStart="@dimen/activity_margin"-->
+                                <!--                    android:layout_marginTop="@dimen/medium_margin"-->
+                                <!--                    android:text="@string/suggestions"-->
+                                <!--                    android:textSize="@dimen/tx_normal_text" />-->
+
+                                <com.google.android.material.card.MaterialCardView
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginHorizontal="@dimen/tx_cardview_margin_horizontal"
+                                    android:layout_marginTop="@dimen/tx_cardview_margin_vertical"
+                                    app:cardBackgroundColor="@color/tx_cardview_bg"
+                                    app:cardCornerRadius="@dimen/tx_cardview_corner_radius"
+                                    app:cardElevation="@dimen/cardview_default_elevation">
+                                    <HorizontalScrollView
+                                        android:id="@+id/suggestions_scrollview"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:paddingTop="@dimen/tx_cardview_padding_vertical"
+                                        android:paddingBottom="@dimen/tx_cardview_item_padding_vertical"
+                                        android:paddingStart="@dimen/tx_cardview_padding_left"
+                                        android:paddingEnd="@dimen/tx_cardview_padding_left"
+                                        android:overScrollMode="never"
+                                        android:scrollbars="none">
+
+                                        <LinearLayout
+                                            android:id="@+id/suggestions_holder"
+                                            android:layout_width="wrap_content"
+                                            android:layout_height="wrap_content"
+                                            android:paddingStart="@dimen/normal_margin"
+                                            android:paddingEnd="@dimen/normal_margin"
+                                            android:divider="@drawable/linear_layout_horizontal_divider"
+                                            android:orientation="horizontal"
+                                            android:showDividers="middle" />
+
+                                    </HorizontalScrollView>
+                                </com.google.android.material.card.MaterialCardView>
+
+                            </LinearLayout>
+
+                            <com.goodwy.commons.views.ChipsInputView
+                                android:id="@+id/new_conversation_address"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:elevation="@dimen/cardview_default_elevation"
+                                android:layout_marginStart="@dimen/tx_cardview_margin_horizontal"
+                                android:layout_marginEnd="@dimen/tx_cardview_margin_horizontal" />
+
+                            <ImageView
+                                android:id="@+id/add_contact_divider"
+                                android:layout_width="match_parent"
+                                android:layout_height="@dimen/divider_height"
+                                android:layout_below="@+id/new_conversation_address"
+                                android:background="@color/divider_grey"
+                                android:visibility="gone" />
+
+                        </RelativeLayout>
+                    </FrameLayout>
+                </androidx.core.widget.NestedScrollView>
+            </eightbitlab.com.blurview.BlurTarget>
+
             <com.goodwy.commons.views.MySearchMenu
                 android:id="@+id/new_conversation_appbar"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:background="@color/transparent" />
-
-            <RelativeLayout
-                android:id="@+id/new_conversation_holder"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:clipChildren="false"
-                android:clipToPadding="false"
-                app:layout_behavior="@string/appbar_scrolling_view_behavior">
-
-                <com.goodwy.commons.views.MyTextView
-                    android:id="@+id/no_contacts_placeholder"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_below="@+id/suggestions_overlay"
-                    android:layout_centerHorizontal="true"
-                    android:background="@drawable/ripple_all_corners"
-                    android:padding="@dimen/activity_margin"
-                    android:alpha="0.8"
-                    android:gravity="center"
-                    android:text="@string/no_access_to_contacts"
-                    android:textSize="@dimen/tx_normal_text"
-                    android:visibility="gone" />
-
-                <com.goodwy.commons.views.MyTextView
-                    android:id="@+id/no_contacts_placeholder_2"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_below="@+id/no_contacts_placeholder"
-                    android:layout_centerHorizontal="true"
-                    android:background="@drawable/ripple_all_corners"
-                    android:padding="@dimen/activity_margin"
-                    android:alpha="0.8"
-                    android:gravity="center"
-                    android:text="@string/request_the_required_permissions"
-                    android:textSize="@dimen/tx_normal_text"
-                    android:visibility="gone" />
-
-                <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/contacts_list_wrapper"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_below="@+id/suggestions_overlay"
-                    android:layout_marginHorizontal="@dimen/tx_cardview_margin_horizontal"
-                    android:layout_marginVertical="@dimen/tx_cardview_margin_vertical"
-                    android:visibility="gone"
-                    app:contentPaddingBottom="@dimen/medium_margin"
-                    app:contentPaddingTop="@dimen/medium_margin"
-                    app:cardBackgroundColor="@color/tx_cardview_bg"
-                    app:cardCornerRadius="@dimen/tx_cardview_corner_radius"
-                    app:strokeColor="@color/black"
-                    app:strokeWidth="@dimen/cardview_stroke"
-                    app:cardElevation="@dimen/cardview_default_elevation">
-                    <com.goodwy.commons.views.MyRecyclerView
-                        android:id="@+id/contacts_list"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:clipToPadding="false"
-                        android:layoutAnimation="@anim/layout_animation"
-                        android:nestedScrollingEnabled="true"
-                        android:overScrollMode="ifContentScrolls"
-                        android:scrollbars="none"
-                        app:layoutManager="com.goodwy.commons.views.MyLinearLayoutManager" />
-                </com.google.android.material.card.MaterialCardView>
-
-
-                <com.reddit.indicatorfastscroll.FastScrollerView
-                    android:id="@+id/contactsLetterFastscroller"
-                    android:layout_width="26dp"
-                    android:layout_height="match_parent"
-                    android:layout_alignTop="@+id/contacts_list_wrapper"
-                    android:layout_alignParentEnd="true"
-                    android:layout_centerVertical="true"
-                    android:paddingStart="@dimen/normal_margin"
-                    android:textAppearance="@style/LetterFastscrollerStyleSmall" />
-
-                <com.reddit.indicatorfastscroll.FastScrollerThumbView
-                    android:id="@+id/contacts_letter_fastscroller_thumb"
-                    android:layout_width="@dimen/fab_size"
-                    android:layout_height="match_parent"
-                    android:layout_alignTop="@+id/contactsLetterFastscroller"
-                    android:layout_alignBottom="@+id/contactsLetterFastscroller"
-                    android:layout_marginEnd="@dimen/activity_margin"
-                    android:layout_toStartOf="@+id/contactsLetterFastscroller" />
-
-                <LinearLayout
-                    android:id="@+id/suggestions_overlay"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_below="@+id/new_conversation_address"
-                    android:orientation="vertical">
-
-                    <!--                <com.goodwy.commons.views.MyTextView-->
-                    <!--                    android:id="@+id/suggestions_label"-->
-                    <!--                    style="@style/MaterialSectionLabelStyle"-->
-                    <!--                    android:layout_width="wrap_content"-->
-                    <!--                    android:layout_height="wrap_content"-->
-                    <!--                    android:layout_marginStart="@dimen/activity_margin"-->
-                    <!--                    android:layout_marginTop="@dimen/medium_margin"-->
-                    <!--                    android:text="@string/suggestions"-->
-                    <!--                    android:textSize="@dimen/tx_normal_text" />-->
-
-                    <com.google.android.material.card.MaterialCardView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginHorizontal="@dimen/tx_cardview_margin_horizontal"
-                        android:layout_marginTop="@dimen/tx_cardview_margin_vertical"
-                        app:cardBackgroundColor="@color/tx_cardview_bg"
-                        app:cardCornerRadius="@dimen/tx_cardview_corner_radius"
-                        app:cardElevation="@dimen/cardview_default_elevation">
-                        <HorizontalScrollView
-                            android:id="@+id/suggestions_scrollview"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:paddingTop="@dimen/tx_cardview_padding_vertical"
-                            android:paddingBottom="@dimen/tx_cardview_item_padding_vertical"
-                            android:paddingStart="@dimen/tx_cardview_padding_left"
-                            android:paddingEnd="@dimen/tx_cardview_padding_left"
-                            android:overScrollMode="never"
-                            android:scrollbars="none">
-
-                            <LinearLayout
-                                android:id="@+id/suggestions_holder"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:paddingStart="@dimen/normal_margin"
-                                android:paddingEnd="@dimen/normal_margin"
-                                android:divider="@drawable/linear_layout_horizontal_divider"
-                                android:orientation="horizontal"
-                                android:showDividers="middle" />
-
-                        </HorizontalScrollView>
-                    </com.google.android.material.card.MaterialCardView>
-
-                </LinearLayout>
-
-                <com.goodwy.commons.views.ChipsInputView
-                    android:id="@+id/new_conversation_address"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:elevation="@dimen/cardview_default_elevation"
-                    android:layout_marginStart="@dimen/tx_cardview_margin_horizontal"
-                    android:layout_marginEnd="@dimen/tx_cardview_margin_horizontal" />
-
-                <ImageView
-                    android:id="@+id/add_contact_divider"
-                    android:layout_width="match_parent"
-                    android:layout_height="@dimen/divider_height"
-                    android:layout_below="@+id/new_conversation_address"
-                    android:background="@color/divider_grey"
-                    android:visibility="gone" />
-
-            </RelativeLayout>
 
         </androidx.coordinatorlayout.widget.CoordinatorLayout>
 

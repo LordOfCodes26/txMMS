@@ -18,7 +18,8 @@
             android:id="@+id/mainBlurTarget"
             android:background="@color/tx_common_bg"
             android:layout_width="match_parent"
-            android:layout_height="match_parent">
+            android:layout_height="match_parent"
+            app:layout_behavior="@string/appbar_scrolling_view_behavior">
             <RelativeLayout
                 android:layout_width="match_parent"
                 android:layout_height="match_parent">
@@ -28,13 +29,14 @@
                     android:layout_height="match_parent"
                     android:paddingHorizontal="@dimen/activity_padding_left_right"
                     android:fillViewport="true"
-                    android:scrollbars="none">
+                    android:scrollbars="none"
+                    app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
                     <LinearLayout
                         android:id="@+id/settings_holder"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:paddingTop="@dimen/tx_top_bar_expand_height"
+                        android:paddingTop="0dp"
                         android:paddingBottom="@dimen/filter_section_margin"
                         android:orientation="vertical">
 

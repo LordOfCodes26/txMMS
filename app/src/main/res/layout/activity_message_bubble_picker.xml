@@ -16,35 +16,38 @@
             android:id="@+id/mainBlurTarget"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="@color/tx_common_bg">
+            android:background="@color/tx_common_bg"
+            app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
-            <RelativeLayout
+            <androidx.core.widget.NestedScrollView
                 android:id="@+id/nest_scroll"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
+                android:fillViewport="true"
                 android:scrollbars="none"
-                android:scrollingCache="true"
-                app:layout_behavior="com.google.android.material.appbar.AppBarLayout$ScrollingViewBehavior">
+                app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
-                <com.goodwy.commons.views.MyRecyclerView
-                    android:id="@+id/bubblePickerList"
+                <FrameLayout
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:clipToPadding="false"
-                    android:nestedScrollingEnabled="true"
-                    android:paddingStart="@dimen/activity_margin"
-                    android:paddingTop="@dimen/tx_top_bar_expand_height"
-                    android:paddingEnd="@dimen/activity_margin"
-                    android:paddingBottom="@dimen/activity_margin"
-                    android:scrollbars="none"
-                    app:layout_behavior="com.google.android.material.appbar.AppBarLayout$ScrollingViewBehavior" />
-            </RelativeLayout>
+                    android:layout_height="match_parent">
+
+                    <com.goodwy.commons.views.MyRecyclerView
+                        android:id="@+id/bubblePickerList"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:clipToPadding="false"
+                        android:nestedScrollingEnabled="true"
+                        android:paddingStart="@dimen/activity_margin"
+                        android:paddingEnd="@dimen/activity_margin"
+                        android:scrollbars="none" />
+                </FrameLayout>
+            </androidx.core.widget.NestedScrollView>
         </eightbitlab.com.blurview.BlurTarget>
 
         <com.android.common.view.MVSideFrame
             android:id="@+id/m_vertical_side_frame_top"
             android:layout_width="match_parent"
-            android:layout_height="110dp"
+            android:layout_height="@dimen/tx_mv_side_top_frame_height"
             android:layout_gravity="top" />
 
         <com.goodwy.commons.views.MySearchMenu
@@ -73,7 +76,7 @@
         <com.android.common.view.MVSideFrame
             android:id="@+id/m_vertical_side_frame_bottom"
             android:layout_width="match_parent"
-            android:layout_height="100dp"
+            android:layout_height="@dimen/tx_mv_side_top_frame_height"
             android:layout_gravity="bottom"
             app:isTopFrame="false" />
     </androidx.coordinatorlayout.widget.CoordinatorLayout>

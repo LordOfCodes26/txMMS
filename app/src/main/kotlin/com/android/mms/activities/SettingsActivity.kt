@@ -8,6 +8,7 @@ import android.media.RingtoneManager
 import android.os.Bundle
 import android.provider.Settings
 import android.view.Menu
+import android.view.View
 import android.view.ViewGroup
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.view.ViewCompat
@@ -124,18 +125,29 @@ class SettingsActivity : SimpleActivity() {
         setContentView(binding.root)
         initTheme()
         initMVSideFrames()
+        setupEdgeToEdge()
         makeSystemBarsToTransparent()
-        initBouncy()
         setupOptionsMenu()
         setupSettingsTopAppBar()
 
-        if (config.changeColourTopBar) {
-            val useSurfaceColor = isDynamicTheme() && !isSystemInDarkMode()
-            setupSearchMenuScrollListener(
-                scrollingView = binding.settingsNestedScrollview,
-                searchMenu = binding.settingsMenu,
-                surfaceColor = useSurfaceColor
+        binding.settingsNestedScrollview.post {
+            postSyncMySearchMenuToolbarGeometry(
+                binding.root,
+                binding.settingsMenu,
+                binding.mainBlurTarget,
+                binding.mVerticalSideFrameTop,
+                binding.settingsHolder,
             )
+            scrollingView = binding.settingsNestedScrollview
+            if (config.changeColourTopBar) {
+                val useSurfaceColor = isDynamicTheme() && !isSystemInDarkMode()
+                setupSearchMenuScrollListener(
+                    binding.settingsNestedScrollview,
+                    binding.settingsMenu,
+                    useSurfaceColor,
+                )
+            }
+            refreshSettingsTopBarColors()
         }
     }
 
@@ -161,31 +173,36 @@ class SettingsActivity : SimpleActivity() {
         }
     }
 
-    private fun initBouncy() {
-        binding.settingsMenu.post {
-            // totalScrollRange is used by bouncy/offset logic if needed
-        }
+    /** Same sequence as [MessageBubblePickerActivity.onResume] for the MySearchMenu chrome. */
+    private fun setSettingsTransparentAppBarBackground() {
+        binding.settingsMenu.setBackgroundColor(Color.TRANSPARENT)
+        binding.settingsMenu.binding.searchBarContainer.setBackgroundColor(Color.TRANSPARENT)
+    }
+
+    private fun refreshSettingsTopBarColors() {
+        binding.settingsMenu.updateColors(
+            getStartRequiredStatusBarColor(),
+            scrollingView?.computeVerticalScrollOffset() ?: 0,
+        )
+        setSettingsTransparentAppBarBackground()
     }
 
     private fun setupSettingsTopAppBar() {
-        val topBarColor = getRequiredTopBarColor()
         binding.settingsMenu.applyLargeTitleOnly(getString(com.goodwy.commons.R.string.settings))
         binding.settingsMenu.requireCustomToolbar().apply {
-            navigationIcon =
-                resources.getColoredDrawableWithColor(
-                    this@SettingsActivity,
-                    com.android.common.R.drawable.ic_cmn_arrow_left_fill,
-                    topBarColor.getContrastColor()
-                )
-            setNavigationContentDescription(NavigationIcon.Arrow.accessibilityResId)
+            val textColor = getProperTextColor()
+            navigationIcon = resources.getColoredDrawableWithColor(
+                this@SettingsActivity,
+                com.android.common.R.drawable.ic_cmn_arrow_left_fill,
+                textColor,
+            )
+            setNavigationContentDescription(com.goodwy.commons.R.string.back)
             setNavigationOnClickListener {
                 hideKeyboard()
                 finish()
             }
         }
-        updateTopBarColors(binding.settingsMenu, topBarColor)
         binding.settingsMenu.searchBeVisibleIf(false)
-        // Keep collapsed title clear of the back button hit area.
         binding.settingsMenu.binding.collapsingTitle.updateLayoutParams<ViewGroup.MarginLayoutParams> {
             marginStart = (64 * resources.displayMetrics.density).toInt()
         }
@@ -193,9 +210,29 @@ class SettingsActivity : SimpleActivity() {
 
     override fun onResume() {
         super.onResume()
+        if (isSystemInDarkMode()) {
+            @Suppress("DEPRECATION")
+            window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+        } else {
+            @Suppress("DEPRECATION")
+            window.decorView.systemUiVisibility = (
+                View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                    or View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
+                    or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
+                )
+        }
+
+        val useSurfaceColor = isDynamicTheme() && !isSystemInDarkMode()
+        val backgroundColor = if (useSurfaceColor) getSurfaceColor() else getProperBackgroundColor()
+        binding.rootView.setBackgroundColor(backgroundColor)
+        binding.mainBlurTarget.setBackgroundColor(backgroundColor)
+        binding.settingsNestedScrollview.setBackgroundColor(Color.TRANSPARENT)
+        binding.settingsHolder.setBackgroundColor(backgroundColor)
+
         isRebindingSettings = true
         stopCurrentlyPlayingRingtone()
         setupSettingsTopAppBar()
+        scrollingView = binding.settingsNestedScrollview
 
         setupEnableDeliveryReports()
         setupDeliveryReportSound()
@@ -217,7 +254,7 @@ class SettingsActivity : SimpleActivity() {
         setupMessagesExport()
         setupMessagesImport()
 
-        updateTextColors(binding.settingsNestedScrollview)
+        updateTextColors(binding.rootView)
 
         binding.settingsGeneralLabel.beGone()
         binding.settingsGeneralHolder.beGone()
@@ -238,17 +275,6 @@ class SettingsActivity : SimpleActivity() {
         }
 
         binding.apply {
-//            val properPrimaryColor = getProperPrimaryColor()
-//            arrayOf(
-//                settingsGeneralLabel,
-//                settingsNotificationsLabel,
-//                settingsMessagesLabel,
-//                settingsOutgoingMessagesLabel,
-//                settingsBackupsLabel
-//            ).forEach {
-//                it.setTextColor(properPrimaryColor)
-//            }
-
             val cardBgColor = resources.getColor(com.android.common.R.color.tx_cardview_bg)
             arrayOf(
                 settingsNotificationsHolder,
@@ -277,11 +303,11 @@ class SettingsActivity : SimpleActivity() {
                     com.android.common.R.color.tx_cardview_summary,
                     com.android.common.R.color.tx_cardview_summary)
             }
-
-            settingsMenu.requireCustomToolbar().menu.let { updateMenuItemColors(it) }
         }
+        binding.settingsMenu.requireCustomToolbar().menu.let { updateMenuItemColors(it) }
         isRebindingSettings = false
 
+        refreshSettingsTopBarColors()
         refreshSideFrameBlurAndInsets()
     }
 
@@ -292,6 +318,13 @@ class SettingsActivity : SimpleActivity() {
             binding.mainBlurTarget.invalidate()
             binding.mVerticalSideFrameTop.bindBlurTarget(binding.mainBlurTarget)
             binding.mVerticalSideFrameBottom.bindBlurTarget(binding.mainBlurTarget)
+            postSyncMySearchMenuToolbarGeometry(
+                binding.root,
+                binding.settingsMenu,
+                binding.mainBlurTarget,
+                binding.mVerticalSideFrameTop,
+                binding.settingsHolder,
+            )
         }
     }
 
