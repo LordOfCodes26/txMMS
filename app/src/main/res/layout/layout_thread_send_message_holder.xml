@@ -172,14 +172,13 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginBottom="@dimen/smaller_margin"
-        android:orientation="horizontal"
+        android:orientation="vertical"
         android:background="?selectableItemBackgroundBorderless"
         app:layout_constraintEnd_toStartOf="@id/threadSendMessageWrapper"
         app:layout_constraintBottom_toBottomOf="@id/threadAddAttachmentHolder"
-        android:visibility="gone"
+        android:visibility="visible"
         tools:visibility="visible"
         tools:ignore="RtlHardcoded">
-
         <ImageView
             android:id="@+id/threadSelectSimIcon"
             android:layout_width="@dimen/colorpicker_items_height"
@@ -272,6 +271,22 @@
             app:countdownTextColor="?attr/colorPrimary"
             app:countdownTextSize="24sp" />
     </LinearLayout>
+
+    <RelativeLayout
+        android:id="@+id/sim_popup_picker"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintBottom_toTopOf="@+id/threadSendMessageWrapper"
+        app:layout_constraintEnd_toStartOf="@+id/threadSendMessageWrapper"
+        >
+        <include
+            layout="@layout/sim_popup"
+            android:layout_width="180dp"
+            android:layout_height="80dp"
+            android:layout_marginEnd="-25dp"
+            android:layout_marginBottom="15dp"/>
+    </RelativeLayout>
+
 
     <View
         android:id="@+id/attachment_picker_divider"

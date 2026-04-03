@@ -73,6 +73,33 @@ class BlurPopupMenu(
         blurTarget?.let { popupDelegate.setBlurTarget(it) }
     }
 
+    fun showWithIcon() {
+        syncDelegateMenu()
+        popupDelegate.setOnMenuItemClickListener(onMenuItemClickListener)
+
+        val resolvedBlurTarget = blurTarget ?: (context as? Activity)?.findViewById<BlurTarget>(R.id.mainBlurTarget)
+        if (resolvedBlurTarget != null) {
+            popupDelegate.setBlurTarget(resolvedBlurTarget)
+        }
+
+        val endInset = resolveHorizontalEndInsetPx()
+        val pullUp = resolveVerticalPullUpPx()
+        val activity = context as? Activity
+        val wantToolbarOffset =
+            resolvedBlurTarget != null &&
+                activity != null &&
+                (endInset > 0 || pullUp > 0)
+
+        clearMpopupAnchorOffset(popupDelegate)
+
+        popupDelegate.show()
+        bridgeDismissListener()
+
+        if (wantToolbarOffset && activity != null) {
+            applyMpopupAnchorAdjustments(popupDelegate, activity, endInset, pullUp)
+        }
+    }
+
     fun show() {
         removeAllMenuIcons(menu)
         syncDelegateMenu()

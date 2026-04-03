@@ -1,5 +1,6 @@
 package com.android.mms.activities
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.app.AlarmManager
 import android.content.Intent
@@ -25,13 +26,20 @@ import android.text.format.DateUtils.FORMAT_SHOW_DATE
 import android.text.format.DateUtils.FORMAT_SHOW_TIME
 import android.text.TextUtils
 import android.util.Log
+import android.view.Gravity
 import android.view.KeyEvent
+import android.view.LayoutInflater
+import android.view.Menu
+import android.view.MenuInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
 import android.view.animation.OvershootInterpolator
 import android.view.inputmethod.EditorInfo
+import android.widget.PopupMenu
 import android.widget.Toast
+import androidx.annotation.RequiresPermission
+import androidx.appcompat.view.menu.MenuBuilder
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
@@ -67,6 +75,7 @@ import com.android.mms.models.Events
 import com.android.mms.models.SIMCard
 import com.android.mms.BuildConfig
 import com.android.mms.helpers.MessageHolderHelper
+import com.goodwy.commons.views.BlurPopupMenu
 import com.google.gson.annotations.Until
 import org.greenrobot.eventbus.EventBus
 import org.joda.time.DateTime
@@ -200,7 +209,7 @@ class NewConversationActivity : SimpleActivity() {
         })
         
         setupMessageHolder()
-        handlePermission(PERMISSION_READ_PHONE_STATE) {
+        handlePermission(PERMISSION_READ_PHONE_STATE) @androidx.annotation.RequiresPermission(android.Manifest.permission.READ_PHONE_STATE) {
             if (it) {
                 setupSIMSelector()
             }
@@ -346,6 +355,7 @@ class NewConversationActivity : SimpleActivity() {
             }
         }
     }
+    @SuppressLint("MissingPermission")
     private fun initContacts() {
         if (isThirdPartyIntent()) {
             return
@@ -1452,8 +1462,8 @@ class NewConversationActivity : SimpleActivity() {
             expandedMessageFragment = null
         }
     }
-    
-    @SuppressLint("MissingPermission")
+
+    @RequiresPermission(Manifest.permission.READ_PHONE_STATE)
     private fun setupSIMSelector() {
         val textColor = getProperTextColor()
         val availableSIMs = subscriptionManagerCompat().activeSubscriptionInfoList ?: return
@@ -1505,14 +1515,20 @@ class NewConversationActivity : SimpleActivity() {
                 resources.getColor(com.goodwy.commons.R.color.activated_item_foreground, theme)
             )
             binding.messageHolder.threadSelectSimIcon.applyColorFilter(getProperTextColor())
-            binding.messageHolder.threadSelectSimIconHolder.beVisibleIf(!config.showSimSelectionDialog)
+            binding.messageHolder.threadSelectSimIconHolder.beVisibleIf(true)
             binding.messageHolder.threadSelectSimNumber.beVisible()
             val simLabel =
                 if (availableSIMCards.size > currentSIMCardIndex) availableSIMCards[currentSIMCardIndex].label else "SIM Card"
             binding.messageHolder.threadSelectSimIconHolder.contentDescription = simLabel
 
+            val sim1 = SIMCard(0, 0, "test sim1")
+            val sim2 = SIMCard(1, 1, "test sim2")
+            availableSIMCards.add(sim1)
+            availableSIMCards.add(sim2)
+
             if (availableSIMCards.isNotEmpty()) {
                 binding.messageHolder.threadSelectSimIconHolder.setOnClickListener {
+                    binding.messageHolder.simPopupPicker.beVisible()
                     currentSIMCardIndex = (currentSIMCardIndex + 1) % availableSIMCards.size
                     val currentSIMCard = availableSIMCards[currentSIMCardIndex]
                     @SuppressLint("SetTextI18n")
@@ -1553,6 +1569,7 @@ class NewConversationActivity : SimpleActivity() {
             }
         } else {
             binding.messageHolder.threadSelectSimIconHolder.beGone()
+            binding.messageHolder.simPopupPicker.beGone()
         }
         updateAvailableMessageCountForCurrentSim()
     }

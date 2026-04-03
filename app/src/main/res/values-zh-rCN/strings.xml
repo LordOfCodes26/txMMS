@@ -185,4 +185,6 @@
     <string name="message_conversion">消息转换</string>
     <string name="month">月</string>
     <string name="day">日</string>
+    <string name="select_sim_1">有10个相似度，费用：100</string>
+    <string name="select_sim_2">有2个相似度，费用：10</string>
 </resources>
