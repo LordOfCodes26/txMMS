@@ -8,6 +8,7 @@ import com.android.mms.R
 import com.goodwy.commons.views.MyRecyclerView
 import com.goodwy.commons.views.MySearchMenu
 import kotlin.math.max
+import kotlin.math.min
 
 private const val MAIN_MENU_OVERSCROLL_FACTOR = 0.35f
 
@@ -48,7 +49,10 @@ fun getMySearchMenuListTopInsetPx(menu: MySearchMenu, list: View): Int {
         menu.getLocationOnScreen(mLoc)
         list.getLocationOnScreen(lLoc)
         val inset = (mLoc[1] + menu.height) - lLoc[1]
-        if (inset > 0 && inset < menu.height * 3) {
+        // Only trust geometry when it matches ~one app bar height. Stale coordinates after
+        // resume (before coordinator + blur margin settle) often produce values up to ~3× height.
+        val slack = (48 * list.resources.displayMetrics.density).toInt()
+        if (inset > 0 && inset <= menu.height + slack) {
             base = inset
         }
     }
@@ -60,10 +64,22 @@ fun getMySearchMenuListTopInsetPx(menu: MySearchMenu, list: View): Int {
 }
 
 fun applyMySearchMenuListTopPadding(menu: MySearchMenu, list: View) {
+    // Skip until the app bar has a real height; otherwise measuredHeight / stale
+    // getLocationOnScreen after resume can apply a huge top pad (e.g. returning from another activity).
+    if (!menu.isAttachedToWindow || !menu.isLaidOut || menu.height <= 0) return
     val inset = getMySearchMenuListTopInsetPx(menu, list)
-    if (inset > 0) {
-        list.updatePadding(top = inset)
+    if (inset <= 0) return
+    val density = list.resources.displayMetrics.density
+    val slack = (48 * density).toInt()
+    val cap = if (menu.requireCustomToolbar().isSearchExpanded) {
+        max(
+            list.resources.getDimensionPixelSize(R.dimen.nest_bouncy_content_padding_top),
+            menu.height + slack,
+        )
+    } else {
+        menu.height + slack
     }
+    list.updatePadding(top = min(inset, cap))
 }
 
 /**
@@ -71,7 +87,7 @@ fun applyMySearchMenuListTopPadding(menu: MySearchMenu, list: View) {
  * optional top [MVSideFrame] height, and list top padding (txDial / MainActivity pattern).
  */
 fun postSyncMySearchMenuToolbarGeometry(
-    root: View,
+    @Suppress("UNUSED_PARAMETER") root: View,
     menu: MySearchMenu,
     blurTarget: View,
     topSideFrame: View?,
@@ -102,10 +118,8 @@ fun postSyncMySearchMenuToolbarGeometry(
             applyListTop()
         }
     }
-    root.post {
-        applyListTop()
-        menu.post { applyListTop() }
-    }
+    // Avoid applyListTop() here: it can run before blur negative margin is synced and yields
+    // bogus screen geometry (extra top padding after returning from another activity).
 }
 
 fun setupMySearchMenuSpringSync(menu: MySearchMenu, recycler: MyRecyclerView?) {
