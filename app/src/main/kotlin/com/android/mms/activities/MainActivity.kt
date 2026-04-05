@@ -612,7 +612,7 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
             }
             R.id.blocked_list -> {}
             R.id.private_space -> {}
-            R.id.sim_card_message -> {}
+//            R.id.sim_card_message -> {}
             R.id.settings -> launchSettings()
 //            R.id.about -> launchAbout()
             else -> return false

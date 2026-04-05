@@ -1,7 +1,6 @@
 package com.android.mms.adapters
 
 import android.annotation.SuppressLint
-import android.content.Intent
 import android.graphics.Color
 import android.os.Build
 import android.os.Handler
@@ -15,7 +14,6 @@ import android.widget.PopupMenu
 import com.android.common.dialogs.MConfirmDialog
 import com.goodwy.commons.dialogs.OptionListDialog
 import com.goodwy.commons.extensions.*
-import com.goodwy.commons.helpers.KEY_PHONE
 import com.goodwy.commons.helpers.ensureBackgroundThread
 import com.goodwy.commons.views.MyRecyclerView
 import com.android.mms.BuildConfig
@@ -30,7 +28,10 @@ import com.android.mms.extensions.createTemporaryThread
 import com.android.mms.extensions.deleteConversation
 import com.android.mms.extensions.deleteMessage
 import com.android.mms.extensions.deleteScheduledMessage
+import com.android.mms.extensions.getContactFromAddress
 import com.android.mms.extensions.launchConversationDetails
+import com.android.mms.extensions.startAddContactIntent
+import com.android.mms.extensions.startContactDetailsIntent
 import com.android.mms.extensions.markLastMessageUnread
 import com.android.mms.extensions.markThreadMessagesRead
 import com.android.mms.extensions.messagesDB
@@ -483,8 +484,7 @@ class ConversationsAdapter(
             R.id.cab_copy_number -> copyNumberToClipboard()
             R.id.cab_delete -> askConfirmDelete()
             R.id.cab_archive -> askConfirmArchive()
-            R.id.cab_conversation_details ->
-                activity.launchConversationDetails(getSelectedItems().first().threadId)
+            R.id.cab_conversation_details -> openConversationDetails()
 
             R.id.cab_rename_conversation -> renameConversation(getSelectedItems().first())
             R.id.cab_mark_as_read -> markAsRead()
@@ -783,11 +783,27 @@ class ConversationsAdapter(
 
     private fun addNumberToContact() {
         val conversation = getSelectedItems().firstOrNull() ?: return
-        Intent().apply {
-            action = Intent.ACTION_INSERT_OR_EDIT
-            type = "vnd.android.cursor.item/contact"
-            putExtra(KEY_PHONE, conversation.phoneNumber)
-            activity.launchActivityIntent(this)
+        activity.startAddContactIntent(conversation.phoneNumber)
+    }
+
+    /**
+     * txDial [MainActivityRecents] profile icon: [startContactDetailsIntent] for a known contact;
+     * group threads keep in-app [launchConversationDetails].
+     */
+    private fun openConversationDetails() {
+        val conversation = getSelectedItems().firstOrNull() ?: return
+        if (conversation.isGroupConversation) {
+            activity.launchConversationDetails(conversation.threadId)
+            return
+        }
+        activity.getContactFromAddress(conversation.phoneNumber) { contact ->
+            activity.runOnUiThread {
+                if (contact != null) {
+                    activity.startContactDetailsIntent(contact)
+                } else {
+                    activity.launchConversationDetails(conversation.threadId)
+                }
+            }
         }
     }
 

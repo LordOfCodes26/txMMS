@@ -26,6 +26,7 @@ import com.goodwy.commons.extensions.performHapticFeedback
 import com.goodwy.commons.extensions.showErrorToast
 import com.goodwy.commons.extensions.toast
 import com.goodwy.commons.helpers.CONTACT_ID
+import com.goodwy.commons.helpers.KEY_PHONE
 import com.goodwy.commons.helpers.IS_PRIVATE
 import com.goodwy.commons.helpers.IS_RIGHT_APP
 import com.goodwy.commons.helpers.LICENSE_EVENT_BUS
@@ -165,6 +166,16 @@ fun Activity.launchConversationDetails(threadId: Long) {
     Intent(this, ConversationDetailsActivity::class.java).apply {
         putExtra(THREAD_ID, threadId)
         startActivity(this)
+    }
+}
+
+/** Same as txDial [com.android.dialer.extensions.startAddContactIntent]: prefill new/edit contact with a phone number. */
+fun Activity.startAddContactIntent(phoneNumber: String) {
+    Intent().apply {
+        action = Intent.ACTION_INSERT_OR_EDIT
+        type = "vnd.android.cursor.item/contact"
+        putExtra(KEY_PHONE, phoneNumber)
+        launchActivityIntent(this)
     }
 }
 
