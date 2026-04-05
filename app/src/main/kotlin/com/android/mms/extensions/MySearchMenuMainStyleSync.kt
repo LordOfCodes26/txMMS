@@ -22,12 +22,12 @@ fun syncBlurTargetTopMarginForMenu(blurTarget: View, menuHeight: Int) {
     }
 }
 
-fun syncTopSideFrameHeightForMenu(sideFrame: View, menuHeight: Int) {
+fun syncTopSideFrameHeightForMenu(sideFrame: View, menu: MySearchMenu, menuHeight: Int) {
     if (menuHeight < 0) return
+    val collapsedMenuHeight = menu.getCollapsedHeightPx().takeIf { it > 0 } ?: menuHeight
     sideFrame.updateLayoutParams<ViewGroup.LayoutParams> {
-        val h = menuHeight / 2
-        if (height != h) {
-            height = h
+        if (height != collapsedMenuHeight) {
+            height = collapsedMenuHeight
         }
     }
 }
@@ -107,7 +107,7 @@ fun postSyncMySearchMenuToolbarGeometry(
             val h = menu.height.takeIf { it > 0 }
                 ?: menu.measuredHeight.takeIf { it > 0 }
                 ?: return@post
-            topSideFrame?.let { syncTopSideFrameHeightForMenu(it, h) }
+            topSideFrame?.let { syncTopSideFrameHeightForMenu(it, menu, h) }
             if (applyNegativeBlurTargetTopMargin) {
                 syncBlurTargetTopMarginForMenu(blurTarget, h)
             } else {

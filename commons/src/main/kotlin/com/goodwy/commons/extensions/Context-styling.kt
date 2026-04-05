@@ -12,6 +12,7 @@ import android.util.Log
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.cardview.widget.CardView
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.ColorUtils
@@ -75,7 +76,15 @@ private val CONTACT_CARD_OVERLAY_COLOR_RES_IDS = intArrayOf(
 
 fun Context.isDynamicTheme() = isSPlus() && baseConfig.isSystemThemeEnabled
 
-fun Context.isSystemInDarkMode() = resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_YES != 0
+fun Context.isSystemInDarkMode() =
+    resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
+
+/** Effective light/dark for UI: respects Settings display mode (follow system / light / dark). */
+fun Context.isNightDisplay(): Boolean = when (baseConfig.appNightMode) {
+    AppCompatDelegate.MODE_NIGHT_YES -> true
+    AppCompatDelegate.MODE_NIGHT_NO -> false
+    else -> isSystemInDarkMode()
+}
 
 fun Context.isAutoTheme() = baseConfig.isAutoThemeEnabled
 
@@ -128,7 +137,7 @@ fun Context.getColoredMaterialStatusBarColor(): Int {
 fun Context.getColoredMaterialSearchBarColor(): Int {
     return when {
         isDynamicTheme() -> {
-            resources.getColor(R.color.you_status_bar_color, theme).darkenColor(if (isSystemInDarkMode()) 4 else 2)
+            resources.getColor(R.color.you_status_bar_color, theme).darkenColor(if (isNightDisplay()) 4 else 2)
         }
 
         else -> getSurfaceColor().darkenColor(4)
@@ -161,7 +170,7 @@ fun Context.updateTextColors(viewGroup: ViewGroup) {
 }
 
 fun Context.getTimePickerDialogTheme() = when {
-    isDynamicTheme() -> if (isSystemInDarkMode()) {
+    isDynamicTheme() -> if (isNightDisplay()) {
         R.style.MyTimePickerMaterialTheme_Dark
     } else {
         R.style.MyDateTimePickerMaterialTheme
@@ -400,8 +409,9 @@ fun Context.getContactCardOverlayColorForName(name: String): Int {
  * Resolved overlay color for a contact-background drawable index in `0..26` (same as [createContactGradientDrawable]).
  */
 fun Context.getContactCardOverlayColorForDrawableIndex(drawableIndex: Int): Int {
-    val idx = ((drawableIndex % 27) + 27) % 27
-    return resources.getColor(CONTACT_CARD_OVERLAY_COLOR_RES_IDS[idx], theme)
+    // drawableIndex 0 -> contact_card_base_color_1, drawableIndex 1 -> contact_card_base_color_2, etc.
+    val resourceNumber = ((drawableIndex % 27) + 27) % 27
+    return resources.getColor(CONTACT_CARD_OVERLAY_COLOR_RES_IDS[resourceNumber], theme)
 }
 
 /**
@@ -416,7 +426,7 @@ fun Context.getContactCardOverlayColorForDrawableIndex(drawableIndex: Int): Int 
 @SuppressLint("UseCompatLoadingForDrawables")
 fun Context.createAvatarGradientDrawable(
     drawableIndex: Int,
-    isDarkMode: Boolean = isSystemInDarkMode(),
+    isDarkMode: Boolean = isNightDisplay(),
     blendWithSurface: Boolean = true,
     glowIntensity: Float = 0.4f
 ): Drawable {
@@ -451,43 +461,6 @@ fun Context.createContactGradientDrawable(
     }
 }
 
-/**
- * RGB color sampled from [drawable] (same asset as [createContactGradientDrawable]) for contact detail card tinting.
- * Uses a small rasterized sample and averaged pixels so layered/gradient backgrounds read as one hue.
- */
-fun colorFromContactBackgroundDrawable(drawable: Drawable, fallbackRgb: Int): Int {
-    val w = 48
-    val h = 48
-    return try {
-        val bitmap = drawable.toBitmap(w, h)
-        var r = 0L
-        var g = 0L
-        var b = 0L
-        var count = 0
-        var x = 0
-        while (x < w) {
-            var y = 0
-            while (y < h) {
-                val c = bitmap.getPixel(x, y)
-                r += Color.red(c)
-                g += Color.green(c)
-                b += Color.blue(c)
-                count++
-                y += 4
-            }
-            x += 4
-        }
-        bitmap.recycle()
-        if (count == 0) {
-            ColorUtils.setAlphaComponent(fallbackRgb, 255)
-        } else {
-            Color.rgb((r / count).toInt(), (g / count).toInt(), (b / count).toInt())
-        }
-    } catch (_: Exception) {
-        ColorUtils.setAlphaComponent(fallbackRgb, 255)
-    }
-}
-
 /** Same corner radius as contact detail card drawables when [tx_cardview_corner_radius] exists in the app theme. */
 fun Context.contactDetailCardCornerRadiusPx(): Float {
     val txId = resources.getIdentifier("tx_cardview_corner_radius", "dimen", packageName)
@@ -515,7 +488,7 @@ fun Context.createContactDetailCardGradientDrawable(baseColor: Int): GradientDra
     return GradientDrawable().apply {
         shape = GradientDrawable.RECTANGLE
         cornerRadius = contactDetailCardCornerRadiusPx()
-        setColor(ColorUtils.setAlphaComponent(baseColor, cardAlpha))
+        setColor(ColorUtils.setAlphaComponent(baseColor, 0xFF))
     }
 }
 
@@ -549,7 +522,7 @@ fun Context.getContactDetailCardBgDrawable(): Drawable? {
 
 fun Context.getProperBlurOverlayColor(): Int {
     val isDark = when {
-        isDynamicTheme() -> isSystemInDarkMode()
+        isDynamicTheme() -> isNightDisplay()
         isAutoTheme() -> isSystemInDarkMode()
         isDarkTheme() || isBlackTheme() -> true
         isLightTheme() || isGrayTheme() -> false

@@ -718,6 +718,27 @@ class CustomToolbar @JvmOverloads constructor(
     }
 
     /**
+     * Sets [MActionBar] theme mode for both navigation and action bars.
+     * Supported styles: "dark", "light", "system" (fallback: "system").
+     */
+    fun setActionBarsThemeStyle(style: String?) {
+        val normalizedStyle = when (style?.trim()?.lowercase()) {
+            "dark" -> "dark"
+            "light" -> "light"
+            "system" -> "system"
+            else -> "system"
+        }
+        navigationMActionBar()?.setTheme(normalizedStyle)
+        actionMActionBar()?.setTheme(normalizedStyle)
+    }
+
+    /** Type-safe overload for [setActionBarsThemeStyle]. */
+    fun setActionBarsThemeStyle(mode: MActionBar.ThemeMode) {
+        navigationMActionBar()?.setTheme(mode)
+        actionMActionBar()?.setTheme(mode)
+    }
+
+    /**
      * Sets blur overlay color on both action bars. Pass `0` to restore each bar’s default
      * ([MActionBar.setOverlay]).
      */

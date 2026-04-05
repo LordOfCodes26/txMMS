@@ -19,7 +19,7 @@ import android.widget.TextView
 import androidx.core.view.isVisible
 import com.goodwy.commons.R
 import com.goodwy.commons.extensions.createAvatarGradientDrawable
-import com.goodwy.commons.extensions.isSystemInDarkMode
+import com.goodwy.commons.extensions.isNightDisplay
 import com.goodwy.commons.helpers.AvatarSource
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.DataSource
@@ -82,7 +82,7 @@ class ContactAvatarView @JvmOverloads constructor(
         avatarDarkModeOverride = isDarkMode
     }
 
-    private fun isAvatarDarkMode(): Boolean = avatarDarkModeOverride ?: context.isSystemInDarkMode()
+    private fun isAvatarDarkMode(): Boolean = avatarDarkModeOverride ?: context.isNightDisplay()
 
     /**
      * Returns the pixel size to use for Glide override so the image fills the avatar

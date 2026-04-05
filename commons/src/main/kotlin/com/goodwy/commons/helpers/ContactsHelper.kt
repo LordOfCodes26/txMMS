@@ -16,8 +16,6 @@ import com.goodwy.commons.extensions.*
 import com.goodwy.commons.models.PhoneNumber
 import com.goodwy.commons.models.contacts.*
 import com.goodwy.commons.overloads.times
-import kotlinx.serialization.json.Json
-import java.io.OutputStream
 import java.text.Collator
 import java.util.Locale
 import androidx.core.util.size
@@ -2078,177 +2076,16 @@ class ContactsHelper(val context: Context) {
         }
     }
 
-    /**
-     * Batch size for bulk insert (import). Scales with total like delete: more contacts → larger batches (fewer round-trips).
-     * Cap 50 keeps ops/batch under provider limit (Too many content provider operations); ~25 ops/contact ⇒ ~1250 ops/batch.
-     */
-    fun getInsertContactsBatchSize(total: Int): Int = (total / 15).coerceIn(20, 50)
+    /** Used by the host app batch contact import (VCF). */
+    fun mapRelationEditTypeToProviderTypeLabel(type: Int, label: String): Pair<Int, String> =
+        getRelationAndroidTypeLabelFromEditTypeLabel(type, label)
 
-    /**
-     * Inserts multiple contacts in a single applyBatch. Used by import to reduce round-trips.
-     * Per-contact post-processing (photo, starred, getRealContactId) is still done after the batch.
-     */
-    fun insertContactsBatch(contacts: List<Contact>): Boolean {
-        if (contacts.isEmpty()) return true
-        if (!context.hasPermission(com.goodwy.commons.helpers.PERMISSION_WRITE_CONTACTS)) return false
-        try {
-            val operations = ArrayList<ContentProviderOperation>()
-            val rawContactOpIndices = ArrayList<Int>()
+    /** Used by the host app batch contact import (VCF). */
+    fun getAggregateContactIdForRawContact(rawContactId: Long): Int = getRealContactId(rawContactId)
 
-            for (contact in contacts) {
-                val accountType = getContactSourceType(contact.source)
-                operations.add(
-                    ContentProviderOperation.newInsert(RawContacts.CONTENT_URI).apply {
-                        if (accountType.isEmpty()) {
-                            withValue(RawContacts.ACCOUNT_NAME, null)
-                            withValue(RawContacts.ACCOUNT_TYPE, null)
-                        } else {
-                            withValue(RawContacts.ACCOUNT_NAME, contact.source)
-                            withValue(RawContacts.ACCOUNT_TYPE, accountType)
-                        }
-                    }.build()
-                )
-                val backRef = operations.size - 1
-                rawContactOpIndices.add(backRef)
-
-                ContentProviderOperation.newInsert(Data.CONTENT_URI).apply {
-                    withValueBackReference(Data.RAW_CONTACT_ID, backRef)
-                    withValue(Data.MIMETYPE, CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE)
-                    withValue(CommonDataKinds.StructuredName.PREFIX, contact.prefix)
-                    withValue(CommonDataKinds.StructuredName.GIVEN_NAME, contact.firstName)
-                    withValue(CommonDataKinds.StructuredName.MIDDLE_NAME, contact.middleName)
-                    withValue(CommonDataKinds.StructuredName.FAMILY_NAME, contact.surname)
-                    withValue(CommonDataKinds.StructuredName.SUFFIX, contact.suffix)
-                    operations.add(build())
-                }
-                contact.phoneNumbers.forEach {
-                    ContentProviderOperation.newInsert(Data.CONTENT_URI).apply {
-                        withValueBackReference(Data.RAW_CONTACT_ID, backRef)
-                        withValue(Data.MIMETYPE, CommonDataKinds.Phone.CONTENT_ITEM_TYPE)
-                        withValue(CommonDataKinds.Phone.NUMBER, it.value)
-                        withValue(CommonDataKinds.Phone.NORMALIZED_NUMBER, it.normalizedNumber)
-                        withValue(CommonDataKinds.Phone.TYPE, it.type)
-                        withValue(CommonDataKinds.Phone.LABEL, it.label)
-                        withValue(CommonDataKinds.Phone.IS_PRIMARY, it.isPrimary)
-                        operations.add(build())
-                    }
-                }
-                contact.emails.forEach {
-                    ContentProviderOperation.newInsert(Data.CONTENT_URI).apply {
-                        withValueBackReference(Data.RAW_CONTACT_ID, backRef)
-                        withValue(Data.MIMETYPE, CommonDataKinds.Email.CONTENT_ITEM_TYPE)
-                        withValue(CommonDataKinds.Email.DATA, it.value)
-                        withValue(CommonDataKinds.Email.TYPE, it.type)
-                        withValue(CommonDataKinds.Email.LABEL, it.label)
-                        operations.add(build())
-                    }
-                }
-                contact.addresses.forEach {
-                    ContentProviderOperation.newInsert(Data.CONTENT_URI).apply {
-                        withValueBackReference(Data.RAW_CONTACT_ID, backRef)
-                        withValue(Data.MIMETYPE, CommonDataKinds.StructuredPostal.CONTENT_ITEM_TYPE)
-                        withValue(CommonDataKinds.StructuredPostal.FORMATTED_ADDRESS, it.value)
-                        withValue(CommonDataKinds.StructuredPostal.COUNTRY, it.country)
-                        withValue(CommonDataKinds.StructuredPostal.REGION, it.region)
-                        withValue(CommonDataKinds.StructuredPostal.CITY, it.city)
-                        withValue(CommonDataKinds.StructuredPostal.POSTCODE, it.postcode)
-                        withValue(CommonDataKinds.StructuredPostal.POBOX, it.pobox)
-                        withValue(CommonDataKinds.StructuredPostal.STREET, it.street)
-                        withValue(CommonDataKinds.StructuredPostal.NEIGHBORHOOD, it.neighborhood)
-                        withValue(CommonDataKinds.StructuredPostal.TYPE, it.type)
-                        withValue(CommonDataKinds.StructuredPostal.LABEL, it.label)
-                        operations.add(build())
-                    }
-                }
-                contact.events.forEach {
-                    ContentProviderOperation.newInsert(Data.CONTENT_URI).apply {
-                        withValueBackReference(Data.RAW_CONTACT_ID, backRef)
-                        withValue(Data.MIMETYPE, CommonDataKinds.Event.CONTENT_ITEM_TYPE)
-                        withValue(CommonDataKinds.Event.START_DATE, it.value)
-                        withValue(CommonDataKinds.Event.TYPE, it.type)
-                        withValue(CommonDataKinds.Event.LABEL, it.label)
-                        operations.add(build())
-                    }
-                }
-                ContentProviderOperation.newInsert(Data.CONTENT_URI).apply {
-                    withValueBackReference(Data.RAW_CONTACT_ID, backRef)
-                    withValue(Data.MIMETYPE, CommonDataKinds.Note.CONTENT_ITEM_TYPE)
-                    withValue(CommonDataKinds.Note.NOTE, contact.notes)
-                    operations.add(build())
-                }
-                if (contact.organization.isNotEmpty()) {
-                    ContentProviderOperation.newInsert(Data.CONTENT_URI).apply {
-                        withValueBackReference(Data.RAW_CONTACT_ID, backRef)
-                        withValue(Data.MIMETYPE, CommonDataKinds.Organization.CONTENT_ITEM_TYPE)
-                        withValue(CommonDataKinds.Organization.COMPANY, contact.organization.company)
-                        withValue(CommonDataKinds.Organization.TYPE, DEFAULT_ORGANIZATION_TYPE)
-                        withValue(CommonDataKinds.Organization.TITLE, contact.organization.jobPosition)
-                        operations.add(build())
-                    }
-                }
-                contact.websites.forEach {
-                    ContentProviderOperation.newInsert(Data.CONTENT_URI).apply {
-                        withValueBackReference(Data.RAW_CONTACT_ID, backRef)
-                        withValue(Data.MIMETYPE, CommonDataKinds.Website.CONTENT_ITEM_TYPE)
-                        withValue(CommonDataKinds.Website.URL, it)
-                        withValue(CommonDataKinds.Website.TYPE, DEFAULT_WEBSITE_TYPE)
-                        operations.add(build())
-                    }
-                }
-                contact.relations.forEach {
-                    ContentProviderOperation.newInsert(Data.CONTENT_URI).apply {
-                        withValueBackReference(Data.RAW_CONTACT_ID, backRef)
-                        withValue(Data.MIMETYPE, CommonDataKinds.Relation.CONTENT_ITEM_TYPE)
-                        val (type, label) = getRelationAndroidTypeLabelFromEditTypeLabel(it.type, it.label)
-                        withValue(CommonDataKinds.Relation.NAME, it.name)
-                        withValue(CommonDataKinds.Relation.TYPE, type)
-                        withValue(CommonDataKinds.Relation.LABEL, label)
-                        operations.add(build())
-                    }
-                }
-                contact.groups.forEach {
-                    ContentProviderOperation.newInsert(Data.CONTENT_URI).apply {
-                        withValueBackReference(Data.RAW_CONTACT_ID, backRef)
-                        withValue(Data.MIMETYPE, CommonDataKinds.GroupMembership.CONTENT_ITEM_TYPE)
-                        withValue(CommonDataKinds.GroupMembership.GROUP_ROW_ID, it.id)
-                        operations.add(build())
-                    }
-                }
-            }
-
-            val results = context.contentResolver.applyBatch(AUTHORITY, operations)
-
-            for (i in contacts.indices) {
-                val contact = contacts[i]
-                val rawId = ContentUris.parseId(results[rawContactOpIndices[i]].uri!!)
-                contact.id = rawId.toInt()
-
-                if (getContactSourceType(contact.source).contains(".sim")) {
-                    val simUri = "content://icc/adn".toUri()
-                    ContentValues().apply {
-                        put("number", contact.phoneNumbers.firstOrNull()?.value ?: "")
-                        put("tag", contact.getNameToDisplay())
-                        context.contentResolver.insert(simUri, this)
-                    }
-                }
-                if (contact.photoUri.isNotEmpty()) {
-                    val fullSizePhotoData = context.contentResolver.openInputStream(contact.photoUri.toUri())?.readBytes()
-                    if (fullSizePhotoData != null) addFullSizePhoto(rawId, fullSizePhotoData)
-                }
-                val userId = getRealContactId(rawId)
-                if (userId != 0) {
-                    val uri = Uri.withAppendedPath(Contacts.CONTENT_URI, userId.toString())
-                    val contentValues = ContentValues(2)
-                    contentValues.put(Contacts.STARRED, contact.starred)
-                    contentValues.put(Contacts.CUSTOM_RINGTONE, contact.ringtone)
-                    context.contentResolver.update(uri, contentValues, null, null)
-                }
-            }
-            return true
-        } catch (e: Exception) {
-            context.showErrorToast(e)
-            return false
-        }
+    /** Used by the host app batch contact import (VCF). */
+    fun writeFullSizePhotoForRawContact(rawContactId: Long, photoBytes: ByteArray) {
+        addFullSizePhoto(rawContactId, photoBytes)
     }
 
     /**
@@ -2610,6 +2447,78 @@ class ContactsHelper(val context: Context) {
         }
     }
 
+    /**
+     * Inserts copies of [contacts] into [destinationSource] without deleting originals (e.g. export to SIM).
+     */
+    fun copyContactsToDestination(
+        contacts: ArrayList<Contact>,
+        destinationSource: String,
+        progressCallback: ((current: Int, total: Int) -> Unit)? = null,
+        callback: (success: Boolean, copiedCount: Int) -> Unit
+    ) {
+        ensureBackgroundThread {
+            val handler = Handler(Looper.getMainLooper())
+
+            if (!context.hasPermission(PERMISSION_WRITE_CONTACTS)) {
+                handler.post {
+                    callback(false, 0)
+                }
+                return@ensureBackgroundThread
+            }
+
+            val totalContacts = contacts.size
+            var copiedCount = 0
+            val BATCH_SIZE = 10
+            val BATCH_DELAY_MS = 50L
+
+            try {
+                var currentIndex = 0
+
+                while (currentIndex < totalContacts) {
+                    val batchEnd = minOf(currentIndex + BATCH_SIZE, totalContacts)
+                    val batch = contacts.subList(currentIndex, batchEnd)
+
+                    batch.forEach { contact ->
+                        val fullContact = getContactWithId(contact.id)
+                        if (fullContact == null) {
+                            return@forEach
+                        }
+
+                        val newContact = fullContact.copy()
+                        newContact.source = destinationSource
+                        newContact.id = 0
+                        newContact.contactId = 0
+
+                        if (insertContact(newContact)) {
+                            copiedCount++
+                        }
+                    }
+
+                    currentIndex = batchEnd
+
+                    if (progressCallback != null) {
+                        handler.post {
+                            progressCallback(currentIndex, totalContacts)
+                        }
+                    }
+
+                    if (currentIndex < totalContacts) {
+                        Thread.sleep(BATCH_DELAY_MS)
+                    }
+                }
+
+                handler.post {
+                    callback(copiedCount > 0, copiedCount)
+                }
+            } catch (e: Exception) {
+                context.showErrorToast(e)
+                handler.post {
+                    callback(false, copiedCount)
+                }
+            }
+        }
+    }
+
     fun getAvailableMoveDestinations(contact: Contact): ArrayList<ContactSource> {
         val destinations = ArrayList<ContactSource>()
         val allSources = getDeviceContactSources()
@@ -2658,13 +2567,22 @@ class ContactsHelper(val context: Context) {
         contacts: ArrayList<Contact>,
         onProgress: ((deleted: Int, total: Int) -> Unit)? = null
     ): Boolean {
+        val contactIds = contacts.map { it.id.toLong() }.filter { it > 0 }
+        return deleteRawContactIds(contactIds, onProgress)
+    }
+
+    /** Deletes raw contacts by [android.provider.ContactsContract.RawContacts] row ids (same as [Contact.id]). */
+    fun deleteRawContactIds(
+        rawContactIds: List<Long>,
+        onProgress: ((deleted: Int, total: Int) -> Unit)? = null
+    ): Boolean {
         if (!context.hasPermission(PERMISSION_WRITE_CONTACTS)) {
             return false
         }
 
         return try {
             val resolver = context.contentResolver
-            val contactIds = contacts.map { it.id.toLong() }.filter { it > 0 }
+            val contactIds = rawContactIds.filter { it > 0 }
             val total = contactIds.size
 
             if (contactIds.isEmpty()) {
@@ -2703,25 +2621,6 @@ class ContactsHelper(val context: Context) {
                 }
                 callback(duplicates)
             }
-        }
-    }
-
-    fun getContactsToExport(selectedContactSources: Set<String>, callback: (List<Contact>) -> Unit) {
-        getContacts(getAll = true) { receivedContacts ->
-            val contacts = receivedContacts.filter { it.source in selectedContactSources }
-            callback(contacts)
-        }
-    }
-
-    fun exportContacts(contacts: List<Contact>, outputStream: OutputStream): ExportResult {
-        return try {
-            val jsonString = Json.encodeToString(contacts)
-            outputStream.use {
-                it.write(jsonString.toByteArray())
-            }
-            ExportResult.EXPORT_OK
-        } catch (_: Error) {
-            ExportResult.EXPORT_FAIL
         }
     }
 

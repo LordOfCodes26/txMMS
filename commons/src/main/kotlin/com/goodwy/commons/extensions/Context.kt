@@ -1470,7 +1470,7 @@ fun Context.sendSMSPendingIntent(recipient: String): PendingIntent {
 fun Context.getLetterBackgroundColors(): ArrayList<Long> {
     return when (baseConfig.contactColorList) {
         LBC_ORIGINAL -> letterBackgroundColors
-        LBC_IOS ->  if (!isSystemInDarkMode()) letterBackgroundColorsIOS else letterBackgroundColorsIOSDark
+        LBC_IOS -> if (!isNightDisplay()) letterBackgroundColorsIOS else letterBackgroundColorsIOSDark
         LBC_ARC -> letterBackgroundColorsArc
         else -> letterBackgroundColorsAndroid
     }
@@ -1597,9 +1597,10 @@ fun Context.getMyMailString(): String {
 }
 
 fun Context.getDividerColor(): Int {
-    return if (isDarkTheme() && (isSystemInDarkMode() || isAutoTheme())) {
-        "#444444".toColorInt()
-    } else {
-        "#E0E0E0".toColorInt()
+    val useDarkDivider = when {
+        isDynamicTheme() -> isNightDisplay()
+        isAutoTheme() -> isSystemInDarkMode()
+        else -> isDarkTheme() && (isSystemInDarkMode() || isAutoTheme())
     }
+    return if (useDarkDivider) "#444444".toColorInt() else "#E0E0E0".toColorInt()
 }

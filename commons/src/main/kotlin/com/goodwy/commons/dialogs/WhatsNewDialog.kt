@@ -37,7 +37,7 @@ import com.goodwy.commons.extensions.getProperTextColor
 import com.goodwy.commons.extensions.getSurfaceColor
 import com.goodwy.commons.extensions.isBlackTheme
 import com.goodwy.commons.extensions.isDynamicTheme
-import com.goodwy.commons.extensions.isSystemInDarkMode
+import com.goodwy.commons.extensions.isNightDisplay
 import com.goodwy.commons.extensions.setupDialogStuff
 import com.goodwy.commons.models.Release
 import eightbitlab.com.blurview.BlurTarget
@@ -152,7 +152,7 @@ class WhatsNewDialog(val activity: Activity, val releases: List<Release>, blurTa
             radius = activity.resources.getDimension(R.dimen.normal_margin)
 
             val backgroundColor = when {
-                activity.isDynamicTheme() && !activity.isSystemInDarkMode() -> activity.getSurfaceColor()
+                activity.isDynamicTheme() && !activity.isNightDisplay() -> activity.getSurfaceColor()
                 activity.isBlackTheme() -> activity.getProperBackgroundColor()
                 else -> activity.getSurfaceColor()
             }

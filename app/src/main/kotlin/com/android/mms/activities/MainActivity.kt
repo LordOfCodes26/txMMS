@@ -1023,9 +1023,10 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
 
     private fun syncTopSideFrameHeight(height: Int) {
         if (height < 0) return
+        val collapsedMenuHeight = binding.mainMenu.getCollapsedHeightPx().takeIf { it > 0 } ?: height
         binding.mVerticalSideFrameTop.updateLayoutParams<ViewGroup.LayoutParams> {
-            if (this.height != height) {
-                this.height = height / 2
+            if (this.height != collapsedMenuHeight) {
+                this.height = collapsedMenuHeight
             }
         }
         syncBlurTargetTopMargin(height)

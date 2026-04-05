@@ -5,6 +5,7 @@
     android:layout_height="match_parent">
 
     <LinearLayout
+        android:paddingTop="5dp"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical">
@@ -21,8 +22,7 @@
         <ScrollView
             android:id="@+id/dialog_radio_holder"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:paddingStart="@dimen/tx_dialog_padding_horizontal">
+            android:layout_height="wrap_content">
 
             <RadioGroup
                 android:id="@+id/dialog_radio_group"

@@ -28,7 +28,7 @@ import com.goodwy.commons.extensions.getProperBackgroundColor
 import com.goodwy.commons.extensions.getProperPrimaryColor
 import com.goodwy.commons.extensions.getSurfaceColor
 import com.goodwy.commons.extensions.isDynamicTheme
-import com.goodwy.commons.extensions.isSystemInDarkMode
+import com.goodwy.commons.extensions.isNightDisplay
 import com.goodwy.commons.extensions.onApplyWindowInsets
 import com.goodwy.commons.extensions.setSystemBarsAppearance
 import com.goodwy.commons.extensions.updateMarginWithBase
@@ -203,7 +203,7 @@ abstract class EdgeToEdgeActivity : AppCompatActivity() {
     }
 
     fun getStartRequiredStatusBarColor(): Int {
-        val useSurfaceColor = isDynamicTheme() && !isSystemInDarkMode()
+        val useSurfaceColor = isDynamicTheme() && !isNightDisplay()
         val scrollingViewOffset = scrollingView?.computeVerticalScrollOffset() ?: 0
         return if (scrollingViewOffset == 0) {
             if (useSurfaceColor) getSurfaceColor() else getProperBackgroundColor()

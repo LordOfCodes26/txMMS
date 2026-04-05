@@ -158,7 +158,7 @@
     <!-- Search -->
     <string name="search">Search</string>
     <string name="search_in_placeholder">Search in %s</string>
-    <string name="type_2_characters">Type in at least 1 character to start the search.</string>
+    <string name="type_2_characters">Type in at least 1 characters to start the search.</string>
     <string name="show_search">Show a search bar</string>
     <string name="search_contacts">Search contacts</string>
     <string name="search_favorites">Search favorites</string>

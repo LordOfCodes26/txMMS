@@ -18,7 +18,7 @@ import com.goodwy.commons.extensions.getSearchFieldCursorColor
 import com.goodwy.commons.extensions.getSurfaceColor
 import com.goodwy.commons.extensions.hideKeyboard
 import com.goodwy.commons.extensions.isDynamicTheme
-import com.goodwy.commons.extensions.isSystemInDarkMode
+import com.goodwy.commons.extensions.isNightDisplay
 import com.goodwy.commons.extensions.onTextChangeListener
 import com.goodwy.commons.extensions.showKeyboard
 
@@ -130,7 +130,7 @@ open class MySearchMenuTop(context: Context, attrs: AttributeSet) : MyAppBarLayo
         val contrastColor = background.getContrastColor()
         val primaryColor = context.getProperPrimaryColor()
         val surfaceColor = when {
-            context.isDynamicTheme() && !context.isSystemInDarkMode() -> context.getProperBackgroundColor()
+            context.isDynamicTheme() && !context.isNightDisplay() -> context.getProperBackgroundColor()
             background == context.getProperBackgroundColor() -> context.getSurfaceColor()
             else -> context.getProperBackgroundColor()
         }

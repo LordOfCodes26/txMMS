@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.content.res.Configuration
 import android.os.Environment
+import androidx.appcompat.app.AppCompatDelegate
 import android.text.format.DateFormat
 import androidx.core.content.ContextCompat
 import com.goodwy.commons.R
@@ -304,6 +305,27 @@ open class BaseConfig(val context: Context) {
         get() = prefs.getBoolean(IS_AUTO_THEME_ENABLED, false)
         set(isAutoThemeEnabled) = prefs.edit { putBoolean(IS_AUTO_THEME_ENABLED, isAutoThemeEnabled) }
 
+    /** One of [AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM], [AppCompatDelegate.MODE_NIGHT_NO], [AppCompatDelegate.MODE_NIGHT_YES]. */
+    var appNightMode: Int
+        get() {
+            val v = prefs.getInt(APP_NIGHT_MODE, AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
+            return when (v) {
+                AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM,
+                AppCompatDelegate.MODE_NIGHT_NO,
+                AppCompatDelegate.MODE_NIGHT_YES -> v
+                else -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
+            }
+        }
+        set(value) {
+            val normalized = when (value) {
+                AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM,
+                AppCompatDelegate.MODE_NIGHT_NO,
+                AppCompatDelegate.MODE_NIGHT_YES -> value
+                else -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
+            }
+            prefs.edit { putInt(APP_NIGHT_MODE, normalized) }
+        }
+
     var wasCustomThemeSwitchDescriptionShown: Boolean
         get() = prefs.getBoolean(WAS_CUSTOM_THEME_SWITCH_DESCRIPTION_SHOWN, false)
         set(wasCustomThemeSwitchDescriptionShown) = prefs.edit {
@@ -355,7 +377,7 @@ open class BaseConfig(val context: Context) {
         set(hadThankYouInstalled) = prefs.edit { putBoolean(HAD_THANK_YOU_INSTALLED, hadThankYouInstalled) }
 
     var skipDeleteConfirmation: Boolean
-        get() = prefs.getBoolean(SKIP_DELETE_CONFIRMATION, false)
+        get() = prefs.getBoolean(SKIP_DELETE_CONFIRMATION, true)
         set(skipDeleteConfirmation) = prefs.edit { putBoolean(SKIP_DELETE_CONFIRMATION, skipDeleteConfirmation) }
 
     var enablePullToRefresh: Boolean
@@ -620,7 +642,7 @@ open class BaseConfig(val context: Context) {
         set(speedDial) = prefs.edit { putString(SPEED_DIAL, speedDial) }
 
     var mergeDuplicateContacts: Boolean
-        get() = prefs.getBoolean(MERGE_DUPLICATE_CONTACTS, true)
+        get() = prefs.getBoolean(MERGE_DUPLICATE_CONTACTS, false)
         set(mergeDuplicateContacts) = prefs.edit { putBoolean(MERGE_DUPLICATE_CONTACTS, mergeDuplicateContacts) }
 
     var favoritesContactsOrder: String
@@ -768,7 +790,7 @@ open class BaseConfig(val context: Context) {
         set(textCursorColor) = prefs.edit { putInt(TEXT_CURSOR_COLOR, textCursorColor) }
 
     var linesCount: Int
-        get() = prefs.getInt(LINES_COUNT, 1)
+        get() = prefs.getInt(LINES_COUNT, 2)
         set(linesCount) = prefs.edit { putInt(LINES_COUNT, linesCount) }
 
     var showBlockedNumbers: Boolean

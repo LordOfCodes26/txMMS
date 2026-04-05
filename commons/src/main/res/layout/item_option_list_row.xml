@@ -7,7 +7,6 @@
     android:textSize="@dimen/tx_dialog_content"
     android:textColor="@color/tx_main_letter"
     android:paddingBottom="@dimen/smaller_margin"
-    android:paddingHorizontal="@dimen/tx_popup_menu_item_padding_horizontal"
     android:paddingVertical="@dimen/tx_popup_menu_item_padding_vertical"
     android:background="@drawable/tx_item_ripple"
     android:textDirection="locale" />

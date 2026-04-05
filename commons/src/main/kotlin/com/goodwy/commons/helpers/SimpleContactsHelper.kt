@@ -2,17 +2,14 @@ package com.goodwy.commons.helpers
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.database.Cursor
 import android.graphics.*
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.LayerDrawable
 import android.net.Uri
 import android.provider.ContactsContract.*
 import android.provider.ContactsContract.CommonDataKinds.*
-import android.text.TextUtils
 import android.util.SparseArray
 import android.widget.ImageView
-import android.widget.TextView
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.DecodeFormat
 import com.bumptech.glide.load.engine.DiskCacheStrategy
@@ -32,7 +29,6 @@ import androidx.core.graphics.drawable.toDrawable
 import androidx.core.graphics.createBitmap
 import androidx.core.graphics.drawable.toBitmap
 import androidx.core.util.size
-import com.goodwy.commons.helpers.getQuestionMarks
 import com.goodwy.commons.models.contacts.Contact
 
 class SimpleContactsHelper(val context: Context) {
@@ -426,7 +422,7 @@ class SimpleContactsHelper(val context: Context) {
         val backgroundDrawable = if (context.baseConfig.useColoredContacts) {
             val drawableIndex = context.getAvatarDrawableIndexForName(name)
             if (drawableIndex >= 0) {
-                context.createAvatarGradientDrawable(drawableIndex)
+                context.createAvatarGradientDrawable(drawableIndex, isDarkMode = context.isNightDisplay())
             } else {
                 @SuppressLint("UseCompatLoadingForDrawables")
                 context.resources.getDrawable(R.drawable.placeholder_contact, context.theme)?.let {
@@ -483,7 +479,7 @@ class SimpleContactsHelper(val context: Context) {
         val backgroundDrawable = if (context.baseConfig.useColoredContacts) {
             val drawableIndex = context.getAvatarDrawableIndexForName(name)
             if (drawableIndex >= 0) {
-                context.createAvatarGradientDrawable(drawableIndex)
+                context.createAvatarGradientDrawable(drawableIndex, isDarkMode = context.isNightDisplay())
             } else {
                 @SuppressLint("UseCompatLoadingForDrawables")
                 context.resources.getDrawable(R.drawable.placeholder_contact, context.theme)?.let {

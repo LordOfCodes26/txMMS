@@ -20,10 +20,10 @@
         <item name="windowActionModeOverlay">true</item>    <!-- replace casual top menu with contextual menu after long pressing an item -->
         <item name="android:actionOverflowButtonStyle">@style/ActionMenuOverflowIcon</item>
         <!-- so that when you re-open the splash screen was black -->
-        <!--        <item name="android:windowSplashScreenBackground" tools:targetApi="s">#000000</item>-->
-        <!--        <item name="android:windowBackground">#000000</item>-->
-        <!--        <item name="android:statusBarColor">#000000</item>-->
-        <!--        <item name="android:navigationBarColor">#000000</item>-->
+<!--        <item name="android:windowSplashScreenBackground" tools:targetApi="s">#000000</item>-->
+<!--        <item name="android:windowBackground">#000000</item>-->
+<!--        <item name="android:statusBarColor">#000000</item>-->
+<!--        <item name="android:navigationBarColor">#000000</item>-->
         <item name="android:radioButtonStyle">@style/MyRadioButtonStyle</item>
         <item name="radioButtonStyle">@style/MyRadioButtonStyle</item>
     </style>
@@ -176,10 +176,10 @@
 
     <!--<item name="android:windowBackground">@drawable/splash_screen</item>-->
     <style name="SplashTheme" parent="AppTheme.Base">
-        <!--        <item name="android:windowSplashScreenBackground" tools:targetApi="s">#000000</item>-->
-        <!--        <item name="android:windowBackground">#000000</item>-->
-        <!--        <item name="android:statusBarColor">#000000</item>-->
-        <!--        <item name="android:navigationBarColor">#000000</item>-->
+<!--        <item name="android:windowSplashScreenBackground" tools:targetApi="s">#000000</item>-->
+<!--        <item name="android:windowBackground">#000000</item>-->
+<!--        <item name="android:statusBarColor">#000000</item>-->
+<!--        <item name="android:navigationBarColor">#000000</item>-->
         <item name="android:windowBackground">@android:color/transparent</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
     </style>
@@ -302,7 +302,7 @@
         <item name="android:paddingStart">@dimen/big_margin</item>
         <item name="android:paddingTop">@dimen/small_margin</item>
         <item name="android:paddingEnd">@dimen/big_margin</item>
-        <!--        <item name="android:paddingBottom">@dimen/big_margin</item>-->
+<!--        <item name="android:paddingBottom">@dimen/big_margin</item>-->
         <item name="android:orientation">horizontal</item>
     </style>
 
@@ -545,8 +545,8 @@
         <item name="android:layout_height">wrap_content</item>
         <item name="android:background">@null</item>
         <item name="android:clickable">false</item>
-        <!--        <item name="android:paddingStart">@dimen/settings_margin</item>-->
-        <!--        <item name="android:paddingEnd">@dimen/settings_margin</item>-->
+<!--        <item name="android:paddingStart">@dimen/settings_margin</item>-->
+<!--        <item name="android:paddingEnd">@dimen/settings_margin</item>-->
         <item name="android:textSize">@dimen/tx_normal_text</item>
         <item name="android:textColor">@color/tx_cardview_title</item>
         <item name="android:minHeight">16dp</item>
@@ -566,12 +566,12 @@
     <style name="SettingsTextSummaryStyle">
         <item name="android:layout_width">wrap_content</item>
         <item name="android:layout_height">wrap_content</item>
-        <!--        <item name="android:paddingStart">@dimen/settings_margin</item>-->
-        <!--        <item name="android:paddingEnd">@dimen/settings_margin</item>-->
+<!--        <item name="android:paddingStart">@dimen/settings_margin</item>-->
+<!--        <item name="android:paddingEnd">@dimen/settings_margin</item>-->
         <item name="android:paddingTop">@dimen/smaller_margin</item>
         <item name="android:textSize">@dimen/tx_small_text</item>
         <item name="android:textColor">@color/tx_cardview_summary</item>
-        <!--        <item name="android:alpha">0.6</item>-->
+<!--        <item name="android:alpha">0.6</item>-->
     </style>
 
     <style name="SettingsTextValueStyle">
@@ -625,6 +625,21 @@
     <!-- App themes -->
     <!-- themes with using transparent top action and status bars -->
     <style name="AppTheme.Blue_600_core" parent="AppTheme.Base.Core">
+        <item name="colorPrimary">@color/md_blue_600</item>
+        <item name="colorPrimaryDark">@color/md_blue_600_dark</item>
+        <item name="colorAccent">@color/md_blue_600</item>
+    </style>
+
+    <style name="AppTheme.Blue_600_core.Light" parent="Theme.Material3.Light.NoActionBar">
+        <item name="android:colorControlHighlight">@color/activated_item_foreground</item>
+        <item name="colorControlHighlight">@color/activated_item_foreground</item>
+        <item name="bottomSheetDialogTheme">@style/BottomSheetDialogTheme</item>
+        <item name="android:forceDarkAllowed">false</item>
+        <item name="windowActionModeOverlay">true</item>
+        <item name="actionModeStyle">@style/AppCompat.ActionMode</item>
+        <item name="actionOverflowMenuStyle">@style/TopPopupMenu.Overflow.Dark</item>
+        <item name="android:actionOverflowButtonStyle">@style/ActionMenuOverflowIcon</item>
+        <item name="android:windowLightStatusBar">true</item>
         <item name="colorPrimary">@color/md_blue_600</item>
         <item name="colorPrimaryDark">@color/md_blue_600_dark</item>
         <item name="colorAccent">@color/md_blue_600</item>

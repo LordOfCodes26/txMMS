@@ -40,10 +40,10 @@ open class MySearchMenu(context: Context, attrs: AttributeSet) : MyAppBarLayout(
 
     override val toolbar: MaterialToolbar?
         get() = null // CustomToolbar is used instead
-
+    
     override val customToolbar: CustomToolbar?
         get() = binding.topToolbar
-
+    
     override fun requireCustomToolbar(): CustomToolbar = customToolbar ?: error("CustomToolbar not found")
 
     fun getActionModeToolbar(): CustomActionModeToolbar = binding.actionModeToolbar
@@ -104,6 +104,8 @@ open class MySearchMenu(context: Context, attrs: AttributeSet) : MyAppBarLayout(
             resources.getDimensionPixelSize(androidx.appcompat.R.dimen.abc_action_bar_default_height_material)
         }
     }
+
+    fun getCollapsedHeightPx(): Int = resolveActionBarSizePx() + paddingTop + paddingBottom
 
     fun setupMenu() {
         // Search bar removed - no setup needed

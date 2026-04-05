@@ -11,8 +11,4 @@
     <declare-styleable name="MyFloatingActionButton">
         <attr name="applyWindowInsets" format="boolean" />
     </declare-styleable>
-
-    <declare-styleable name="BlurAppBarLayout">
-        <attr name="appBarBackground" format="reference" />
-    </declare-styleable>
 </resources>

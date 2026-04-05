@@ -2,11 +2,8 @@ package com.goodwy.commons.views
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.graphics.Outline
 import android.graphics.drawable.Drawable
 import android.util.AttributeSet
-import android.view.View
-import android.view.ViewOutlineProvider
 import android.widget.TextView
 import androidx.appcompat.widget.AppCompatEditText
 import androidx.core.content.ContextCompat
@@ -21,34 +18,6 @@ import java.lang.reflect.Field
 
 
 open class MyEditText : AppCompatEditText {
-
-    private val outlineRadiusPx: Float
-        get() = 24f * resources.displayMetrics.density
-
-    init {
-        // Rounded rect outline (same as search_bg / main_search_edit_text) so elevation shadow matches the shape.
-        outlineProvider = object : ViewOutlineProvider() {
-            override fun getOutline(view: View, outline: Outline) {
-                if (view.width > 0 && view.height > 0) {
-                    outline.setRoundRect(0, 0, view.width, view.height, outlineRadiusPx)
-                }
-            }
-        }
-    }
-
-    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
-        super.onSizeChanged(w, h, oldw, oldh)
-        if (elevation > 0f && w > 0 && h > 0) {
-            invalidateOutline()
-        }
-    }
-
-    override fun setElevation(elevation: Float) {
-        super.setElevation(elevation)
-        // Hardware layer for proper shadow rendering (same as ContactAvatarView / main search bar).
-        setLayerType(if (elevation > 0f) LAYER_TYPE_HARDWARE else LAYER_TYPE_NONE, null)
-    }
-
     constructor(context: Context) : super(context)
 
     constructor(context: Context, attrs: AttributeSet) : super(context, attrs)

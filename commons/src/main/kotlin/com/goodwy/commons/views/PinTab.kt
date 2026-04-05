@@ -64,7 +64,7 @@ class PinTab(context: Context, attrs: AttributeSet) : BaseSecurityTab(context, a
             binding.pin0//, binding.pinC, binding.pinOk
         ).forEach {
             if (context.isDynamicTheme()) {
-                if (context.isSystemInDarkMode()) it.background.applyColorFilter(context.getProperBackgroundColor())
+                if (context.isNightDisplay()) it.background.applyColorFilter(context.getProperBackgroundColor())
                 else it.background.applyColorFilter(context.getSurfaceColor())
             } else if (context.isBlackTheme()) {
                 it.background.applyColorFilter(context.getProperBackgroundColor())

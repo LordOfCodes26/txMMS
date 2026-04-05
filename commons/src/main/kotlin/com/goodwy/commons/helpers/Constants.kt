@@ -131,6 +131,7 @@ const val WAS_USE_ENGLISH_TOGGLED = "was_use_english_toggled"
 const val IS_GLOBAL_THEME_ENABLED = "is_global_theme_enabled"
 const val IS_SYSTEM_THEME_ENABLED = "is_using_system_theme"
 const val IS_AUTO_THEME_ENABLED = "is_using_auto_theme"
+const val APP_NIGHT_MODE = "app_night_mode"
 const val WAS_CUSTOM_THEME_SWITCH_DESCRIPTION_SHOWN = "was_custom_theme_switch_description_shown"
 const val SHOW_INFO_BUBBLE = "show_info_bubble"
 const val LAST_CONFLICT_RESOLUTION = "last_conflict_resolution"
@@ -300,6 +301,7 @@ const val HANGOUTS = "Hangouts"
 const val QQ = "QQ"
 const val JABBER = "Jabber"
 const val GROUP = "GROUP"
+
 // licenses
 internal const val LICENSE_KOTLIN = 1L
 const val LICENSE_SUBSAMPLING = 2L
