@@ -100,12 +100,22 @@
         app:showAsAction="ifRoom"/>
     <item
         android:id="@+id/cab_ripple_private_space_add"
-        android:title="@string/private_space"
+        android:title="@string/private_space_add"
         android:icon="@drawable/ic_sms_ripple_shield"
         app:showAsAction="ifRoom"/>
     <item
-        android:id="@+id/cab_ripple_secure_box"
-        android:title="@string/secure_box"
+        android:id="@+id/cab_ripple_private_space_delete"
+        android:title="@string/private_space_delete"
+        android:icon="@drawable/ic_sms_ripple_shield"
+        app:showAsAction="ifRoom"/>
+    <item
+        android:id="@+id/cab_ripple_secure_box_lock"
+        android:title="@string/encrypt"
+        android:icon="@drawable/ic_cmn_lock_fill"
+        app:showAsAction="ifRoom"/>
+    <item
+        android:id="@+id/cab_ripple_secure_box_unlock"
+        android:title="@string/decrypt"
         android:icon="@drawable/ic_cmn_unlock_fill"
         app:showAsAction="ifRoom"/>
 
