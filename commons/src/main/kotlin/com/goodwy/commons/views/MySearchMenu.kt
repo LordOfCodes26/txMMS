@@ -40,13 +40,18 @@ open class MySearchMenu(context: Context, attrs: AttributeSet) : MyAppBarLayout(
 
     override val toolbar: MaterialToolbar?
         get() = null // CustomToolbar is used instead
-    
+
     override val customToolbar: CustomToolbar?
         get() = binding.topToolbar
-    
+
     override fun requireCustomToolbar(): CustomToolbar = customToolbar ?: error("CustomToolbar not found")
 
     fun getActionModeToolbar(): CustomActionModeToolbar = binding.actionModeToolbar
+
+    /** Large title under the toolbar (e.g. "Recents"); hide while the inline search field is expanded. */
+    fun setCollapsingTitleVisible(visible: Boolean) {
+        binding.collapsingTitle.visibility = if (visible) View.VISIBLE else View.GONE
+    }
 
     fun showActionModeToolbar() {
         binding.actionModeToolbar.visibility = View.VISIBLE

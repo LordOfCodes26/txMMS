@@ -49,16 +49,16 @@ class PhonePrefixLocationHelper(private val context: Context) {
             try {
                 val inputStream: InputStream = context.assets.open(fileName)
                 val jsonString = inputStream.bufferedReader().use { it.readText() }
-                
+
                 val type = object : TypeToken<List<PhonePrefixLocationData>>() {}.type
                 val locations: List<PhonePrefixLocationData> = Gson().fromJson(jsonString, type)
-                
-                val prefixLocations = locations.map { 
+
+                val prefixLocations = locations.map {
                     PhonePrefixLocation(id = null, prefix = it.prefix, location = it.location)
                 }
-                
+
                 val inserted = locationDao.insertOrUpdatePrefixLocations(prefixLocations)
-                
+
                 callback?.invoke(inserted.size)
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -76,16 +76,16 @@ class PhonePrefixLocationHelper(private val context: Context) {
             try {
                 val inputStream: InputStream = context.resources.openRawResource(resourceId)
                 val jsonString = inputStream.bufferedReader().use { it.readText() }
-                
+
                 val type = object : TypeToken<List<PhonePrefixLocationData>>() {}.type
                 val locations: List<PhonePrefixLocationData> = Gson().fromJson(jsonString, type)
-                
-                val prefixLocations = locations.map { 
+
+                val prefixLocations = locations.map {
                     PhonePrefixLocation(id = null, prefix = it.prefix, location = it.location)
                 }
-                
+
                 val inserted = locationDao.insertOrUpdatePrefixLocations(prefixLocations)
-                
+
                 callback?.invoke(inserted.size)
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -144,16 +144,16 @@ class PhonePrefixLocationHelper(private val context: Context) {
             try {
                 val inputStream: InputStream = context.assets.open(fileName)
                 val jsonString = inputStream.bufferedReader().use { it.readText() }
-                
+
                 val type = object : TypeToken<List<PhoneDistrictData>>() {}.type
                 val districts: List<PhoneDistrictData> = Gson().fromJson(jsonString, type)
-                
-                val phoneDistricts = districts.map { 
+
+                val phoneDistricts = districts.map {
                     PhoneDistrict(id = null, prefix = it.prefix, districtCode = it.districtCode, districtName = it.districtName)
                 }
-                
+
                 val inserted = districtDao.insertOrUpdateDistricts(phoneDistricts)
-                
+
                 callback?.invoke(inserted.size)
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -171,16 +171,16 @@ class PhonePrefixLocationHelper(private val context: Context) {
             try {
                 val inputStream: InputStream = context.resources.openRawResource(resourceId)
                 val jsonString = inputStream.bufferedReader().use { it.readText() }
-                
+
                 val type = object : TypeToken<List<PhoneDistrictData>>() {}.type
                 val districts: List<PhoneDistrictData> = Gson().fromJson(jsonString, type)
-                
-                val phoneDistricts = districts.map { 
+
+                val phoneDistricts = districts.map {
                     PhoneDistrict(id = null, prefix = it.prefix, districtCode = it.districtCode, districtName = it.districtName)
                 }
-                
+
                 val inserted = districtDao.insertOrUpdateDistricts(phoneDistricts)
-                
+
                 callback?.invoke(inserted.size)
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -249,11 +249,11 @@ class PhonePrefixLocationHelper(private val context: Context) {
             try {
                 val inputStream: InputStream = context.resources.openRawResource(resourceId)
                 val jsonString = inputStream.bufferedReader().use { it.readText() }
-                
+
                 val type = object : TypeToken<List<PhoneNumberFormatData>>() {}.type
                 val formats: List<PhoneNumberFormatData> = Gson().fromJson(jsonString, type)
-                
-                val phoneFormats = formats.map { 
+
+                val phoneFormats = formats.map {
                     PhoneNumberFormat(
                         id = null,
                         prefix = it.prefix,
@@ -264,9 +264,9 @@ class PhonePrefixLocationHelper(private val context: Context) {
                         description = it.description ?: ""
                     )
                 }
-                
+
                 val inserted = formatDao.insertOrUpdateFormats(phoneFormats)
-                
+
                 // Invalidate the formatter cache so it reloads the new formats
                 try {
                     // Try to invalidate cache if DatabasePhoneNumberFormatter is being used
@@ -278,7 +278,7 @@ class PhonePrefixLocationHelper(private val context: Context) {
                 } catch (e: Exception) {
                     // Ignore if formatter is not set or not DatabasePhoneNumberFormatter
                 }
-                
+
                 callback?.invoke(inserted.size)
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -386,7 +386,9 @@ class PhonePrefixLocationHelper(private val context: Context) {
      * Data class for JSON parsing - Prefix Locations
      */
     private data class PhonePrefixLocationData(
+        @SerializedName("prefix")
         val prefix: String,
+        @SerializedName("location")
         val location: String
     )
 
@@ -394,8 +396,11 @@ class PhonePrefixLocationHelper(private val context: Context) {
      * Data class for JSON parsing - Districts
      */
     private data class PhoneDistrictData(
+        @SerializedName("prefix")
         val prefix: String,
+        @SerializedName("districtCode")
         val districtCode: String,
+        @SerializedName("districtName")
         val districtName: String
     )
 
@@ -403,11 +408,17 @@ class PhonePrefixLocationHelper(private val context: Context) {
      * Data class for JSON parsing - Phone Number Formats
      */
     private data class PhoneNumberFormatData(
+        @SerializedName("prefix")
         val prefix: String,
+        @SerializedName("prefixLength")
         val prefixLength: Int,
+        @SerializedName("districtCodePattern")
         val districtCodePattern: String,
+        @SerializedName("formatTemplate")
         val formatTemplate: String,
+        @SerializedName("districtCodeLength")
         val districtCodeLength: Int,
+        @SerializedName("description")
         val description: String? = null
     )
 
@@ -415,6 +426,7 @@ class PhonePrefixLocationHelper(private val context: Context) {
      * Data class for JSON parsing - unified location/format records.
      */
     private data class UnifiedLocationFormatData(
+        @SerializedName("location")
         val location: JsonElement?,
         @SerializedName("number format")
         val numberFormat: String
