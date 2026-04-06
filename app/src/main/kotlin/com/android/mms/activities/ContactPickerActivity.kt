@@ -12,6 +12,7 @@ import android.provider.ContactsContract
 import android.provider.ContactsContract.PhoneLookup
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewTreeObserver
 import android.widget.ImageView
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
@@ -46,10 +47,11 @@ import com.android.common.view.MRippleToolBar
 import com.android.common.view.MVSideFrame
 import com.android.mms.R
 import com.android.mms.extensions.applyLargeTitleOnly
-import com.android.mms.extensions.applyMySearchMenuListTopPadding
 import com.android.mms.extensions.clearMySearchMenuSpringSync
 import com.android.mms.extensions.config
 import com.android.mms.extensions.postSyncMySearchMenuToolbarGeometry
+import com.android.mms.extensions.syncBlurTargetTopMarginForMenu
+import com.android.mms.extensions.syncTopSideFrameHeightForMenu
 import com.android.mms.extensions.setupMySearchMenuSpringSync
 import com.android.mms.adapters.ContactPickerAdapter
 import com.android.mms.models.Contact
@@ -122,6 +124,9 @@ class ContactPickerActivity : SimpleActivity() {
     private var filterContactsLiner: ImageView? = null
         private var callLogPlaceholder: View? = null
     private var contactPickerFilterBar: View? = null
+    /** Filter bar height + 12dp; set once from a stable layout pass so search and normal modes match. */
+    private var contactPickerListTopInsetPx: Int = -1
+    private var contactPickerFilterBarInsetListener: ViewTreeObserver.OnGlobalLayoutListener? = null
     private var contactsLetterFastscroller: FastScrollerView? = null
     private var contactsLetterFastscrollerThumb: FastScrollerThumbView? = null
     private val callLogMeta = ArrayList<CallLogEntryMeta>()
@@ -168,7 +173,8 @@ class ContactPickerActivity : SimpleActivity() {
             val blur = findViewById<BlurTarget>(R.id.blurTarget)
             val top = findViewById<View>(R.id.m_vertical_side_frame_top)
             val rv = contactRecyclerView ?: return@post
-            postSyncMySearchMenuToolbarGeometry(rootView!!, menu, blur, top, rv)
+            postSyncMySearchMenuToolbarGeometry(rootView!!, menu, blur, top, paddedList = null)
+            syncContactPickerBlurGeometryAndListTopPadding()
             setupMySearchMenuSpringSync(menu, rv)
             if (config.changeColourTopBar) {
                 scrollingView = contactRecyclerView
@@ -232,6 +238,10 @@ class ContactPickerActivity : SimpleActivity() {
     }
 
     override fun onDestroy() {
+        contactPickerFilterBarInsetListener?.let { listener ->
+            contactPickerFilterBar?.viewTreeObserver?.removeOnGlobalLayoutListener(listener)
+        }
+        contactPickerFilterBarInsetListener = null
         blurAppBarLayout?.let { clearMySearchMenuSpringSync(it, contactRecyclerView) }
         contactsCursor?.takeIf { !it.isClosed }?.close()
         contactsCursor = null
@@ -271,6 +281,81 @@ class ContactPickerActivity : SimpleActivity() {
         val activityMargin = resources.getDimensionPixelSize(com.goodwy.commons.R.dimen.activity_margin)
         val bottomInset = if (imeBottom > 0) imeBottom else navHeight
         rv.updatePadding(bottom = bottomInset + activityMargin + dp(90))
+    }
+
+    /**
+     * After [MySearchMenu] height changes with [WRAP_CONTENT] (e.g. leaving search), sync blur/side-frame
+     * once layout has settled, then re-apply list top inset.
+     */
+    private fun syncContactPickerBlurGeometryAndListTopPadding() {
+        val menu = blurAppBarLayout ?: return
+        val blur = findViewById<BlurTarget>(R.id.blurTarget) ?: return
+        val top = findViewById<View>(R.id.m_vertical_side_frame_top)
+        menu.post {
+            menu.post {
+                val h = menu.height.takeIf { it > 0 } ?: menu.measuredHeight.takeIf { it > 0 } ?: return@post
+                syncBlurTargetTopMarginForMenu(blur, h)
+                syncTopSideFrameHeightForMenu(top, menu, h)
+                applyContactPickerListTopPadding()
+            }
+        }
+    }
+
+    /** Resolves filter bar height + 12dp without waiting for a layout pass (avoids wrong padding on first search). */
+    private fun resolveContactPickerListTopInsetPxIfNeeded() {
+        if (contactPickerListTopInsetPx >= 0) return
+        val bar = contactPickerFilterBar ?: return
+        val hLaidOut = bar.height.takeIf { it > 0 }
+            ?: if (bar.isLaidOut) bar.measuredHeight.takeIf { it > 0 } else null
+        if (hLaidOut != null) {
+            contactPickerListTopInsetPx = hLaidOut + dp(12)
+            return
+        }
+        val widthPx = bar.width.takeIf { it > 0 } ?: resources.displayMetrics.widthPixels
+        val widthSpec = View.MeasureSpec.makeMeasureSpec(widthPx, View.MeasureSpec.EXACTLY)
+        val heightSpec = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+        bar.measure(widthSpec, heightSpec)
+        val mh = bar.measuredHeight
+        if (mh > 0) {
+            contactPickerListTopInsetPx = mh + dp(12)
+        }
+    }
+
+    /** List starts below [R.id.contact_picker_filter_bar] plus 12dp; same px in normal and search mode. */
+    private fun applyContactPickerListTopPadding() {
+        val rv = contactRecyclerView ?: return
+        resolveContactPickerListTopInsetPxIfNeeded()
+        if (contactPickerListTopInsetPx >= 0) {
+            rv.updatePadding(top = contactPickerListTopInsetPx)
+            return
+        }
+        val bar = contactPickerFilterBar ?: return
+        if (contactPickerFilterBarInsetListener != null) return
+        val listener = object : ViewTreeObserver.OnGlobalLayoutListener {
+            override fun onGlobalLayout() {
+                val b = contactPickerFilterBar ?: return
+                if (b.height <= 0) return
+                contactPickerListTopInsetPx = b.height + dp(12)
+                b.viewTreeObserver.removeOnGlobalLayoutListener(this)
+                contactPickerFilterBarInsetListener = null
+                contactRecyclerView?.updatePadding(top = contactPickerListTopInsetPx)
+            }
+        }
+        contactPickerFilterBarInsetListener = listener
+        bar.viewTreeObserver.addOnGlobalLayoutListener(listener)
+    }
+
+    /**
+     * Search mode uses a fixed collapsed app bar height; sync blur/side-frame in the same frame as
+     * [MySearchMenu.collapseAndLockCollapsing] so the list does not jump before padding settles.
+     */
+    private fun syncContactPickerBlurForCollapsedSearchMenu() {
+        val menu = blurAppBarLayout ?: return
+        val blur = findViewById<BlurTarget>(R.id.blurTarget) ?: return
+        val top = findViewById<View>(R.id.m_vertical_side_frame_top)
+        val h = menu.getCollapsedHeightPx().takeIf { it > 0 } ?: return
+        syncBlurTargetTopMarginForMenu(blur, h)
+        syncTopSideFrameHeightForMenu(top, menu, h)
     }
 
     private fun setContactPickerTransparentAppBarBackground() {
@@ -325,15 +410,14 @@ class ContactPickerActivity : SimpleActivity() {
             }
             setOnSearchExpandListener {
                 val bar = blurAppBarLayout ?: return@setOnSearchExpandListener
+                resolveContactPickerListTopInsetPxIfNeeded()
+                applyContactPickerListTopPadding()
                 bar.collapseAndLockCollapsing()
+                syncContactPickerBlurForCollapsedSearchMenu()
                 bar.binding.collapsingTitle.visibility = View.GONE
                 hideTopBarNavigation()
                 contactRecyclerView?.isNestedScrollingEnabled = false
                 contactRecyclerView?.scrollToPosition((contactAdapter?.itemCount ?: 1) - 1)
-                bar.post {
-                    val rv = contactRecyclerView ?: return@post
-                    applyMySearchMenuListTopPadding(bar, rv)
-                }
             }
             setOnSearchBackClickListener {
                 val bar = blurAppBarLayout ?: return@setOnSearchBackClickListener
@@ -342,10 +426,7 @@ class ContactPickerActivity : SimpleActivity() {
                 bar.binding.collapsingTitle.visibility = View.VISIBLE
                 setupTopBarNavigation()
                 contactRecyclerView?.isNestedScrollingEnabled = true
-                bar.post {
-                    val rv = contactRecyclerView ?: return@post
-                    applyMySearchMenuListTopPadding(bar, rv)
-                }
+                syncContactPickerBlurGeometryAndListTopPadding()
             }
             setOnSearchTextChangedListener { s ->
                 searchString = s ?: ""
@@ -447,6 +528,8 @@ class ContactPickerActivity : SimpleActivity() {
             }
         }
         updateFilterBar()
+        resolveContactPickerListTopInsetPxIfNeeded()
+        applyContactPickerListTopPadding()
     }
 
     private fun setupTopBarNavigation() {

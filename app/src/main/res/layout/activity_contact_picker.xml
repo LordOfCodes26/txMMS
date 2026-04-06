@@ -105,7 +105,7 @@
                 android:paddingTop="@dimen/small_margin"
                 android:paddingEnd="@dimen/normal_margin"
                 android:background="@color/transparent"
-                android:layout_marginTop="@dimen/tx_top_bar_expand_height">
+                android:layout_marginTop="140dp">
 
                 <androidx.constraintlayout.widget.ConstraintLayout
                     android:layout_width="match_parent"
