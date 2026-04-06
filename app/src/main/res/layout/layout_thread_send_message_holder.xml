@@ -176,8 +176,8 @@
         android:background="?selectableItemBackgroundBorderless"
         app:layout_constraintEnd_toStartOf="@id/threadSendMessageWrapper"
         app:layout_constraintBottom_toBottomOf="@id/threadAddAttachmentHolder"
-        android:visibility="visible"
-        tools:visibility="visible"
+        android:visibility="gone"
+        tools:visibility="gone"
         tools:ignore="RtlHardcoded">
         <ImageView
             android:id="@+id/threadSelectSimIcon"
@@ -204,7 +204,7 @@
         app:layout_constraintTop_toTopOf="@+id/threadSelectSimIconHolder"
         tools:text="1"
         tools:textColor="@color/bw_30"
-        tools:visibility="visible" />
+        tools:visibility="gone" />
 
     <com.goodwy.commons.views.MyTextView
         android:id="@+id/threadAvailableMessageCount"
@@ -278,7 +278,7 @@
         android:layout_height="wrap_content"
         app:layout_constraintBottom_toTopOf="@+id/threadSendMessageWrapper"
         app:layout_constraintEnd_toStartOf="@+id/threadSendMessageWrapper"
-        >
+        android:visibility="gone">
         <include
             layout="@layout/sim_popup"
             android:layout_width="180dp"
