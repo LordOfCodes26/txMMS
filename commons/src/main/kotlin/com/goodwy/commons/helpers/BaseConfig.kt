@@ -377,7 +377,7 @@ open class BaseConfig(val context: Context) {
         set(hadThankYouInstalled) = prefs.edit { putBoolean(HAD_THANK_YOU_INSTALLED, hadThankYouInstalled) }
 
     var skipDeleteConfirmation: Boolean
-        get() = prefs.getBoolean(SKIP_DELETE_CONFIRMATION, true)
+        get() = prefs.getBoolean(SKIP_DELETE_CONFIRMATION, false)
         set(skipDeleteConfirmation) = prefs.edit { putBoolean(SKIP_DELETE_CONFIRMATION, skipDeleteConfirmation) }
 
     var enablePullToRefresh: Boolean

@@ -75,7 +75,6 @@ import com.android.mms.models.Events
 import com.android.mms.models.SIMCard
 import com.android.mms.BuildConfig
 import com.android.mms.helpers.MessageHolderHelper
-import com.goodwy.commons.views.BlurPopupMenu
 import com.google.gson.annotations.Until
 import org.greenrobot.eventbus.EventBus
 import org.joda.time.DateTime
