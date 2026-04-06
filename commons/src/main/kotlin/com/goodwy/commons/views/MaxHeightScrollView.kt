@@ -2,7 +2,7 @@ package com.goodwy.commons.views
 
 import android.content.Context
 import android.util.AttributeSet
-import android.widget.ScrollView
+import androidx.core.widget.NestedScrollView
 
 /**
  * ScrollView that respects [maxHeightPx] when [layout_height] is [wrap_content].
@@ -18,7 +18,7 @@ class MaxHeightScrollView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0
-) : ScrollView(context, attrs, defStyleAttr) {
+) : NestedScrollView(context, attrs, defStyleAttr) {
 
     /** Resolved android:maxHeight in pixels; [Int.MAX_VALUE] means no cap. */
     private val maxHeightPx: Int = run {

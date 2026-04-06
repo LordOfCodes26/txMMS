@@ -493,6 +493,7 @@ class ConversationsAdapter(
             R.id.cab_unpin_conversation -> pinConversation(false)
             R.id.cab_encrypt_conversations -> encryptConversations()
             R.id.cab_decrypt_conversations -> decryptConversations()
+            R.id.cab_history_delete -> askConfirmDelete()
 
             //when ripple
             R.id.cab_ripple_delete -> askConfirmDelete()
