@@ -1232,8 +1232,21 @@ class ThreadAdapter(
         textColor: Int
     ) {
         val timeStr = (message.date * 1000L).formatTime(activity)
+        var szMMDD = (message.date * 1000L).formatDateOrTime(
+            context = activity,
+            hideTimeOnOtherDays = true,
+            showCurrentYear = false,
+            hideTodaysDate = false,
+            dateFormat = "MM.dd"
+        )
+        val strDateArray = szMMDD.split("\\.".toRegex())
+        val strDateMonth = strDateArray[0]
+        val strDateDay = strDateArray[1]
+        val nMonth = strDateMonth.toInt()
+        val nDay = strDateDay.toInt()
+        szMMDD = nMonth.toString() + activity.getString(R.string.month) + " " + nDay.toString() + activity.getString(R.string.day)
         messageBinding.threadMessageTime.apply {
-            text = timeStr
+            text = szMMDD + timeStr
             setTextColor(textColor)
             setTextSize(TypedValue.COMPLEX_UNIT_PX, fontSizeSmall)
         }
@@ -1347,6 +1360,7 @@ class ThreadAdapter(
             }
             threadDateTime.setTextColor(secondTextColor)
             threadDateTime.alpha = 0.6f
+            threadDateTime.beGone()
 
             // SIM info is now shown in each message bubble; hide from date header
             threadSimIcon.beGone()
