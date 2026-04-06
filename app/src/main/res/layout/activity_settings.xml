@@ -43,7 +43,6 @@
                         <TextView
                             android:id="@+id/settingsGeneralLabel"
                             style="@style/SettingsSectionLabelStyle"
-                            android:layout_marginStart="@dimen/tx_cardview_card_title_margin_left"
                             android:text="@string/general"/>
 
                         <androidx.cardview.widget.CardView
@@ -138,7 +137,6 @@
                         <TextView
                             android:id="@+id/settingsNotificationsLabel"
                             style="@style/SettingsSectionLabelStyle"
-                            android:layout_marginStart="@dimen/tx_cardview_card_title_margin_left"
                             android:text="@string/notifications"/>
 
                         <androidx.cardview.widget.CardView
@@ -260,6 +258,7 @@
                                         style="@style/SettingsTextValueStyle"
                                         android:layout_alignParentEnd="true"
                                         android:layout_centerVertical="true"
+                                        android:layout_marginEnd="@dimen/small_margin"
                                         tools:text="None" />
 
                                 </RelativeLayout>
@@ -287,6 +286,7 @@
                                         android:id="@+id/settings_lock_screen_visibility"
                                         style="@style/SettingsTextValueStyle"
                                         android:layout_alignParentEnd="true"
+                                        android:layout_marginEnd="@dimen/small_margin"
                                         tools:text="@string/sender_and_message" />
 
                                 </RelativeLayout>
@@ -325,7 +325,6 @@
                         <TextView
                             android:id="@+id/settingsMessagesLabel"
                             style="@style/SettingsSectionLabelStyle"
-                            android:layout_marginStart="@dimen/tx_cardview_card_title_margin_left"
                             android:text="@string/messages"/>
 
                         <androidx.cardview.widget.CardView
@@ -451,6 +450,7 @@
                                         android:id="@+id/settings_message_send_delay"
                                         style="@style/SettingsTextValueStyle"
                                         android:layout_alignParentEnd="true"
+                                        android:layout_marginEnd="@dimen/small_margin"
                                         tools:text="@string/no_delay" />
                                 </RelativeLayout>
                             </LinearLayout>
@@ -459,7 +459,6 @@
                         <TextView
                             android:id="@+id/settingsOutgoingMessagesLabel"
                             style="@style/SettingsSectionLabelStyle"
-                            android:layout_marginStart="@dimen/tx_cardview_card_title_margin_left"
                             android:text="@string/outgoing_messages"/>
 
                         <androidx.cardview.widget.CardView
@@ -490,6 +489,7 @@
                                         style="@style/SettingsTextValueStyle"
                                         android:layout_alignParentEnd="true"
                                         android:layout_centerVertical="true"
+                                        android:layout_marginEnd="@dimen/small_margin"
                                         tools:text="Type 1" />
                                 </RelativeLayout>
 
@@ -602,13 +602,11 @@
                         <TextView
                             android:id="@+id/settingsBackupsLabel"
                             style="@style/SettingsSectionLabelStyle"
-                            android:layout_marginStart="@dimen/tx_cardview_card_title_margin_left"
                             android:text="@string/backups"/>
 
                         <androidx.cardview.widget.CardView
                             android:id="@+id/settingsBackupsHolder"
                             style="@style/SettingsSectionHolder"
-                            android:layout_marginBottom="@dimen/secondary_fab_bottom_margin"
                             app:cardElevation="0dp">
 
                             <LinearLayout
