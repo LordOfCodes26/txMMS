@@ -3,60 +3,98 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     tools:ignore="AppCompatResource,AlwaysShowAction">
-    <item
-        android:id="@+id/cab_copy_to_clipboard"
-        android:icon="@drawable/ic_cmn_copy"
-        android:showAsAction="always"
-        android:title="@string/copy_to_clipboard"
-        app:showAsAction="always" />
-    <item
-        android:id="@+id/cab_share"
-        android:icon="@drawable/ic_ios_share"
-        android:title="@string/share"
-        android:visible="false"
-        app:showAsAction="always" />
-    <item
-        android:id="@+id/cab_save_as"
-        android:icon="@drawable/ic_cmn_note"
-        android:title="@string/save_as"
-        app:showAsAction="never" />
-    <item
-        android:id="@+id/cab_forward_message"
-        android:showAsAction="never"
-        android:title="@string/forward_message"
-        app:showAsAction="never" />
-    <item
-        android:id="@+id/cab_select_text"
-        android:showAsAction="never"
-        android:title="@string/select_text"
-        app:showAsAction="never"
-        android:icon="@drawable/ic_cmn_list"/>
-    <item
-        android:id="@+id/cab_properties"
-        android:icon="@drawable/ic_cmn_info"
-        android:title="@string/properties"
-        app:showAsAction="ifRoom" />
-    <item
-        android:id="@+id/cab_restore"
-        android:showAsAction="never"
-        android:title="@string/restore"
-        app:showAsAction="never" />
-
+    <group
+        android:id="@+id/menu_group_conversation_details"
+        android:checkableBehavior="single">
+        <item
+            android:id="@+id/cab_copy_to_clipboard"
+            android:icon="@drawable/ic_cmn_copy"
+            android:showAsAction="always"
+            android:title="@string/copy_to_clipboard"
+            app:showAsAction="always" />
+    </group>
+    <group
+        android:id="@+id/menu_group_cab_share"
+        android:checkableBehavior="single">
+        <item
+            android:id="@+id/cab_share"
+            android:icon="@drawable/ic_ios_share"
+            android:title="@string/share"
+            android:visible="false"
+            app:showAsAction="always" />
+    </group>
+    <group
+        android:id="@+id/menu_group_cab_save_as"
+        android:checkableBehavior="single">
+        <item
+            android:id="@+id/cab_save_as"
+            android:icon="@drawable/ic_cmn_note"
+            android:title="@string/save_as"
+            app:showAsAction="never" />
+    </group>
+    <group
+        android:id="@+id/menu_group_cab_forward_message"
+        android:checkableBehavior="single">
+        <item
+            android:id="@+id/cab_forward_message"
+            android:showAsAction="never"
+            android:title="@string/forward_message"
+            app:showAsAction="never" />
+    </group>
+    <group
+        android:id="@+id/menu_group_cab_select_text"
+        android:checkableBehavior="single">
+        <item
+            android:id="@+id/cab_select_text"
+            android:showAsAction="never"
+            android:title="@string/select_text"
+            app:showAsAction="never"
+            android:icon="@drawable/ic_cmn_list"/>
+    </group>
+    <group
+        android:id="@+id/menu_group_cab_properties"
+        android:checkableBehavior="single">
+        <item
+            android:id="@+id/cab_properties"
+            android:icon="@drawable/ic_cmn_info"
+            android:title="@string/properties"
+            app:showAsAction="ifRoom" />
+    </group>
+    <group
+        android:id="@+id/menu_group_cab_restore"
+        android:checkableBehavior="single">
+        <item
+            android:id="@+id/cab_restore"
+            android:showAsAction="never"
+            android:title="@string/restore"
+            app:showAsAction="never" />
+    </group>
     <!--    ripple items-->
-    <item
-        android:id="@+id/cab_ripple_delete"
-        android:title="@string/delete"
-        android:icon="@drawable/ic_cmn_delete_fill"
-        app:showAsAction="ifRoom"/>
-    <item
-        android:id="@+id/cab_ripple_message_conversion"
-        android:title="@string/message_conversion"
-        android:icon="@drawable/ic_cmn_chat_fill"
-        app:showAsAction="ifRoom"/>
-    <item
-        android:id="@+id/cab_ripple_copy"
-        android:title="@string/copy"
-        android:icon="@drawable/ic_sms_ripple_copy"
-        app:showAsAction="ifRoom"/>
-
+    <group
+        android:id="@+id/menu_group_cab_ripple_delete"
+        android:checkableBehavior="single">
+        <item
+            android:id="@+id/cab_ripple_delete"
+            android:title="@string/delete"
+            android:icon="@drawable/ic_cmn_delete_fill"
+            app:showAsAction="ifRoom"/>
+    </group>
+    <group
+        android:id="@+id/menu_group_cab_ripple_message_conversion"
+        android:checkableBehavior="single">
+        <item
+            android:id="@+id/cab_ripple_message_conversion"
+            android:title="@string/message_conversion"
+            android:icon="@drawable/ic_cmn_chat_fill"
+            app:showAsAction="ifRoom"/>
+    </group>
+    <group
+        android:id="@+id/menu_group_cab_ripple_copy"
+        android:checkableBehavior="single">
+        <item
+            android:id="@+id/cab_ripple_copy"
+            android:title="@string/copy"
+            android:icon="@drawable/ic_sms_ripple_copy"
+            app:showAsAction="ifRoom"/>
+    </group>
 </menu>
