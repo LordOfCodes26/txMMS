@@ -1246,7 +1246,7 @@ class ThreadAdapter(
         val nDay = strDateDay.toInt()
         szMMDD = nMonth.toString() + activity.getString(R.string.month) + " " + nDay.toString() + activity.getString(R.string.day)
         messageBinding.threadMessageTime.apply {
-            text = szMMDD + timeStr
+            text = szMMDD + " " + timeStr
             setTextColor(textColor)
             setTextSize(TypedValue.COMPLEX_UNIT_PX, fontSizeSmall)
         }
