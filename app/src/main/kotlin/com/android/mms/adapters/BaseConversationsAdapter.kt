@@ -414,86 +414,82 @@ abstract class BaseConversationsAdapter(
 //                conversationDraft.beGone()
             }
             conversationDraft.beGone()
-            ensureBackgroundThread {
-                if (conversation.unreadCount > 0) {
-                    conversationDraft.beVisible()
-                    // Provider map can miss threads the local DB still counts as unread; never show "null".
-                    val count = unreadCountHash[conversation.threadId] ?: conversation.unreadCount
-                    val szCount = when {
-                        count > MAX_UNREAD_BADGE_COUNT -> "$MAX_UNREAD_BADGE_COUNT+"
-                        else -> count.toString()
-                    }
-                    conversationDraft.text = szCount
+            if (conversation.unreadCount > 0) {
+                conversationDraft.beVisible()
+                // Provider map can miss threads the local DB still counts as unread; never show "null".
+                val count = unreadCountHash[conversation.threadId] ?: conversation.unreadCount
+                val szCount = when {
+                    count > MAX_UNREAD_BADGE_COUNT -> "$MAX_UNREAD_BADGE_COUNT+"
+                    else -> count.toString()
                 }
+                conversationDraft.text = szCount
             }
 
             // Sent/received type icon (txDial item_recents_type logic): sent = ic_cmn_out, received = ic_cmn_in, draft/other = nothing (lastMessageType set on background when loading list)
-            ensureBackgroundThread {
-                val lastMessageType = conversation.lastMessageType
-                when {
-                    lastMessageType == Telephony.Sms.MESSAGE_TYPE_INBOX -> {
-                        if (smsDraft == null) {
-                            conversationMessageType.setImageResource(R.drawable.ic_sms_in)
-                            conversationMessageType.beVisible()
-                        }
+            val lastMessageType = conversation.lastMessageType
+            when {
+                lastMessageType == Telephony.Sms.MESSAGE_TYPE_INBOX -> {
+                    if (smsDraft == null) {
+                        conversationMessageType.setImageResource(R.drawable.ic_sms_in)
+                        conversationMessageType.beVisible()
                     }
-                    lastMessageType == Telephony.Sms.MESSAGE_TYPE_SENT -> {
-                        if (smsDraft == null) {
-                            conversationMessageType.setImageResource(R.drawable.ic_sms_out)
-                            conversationMessageType.beVisible()
-                        }
-                    }
-                    lastMessageType == Telephony.Sms.MESSAGE_TYPE_OUTBOX -> {
-                        if (smsDraft == null)   {
-                            conversationMessageType.setImageResource(R.drawable.ic_cmn_sms_send)
-                            conversationMessageType.beVisible()
-                            conversationBodyShort.translationX = (-5 * resources.displayMetrics.density)
-                        }
-                        else {
-                            if (smsDraft != null){
-                                conversationBodyShort.translationX = (40 * resources.displayMetrics.density)
-                            }
-                        }
-                    }
-                    lastMessageType == Telephony.Sms.MESSAGE_TYPE_FAILED -> {
-                        if (smsDraft == null) {
-                            conversationMessageType.setImageResource(R.drawable.ic_sms_send_fail)
-                            conversationMessageType.beVisible()
-                            conversationBodyShort.translationX = (-5 * resources.displayMetrics.density)
-                        }
-                        else {
-                            if (smsDraft != null){
-                                conversationBodyShort.translationX = (40 * resources.displayMetrics.density)
-                            }
-                        }
-                    }
-                    lastMessageType == Telephony.Sms.MESSAGE_TYPE_QUEUED -> {
-                        if (smsDraft == null) {
-                            conversationMessageType.setImageResource(com.android.common.R.drawable.ic_cmn_alarm)
-                            conversationMessageType.beVisible()
-                            conversationBodyShort.translationX = (-5 * resources.displayMetrics.density)
-                        }
-                        else {
-                            if (smsDraft != null){
-                                conversationBodyShort.translationX = (40 * resources.displayMetrics.density)
-                            }
-                        }
-                    }
-                    lastMessageType == Telephony.Sms.MESSAGE_TYPE_DRAFT -> {
-                        if (smsDraft == null) {
-                            conversationMessageType.beGone()
-                            tvConversationCHOGO.beVisible()
-                            conversationDraft.beGone()
-                            conversationBodyShort.translationX = (-5 * resources.displayMetrics.density)
-                        }
-                        else {
-                            if (smsDraft != null){
-                                conversationBodyShort.translationX = (40 * resources.displayMetrics.density)
-                            }
-                        }
-                    }
-                    else -> conversationMessageType.beGone()
                 }
+                lastMessageType == Telephony.Sms.MESSAGE_TYPE_SENT -> {
+                    if (smsDraft == null) {
+                        conversationMessageType.setImageResource(R.drawable.ic_sms_out)
+                        conversationMessageType.beVisible()
+                    }
+                }
+                lastMessageType == Telephony.Sms.MESSAGE_TYPE_OUTBOX -> {
+                    if (smsDraft == null)   {
+                        conversationMessageType.setImageResource(R.drawable.ic_cmn_sms_send)
+                        conversationMessageType.beVisible()
+                        conversationBodyShort.translationX = (-5 * resources.displayMetrics.density)
+                    }
+                    else {
+                        if (smsDraft != null){
+                            conversationBodyShort.translationX = (40 * resources.displayMetrics.density)
+                        }
+                    }
+                }
+                lastMessageType == Telephony.Sms.MESSAGE_TYPE_FAILED -> {
+                    if (smsDraft == null) {
+                        conversationMessageType.setImageResource(R.drawable.ic_sms_send_fail)
+                        conversationMessageType.beVisible()
+                        conversationBodyShort.translationX = (-5 * resources.displayMetrics.density)
+                    }
+                    else {
+                        if (smsDraft != null){
+                            conversationBodyShort.translationX = (40 * resources.displayMetrics.density)
+                        }
+                    }
+                }
+                lastMessageType == Telephony.Sms.MESSAGE_TYPE_QUEUED -> {
+                    if (smsDraft == null) {
+                        conversationMessageType.setImageResource(com.android.common.R.drawable.ic_cmn_alarm)
+                        conversationMessageType.beVisible()
+                        conversationBodyShort.translationX = (-5 * resources.displayMetrics.density)
+                    }
+                    else {
+                        if (smsDraft != null){
+                            conversationBodyShort.translationX = (40 * resources.displayMetrics.density)
+                        }
+                    }
+                }
+                lastMessageType == Telephony.Sms.MESSAGE_TYPE_DRAFT -> {
+                    if (smsDraft == null) {
+                        conversationMessageType.beGone()
+                        tvConversationCHOGO.beVisible()
+                        conversationDraft.beGone()
+                        conversationBodyShort.translationX = (-5 * resources.displayMetrics.density)
+                    }
+                    else {
+                        if (smsDraft != null){
+                            conversationBodyShort.translationX = (40 * resources.displayMetrics.density)
+                        }
+                    }
+                }
+                else -> conversationMessageType.beGone()
             }
 
 
