@@ -478,7 +478,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             findItem(R.id.unarchive)?.isVisible =
                 threadItems.isNotEmpty() && conversation?.isArchived == true && !isRecycleBin && archiveAvailable
             findItem(R.id.rename_conversation)?.isVisible = participants.size > 1 && conversation != null && !isRecycleBin
-            findItem(R.id.conversation_details)?.isVisible = conversation != null && !isRecycleBin
+            findItem(R.id.conversation_details)?.isVisible = false//conversation != null && !isRecycleBin
             findItem(R.id.block_number)?.isVisible = !isRecycleBin
             findItem(R.id.mark_as_unread)?.isVisible = threadItems.isNotEmpty() && !isRecycleBin
 
@@ -542,7 +542,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             R.id.archive -> archiveConversation()
             R.id.unarchive -> unarchiveConversation()
             R.id.rename_conversation -> renameConversation()
-            R.id.conversation_details -> launchConversationDetails(threadId)
+//            R.id.conversation_details -> launchConversationDetails(threadId)
             R.id.add_number_to_contact -> addNumberToContact()
             R.id.dial_number -> {
                 val isGroupConversation = participants.size > 1 || conversation?.isGroupConversation == true
@@ -1285,54 +1285,54 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                 return
             }
 
-            currentSIMCardIndex = getProperSimIndex(availableSIMs, numbers)
-            binding.messageHolder.threadSelectSimIcon.background.applyColorFilter(
-                resources.getColor(com.goodwy.commons.R.color.activated_item_foreground, theme)
-            )
-            binding.messageHolder.threadSelectSimIcon.applyColorFilter(getProperTextColor())
-            binding.messageHolder.threadSelectSimIconHolder.beVisibleIf(!config.showSimSelectionDialog)
-            binding.messageHolder.threadAvailableMessageCount.beVisible()
-            val simLabel =
-                if (availableSIMCards.size > currentSIMCardIndex) availableSIMCards[currentSIMCardIndex].label else "SIM Card"
-            binding.messageHolder.threadAvailableMessageCount.contentDescription = simLabel
-
-            if (availableSIMCards.isNotEmpty()) {
-                binding.messageHolder.threadSelectSimIconHolder.setOnClickListener {
-                    currentSIMCardIndex = (currentSIMCardIndex + 1) % availableSIMCards.size
-                    val currentSIMCard = availableSIMCards[currentSIMCardIndex]
-                    @SuppressLint("SetTextI18n")
-                    binding.messageHolder.threadSelectSimNumber.text = currentSIMCard.id.toString()
-                    val simColor = if (!config.colorSimIcons) textColor
-                    else {
-                        val simId = currentSIMCard.id
-                        if (simId in 1..4) config.simIconsColors[simId] else config.simIconsColors[0]
-                    }
-                    binding.messageHolder.threadSelectSimIcon.applyColorFilter(simColor)
-                    val currentSubscriptionId = currentSIMCard.subscriptionId
-                    numbers.forEach {
-                        config.saveUseSIMIdAtNumber(it, currentSubscriptionId)
-                    }
-                    it.performHapticFeedback()
-                    binding.messageHolder.threadSelectSimIconHolder.contentDescription = currentSIMCard.label
-                    toast(currentSIMCard.label)
-                    updateAvailableMessageCountForCurrentSim()
-                }
-            }
-
-            binding.messageHolder.threadSelectSimNumber.setTextColor(textColor.getContrastColor())
-            try {
-                @SuppressLint("SetTextI18n")
-                binding.messageHolder.threadSelectSimNumber.text = (availableSIMCards[currentSIMCardIndex].id).toString()
-                val simColor =
-                    if (!config.colorSimIcons) textColor
-                    else {
-                        val simId = availableSIMCards[currentSIMCardIndex].id
-                        if (simId in 1..4) config.simIconsColors[simId] else config.simIconsColors[0]
-                    }
-                binding.messageHolder.threadSelectSimIcon.applyColorFilter(simColor)
-            } catch (e: Exception) {
-                showErrorToast(e)
-            }
+//            currentSIMCardIndex = getProperSimIndex(availableSIMs, numbers)
+//            binding.messageHolder.threadSelectSimIcon.background.applyColorFilter(
+//                resources.getColor(com.goodwy.commons.R.color.activated_item_foreground, theme)
+//            )
+//            binding.messageHolder.threadSelectSimIcon.applyColorFilter(getProperTextColor())
+//            binding.messageHolder.threadSelectSimIconHolder.beVisibleIf(!config.showSimSelectionDialog)
+//            binding.messageHolder.threadAvailableMessageCount.beVisible()
+//            val simLabel =
+//                if (availableSIMCards.size > currentSIMCardIndex) availableSIMCards[currentSIMCardIndex].label else "SIM Card"
+//            binding.messageHolder.threadAvailableMessageCount.contentDescription = simLabel
+//
+//            if (availableSIMCards.isNotEmpty()) {
+//                binding.messageHolder.threadSelectSimIconHolder.setOnClickListener {
+//                    currentSIMCardIndex = (currentSIMCardIndex + 1) % availableSIMCards.size
+//                    val currentSIMCard = availableSIMCards[currentSIMCardIndex]
+//                    @SuppressLint("SetTextI18n")
+//                    binding.messageHolder.threadSelectSimNumber.text = currentSIMCard.id.toString()
+//                    val simColor = if (!config.colorSimIcons) textColor
+//                    else {
+//                        val simId = currentSIMCard.id
+//                        if (simId in 1..4) config.simIconsColors[simId] else config.simIconsColors[0]
+//                    }
+//                    binding.messageHolder.threadSelectSimIcon.applyColorFilter(simColor)
+//                    val currentSubscriptionId = currentSIMCard.subscriptionId
+//                    numbers.forEach {
+//                        config.saveUseSIMIdAtNumber(it, currentSubscriptionId)
+//                    }
+//                    it.performHapticFeedback()
+//                    binding.messageHolder.threadSelectSimIconHolder.contentDescription = currentSIMCard.label
+//                    toast(currentSIMCard.label)
+//                    updateAvailableMessageCountForCurrentSim()
+//                }
+//            }
+//
+//            binding.messageHolder.threadSelectSimNumber.setTextColor(textColor.getContrastColor())
+//            try {
+//                @SuppressLint("SetTextI18n")
+//                binding.messageHolder.threadSelectSimNumber.text = (availableSIMCards[currentSIMCardIndex].id).toString()
+//                val simColor =
+//                    if (!config.colorSimIcons) textColor
+//                    else {
+//                        val simId = availableSIMCards[currentSIMCardIndex].id
+//                        if (simId in 1..4) config.simIconsColors[simId] else config.simIconsColors[0]
+//                    }
+//                binding.messageHolder.threadSelectSimIcon.applyColorFilter(simColor)
+//            } catch (e: Exception) {
+//                showErrorToast(e)
+//            }
         }
         updateAvailableMessageCountForCurrentSim()
     }

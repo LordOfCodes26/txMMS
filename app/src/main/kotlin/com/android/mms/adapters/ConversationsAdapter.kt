@@ -167,8 +167,8 @@ class ConversationsAdapter(
                 findItem(R.id.cab_ripple_address_add)?.isVisible = isSingleSelection && (selectedConversation?.shouldOfferAddNumberToContactAction() == true)
                 findItem(R.id.cab_ripple_private_space_add)?.isVisible = isPinZeroMode
                 findItem(R.id.cab_ripple_private_space_delete)?.isVisible = isPinPrivateSpaceMode
-                findItem(R.id.cab_conversation_details)?.isVisible =
-                    isSingleSelection && (selectedConversation?.shouldShowConversationDetailsAction() == true)
+                findItem(R.id.cab_conversation_details)?.isVisible = false
+//                    isSingleSelection && (selectedConversation?.shouldShowConversationDetailsAction() == true)
             }
             return
         }
@@ -184,8 +184,8 @@ class ConversationsAdapter(
                 includeDialNumber && isSingleSelection && !isGroupConversation &&
                     (selectedConversation?.let { !isShortCodeWithLetters(it.phoneNumber) } ?: false)
             findItem(R.id.cab_copy_number)?.isVisible = isSingleSelection && !isGroupConversation
-            findItem(R.id.cab_conversation_details)?.isVisible =
-                isSingleSelection && (selectedConversation?.shouldShowConversationDetailsAction() == true)
+            findItem(R.id.cab_conversation_details)?.isVisible = false
+//                isSingleSelection && (selectedConversation?.shouldShowConversationDetailsAction() == true)
             findItem(R.id.cab_rename_conversation)?.isVisible = isSingleSelection && isGroupConversation
             findItem(R.id.cab_mark_as_read)?.isVisible = false
             findItem(R.id.cab_mark_as_unread)?.isVisible = false
