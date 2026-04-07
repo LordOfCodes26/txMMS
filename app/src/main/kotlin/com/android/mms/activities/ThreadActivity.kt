@@ -1249,7 +1249,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
 //                        senderNumberLarge
                     ).forEach {
                         it.setOnClickListener {
-                            if (conversation != null) launchConversationDetails(threadId)
+//                            if (conversation != null) launchConversationDetails(threadId)
                         }
                     }
                     senderNameLarge.setOnLongClickListener { copyToClipboard(senderNameLarge.value); true }

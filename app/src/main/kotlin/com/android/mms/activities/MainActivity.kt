@@ -108,6 +108,7 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
     private var currentMenuHeight: Int = -1
     private var fullMenuHeight: Int = -1
     private val mainMenuOverscrollFactor = 0.35f
+    private var isStartActionMode = false
 
     @SuppressLint("InlinedApi")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -455,6 +456,7 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         binding.actionModeRippleToolbar.visibility = View.GONE
         binding.conversationsFab.beVisible()
         applyActionModeListBottomInset(false)
+        isStartActionMode = false
     }
 
     /**
@@ -598,6 +600,7 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
                     endMainMenuSearchMode()
                 }
                 getOrCreateConversationsAdapter().startActMode()
+                isStartActionMode = true
             }
 //            R.id.show_recycle_bin -> launchRecycleBin()
 //            R.id.show_archived -> launchArchivedConversations()
@@ -795,6 +798,8 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
                 runOnUiThread {
                     getOrCreateConversationsAdapter().finishActMode()
                     com.android.mms.helpers.refreshConversations()
+                    isStartActionMode = false
+                    notifyDatasetChanged()
                 }
             }
         } else {
@@ -1659,5 +1664,9 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         whatsNewList().apply {
             checkWhatsNew(this, BuildConfig.VERSION_CODE)
         }
+    }
+
+    public fun getActionModeState() : Boolean {
+        return isStartActionMode
     }
 }

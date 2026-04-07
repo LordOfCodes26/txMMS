@@ -117,6 +117,19 @@ class ConversationsAdapter(
                 true
             }
         }
+
+        //redraw underline when start | hide a action mode
+        if ((activity as? MainActivity)?.getActionModeState() == true){
+            ItemConversationBinding.bind(holder.itemView).divider.apply {
+                updateMarginWithBase(0,  0, -80, 0)
+            }
+        }
+        else {
+            ItemConversationBinding.bind(holder.itemView).divider.apply {
+                updateMarginWithBase(0,  0, 0, 0)
+            }
+        }
+
     }
 
     /** 1:1 only: [PhoneLookup] says this number is saved as a contact. */
@@ -310,7 +323,7 @@ class ConversationsAdapter(
         }
 
         // Single-select only; visibility comes from [configureCabConversationsMenu] (details: group or contact; add: unknown number).
-        val selectedItemSize = getSelectedItems().size
+//        val selectedItemSize = getSelectedItems().size
         // val exactlyOneConversation = getSelectedItems().size == 1
 //        if (selectedItemSize >= 1){
             add(
