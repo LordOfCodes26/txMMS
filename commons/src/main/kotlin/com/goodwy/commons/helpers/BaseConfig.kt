@@ -775,8 +775,8 @@ open class BaseConfig(val context: Context) {
     var simIconsColors: LinkedList<Int>
         get(): LinkedList<Int> {
             val defaultList = arrayListOf(
-                ContextCompat.getColor(context, R.color.ic_dialer),
                 ContextCompat.getColor(context, R.color.md_red_500),
+                ContextCompat.getColor(context, R.color.ic_dialer),
                 ContextCompat.getColor(context, R.color.color_primary),
                 ContextCompat.getColor(context, R.color.md_yellow_500),
                 ContextCompat.getColor(context, R.color.md_orange_500)
