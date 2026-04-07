@@ -204,6 +204,7 @@ class NewConversationActivity : SimpleActivity() {
                 hideKeyboard()
                 finish()
             }
+            bindBlurTarget(this@NewConversationActivity, binding.conversationScrollBlur)
         }
         scrollingView = binding.nestScroll
         binding.newConversationAppbar.updateColors(

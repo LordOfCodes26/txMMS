@@ -532,6 +532,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                 }
             }
         )
+        binding.threadToolbar.bindBlurTarget(this, binding.mainBlurTarget)
     }
 
     private fun handleThreadMenuClick(menuItem: android.view.MenuItem): Boolean {

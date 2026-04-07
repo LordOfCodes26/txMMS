@@ -401,6 +401,7 @@ class ContactPickerActivity : SimpleActivity() {
 
         blurAppBarLayout?.requireCustomToolbar()?.apply {
             inflateMenu(R.menu.menu_contact_picker)
+            bindBlurTarget(this@ContactPickerActivity, blurTarget)
             setOnMenuItemClickListener { item ->
                 if (item.itemId == R.id.search) {
                     expandSearch()

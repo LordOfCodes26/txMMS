@@ -151,6 +151,7 @@ class MessageBubblePickerActivity : SimpleActivity() {
             )
             setNavigationOnClickListener { cancelAndFinish() }
             setNavigationContentDescription(com.goodwy.commons.R.string.back)
+            bindBlurTarget(this@MessageBubblePickerActivity, binding.mainBlurTarget)
         }
         binding.bubblePickerAppbar.binding.collapsingTitle.updateLayoutParams<ViewGroup.MarginLayoutParams> {
             marginStart = (64 * resources.displayMetrics.density).toInt()
