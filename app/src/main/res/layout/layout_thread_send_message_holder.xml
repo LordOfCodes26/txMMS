@@ -165,7 +165,8 @@
         app:layout_constraintEnd_toStartOf="@id/threadSelectSimIconHolder"
         app:layout_constraintStart_toEndOf="@+id/threadTypeMessageWrapper"
         app:layout_constraintBottom_toBottomOf="@id/threadTypeMessageWrapper"
-        android:layout_marginBottom="@dimen/medium_margin"/>
+        android:layout_marginBottom="@dimen/medium_margin"
+        android:layout_marginEnd="-2dp"/>
 
     <LinearLayout
         android:id="@+id/threadSelectSimIconHolder"
@@ -173,6 +174,7 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="@dimen/smaller_margin"
         android:orientation="vertical"
+        android:layout_marginEnd="-6dp"
         android:background="?selectableItemBackgroundBorderless"
         app:layout_constraintEnd_toStartOf="@id/threadSendMessageWrapper"
         app:layout_constraintBottom_toBottomOf="@id/threadAddAttachmentHolder"
@@ -186,7 +188,6 @@
             android:alpha="0.9"
             android:contentDescription="@null"
             android:paddingHorizontal="@dimen/smaller_margin"
-            android:paddingVertical="@dimen/tiny_margin"
             android:src="@drawable/ic_sim_vector" />
     </LinearLayout>
 
@@ -244,7 +245,6 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:layout_marginStart="@dimen/smaller_margin"
         android:layout_marginEnd="@dimen/tx_cardview_margin_vertical"
         android:layout_marginBottom="@dimen/small_margin"
         app:layout_constraintBottom_toBottomOf="@id/threadAddAttachmentHolder"

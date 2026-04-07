@@ -1245,24 +1245,24 @@ class ThreadAdapter(
 //            if (isReceived) android.view.Gravity.START else android.view.Gravity.END
         if (isReceived) {
             // Reorder for received: time first, then sim (order: HH:mm, SIM icon)
-            holder.removeView(messageBinding.threadMessageTime)
+            //holder.removeView(messageBinding.threadMessageTime)
             holder.removeView(messageBinding.threadMessageSimIcon)
-            holder.addView(messageBinding.threadMessageTime)
+            //holder.addView(messageBinding.threadMessageTime)
             holder.addView(messageBinding.threadMessageSimIcon)
-            messageBinding.threadMessageSimIcon.updateLayoutParams<android.widget.LinearLayout.LayoutParams> {
-                marginStart = resources.getDimensionPixelSize(com.goodwy.commons.R.dimen.small_margin)
-                marginEnd = 0
-            }
+//            messageBinding.threadMessageSimIcon.updateLayoutParams<android.widget.LinearLayout.LayoutParams> {
+//                marginStart = resources.getDimensionPixelSize(com.goodwy.commons.R.dimen.small_margin)
+//                marginEnd = 0
+//            }
         } else {
             // Sent: order status, sim, time - ensure correct order after possible recycle from received
-            holder.removeView(messageBinding.threadMessageTime)
-            holder.removeView(messageBinding.threadMessageSimIcon)
-            holder.addView(messageBinding.threadMessageSimIcon, holder.indexOfChild(messageBinding.threadMessageStatusIcon) + 1)
-            holder.addView(messageBinding.threadMessageTime)
-            messageBinding.threadMessageSimIcon.updateLayoutParams<android.widget.LinearLayout.LayoutParams> {
-                marginStart = 0
-                marginEnd = resources.getDimensionPixelSize(com.goodwy.commons.R.dimen.small_margin)
-            }
+            //holder.removeView(messageBinding.threadMessageTime)
+//            holder.removeView(messageBinding.threadMessageSimIcon)
+//            //holder.addView(messageBinding.threadMessageTime)
+//            holder.addView(messageBinding.threadMessageSimIcon, holder.indexOfChild(messageBinding.threadMessageStatusIcon) + 1)
+//            messageBinding.threadMessageSimIcon.updateLayoutParams<android.widget.LinearLayout.LayoutParams> {
+//                marginStart = 0
+//                marginEnd = resources.getDimensionPixelSize(com.goodwy.commons.R.dimen.small_margin)
+//            }
         }
         // Status icon for sent messages: error | sending | sent/delivered
         if (isReceived) {

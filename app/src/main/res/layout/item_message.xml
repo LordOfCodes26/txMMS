@@ -112,7 +112,7 @@
 
                 <ImageView
                     android:id="@+id/threadMessageSimIcon"
-                    android:layout_width="@dimen/normal_margin"
+                    android:layout_width="@dimen/normal_activity_margin"
                     android:layout_height="wrap_content"
                     android:layout_marginEnd="@dimen/small_margin"
                     android:visibility="gone"
