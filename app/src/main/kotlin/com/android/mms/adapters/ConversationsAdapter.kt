@@ -164,7 +164,7 @@ class ConversationsAdapter(
                 findItem(R.id.cab_ripple_delete)?.isVisible = true
                 findItem(R.id.cab_ripple_secure_box_lock)?.isVisible = isPinZeroMode
                 findItem(R.id.cab_ripple_secure_box_unlock)?.isVisible = !isPinZeroMode && !isPinPrivateSpaceMode
-                findItem(R.id.cab_ripple_address_add)?.isVisible = isSingleSelection && (selectedConversation?.shouldOfferAddNumberToContactAction() == true)
+                findItem(R.id.cab_ripple_address_add)?.isVisible = true //isSingleSelection && (selectedConversation?.shouldOfferAddNumberToContactAction() == true)
                 findItem(R.id.cab_ripple_private_space_add)?.isVisible = isPinZeroMode
                 findItem(R.id.cab_ripple_private_space_delete)?.isVisible = isPinPrivateSpaceMode
                 findItem(R.id.cab_conversation_details)?.isVisible = false
@@ -312,7 +312,7 @@ class ConversationsAdapter(
         // Single-select only; visibility comes from [configureCabConversationsMenu] (details: group or contact; add: unknown number).
         val selectedItemSize = getSelectedItems().size
         // val exactlyOneConversation = getSelectedItems().size == 1
-        if (selectedItemSize >= 1){
+//        if (selectedItemSize >= 1){
             add(
                 com.android.common.R.drawable.ic_cmn_delete_fill,
                 activity.getString(com.goodwy.commons.R.string.delete),
@@ -320,18 +320,18 @@ class ConversationsAdapter(
             )
             if (m.findItem(R.id.cab_ripple_address_add)?.isVisible == true) {
                 add(
-                    R.drawable.ic_sms_ripple_add_address,
+                    R.drawable.ic_sms_address_add,
                     activity.getString(com.goodwy.strings.R.string.add_address),
                     R.id.cab_ripple_address_add,
                 )
             }
-            if (m.findItem(R.id.cab_conversation_details)?.isVisible == true) {
-                add(
-                    com.android.common.R.drawable.ic_cmn_info_fill,
-                    activity.getString(R.string.conversation_details),
-                    R.id.cab_conversation_details,
-                )
-            }
+//            if (m.findItem(R.id.cab_conversation_details)?.isVisible == true) {
+//                add(
+//                    com.android.common.R.drawable.ic_cmn_info_fill,
+//                    activity.getString(R.string.conversation_details),
+//                    R.id.cab_conversation_details,
+//                )
+//            }
             if (m.findItem(R.id.cab_ripple_private_space_add)?.isVisible == true) {
                 add(
                     R.drawable.ic_sms_ripple_shield,
@@ -360,7 +360,7 @@ class ConversationsAdapter(
                     R.id.cab_ripple_secure_box_unlock,
                 )
             }
-        }
+//        }
 
 //        if (exactlyOneConversation && m.findItem(R.id.cab_conversation_details)?.isVisible == true) {
 //            add(

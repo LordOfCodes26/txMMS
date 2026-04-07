@@ -53,6 +53,7 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
 import androidx.core.view.marginTop
+import androidx.core.view.size
 import androidx.documentfile.provider.DocumentFile
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -2443,6 +2444,14 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             adapter.dispatchRippleToolbarAction(index)
         }
         binding.actionModeRippleToolbar.visibility = View.VISIBLE
+        if (adapter.getSelectedItems().isEmpty()){
+            for (i in 0 until 3){
+                binding.actionModeRippleToolbar.setEnable(i, false)
+            }
+        }
+        if (adapter.getSelectedItems().count() == 1){
+            binding.actionModeRippleToolbar.setEnable(2, false)
+        }
     }
 
     fun refreshActionModeRippleToolbarIfNeeded() {

@@ -292,15 +292,15 @@ class ThreadAdapter(
             if (!mi.isVisible) continue
             val iconRes = iconForId(itemId)
 //            if (iconRes == 0) continue
-            if (getSelectedItems().size == 0){
-                break
-            }
+//            if (getSelectedItems().size == 0){
+//                break
+//            }
             add(iconRes, mi.title ?: "", itemId)
-            if (getSelectedItems().size == 1){
-                if (itemId == R.id.cab_ripple_message_conversion) {
-                    break
-                }
-            }
+//            if (getSelectedItems().size == 1){
+//                if (itemId == R.id.cab_ripple_message_conversion) {
+//                    break
+//                }
+//            }
         }
         return items to ids
     }
@@ -601,7 +601,7 @@ class ThreadAdapter(
         finishActMode()
     }
 
-    private fun getSelectedItems(): ArrayList<ThreadItem> {
+    fun getSelectedItems(): ArrayList<ThreadItem> {
         return currentList.filter {
             selectedKeys.contains((it as? Message)?.getSelectionKey() ?: 0)
         } as ArrayList<ThreadItem>
@@ -1232,21 +1232,8 @@ class ThreadAdapter(
         textColor: Int
     ) {
         val timeStr = (message.date * 1000L).formatTime(activity)
-        var szMMDD = (message.date * 1000L).formatDateOrTime(
-            context = activity,
-            hideTimeOnOtherDays = true,
-            showCurrentYear = false,
-            hideTodaysDate = false,
-            dateFormat = "MM.dd"
-        )
-        val strDateArray = szMMDD.split("\\.".toRegex())
-        val strDateMonth = strDateArray[0]
-        val strDateDay = strDateArray[1]
-        val nMonth = strDateMonth.toInt()
-        val nDay = strDateDay.toInt()
-        szMMDD = nMonth.toString() + activity.getString(R.string.month) + " " + nDay.toString() + activity.getString(R.string.day)
         messageBinding.threadMessageTime.apply {
-            text = szMMDD + " " + timeStr
+            text = timeStr
             setTextColor(textColor)
             setTextSize(TypedValue.COMPLEX_UNIT_PX, fontSizeSmall)
         }
@@ -1360,7 +1347,6 @@ class ThreadAdapter(
             }
             threadDateTime.setTextColor(secondTextColor)
             threadDateTime.alpha = 0.6f
-            threadDateTime.beGone()
 
             // SIM info is now shown in each message bubble; hide from date header
             threadSimIcon.beGone()

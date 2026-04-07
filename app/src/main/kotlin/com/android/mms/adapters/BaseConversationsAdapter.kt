@@ -263,7 +263,7 @@ abstract class BaseConversationsAdapter(
 
     override fun getSelectableItemCount() = currentList.count { it is ConversationListItem.ConversationItem }
 
-    protected fun getSelectedItems(): ArrayList<Conversation> = currentList
+    fun getSelectedItems(): ArrayList<Conversation> = currentList
         .filterIsInstance<ConversationListItem.ConversationItem>()
         .filter { selectedKeys.contains(it.conversation.hashCode()) }
         .map { it.conversation } as ArrayList<Conversation>

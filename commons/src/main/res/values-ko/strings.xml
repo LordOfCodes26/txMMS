@@ -632,7 +632,7 @@
     <string name="search_apps">응용프로그람 검색</string>
     <string name="search_files_and_folders">화일 및 등록부 검색</string>
 <!--    <string name="action_mode_selection_title">%2$d 중 %1$d 개 주소 선택됨</string>-->
-    <string name="action_mode_selection_title">%1$d 선택됨</string>
+    <string name="action_mode_selection_title">%1$d개 선택됨</string>
     <string name="loading">적재중…</string>
     <plurals name="delete_contacts">
         <item quantity="other">%d개 주소록</item>
