@@ -138,6 +138,7 @@ class NewConversationActivity : SimpleActivity() {
         window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE)
         binding.newConversationAddress.requestEditTextFocus()
         binding.newConversationAddress.hint = getString(R.string.recipients_hint)
+        binding.newConversationAddress.getAddressBookButton().setColorFilter(com.goodwy.commons.R.color.bw_000)
 
         val contentRoot = window.decorView.findViewById<View>(android.R.id.content) as ViewGroup
         contentRoot.viewTreeObserver.addOnGlobalFocusChangeListener { _, hasFocus ->
@@ -218,7 +219,7 @@ class NewConversationActivity : SimpleActivity() {
         binding.contactsList.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
                 super.onScrollStateChanged(recyclerView, newState)
-                hideKeyboard()
+//                hideKeyboard()
             }
         })
 
@@ -641,7 +642,7 @@ class NewConversationActivity : SimpleActivity() {
         val currAdapter = binding.contactsList.adapter
         if (currAdapter == null) {
             ContactsAdapter(this, contactPhonePairs, binding.contactsList) {
-                hideKeyboard()
+//                hideKeyboard()
                 val contactPhonePair = it as ContactPhonePair
                 val contact = contactPhonePair.contact
                 val phoneNumber = contactPhonePair.phoneNumber
