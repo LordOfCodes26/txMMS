@@ -6,7 +6,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginTop="@dimen/small_margin"
-    android:layout_marginBottom="@dimen/tiny_margin"
+    android:layout_marginBottom="@dimen/medium_normal_margin"
     android:foreground="@drawable/selector"
     android:paddingStart="@dimen/activity_margin"
     android:paddingEnd="@dimen/activity_margin">
