@@ -13,30 +13,38 @@
         android:paddingStart="@dimen/tiny_margin"
         android:paddingEnd="@dimen/tiny_margin" />
 
-    <TextView
+    <com.goodwy.commons.views.MarqueeTextView
         android:id="@+id/suggested_contact_name"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_below="@+id/suggested_contact_image"
         android:layout_alignStart="@+id/suggested_contact_image"
         android:layout_alignEnd="@id/suggested_contact_image"
-        android:ellipsize="end"
-        android:gravity="center_horizontal"
-        android:maxLines="2"
+        android:maxLines="1"
+        android:singleLine="true"
+        android:ellipsize="marquee"
+        android:marqueeRepeatLimit="-1"
+        android:scrollHorizontally="true"
+        android:gravity="center_vertical|center"
+        android:layout_gravity="center_horizontal"
         android:paddingTop="@dimen/small_margin"
         android:textSize="@dimen/tx_normal_text"
         tools:text="John" />
 
-    <TextView
+    <com.goodwy.commons.views.MarqueeTextView
         android:id="@+id/suggested_contact_number"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_below="@+id/suggested_contact_name"
         android:layout_alignStart="@+id/suggested_contact_image"
         android:layout_alignEnd="@id/suggested_contact_image"
-        android:ellipsize="end"
-        android:gravity="center_horizontal"
         android:maxLines="1"
+        android:singleLine="true"
+        android:ellipsize="marquee"
+        android:marqueeRepeatLimit="-1"
+        android:scrollHorizontally="true"
+        android:gravity="center_vertical|center"
+        android:layout_gravity="center_horizontal"
         android:paddingBottom="@dimen/small_margin"
         android:alpha="0.6"
         android:textSize="@dimen/tx_small_text"

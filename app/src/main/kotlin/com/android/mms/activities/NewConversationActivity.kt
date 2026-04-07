@@ -25,6 +25,7 @@ import android.text.format.DateUtils.FORMAT_NO_YEAR
 import android.text.format.DateUtils.FORMAT_SHOW_DATE
 import android.text.format.DateUtils.FORMAT_SHOW_TIME
 import android.text.TextUtils
+import android.util.DisplayMetrics
 import android.util.Log
 import android.view.Gravity
 import android.view.KeyEvent
@@ -75,6 +76,7 @@ import com.android.mms.models.Events
 import com.android.mms.models.SIMCard
 import com.android.mms.BuildConfig
 import com.android.mms.helpers.MessageHolderHelper
+import com.behaviorule.arturdumchev.library.setHeight
 import com.google.gson.annotations.Until
 import org.greenrobot.eventbus.EventBus
 import org.joda.time.DateTime
@@ -98,6 +100,10 @@ class NewConversationActivity : SimpleActivity() {
     private var scheduledDateTime = DateTime.now().plusMinutes(5)
     private var isScheduledMessage = false
     private val binding by viewBinding(ActivityNewConversationBinding::inflate)
+    private var vertOffsetTile = 0
+    private var keyboardHeight = 0
+    private var chipboardHeight = 0
+    private var messageInputHeight = 0
     
     companion object {
         private const val PICK_SAVE_FILE_INTENT = 1008
@@ -206,6 +212,10 @@ class NewConversationActivity : SimpleActivity() {
         )
         binding.newConversationAppbar.setBackgroundColor(Color.TRANSPARENT)
         binding.newConversationAppbar.binding.searchBarContainer.setBackgroundColor(Color.TRANSPARENT)
+
+        setupTitleScrollAnimation()
+        setupChipInputHeightListener()
+        setupMessageHeightListener()
 //        binding.newConversationHolder.setBackgroundColor(backgroundColor)
 //        binding.newConversationAddress.setBackgroundColor(backgroundColor)
 //        binding.suggestionsOverlay.setBackgroundColor(backgroundColor)
@@ -281,14 +291,17 @@ class NewConversationActivity : SimpleActivity() {
                 // Match ThreadActivity: setupEdgeToEdge pads for system bars + small offset
                 systemBars.bottom + bottomOffsetPx
             }
+            keyboardHeight = bottomMargin + (25 * resources.displayMetrics.density).toInt()
             val lp = barContainer.layoutParams as? ViewGroup.MarginLayoutParams
             if (lp != null) {
                 lp.bottomMargin = bottomMargin + (30 * resources.displayMetrics.density).toInt()
                 if (bottomMargin >= getDefaultKeyboardHeight()){
                     lp.bottomMargin = bottomMargin + (3 * resources.displayMetrics.density).toInt()
+                    keyboardHeight = bottomMargin
                 }
                 barContainer.layoutParams = lp
             }
+            setRecyclerViewHeight()
             insets
         }
     }
@@ -385,6 +398,35 @@ class NewConversationActivity : SimpleActivity() {
                 addContactAttachment(resultData.data!!)
             }
         }
+    }
+    private fun setupTitleScrollAnimation() {
+        binding.newConversationAppbar.addOnOffsetChangedListener { _, verticalOffset ->
+            val height = binding.newConversationAppbar.height
+            vertOffsetTile = verticalOffset
+            setRecyclerViewHeight()
+        }
+    }
+    private fun setupChipInputHeightListener(){
+        binding.newConversationAddress.addOnLayoutChangeListener { v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom ->
+            chipboardHeight = binding.newConversationAddress.height
+            setRecyclerViewHeight()
+        }
+    }
+
+    private fun setupMessageHeightListener(){
+        binding.messageHolder.threadTypeMessage.addOnLayoutChangeListener { v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom ->
+            messageInputHeight = binding.messageHolder.threadTypeMessageWrapper.height
+            setRecyclerViewHeight()
+        }
+    }
+    private fun setRecyclerViewHeight(){
+        val display = windowManager.defaultDisplay
+        val metrics = DisplayMetrics()
+        display.getRealMetrics(metrics)
+        val totalH = metrics.heightPixels
+        var height = totalH - vertOffsetTile - keyboardHeight - chipboardHeight - messageInputHeight - (200 * resources.displayMetrics.density).toInt()
+
+        binding.contactsList.setHeight(height)
     }
     @SuppressLint("MissingPermission")
     private fun initContacts() {
@@ -523,12 +565,12 @@ class NewConversationActivity : SimpleActivity() {
             }
         }
 
-        binding.contactsLetterFastscroller.textColor = properTextColor.getColorStateList()
-        binding.contactsLetterFastscroller.pressedTextColor = properAccentColor
-        binding.contactsLetterFastscrollerThumb.setupWithFastScroller(binding.contactsLetterFastscroller)
-        binding.contactsLetterFastscrollerThumb.fontSize = getTextSize()
-        binding.contactsLetterFastscrollerThumb.textColor = properAccentColor.getContrastColor()
-        binding.contactsLetterFastscrollerThumb.thumbColor = properAccentColor.getColorStateList()
+//        binding.contactsLetterFastscroller.textColor = properTextColor.getColorStateList()
+//        binding.contactsLetterFastscroller.pressedTextColor = properAccentColor
+//        binding.contactsLetterFastscrollerThumb.setupWithFastScroller(binding.contactsLetterFastscroller)
+//        binding.contactsLetterFastscrollerThumb.fontSize = getTextSize()
+//        binding.contactsLetterFastscrollerThumb.textColor = properAccentColor.getContrastColor()
+//        binding.contactsLetterFastscrollerThumb.thumbColor = properAccentColor.getColorStateList()
     }
 
     private fun isThirdPartyIntent(): Boolean {
@@ -626,8 +668,8 @@ class NewConversationActivity : SimpleActivity() {
                 PERMISSION_READ_CONTACTS
             )
         )
-        binding.contactsLetterFastscroller.beVisibleIf(hasContacts)
-        binding.contactsLetterFastscrollerThumb.beVisibleIf(hasContacts)
+//        binding.contactsLetterFastscroller.beVisibleIf(hasContacts)
+//        binding.contactsLetterFastscrollerThumb.beVisibleIf(hasContacts)
 
         if (!hasContacts) {
             val placeholderText = if (hasPermission(PERMISSION_READ_CONTACTS)) {
@@ -642,7 +684,7 @@ class NewConversationActivity : SimpleActivity() {
         val currAdapter = binding.contactsList.adapter
         if (currAdapter == null) {
             ContactsAdapter(this, contactPhonePairs, binding.contactsList) {
-//                hideKeyboard()
+                hideKeyboard()
                 val contactPhonePair = it as ContactPhonePair
                 val contact = contactPhonePair.contact
                 val phoneNumber = contactPhonePair.phoneNumber
@@ -736,36 +778,36 @@ class NewConversationActivity : SimpleActivity() {
     }
 
     private fun setupLetterFastscroller(contactPhonePairs: ArrayList<ContactPhonePair>) {
-        binding.contactsLetterFastscroller.setupWithRecyclerView(
-            binding.contactsList,
-            { position ->
-                try {
-                    FastScrollItemIndicator.Text(
-                        CommonContact(id = 0, firstName = contactPhonePairs[position].contact.name, contactId = 0).getFirstLetter()
-                    )
-                } catch (_: Exception) {
-                    FastScrollItemIndicator.Text("")
-                }
-            },
-            useDefaultScroller = true
-        )
-
-        try {
-            //Decrease the font size based on the number of letters in the letter scroller
-            val allNotEmpty = contactPhonePairs.filter { it.contact.name.isNotEmpty() }
-            val all = allNotEmpty.map { CommonContact(id = 0, firstName = it.contact.name, contactId = 0).getFirstLetter() }
-            val unique: Set<String> = HashSet(all)
-            val sizeUnique = unique.size
-            if (isHighScreenSize()) {
-                if (sizeUnique > 39) binding.contactsLetterFastscroller.textAppearanceRes = R.style.LetterFastscrollerStyleTooTiny
-                else if (sizeUnique > 32) binding.contactsLetterFastscroller.textAppearanceRes = R.style.LetterFastscrollerStyleTiny
-                else binding.contactsLetterFastscroller.textAppearanceRes = R.style.LetterFastscrollerStyleSmall
-            } else {
-                if (sizeUnique > 49) binding.contactsLetterFastscroller.textAppearanceRes = R.style.LetterFastscrollerStyleTooTiny
-                else if (sizeUnique > 37) binding.contactsLetterFastscroller.textAppearanceRes = R.style.LetterFastscrollerStyleTiny
-                else binding.contactsLetterFastscroller.textAppearanceRes = R.style.LetterFastscrollerStyleSmall
-            }
-        } catch (_: Exception) { }
+//        binding.contactsLetterFastscroller.setupWithRecyclerView(
+//            binding.contactsList,
+//            { position ->
+//                try {
+//                    FastScrollItemIndicator.Text(
+//                        CommonContact(id = 0, firstName = contactPhonePairs[position].contact.name, contactId = 0).getFirstLetter()
+//                    )
+//                } catch (_: Exception) {
+//                    FastScrollItemIndicator.Text("")
+//                }
+//            },
+//            useDefaultScroller = true
+//        )
+//
+//        try {
+//            //Decrease the font size based on the number of letters in the letter scroller
+//            val allNotEmpty = contactPhonePairs.filter { it.contact.name.isNotEmpty() }
+//            val all = allNotEmpty.map { CommonContact(id = 0, firstName = it.contact.name, contactId = 0).getFirstLetter() }
+//            val unique: Set<String> = HashSet(all)
+//            val sizeUnique = unique.size
+//            if (isHighScreenSize()) {
+//                if (sizeUnique > 39) binding.contactsLetterFastscroller.textAppearanceRes = R.style.LetterFastscrollerStyleTooTiny
+//                else if (sizeUnique > 32) binding.contactsLetterFastscroller.textAppearanceRes = R.style.LetterFastscrollerStyleTiny
+//                else binding.contactsLetterFastscroller.textAppearanceRes = R.style.LetterFastscrollerStyleSmall
+//            } else {
+//                if (sizeUnique > 49) binding.contactsLetterFastscroller.textAppearanceRes = R.style.LetterFastscrollerStyleTooTiny
+//                else if (sizeUnique > 37) binding.contactsLetterFastscroller.textAppearanceRes = R.style.LetterFastscrollerStyleTiny
+//                else binding.contactsLetterFastscroller.textAppearanceRes = R.style.LetterFastscrollerStyleSmall
+//            }
+//        } catch (_: Exception) { }
     }
 
     private fun isHighScreenSize(): Boolean {

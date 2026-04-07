@@ -93,7 +93,7 @@
                                 <com.goodwy.commons.views.MyRecyclerView
                                     android:id="@+id/contacts_list"
                                     android:layout_width="match_parent"
-                                    android:layout_height="match_parent"
+                                    android:layout_height="0dp"
                                     android:clipToPadding="false"
                                     android:layoutAnimation="@anim/layout_animation"
                                     android:nestedScrollingEnabled="true"
@@ -103,24 +103,24 @@
                             </com.google.android.material.card.MaterialCardView>
 
 
-                            <com.reddit.indicatorfastscroll.FastScrollerView
-                                android:id="@+id/contactsLetterFastscroller"
-                                android:layout_width="26dp"
-                                android:layout_height="match_parent"
-                                android:layout_alignTop="@+id/contacts_list_wrapper"
-                                android:layout_alignParentEnd="true"
-                                android:layout_centerVertical="true"
-                                android:paddingStart="@dimen/normal_margin"
-                                android:textAppearance="@style/LetterFastscrollerStyleSmall" />
+<!--                            <com.reddit.indicatorfastscroll.FastScrollerView-->
+<!--                                android:id="@+id/contactsLetterFastscroller"-->
+<!--                                android:layout_width="26dp"-->
+<!--                                android:layout_height="match_parent"-->
+<!--                                android:layout_alignTop="@+id/contacts_list_wrapper"-->
+<!--                                android:layout_alignParentEnd="true"-->
+<!--                                android:layout_centerVertical="true"-->
+<!--                                android:paddingStart="@dimen/normal_margin"-->
+<!--                                android:textAppearance="@style/LetterFastscrollerStyleSmall" />-->
 
-                            <com.reddit.indicatorfastscroll.FastScrollerThumbView
-                                android:id="@+id/contacts_letter_fastscroller_thumb"
-                                android:layout_width="@dimen/fab_size"
-                                android:layout_height="match_parent"
-                                android:layout_alignTop="@+id/contactsLetterFastscroller"
-                                android:layout_alignBottom="@+id/contactsLetterFastscroller"
-                                android:layout_marginEnd="@dimen/activity_margin"
-                                android:layout_toStartOf="@+id/contactsLetterFastscroller" />
+<!--                            <com.reddit.indicatorfastscroll.FastScrollerThumbView-->
+<!--                                android:id="@+id/contacts_letter_fastscroller_thumb"-->
+<!--                                android:layout_width="@dimen/fab_size"-->
+<!--                                android:layout_height="match_parent"-->
+<!--                                android:layout_alignTop="@+id/contactsLetterFastscroller"-->
+<!--                                android:layout_alignBottom="@+id/contactsLetterFastscroller"-->
+<!--                                android:layout_marginEnd="@dimen/activity_margin"-->
+<!--                                android:layout_toStartOf="@+id/contactsLetterFastscroller" />-->
 
                             <LinearLayout
                                 android:id="@+id/suggestions_overlay"

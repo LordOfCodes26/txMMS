@@ -65,7 +65,7 @@
     <dimen name="emotic_icon_size">25dp</dimen>
     <dimen name="sim_count_icon_size">20dp</dimen>
     <dimen name="input_edit_height">47dp</dimen>
-    <dimen name="input_edit_max_height">200dp</dimen>
+    <dimen name="input_edit_max_height">150dp</dimen>
     <dimen name="input_edit_wrapper_radius">19dp</dimen>
     <dimen name="keyboard_add_height">350dp</dimen>
     <dimen name="cardview_input_corner_radius">26dp</dimen>
