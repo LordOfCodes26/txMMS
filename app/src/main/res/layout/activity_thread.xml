@@ -44,6 +44,7 @@
                         android:overScrollMode="ifContentScrolls"
                         android:layout_marginTop="-50dp"
                         android:scrollbars="none"
+                        app:layout_constraintBottom_toTopOf="@+id/message_holder"
                         app:layoutManager="com.goodwy.commons.views.MyLinearLayoutManager"
                         app:stackFromEnd="true"
                         tools:itemCount="3"
