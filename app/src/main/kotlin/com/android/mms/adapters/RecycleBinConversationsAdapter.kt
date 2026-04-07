@@ -52,10 +52,12 @@ class RecycleBinConversationsAdapter(
 
     private fun askConfirmDelete() {
         val itemsCnt = selectedKeys.size
+//        val items = resources.getQuantityString(R.plurals.delete_conversations, itemsCnt, itemsCnt)
         val items = resources.getQuantityString(R.plurals.delete_conversations, itemsCnt, itemsCnt)
 
         val baseString = com.goodwy.commons.R.string.deletion_confirmation
-        val question = String.format(resources.getString(baseString), items)
+//        val question = String.format(resources.getString(baseString), items)
+        val question = resources.getString(baseString)
 
         val blurTarget = activity.findViewById<eightbitlab.com.blurview.BlurTarget>(com.android.mms.R.id.mainBlurTarget)
             ?: throw IllegalStateException("mainBlurTarget not found")
@@ -162,7 +164,8 @@ class RecycleBinConversationsAdapter(
     private fun swipedDelete(conversation: Conversation) {
         val item = conversation.title
         val baseString = com.goodwy.commons.R.string.deletion_confirmation
-        val question = String.format(resources.getString(baseString), item)
+//        val question = String.format(resources.getString(baseString), item)
+        val question = resources.getString(baseString)
 
         val blurTarget = activity.findViewById<eightbitlab.com.blurview.BlurTarget>(com.android.mms.R.id.mainBlurTarget)
             ?: throw IllegalStateException("mainBlurTarget not found")

@@ -519,7 +519,6 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             if (participants.isEmpty()) {
                 return@setOnMenuItemClickListener true
             }
-
             return@setOnMenuItemClickListener handleThreadMenuClick(menuItem)
         }
         binding.threadToolbar.setPopupForMoreItem(

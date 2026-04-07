@@ -232,7 +232,8 @@
     <string name="middle_name">중간 이름</string>
     <string name="surname">성</string>
     <string name="proceed_with_deletion">정말 삭제하시겠습니까?</string>
-    <string name="deletion_confirmation">%s을 정말 삭제하시겠습니까?</string>
+<!--    <string name="deletion_confirmation">%s을 정말 삭제하시겠습니까?</string>-->
+    <string name="deletion_confirmation">선택된 항목을 삭제하시겠습니까?</string>
     <string name="move_to_recycle_bin_confirmation">%s을 정말 휴지통으로 이동하시겠습니까?</string>
     <string name="are_you_sure_delete">이 항목을 정말 삭제하시겠습니까?</string>
     <string name="are_you_sure_recycle_bin">이 항목을 정말 휴지통으로 이동하시겠습니까?</string>
@@ -630,7 +631,8 @@
     <string name="search_favorites">즐겨찾기 검색</string>
     <string name="search_apps">응용프로그람 검색</string>
     <string name="search_files_and_folders">화일 및 등록부 검색</string>
-    <string name="action_mode_selection_title">%2$d 중 %1$d 개 주소 선택됨</string>
+<!--    <string name="action_mode_selection_title">%2$d 중 %1$d 개 주소 선택됨</string>-->
+    <string name="action_mode_selection_title">%1$d 선택됨</string>
     <string name="loading">적재중…</string>
     <plurals name="delete_contacts">
         <item quantity="other">%d개 주소록</item>
