@@ -744,7 +744,7 @@ class ThreadAdapter(
                                     ?: throw IllegalStateException("mainBlurTarget not found")
                                 SelectTextDialog(activity, message.body, blurTarget)
                             }
-                            ACTION_NOTHING -> showPopupMenu(message, this)
+//                            ACTION_NOTHING -> showPopupMenu(message, this)
                             else -> return@setOnClickListener
                         }
                     }
