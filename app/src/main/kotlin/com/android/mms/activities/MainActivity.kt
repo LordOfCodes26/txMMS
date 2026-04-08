@@ -479,14 +479,6 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
             adapter.dispatchRippleToolbarAction(index)
         }
         binding.actionModeRippleToolbar.visibility = View.VISIBLE
-        if (adapter.getSelectedItems().isEmpty()){
-            for (i in 0 until 4){
-                binding.actionModeRippleToolbar.setEnable(i, false)
-            }
-        }
-        if (adapter.getSelectedItems().count() == 1){
-            binding.actionModeRippleToolbar.setEnable(1, false)
-        }
     }
 
     fun refreshActionModeRippleToolbarIfNeeded() {

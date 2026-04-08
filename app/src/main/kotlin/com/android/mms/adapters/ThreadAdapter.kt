@@ -292,15 +292,15 @@ class ThreadAdapter(
             if (!mi.isVisible) continue
             val iconRes = iconForId(itemId)
 //            if (iconRes == 0) continue
-//            if (getSelectedItems().size == 0){
-//                break
-//            }
+            if (getSelectedItems().size == 0){
+                break
+            }
             add(iconRes, mi.title ?: "", itemId)
-//            if (getSelectedItems().size == 1){
-//                if (itemId == R.id.cab_ripple_message_conversion) {
-//                    break
-//                }
-//            }
+            if (getSelectedItems().size == 1){
+                if (itemId == R.id.cab_ripple_message_conversion) {
+                    break
+                }
+            }
         }
         return items to ids
     }

@@ -2456,9 +2456,6 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                 binding.actionModeRippleToolbar.setEnable(i, false)
             }
         }
-        if (adapter.getSelectedItems().count() == 1){
-            binding.actionModeRippleToolbar.setEnable(2, false)
-        }
     }
 
     fun refreshActionModeRippleToolbarIfNeeded() {
