@@ -1010,7 +1010,9 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                 }, 350)
             },
             onThreadTypeMessageFocusChange = { hasFocus ->
-                if (!hasFocus && !isAttachmentPickerVisible && !ignoreInputFocusLossInsetSync) {
+                if (!hasFocus && !isAttachmentPickerVisible && !ignoreInputFocusLossInsetSync &&
+                    messageHolderHelper?.isEmojiPickerPaneVisible() != true
+                ) {
                     syncMessageInputBarToBottomAfterFocusLoss()
                 }
             }
@@ -2393,6 +2395,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
     }
     
     override fun onBackPressedCompat(): Boolean {
+        if (messageHolderHelper?.dismissEmojiPicker() == true) return true
         return if (expandedMessageFragment != null) {
             hideExpandedMessageFragment()
             true

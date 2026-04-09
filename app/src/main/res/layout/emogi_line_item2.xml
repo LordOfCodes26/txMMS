@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/activity_root"
+    android:layout_width="fill_parent"
+    android:layout_height="wrap_content">
+
+    <!--    cms emoji patch-->
+    <LinearLayout
+        android:id="@+id/selection"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignLeft="@id/content_layout"
+        android:layout_alignTop="@id/content_layout"
+        android:layout_alignRight="@id/content_layout"
+        android:layout_alignBottom="@id/content_layout"
+        android:orientation="vertical"
+        android:background="@drawable/adapter_item_selected_white"
+        android:visibility="gone">
+    </LinearLayout>
+    <!--    cms emoji patch-->
+    <LinearLayout
+        android:id="@+id/content_layout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:clickable="true"
+        android:orientation="horizontal"
+        android:background="?attr/selectableItemBackground"
+        android:focusable="true">
+
+        <com.chutils.emo.views.EmoGridCellView
+            android:id="@+id/content"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:layout_height="wrap_content"
+            android:layout_margin="0dp"/>
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/mask"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignLeft="@id/content_layout"
+        android:layout_alignTop="@id/content_layout"
+        android:layout_alignRight="@id/content_layout"
+        android:layout_alignBottom="@id/content_layout"
+        android:alpha="0.45"
+        android:background="#F5F5F5"
+        android:orientation="vertical">
+
+    </LinearLayout>
+
+</RelativeLayout>

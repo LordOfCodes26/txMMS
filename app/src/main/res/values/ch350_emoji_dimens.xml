@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="spacing_3">3dp</dimen>
+    <dimen name="spacing_4">4dp</dimen>
+    <dimen name="spacing_5">5dp</dimen>
+    <dimen name="icon_size_xmiddle">28dp</dimen>
+</resources>

@@ -99,7 +99,7 @@ android {
     }
 
     sourceSets {
-        getByName("main").java.srcDirs("src/main/kotlin")
+        getByName("main").java.srcDirs("src/main/kotlin", "src/main/java")
     }
 
     compileOptions {
@@ -153,6 +153,7 @@ dependencies {
     implementation(libs.mmslib)
     implementation(libs.androidx.swiperefreshlayout)
     implementation(libs.androidx.constraintlayout)
+    implementation(libs.androidx.viewpager)
     implementation(libs.androidx.documentfile)
     implementation(libs.androidx.lifecycle.process)
     implementation(libs.ez.vcard)

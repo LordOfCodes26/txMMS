@@ -1737,6 +1737,7 @@ class NewConversationActivity : SimpleActivity() {
     }
 
     override fun onBackPressedCompat(): Boolean {
+        if (messageHolderHelper?.dismissEmojiPicker() == true) return true
         return if (expandedMessageFragment != null) {
             hideExpandedMessageFragment()
             true

@@ -17,6 +17,9 @@ import android.view.inputmethod.EditorInfo
 import android.widget.Toast
 import androidx.core.view.updateLayoutParams
 import androidx.core.content.res.ResourcesCompat
+import com.android.mms.emoji.ChatPaneEmoji
+import com.android.mms.emoji.Ch350EmojiBootstrap
+import com.android.mms.emoji.RepeatListener
 import com.android.common.dialogs.MDateTimePickerDialog
 import com.goodwy.commons.activities.BaseSimpleActivity
 import com.android.mms.R
@@ -46,6 +49,8 @@ class MessageHolderHelper(
     private val availableSIMCards = ArrayList<SIMCard>()
     private var currentSIMCardIndex = 0
     private var capturedImageUri: Uri? = null
+    private var chatPaneEmoji: ChatPaneEmoji? = null
+    private var isEmojiPickerVisible: Boolean = false
     var isScheduledMessage: Boolean = false
         private set
 
@@ -102,6 +107,7 @@ class MessageHolderHelper(
                 if (hasFocus) {
                     onHideAttachmentPickerRequested?.invoke()
                     hideAttachmentPicker()
+                    hideEmojiPicker(resumeKeyboard = false)
                     activity.showKeyboard(threadTypeMessage)
                 }
                 onThreadTypeMessageFocusChange?.invoke(hasFocus)
@@ -151,7 +157,80 @@ class MessageHolderHelper(
             }
         }
 
+        setupEmojiToggle()
+
         checkSendMessageAvailability()
+    }
+
+    private fun setupEmojiToggle() {
+        binding.imvEmoticBtn.setOnClickListener {
+            toggleEmojiPicker()
+        }
+    }
+
+    private fun ensureCh350EmojiPane() {
+        if (chatPaneEmoji != null) return
+        if (!Ch350EmojiBootstrap.ensureInitialized(activity)) {
+            activity.toast(R.string.ch350_emoji_pack_missing)
+            return
+        }
+        val pane = ChatPaneEmoji(activity, binding.threadTypeMessage)
+        val repeatListener = RepeatListener(400, 30) {
+            chatPaneEmoji?.deleteAtCaret()
+        }
+        pane.setBackspaceRepeatListener(repeatListener)
+        binding.messageEmojiPickerHolder.addView(
+            pane,
+            ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT),
+        )
+        chatPaneEmoji = pane
+    }
+
+    /** @return true if the emoji pane was visible and is now closed. */
+    fun dismissEmojiPicker(): Boolean {
+        if (!isEmojiPickerVisible) return false
+        hideEmojiPicker(resumeKeyboard = false)
+        return true
+    }
+
+    fun isEmojiPickerPaneVisible(): Boolean = isEmojiPickerVisible
+
+    private fun toggleEmojiPicker() {
+        if (isEmojiPickerVisible) {
+            hideEmojiPicker(resumeKeyboard = true)
+        } else {
+            showEmojiPicker()
+        }
+    }
+
+    private fun showEmojiPicker() {
+        ensureCh350EmojiPane()
+        if (chatPaneEmoji == null) return
+        hideAttachmentPicker()
+        onHideAttachmentPickerRequested?.invoke()
+        isEmojiPickerVisible = true
+        activity.hideKeyboard()
+        binding.threadTypeMessage.clearFocus()
+        binding.messageEmojiPickerHolder.updateLayoutParams<ViewGroup.LayoutParams> {
+            height = activity.config.keyboardHeight
+        }
+        binding.messageEmojiPickerHolder.beVisible()
+        chatPaneEmoji?.showFirstTab()
+        binding.imvEmoticBtn.setBackgroundResource(R.drawable.ic_sms_keyboard)
+        binding.imvEmoticBtn.contentDescription = activity.getString(com.goodwy.commons.R.string.keyboard_short)
+        binding.root.post { binding.root.requestLayout() }
+    }
+
+    private fun hideEmojiPicker(resumeKeyboard: Boolean) {
+        if (!isEmojiPickerVisible) return
+        isEmojiPickerVisible = false
+        binding.messageEmojiPickerHolder.beGone()
+        binding.imvEmoticBtn.setBackgroundResource(R.drawable.ic_sms_emotic)
+        binding.imvEmoticBtn.contentDescription = activity.getString(com.goodwy.commons.R.string.choose_emoji)
+        if (resumeKeyboard) {
+            binding.threadTypeMessage.requestFocus()
+            activity.showKeyboard(binding.threadTypeMessage)
+        }
     }
 
     fun setupAttachmentPicker(
@@ -235,7 +314,7 @@ class MessageHolderHelper(
                 }
             }
             chooseImage.setOnClickListener { onChoosePhoto() }
-            chooseEmoji.setOnClickListener { onChooseVideo() }
+            chooseEmoji.setOnClickListener { showEmojiPicker() }
             chooseText.setOnClickListener { onPickQuickText() }
             chooseCamera.setOnClickListener { onTakePhoto() }
             chooseCamera.setOnClickListener { onRecordVideo() }
@@ -488,6 +567,7 @@ class MessageHolderHelper(
     }
 
     fun showAttachmentPicker() {
+        hideEmojiPicker(resumeKeyboard = false)
         val keyboardHeight = activity.config.keyboardHeight
         binding.attachmentPickerHolder.updateLayoutParams<ViewGroup.LayoutParams> {
             height = keyboardHeight

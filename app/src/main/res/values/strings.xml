@@ -220,4 +220,6 @@
     <string name="day">Day</string>
     <string name="select_sim_1">10 options, fee:100</string>
     <string name="select_sim_2">2 options, fee:10</string>
+    <string name="ch350_emoji_max_stickers">You cannot add more stickers in one message.</string>
+    <string name="ch350_emoji_pack_missing">CH350 emoticons need libresutils.so (jniLibs) and .obb packs (assets/ch350_emoji or files). The 350 Git tree usually omits both—copy them from a CH350 APK or OEM build. See jniLibs/README.txt.</string>
 </resources>

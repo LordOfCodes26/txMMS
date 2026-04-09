@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="read_bgcolor">#F5F5F5</color>
+    <color name="grey_80">#757575</color>
+    <color name="grey_10">#E0E0E0</color>
+    <color name="psts_background_tab_pressed">#1A000000</color>
+    <color name="psts_background_tab_pressed_ripple">#AAFFFFFF</color>
+    <color name="psts_background_tab_selected">#e6e6e6</color>
+    <color name="button_shadow">#33000000</color>
+</resources>
