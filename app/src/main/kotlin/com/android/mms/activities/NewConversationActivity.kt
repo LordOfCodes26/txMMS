@@ -114,7 +114,7 @@ class NewConversationActivity : SimpleActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
-        title = getString(R.string.new_conversation)
+        updateNewConversationTitle()
         updateTextColors(binding.newConversationHolder)
         initTheme()
         WindowCompat.setDecorFitsSystemWindows(window, false)
@@ -184,7 +184,7 @@ class NewConversationActivity : SimpleActivity() {
         val backgroundColor = if (useSurfaceColor) getSurfaceColor() else getProperBackgroundColor()
         // Match ContactPickerActivity: MySearchMenu with same top bar pattern
         binding.root.setBackgroundColor(backgroundColor)
-        binding.newConversationAppbar.applyLargeTitleOnly(getString(R.string.new_conversation))
+        updateNewConversationTitle()
         binding.newConversationAppbar.binding.collapsingTitle.apply {
             setTextColor(getProperTextColor())
             setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, getTextSize())
@@ -407,6 +407,26 @@ class NewConversationActivity : SimpleActivity() {
             setRecyclerViewHeight()
         }
     }
+
+    /** Toolbar / activity title from recipient chips: none → "New conversation", one → chip text, many → first + "and N other(s)". */
+    private fun getNewConversationDisplayTitle(): String {
+        val chips = binding.newConversationAddress.allChips.filter { it.isNotEmpty() }
+        return when (chips.size) {
+            0 -> getString(R.string.new_conversation)
+            1 -> chips[0]
+            else -> {
+                val othersCount = chips.size - 1
+                val othersPhrase = resources.getQuantityString(R.plurals.and_other_contacts, othersCount, othersCount)
+                getString(R.string.thread_title_multiple_format, chips[0], othersPhrase)
+            }
+        }
+    }
+
+    private fun updateNewConversationTitle() {
+        val title = getNewConversationDisplayTitle()
+        this.title = title
+        binding.newConversationAppbar.applyLargeTitleOnly(title)
+    }
     private fun setupChipInputHeightListener(){
         binding.newConversationAddress.addOnLayoutChangeListener { v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom ->
             chipboardHeight = binding.newConversationAddress.height
@@ -466,55 +486,56 @@ class NewConversationActivity : SimpleActivity() {
         
         // Listen for chip changes to handle typed phone numbers and contact names
         binding.newConversationAddress.setOnChipsChangedListener { chips ->
-            if (isUpdatingChips) return@setOnChipsChangedListener
+            if (!isUpdatingChips) {
+                // Keep mapping in sync with visible chips so deleted chips can be re-added later.
+                val activeChips = chips.toSet()
+                val staleKeys = chipDisplayToPhoneNumber.keys.filter { key -> !activeChips.contains(key) }
+                staleKeys.forEach { staleKey ->
+                    chipDisplayToPhoneNumber.remove(staleKey)
+                }
 
-            // Keep mapping in sync with visible chips so deleted chips can be re-added later.
-            val activeChips = chips.toSet()
-            val staleKeys = chipDisplayToPhoneNumber.keys.filter { key -> !activeChips.contains(key) }
-            staleKeys.forEach { staleKey ->
-                chipDisplayToPhoneNumber.remove(staleKey)
-            }
-            
-            chips.forEach { chipText ->
-                // If this chip is not in our mapping, check if it's a phone number or contact name
-                if (!chipDisplayToPhoneNumber.containsKey(chipText)) {
-                    // First check if it's a contact name (prioritize contact names over phone numbers)
-                    val contact = findContactByName(chipText)
-                    if (contact != null) {
-                        // Found a contact with this name, handle phone number selection
-                        handleContactNameChip(chipText, contact)
-                    } else {
-                        // Not a contact name, check if it's a phone number
-                        val normalizedNumber = chipText.normalizePhoneNumber()
-                        // Check if normalization produced a meaningful result (has digits and reasonable length)
-                        if (normalizedNumber.isNotEmpty() && normalizedNumber.length >= 3 && normalizedNumber.all { it.isDigit() }) {
-                            // Look up contact and phone number object for this phone number
-                            val contactAndPhoneNumber = findContactAndPhoneNumberByNormalizedNumber(normalizedNumber)
-                            if (contactAndPhoneNumber != null) {
-                                val (contact, phoneNumber) = contactAndPhoneNumber
-                                // Contact found, update the chip with name and type if needed
-                                val displayText = getDisplayTextForPhoneNumberWithType(phoneNumber, contact)
-                                isUpdatingChips = true
-                                binding.newConversationAddress.removeChip(chipText)
-                                binding.newConversationAddress.addChip(displayText)
-                                chipDisplayToPhoneNumber[displayText] = normalizedNumber
-                                isUpdatingChips = false
-                            } else {
-                                // No contact found, store the mapping (chipText -> normalizedNumber)
-                                // This handles both cases: chipText might be the original or already normalized
-                                chipDisplayToPhoneNumber[chipText] = normalizedNumber
+                chips.forEach { chipText ->
+                    // If this chip is not in our mapping, check if it's a phone number or contact name
+                    if (!chipDisplayToPhoneNumber.containsKey(chipText)) {
+                        // First check if it's a contact name (prioritize contact names over phone numbers)
+                        val contact = findContactByName(chipText)
+                        if (contact != null) {
+                            // Found a contact with this name, handle phone number selection
+                            handleContactNameChip(chipText, contact)
+                        } else {
+                            // Not a contact name, check if it's a phone number
+                            val normalizedNumber = chipText.normalizePhoneNumber()
+                            // Check if normalization produced a meaningful result (has digits and reasonable length)
+                            if (normalizedNumber.isNotEmpty() && normalizedNumber.length >= 3 && normalizedNumber.all { it.isDigit() }) {
+                                // Look up contact and phone number object for this phone number
+                                val contactAndPhoneNumber = findContactAndPhoneNumberByNormalizedNumber(normalizedNumber)
+                                if (contactAndPhoneNumber != null) {
+                                    val (contact, phoneNumber) = contactAndPhoneNumber
+                                    // Contact found, update the chip with name and type if needed
+                                    val displayText = getDisplayTextForPhoneNumberWithType(phoneNumber, contact)
+                                    isUpdatingChips = true
+                                    binding.newConversationAddress.removeChip(chipText)
+                                    binding.newConversationAddress.addChip(displayText)
+                                    chipDisplayToPhoneNumber[displayText] = normalizedNumber
+                                    isUpdatingChips = false
+                                } else {
+                                    // No contact found, store the mapping (chipText -> normalizedNumber)
+                                    // This handles both cases: chipText might be the original or already normalized
+                                    chipDisplayToPhoneNumber[chipText] = normalizedNumber
+                                }
                             }
                         }
                     }
                 }
-            }
-            
-            // Update SIM selector when chips change
-            handlePermission(PERMISSION_READ_PHONE_STATE) {
-                if (it) {
-                    setupSIMSelector()
+
+                // Update SIM selector when chips change
+                handlePermission(PERMISSION_READ_PHONE_STATE) {
+                    if (it) {
+                        setupSIMSelector()
+                    }
                 }
             }
+            updateNewConversationTitle()
         }
 
         binding.newConversationAddress.setOnTextChangedListener { searchString ->
@@ -1506,15 +1527,9 @@ class NewConversationActivity : SimpleActivity() {
     private fun updateFragmentTitle(fragment: com.android.mms.fragments.ExpandedMessageFragment) {
         if (fragment.view == null) return
         
-        // For new conversation, we don't have a thread title yet
-        // Get recipient names from chips if available
         val chips = binding.newConversationAddress.allChips
         val recipientNames = chips.filter { it.isNotEmpty() }
-        val threadTitle = if (recipientNames.isNotEmpty()) {
-            recipientNames.joinToString(", ")
-        } else {
-            getString(R.string.new_conversation)
-        }
+        val threadTitle = getNewConversationDisplayTitle()
         
         fragment.updateThreadTitle(
             threadTitle = threadTitle,
