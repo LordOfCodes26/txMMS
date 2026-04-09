@@ -302,7 +302,7 @@
         android:layout_height="1px"
         android:background="@color/transparent"
         android:importantForAccessibility="no"
-        app:layout_constraintBottom_toTopOf="@id/attachment_picker_holder" />
+        app:layout_constraintBottom_toTopOf="@id/message_compose_bottom_barrier" />
 
     <FrameLayout
         android:id="@+id/messageEmojiPickerHolder"
