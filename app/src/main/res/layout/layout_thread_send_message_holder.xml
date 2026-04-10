@@ -289,6 +289,12 @@
             android:layout_marginBottom="15dp"/>
     </RelativeLayout>
 
+    <androidx.constraintlayout.widget.Barrier
+        android:id="@+id/message_compose_bottom_barrier"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:barrierDirection="top"
+        app:constraint_referenced_ids="attachment_picker_holder,messageEmojiPickerHolder" />
 
     <View
         android:id="@+id/attachment_picker_divider"
@@ -297,6 +303,16 @@
         android:background="@color/transparent"
         android:importantForAccessibility="no"
         app:layout_constraintBottom_toTopOf="@id/attachment_picker_holder" />
+
+    <FrameLayout
+        android:id="@+id/messageEmojiPickerHolder"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        tools:visibility="gone" />
 
     <RelativeLayout
         android:id="@+id/attachment_picker_holder"
