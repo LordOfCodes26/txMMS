@@ -266,6 +266,8 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
 
         updateAvailableMessageCountForCurrentSim()
 
+        applyThreadListBackgroundColors()
+
         refreshSideFrameBlurAndInsets()
     }
 
@@ -793,10 +795,17 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         updateContactImage()
     }
 
+    /** Same as [MainActivity] onResume: surface only for dynamic theme + light mode, else proper background. */
+    private fun applyThreadListBackgroundColors(): Int {
+        val useSurfaceColor = isDynamicTheme() && !isSystemInDarkMode()
+        val backgroundColor = if (useSurfaceColor) getSurfaceColor() else getProperBackgroundColor()
+        binding.threadHolder.setBackgroundColor(backgroundColor)
+        binding.threadMessagesList.setBackgroundColor(backgroundColor)
+        return backgroundColor
+    }
+
     private fun getOrCreateThreadAdapter(): ThreadAdapter {
-        if (isDynamicTheme() && !isSystemInDarkMode()) {
-            binding.threadHolder.setBackgroundColor(getSurfaceColor())
-        }
+        applyThreadListBackgroundColors()
         var currAdapter = binding.threadMessagesList.adapter
         if (currAdapter == null) {
             currAdapter = ThreadAdapter(
@@ -1145,12 +1154,10 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
     private fun setupButtons() = binding.apply {
         updateTextColors(threadHolder)
         val textColor = getProperTextColor()
-        val properPrimaryColor = getProperPrimaryColor()
-        val useSurfaceColor = isDynamicTheme() && !isSystemInDarkMode()
-        val surfaceColor = if (useSurfaceColor) getProperBackgroundColor() else getSurfaceColor()
+        val backgroundColor = applyThreadListBackgroundColors()
 
         binding.messageHolder.apply {
-            threadMessagesFastscroller.updateColors(surfaceColor)
+            threadMessagesFastscroller.updateColors(backgroundColor)
 //            threadAddAttachment.applyColorFilter(textColor)
 //            threadAddAttachment.background.applyColorFilter(surfaceColor)
         }
