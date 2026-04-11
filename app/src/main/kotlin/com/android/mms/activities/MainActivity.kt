@@ -48,8 +48,11 @@ import com.android.mms.adapters.ConversationsAdapter
 import com.android.mms.adapters.SearchResultsAdapter
 import com.android.mms.databinding.ActivityMainBinding
 import com.android.mms.extensions.*
+import com.google.gson.Gson
+import com.android.mms.helpers.NEW_CONVERSATION_RESUME_DRAFT
 import com.android.mms.helpers.SEARCHED_MESSAGE_ID
 import com.android.mms.helpers.THREAD_ID
+import com.android.mms.helpers.THREAD_NUMBER
 import com.android.mms.helpers.THREAD_TITLE
 import com.android.mms.helpers.refreshConversations
 import com.android.mms.helpers.whatsNewList
@@ -1460,11 +1463,46 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
     }
 
     private fun handleConversationClick(any: Any) {
-        Intent(this, ThreadActivity::class.java).apply {
-            val conversation = any as Conversation
-            putExtra(THREAD_ID, conversation.threadId)
-            putExtra(THREAD_TITLE, conversation.title)
-            startActivity(this)
+        val conversation = any as Conversation
+        hideKeyboard()
+        ensureBackgroundThread {
+            val draftBody = getSmsDraft(conversation.threadId)
+            val telephonyMessageCount = getThreadTelephonyMessageCount(conversation.threadId)
+            val openNewComposeForDraft =
+                draftBody.isNotEmpty() && telephonyMessageCount == 0
+            runOnUiThread {
+                if (openNewComposeForDraft) {
+                    var numbers = getThreadRecipientPhoneNumbers(conversation.threadId)
+                    if (numbers.isEmpty() && conversation.phoneNumber.isNotEmpty()) {
+                        numbers = arrayListOf(conversation.phoneNumber)
+                    }
+                    if (numbers.isNotEmpty()) {
+                        val numberExtra = when (numbers.size) {
+                            1 -> numbers[0]
+                            else -> Gson().toJson(numbers.toSet())
+                        }
+                        Intent(this, NewConversationActivity::class.java).apply {
+                            putExtra(NEW_CONVERSATION_RESUME_DRAFT, true)
+                            putExtra(THREAD_ID, conversation.threadId)
+                            putExtra(THREAD_TITLE, conversation.title)
+                            putExtra(THREAD_NUMBER, numberExtra)
+                            startActivity(this)
+                        }
+                    } else {
+                        Intent(this, ThreadActivity::class.java).apply {
+                            putExtra(THREAD_ID, conversation.threadId)
+                            putExtra(THREAD_TITLE, conversation.title)
+                            startActivity(this)
+                        }
+                    }
+                } else {
+                    Intent(this, ThreadActivity::class.java).apply {
+                        putExtra(THREAD_ID, conversation.threadId)
+                        putExtra(THREAD_TITLE, conversation.title)
+                        startActivity(this)
+                    }
+                }
+            }
         }
     }
 

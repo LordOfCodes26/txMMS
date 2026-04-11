@@ -840,6 +840,44 @@ fun Context.getThreadPhoneNumbers(recipientIds: List<Int>): ArrayList<String> {
     return numbers
 }
 
+/** SMS/MMS rows in the telephony DB for this thread (excludes app-local drafts). */
+@SuppressLint("NewApi")
+fun Context.getThreadTelephonyMessageCount(threadId: Long): Int {
+    if (threadId <= 0L) return 0
+    return try {
+        val uri = "${Threads.CONTENT_URI}?simple=true".toUri()
+        val projection = arrayOf(Threads.MESSAGE_COUNT)
+        val selection = "${Threads._ID} = ?"
+        val selectionArgs = arrayOf(threadId.toString())
+        var count = 0
+        queryCursorUnsafe(uri, projection, selection, selectionArgs) { cursor ->
+            count = cursor.getIntValue(Threads.MESSAGE_COUNT)
+        }
+        count
+    } catch (_: Exception) {
+        0
+    }
+}
+
+@SuppressLint("NewApi")
+fun Context.getThreadRecipientPhoneNumbers(threadId: Long): ArrayList<String> {
+    if (threadId <= 0L) return arrayListOf()
+    return try {
+        val uri = "${Threads.CONTENT_URI}?simple=true".toUri()
+        val projection = arrayOf(Threads.RECIPIENT_IDS)
+        val selection = "${Threads._ID} = ?"
+        val selectionArgs = arrayOf(threadId.toString())
+        var recipientIds = listOf<Int>()
+        queryCursorUnsafe(uri, projection, selection, selectionArgs) { cursor ->
+            val rawIds = cursor.getStringValue(Threads.RECIPIENT_IDS).orEmpty()
+            recipientIds = rawIds.split(" ").filter { it.areDigitsOnly() }.map { it.toInt() }
+        }
+        getThreadPhoneNumbers(recipientIds)
+    } catch (_: Exception) {
+        arrayListOf()
+    }
+}
+
 fun Context.getThreadContactNames(
     phoneNumbers: List<String>,
     privateContacts: ArrayList<SimpleContact>,
@@ -1196,6 +1234,7 @@ fun Context.deleteConversation(threadId: Long) {
 
     conversationsDB.deleteThreadId(threadId)
     messagesDB.deleteThreadMessages(threadId)
+    deleteSmsDraft(threadId)
     MessagingCache.participantsCache.remove(threadId)
 
     if (config.customNotifications.contains(threadId.toString())) {

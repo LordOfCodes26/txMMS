@@ -50,6 +50,7 @@ import androidx.core.view.updatePadding
 import androidx.documentfile.provider.DocumentFile
 import androidx.recyclerview.widget.RecyclerView
 import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import com.reddit.indicatorfastscroll.FastScrollItemIndicator
 import com.goodwy.commons.dialogs.PermissionRequiredDialog
 import com.goodwy.commons.extensions.*
@@ -104,7 +105,10 @@ class NewConversationActivity : SimpleActivity() {
     private var keyboardHeight = 0
     private var chipboardHeight = 0
     private var messageInputHeight = 0
-    
+    private var draftResumeApplied = false
+    /** Thread id of the draft opened from the main list; cleared when recipients no longer match that thread. */
+    private var resumedDraftThreadId: Long = 0L
+
     companion object {
         private const val PICK_SAVE_FILE_INTENT = 1008
         private const val PICK_SAVE_DIR_INTENT = 1009
@@ -610,6 +614,65 @@ class NewConversationActivity : SimpleActivity() {
         return false
     }
 
+    private fun parseRecipientNumbersFromIntent(extra: String?): ArrayList<String> {
+        val numbers = ArrayList<String>()
+        if (extra.isNullOrEmpty()) return numbers
+        if (extra.startsWith('[') && extra.endsWith(']')) {
+            val type = object : TypeToken<List<String>>() {}.type
+            numbers.addAll(Gson().fromJson(extra, type))
+        } else {
+            numbers.add(extra)
+        }
+        return numbers
+    }
+
+    /**
+     * Restores chips and draft when opened from the main list for a thread that has a local draft
+     * but no telephony messages yet ([com.android.mms.extensions.getThreadTelephonyMessageCount] == 0).
+     *
+     * Draft body is read on a background thread because Room does not allow main-thread queries
+     * by default ([getSmsDraft] uses [draftsDB]).
+     */
+    private fun maybeApplyDraftResumeFromIntent() {
+        if (draftResumeApplied || !intent.getBooleanExtra(NEW_CONVERSATION_RESUME_DRAFT, false)) {
+            return
+        }
+        val threadId = intent.getLongExtra(THREAD_ID, 0L)
+        if (threadId <= 0L) return
+        val numbers = parseRecipientNumbersFromIntent(intent.getStringExtra(THREAD_NUMBER))
+        if (numbers.isEmpty()) return
+
+        draftResumeApplied = true
+        intent.removeExtra(NEW_CONVERSATION_RESUME_DRAFT)
+        resumedDraftThreadId = threadId
+
+        ensureBackgroundThread {
+            val draft = getSmsDraft(threadId)
+            runOnUiThread {
+                if (isDestroyed || isFinishing) return@runOnUiThread
+                isUpdatingChips = true
+                numbers.forEach { rawNumber ->
+                    val normalized = rawNumber.normalizePhoneNumber().ifEmpty { rawNumber }
+                    val contact = findContactByPhoneNumber(normalized)
+                    val phoneObj = contact?.phoneNumbers?.firstOrNull { it.normalizedNumber == normalized }
+                        ?: PhoneNumber(normalized, 0, "", rawNumber)
+                    val displayText = getDisplayTextForPhoneNumberWithType(phoneObj, contact)
+                    chipDisplayToPhoneNumber[displayText] = normalized
+                    binding.newConversationAddress.addChip(displayText)
+                }
+                isUpdatingChips = false
+                binding.newConversationAddress.clearText()
+                updateNewConversationTitle()
+                if (draft.isNotEmpty()) {
+                    messageHolderHelper?.setMessageText(draft)
+                        ?: binding.messageHolder.threadTypeMessage.setText(draft)
+                    messageHolderHelper?.checkSendMessageAvailability()
+                    binding.messageHolder.threadTypeMessage.setSelection(draft.length)
+                }
+            }
+        }
+    }
+
     private fun fetchContacts() {
         fillSuggestedContacts {
 //            SimpleContactsHelper(this).getAvailableContacts(false) {
@@ -658,6 +721,7 @@ class NewConversationActivity : SimpleActivity() {
 
                 runOnUiThread {
 //                    setupAdapter(allContacts)
+                    maybeApplyDraftResumeFromIntent()
                 }
 //            }
         }
@@ -1184,9 +1248,15 @@ class NewConversationActivity : SimpleActivity() {
             // Clear message and attachments
             messageHolderHelper?.clearMessage()
             
-            // Delete any draft for this thread to prevent it from showing in ThreadActivity
+            val staleResumeId = resumedDraftThreadId
+            // Delete any draft for this thread to prevent it from showing in ThreadActivity;
+            // also drop the list draft for the pre-edit recipient set if the user changed chips.
             ensureBackgroundThread {
+                if (staleResumeId > 0L && staleResumeId != threadId) {
+                    deleteSmsDraft(staleResumeId)
+                }
                 deleteSmsDraft(threadId)
+                runOnUiThread { resumedDraftThreadId = 0L }
             }
             
             // Navigate to ThreadActivity after sending (don't pass body to avoid showing sent message)
@@ -1349,7 +1419,13 @@ class NewConversationActivity : SimpleActivity() {
             return
         }
         try {
+            val staleResumeId = resumedDraftThreadId
             ensureBackgroundThread {
+                val canonicalThreadId = getThreadId(allNumbers.toSet())
+                if (staleResumeId > 0L && canonicalThreadId > 0L && staleResumeId != canonicalThreadId) {
+                    deleteSmsDraft(staleResumeId)
+                    runOnUiThread { resumedDraftThreadId = 0L }
+                }
                 val messageId = generateRandomId()
                 val participants = getParticipantsFromNumbers(allNumbers)
                 val message = buildScheduledMessage(processedText, subscriptionId, messageId, participants)
@@ -1357,6 +1433,7 @@ class NewConversationActivity : SimpleActivity() {
                 messagesDB.insertOrUpdate(message)
                 createTemporaryThread(message, message.threadId, null) {
                     runOnUiThread {
+                        resumedDraftThreadId = 0L
                         messageHolderHelper?.clearMessage()
                         hideScheduleSendUi()
                         val numbersString = allNumbers.joinToString(";")
@@ -1727,26 +1804,56 @@ class NewConversationActivity : SimpleActivity() {
         val messageText = binding.messageHolder.threadTypeMessage.text?.toString()?.trim() ?: ""
         val hasChips = chips.isNotEmpty()
         val hasMessage = messageText.isNotEmpty()
-
-        if (hasChips && hasMessage) {
-            val allNumbers = mutableListOf<String>()
-            chips.forEach { chip ->
-                if (chip.isNotEmpty()) {
-                    val phoneNumber = chipDisplayToPhoneNumber[chip]
-                        ?: chip.normalizePhoneNumber().takeIf { it.length >= 3 && it.all { c -> c.isDigit() } }
-                    if (phoneNumber != null && phoneNumber.isNotEmpty() && !allNumbers.contains(phoneNumber)) {
-                        allNumbers.add(phoneNumber)
-                    }
+        val staleResumeId = resumedDraftThreadId
+        val allNumbers = mutableListOf<String>()
+        chips.forEach { chip ->
+            if (chip.isNotEmpty()) {
+                val phoneNumber = chipDisplayToPhoneNumber[chip]
+                    ?: chip.normalizePhoneNumber().takeIf { it.length >= 3 && it.all { c -> c.isDigit() } }
+                if (phoneNumber != null && phoneNumber.isNotEmpty() && !allNumbers.contains(phoneNumber)) {
+                    allNumbers.add(phoneNumber)
                 }
             }
-            if (allNumbers.isNotEmpty()) {
+        }
+
+        val shouldPersist = hasChips && hasMessage && allNumbers.isNotEmpty()
+        val shouldClearDraftForEmptyMessage = !hasMessage && allNumbers.isNotEmpty()
+        if (staleResumeId <= 0L && !shouldPersist && !shouldClearDraftForEmptyMessage) return
+
+        ensureBackgroundThread {
+            var didMutateDrafts = false
+            if (staleResumeId > 0L) {
+                val currentTid = if (allNumbers.isNotEmpty()) getThreadId(allNumbers.toSet()) else 0L
+                val recipientsChanged =
+                    allNumbers.isEmpty() || (currentTid > 0L && currentTid != staleResumeId)
+                if (recipientsChanged) {
+                    deleteSmsDraft(staleResumeId)
+                    runOnUiThread { resumedDraftThreadId = 0L }
+                    didMutateDrafts = true
+                }
+            }
+
+            if (shouldClearDraftForEmptyMessage) {
+                val tid = getThreadId(allNumbers.toSet())
+                if (tid > 0L) {
+                    deleteSmsDraft(tid)
+                    didMutateDrafts = true
+                }
+                if (staleResumeId > 0L && staleResumeId == tid) {
+                    runOnUiThread { resumedDraftThreadId = 0L }
+                }
+            }
+
+            if (shouldPersist) {
                 val threadId = getThreadId(allNumbers.toSet())
                 if (threadId > 0) {
-                    ensureBackgroundThread {
-                        saveSmsDraft(messageText, threadId)
-                        runOnUiThread { EventBus.getDefault().post(Events.RefreshConversations()) }
-                    }
+                    saveSmsDraft(messageText, threadId)
+                    didMutateDrafts = true
                 }
+            }
+
+            if (didMutateDrafts) {
+                runOnUiThread { EventBus.getDefault().post(Events.RefreshConversations()) }
             }
         }
     }

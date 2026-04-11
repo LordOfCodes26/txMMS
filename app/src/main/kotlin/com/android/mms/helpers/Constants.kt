@@ -15,6 +15,8 @@ const val THREAD_ID = "thread_id"
 const val THREAD_TITLE = "thread_title"
 const val THREAD_TEXT = "thread_text"
 const val THREAD_NUMBER = "thread_number"
+/** When true, [com.android.mms.activities.NewConversationActivity] restores recipients and draft for a draft-only thread from the main list. */
+const val NEW_CONVERSATION_RESUME_DRAFT = "new_conversation_resume_draft"
 const val THREAD_URI = "thread_uri"
 const val THREAD_ATTACHMENT_URI = "thread_attachment_uri"
 const val THREAD_ATTACHMENT_URIS = "thread_attachment_uris"
