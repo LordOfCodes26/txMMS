@@ -379,34 +379,94 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                 binding.mVerticalSideFrameBottom.layoutParams.apply { height = navHeight + dp5 }
 
             if (barContainer != null) {
-                val bottomBarLp = barContainer.layoutParams as ViewGroup.MarginLayoutParams
-                val bottomOffset = dp(3).toInt()
-                val appBarHeightPx = resources.getDimensionPixelSize(com.android.common.R.dimen.tx_top_bar_expand_height)
-
-                val messagesList = binding.threadMessagesList
-                // When keyboard is open OR attachment picker is shown, add extra bottom padding so message bubbles move up
-                // For attachment picker: use keyboard height + height of input bar so last bubble is not overlapped by picker top
-                val inputBarHeight = dp(32)
-                val extraBottomPadding = when {
-                    ime.bottom > 0 -> ime.bottom
-                    isAttachmentPickerVisible -> config.keyboardHeight + inputBarHeight
-                    else -> 0
-                }
-                if (extraBottomPadding > 0) {
-                    messagesList.setPadding(0, appBarHeightPx, 0, dp(70) + navHeight + extraBottomPadding)
-                    messagesList.scrollToPosition((messagesList.adapter?.itemCount ?: 1) - 1)
-                } else {
-                    // Don't add navHeight to margin: setupEdgeToEdge already pads barContainer bottom.
-                    // Use only a small offset so we don't double-apply insets (avoids huge gap in gesture nav).
-                    bottomBarLp.bottomMargin = bottomOffset
-                    messagesList.setPadding(0, appBarHeightPx + dp(10), 0, dp(90) + navHeight)
-                    barContainer.layoutParams = bottomBarLp
-                }
+                applyThreadMessagesListWindowInsets(
+                    navHeight = navHeight,
+                    imeBottom = ime.bottom,
+                    scrollToBottomForIme = ime.bottom > 0,
+                )
             }
             // Toolbar / popups often hide the IME without clearing EditText focus; re-sync compose bar
             // padding from root insets so it cannot stay stuck between keyboard and nav bar.
             binding.root.post { applyComposeBarImePaddingFromInsets() }
             insets
+        }
+
+        binding.messageHolder.root.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
+            if (!isRecycleBin) {
+                binding.messageHolder.root.post { refreshThreadMessagesListPaddingForComposeBarHeight() }
+            }
+        }
+    }
+
+    /**
+     * Keeps [binding.threadMessagesList] bottom padding in sync with the compose strip height
+     * ([binding.messageHolder]) so multi-line [binding.messageHolder.threadTypeMessage] growth moves
+     * message content up (and shrinking moves it back down). Window insets alone do not fire on line wraps.
+     */
+    private fun refreshThreadMessagesListPaddingForComposeBarHeight() {
+        if (isRecycleBin) return
+        val rootInsets = ViewCompat.getRootWindowInsets(binding.root) ?: return
+        val navHeight = rootInsets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom
+        val imeBottom = rootInsets.getInsets(WindowInsetsCompat.Type.ime()).bottom
+        applyThreadMessagesListWindowInsets(
+            navHeight = navHeight,
+            imeBottom = imeBottom,
+            scrollToBottomForIme = false,
+        )
+    }
+
+    private fun applyThreadMessagesListWindowInsets(
+        navHeight: Int,
+        imeBottom: Int,
+        scrollToBottomForIme: Boolean,
+    ) {
+        if (isRecycleBin) return
+        val barContainer = binding.messageHolder.root
+        val messagesList = binding.threadMessagesList
+        val bottomBarLp = barContainer.layoutParams as ViewGroup.MarginLayoutParams
+        val bottomOffset = dp(3).toInt()
+        val appBarHeightPx = resources.getDimensionPixelSize(com.android.common.R.dimen.tx_top_bar_expand_height)
+        val inputBarHeight = dp(32)
+        val extraBottomPadding = when {
+            imeBottom > 0 -> imeBottom
+            isAttachmentPickerVisible -> config.keyboardHeight + inputBarHeight
+            else -> 0
+        }
+        val composeBottomGap = dp(6)
+
+        fun applyWithComposeHeight(composeHeight: Int) {
+            if (isFinishing || isDestroyed) return
+            // When IME or attachment picker is up, [binding.messageHolder] height already reflects that state
+            // (bottom insets on the bar for IME; picker views inside the same root for attachments). The old
+            // logic also added keyboardHeight / ime.bottom here and produced a large empty band in both modes.
+            val bottomPadding = if (extraBottomPadding > 0) {
+                composeHeight + composeBottomGap
+            } else {
+                composeHeight + composeBottomGap + navHeight
+            }
+            if (extraBottomPadding > 0) {
+                messagesList.setPadding(0, appBarHeightPx, 0, bottomPadding)
+                // Only pin to bottom when IME just opened (same as legacy behavior). Do not auto-scroll on
+                // compose-bar relayouts: findLastCompletelyVisibleItemPosition() is often NO_POSITION (-1),
+                // which compared against (lastIndex - SCROLL_TO_BOTTOM_FAB_LIMIT) wrongly looked "near bottom"
+                // and prevented scrolling up to read older messages.
+                if (scrollToBottomForIme) {
+                    messagesList.scrollToPosition((messagesList.adapter?.itemCount ?: 1) - 1)
+                }
+            } else {
+                bottomBarLp.bottomMargin = bottomOffset
+                messagesList.setPadding(0, appBarHeightPx + dp(10), 0, composeHeight + composeBottomGap + navHeight)
+                barContainer.layoutParams = bottomBarLp
+            }
+        }
+
+        barContainer.post {
+            val composeHeight = barContainer.height
+            if (composeHeight > 0) {
+                applyWithComposeHeight(composeHeight)
+            } else {
+                applyWithComposeHeight(dp(90))
+            }
         }
     }
 
