@@ -528,8 +528,8 @@
         <item name="android:layout_height">wrap_content</item>
         <item name="android:paddingStart">@dimen/tx_cardview_padding_left</item>
         <item name="android:paddingEnd">@dimen/tx_cardview_padding_right</item>
-        <item name="android:paddingTop">@dimen/tx_cardview_padding_vertical</item>
-        <item name="android:paddingBottom">@dimen/tx_cardview_padding_vertical</item>
+        <item name="android:paddingTop">@dimen/setting_switch_item_vertical_margin</item>
+        <item name="android:paddingBottom">@dimen/setting_switch_item_vertical_margin</item>
     </style>
 
     <style name="SettingsCheckboxStyle">

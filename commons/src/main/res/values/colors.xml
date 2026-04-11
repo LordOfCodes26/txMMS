@@ -47,6 +47,9 @@
     <color name="ic_contacts">#FF405B98</color>
     <color name="ic_messages">#FF0D81DE</color>
 
+    <color name="sim_tint_kangsong">@color/tx_main_blue</color>
+    <color name="sim_tint_koryo">#FFEB5545</color>
+
     <!-- iOS colors -->
     <color name="red_missed">#FFEB5545</color>
 

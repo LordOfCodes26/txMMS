@@ -776,12 +776,23 @@ open class BaseConfig(val context: Context) {
         get(): LinkedList<Int> {
             val defaultList = arrayListOf(
                 ContextCompat.getColor(context, R.color.md_red_500),
-                ContextCompat.getColor(context, R.color.ic_dialer),
-                ContextCompat.getColor(context, R.color.color_primary),
+                ContextCompat.getColor(context, R.color.sim_tint_koryo),
+                ContextCompat.getColor(context, R.color.sim_tint_kangsong),
                 ContextCompat.getColor(context, R.color.md_yellow_500),
                 ContextCompat.getColor(context, R.color.md_orange_500)
             )
-            return LinkedList(prefs.getString(SIM_ICON_COLORS, null)?.lines()?.map { it.toInt() } ?: defaultList)
+            val storedList = prefs.getString(SIM_ICON_COLORS, null)?.lines()?.map { it.toInt() } ?: defaultList
+            val normalizedList = storedList.toMutableList().apply {
+                while (size < defaultList.size) {
+                    add(defaultList[size])
+                }
+                this[1] = ContextCompat.getColor(context, R.color.sim_tint_koryo)
+                this[2] = ContextCompat.getColor(context, R.color.sim_tint_kangsong)
+            }
+            if (normalizedList != storedList) {
+                prefs.edit { putString(SIM_ICON_COLORS, normalizedList.joinToString(separator = "\n")) }
+            }
+            return LinkedList(normalizedList)
         }
         set(simIconsColors) = prefs.edit { putString(SIM_ICON_COLORS, simIconsColors.joinToString(separator = "\n")) }
 

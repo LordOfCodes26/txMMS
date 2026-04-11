@@ -26,6 +26,7 @@
                 android:layout_marginStart="@dimen/activity_margin"
                 android:layout_marginBottom="@dimen/tx_top_bar_title_margin_bottom"
                 android:gravity="center_vertical"
+                android:textColor="@color/tx_title_text"
                 android:includeFontPadding="false"
                 android:textSize="@dimen/tx_big_title" />
         </LinearLayout>
