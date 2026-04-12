@@ -163,6 +163,9 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
+        if (config.changeColourTopBar) {
+            scrollingView = binding.threadMessagesList
+        }
         initTheme()
         initMVSideFrames()
         initThreadAppBar()
@@ -210,22 +213,10 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
 
     override fun onResume() {
         super.onResume()
-        if (isDarkTheme()) {
-            @Suppress("DEPRECATION")
-                window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-        } else {
-            @Suppress("DEPRECATION")
-            window.decorView.systemUiVisibility = (
-                View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                    or View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
-                    or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
-                )
-        }
         if (config.threadTopStyle == THREAD_TOP_LARGE) binding.topDetailsCompact.root.beGone()
         else binding.topDetailsLarge.beGone()
 
-        val topBarColor = getColoredMaterialStatusBarColor()
-        // Thread uses Material AppBarLayout + CustomToolbar — commons overload is CustomToolbar-only (no MyAppBarLayout).
+        val topBarColor = getStartRequiredStatusBarColor()
         updateTopBarColors(binding.threadToolbar, topBarColor)
         // Zero elevation for app bar
         val stateListAnimator = StateListAnimator()
@@ -634,7 +625,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
     }
     
     private fun updateMenuItemIconColors() {
-        val topBarColor = getColoredMaterialStatusBarColor()
+        val topBarColor = getStartRequiredStatusBarColor()
         val contrastColor = topBarColor.getContrastColor()
         val itemColor = if (baseConfig.topAppBarColorIcon) getProperPrimaryColor() else contrastColor
 

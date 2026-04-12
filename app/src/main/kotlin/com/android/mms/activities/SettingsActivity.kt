@@ -180,8 +180,10 @@ class SettingsActivity : SimpleActivity() {
     }
 
     private fun refreshSettingsTopBarColors() {
+        val useSurfaceColor = isDynamicTheme() && !isNightDisplay()
+        val backColor = if (useSurfaceColor) getSurfaceColor() else getProperBackgroundColor()
         binding.settingsMenu.updateColors(
-            getStartRequiredStatusBarColor(),
+            backColor,
             scrollingView?.computeVerticalScrollOffset() ?: 0,
         )
         setSettingsTransparentAppBarBackground()
