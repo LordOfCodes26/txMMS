@@ -238,7 +238,7 @@ class ThreadAdapter(
             findItem(R.id.cab_delete)?.isVisible = selectedKeys.isNotEmpty() && !isRecycleBin
             findItem(R.id.cab_ripple_delete)?.isVisible = true
             findItem(R.id.cab_ripple_message_conversion)?.isVisible = true
-            findItem(R.id.cab_ripple_copy)?.isVisible = true
+            findItem(R.id.cab_ripple_copy)?.isVisible = isOneItemSelected && hasText
         }
     }
 
@@ -297,11 +297,6 @@ class ThreadAdapter(
                 break
             }
             add(iconRes, mi.title ?: "", itemId)
-            if (getSelectedItems().size == 1){
-                if (itemId == R.id.cab_ripple_message_conversion) {
-                    break
-                }
-            }
         }
         return items to ids
     }

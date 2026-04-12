@@ -218,7 +218,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|center_horizontal"
-        android:layout_marginBottom="25dp"
+        android:layout_marginBottom="@dimen/ripple_bottom"
         android:elevation="@dimen/cardview_default_elevation"
         android:visibility="gone" />
 

@@ -393,6 +393,13 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             binding.mVerticalSideFrameBottom.layoutParams =
                 binding.mVerticalSideFrameBottom.layoutParams.apply { height = navHeight + dp5 }
 
+            val rippleLp = binding.actionModeRippleToolbar.layoutParams as? ViewGroup.MarginLayoutParams
+            if (rippleLp != null) {
+                val rippleBase = resources.getDimensionPixelSize(R.dimen.ripple_bottom)
+                rippleLp.bottomMargin = rippleBase + maxOf(nav.bottom, ime.bottom)
+                binding.actionModeRippleToolbar.layoutParams = rippleLp
+            }
+
             if (barContainer != null) {
                 applyThreadMessagesListWindowInsets(
                     navHeight = navHeight,

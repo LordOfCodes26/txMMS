@@ -494,13 +494,15 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         val bottomPx = if (!enabled) {
             0
         } else {
-            val nav = ViewCompat.getRootWindowInsets(binding.root)
-                ?.getInsets(WindowInsetsCompat.Type.navigationBars())?.bottom ?: 0
+            val rootInsets = ViewCompat.getRootWindowInsets(binding.root)
+            val nav = rootInsets?.getInsets(WindowInsetsCompat.Type.navigationBars())?.bottom ?: 0
+            val ime = rootInsets?.getInsets(WindowInsetsCompat.Type.ime())?.bottom ?: 0
+            val bottomInset = maxOf(nav, ime)
             val ripple = binding.actionModeRippleToolbar
             val h = ripple.height.takeIf { it > 0 } ?: ripple.measuredHeight.takeIf { it > 0 }
                 ?: resources.getDimensionPixelSize(R.dimen.action_mode_bottom_inset_fallback)
             val margin = (25 * resources.displayMetrics.density).toInt()
-            h + margin + nav
+            h + margin + bottomInset
         }
         binding.conversationsList.updatePadding(bottom = bottomPx)
         binding.searchResultsList.updatePadding(bottom = bottomPx)
@@ -1109,6 +1111,13 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
                 fabLp.bottomMargin = if (ime.bottom > 0) ime.bottom + bottomOffset else bottomOffset
                 fabLp.rightMargin = (32 * resources.displayMetrics.density).toInt()
                 binding.conversationsFab.layoutParams = fabLp
+            }
+            val rippleLp = binding.actionModeRippleToolbar.layoutParams as? ViewGroup.MarginLayoutParams
+            if (rippleLp != null) {
+                val rippleBase = resources.getDimensionPixelSize(R.dimen.ripple_bottom)
+                val bottomInset = maxOf(nav.bottom, ime.bottom)
+                rippleLp.bottomMargin = rippleBase + bottomInset
+                binding.actionModeRippleToolbar.layoutParams = rippleLp
             }
             setFabIconColor()
             insets
