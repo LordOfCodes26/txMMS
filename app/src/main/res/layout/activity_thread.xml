@@ -180,18 +180,19 @@
                             tools:ignore="Deprecated"
                             tools:text="Name"/>
 
-                        <!--                        <com.goodwy.commons.views.MyTextView-->
-                        <!--                            android:id="@+id/sender_number_large"-->
-                        <!--                            android:layout_width="wrap_content"-->
-                        <!--                            android:layout_height="wrap_content"-->
-                        <!--                            android:background="@drawable/ripple_all_corners"-->
-                        <!--                            android:paddingStart="12dp"-->
-                        <!--                            android:paddingEnd="12dp"-->
-                        <!--                            android:maxLines="1"-->
-                        <!--                            android:alpha="0.8"-->
-                        <!--                            android:gravity="center"-->
-                        <!--                            android:textSize="@dimen/tx_normal_text"-->
-                        <!--                            tools:text="+12345678"/>-->
+                        <com.goodwy.commons.views.MyTextView
+                            android:id="@+id/sender_number_large"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:background="@drawable/ripple_all_corners"
+                            android:paddingStart="@dimen/normal_margin"
+                            android:paddingEnd="@dimen/normal_margin"
+                            android:layout_marginHorizontal="@dimen/larger_margin"
+                            android:maxLines="1"
+                            android:alpha="0.8"
+                            android:gravity="center_vertical|start"
+                            android:textSize="@dimen/tx_normal_text"
+                            tools:text="+12345678"/>
                     </LinearLayout>
                 </androidx.constraintlayout.widget.ConstraintLayout>
 

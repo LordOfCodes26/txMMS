@@ -1310,9 +1310,9 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                             senderNameLarge.isSelected = true
                         }
                     }
-//                    senderNumberLarge.beGoneIf(threadSubtitle.isEmpty() || threadTitle == threadSubtitle || participants.size > 1)
-//                    senderNumberLarge.text = threadSubtitle
-//                    senderNumberLarge.setTextColor(textColor)
+                    senderNumberLarge.beGoneIf(threadSubtitle.isEmpty() || threadTitle == threadSubtitle || participants.size > 1)
+                    senderNumberLarge.text = threadSubtitle
+                    senderNumberLarge.setTextColor(textColor)
                     arrayOf(
                         // senderPhotoLarge,
                         senderNameLarge,
