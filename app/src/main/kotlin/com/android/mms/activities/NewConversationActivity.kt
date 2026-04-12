@@ -90,6 +90,19 @@ class NewConversationActivity : SimpleActivity() {
     private var privateContacts = ArrayList<SimpleContact>()
     private var isSpeechToTextAvailable = false
     private var isAttachmentPickerVisible = false
+    /** When true, [threadTypeMessage] focus loss is from opening the attachment picker; skip extra inset sync. */
+    private var ignoreInputFocusLossInsetSync = false
+    /** Same latch model as [ThreadActivity] for IME ↔ attachment picker transitions. */
+    private enum class ComposeBarBottomInsetLatch {
+        NONE,
+        KEYBOARD_TO_ATTACHMENT_PICKER,
+        ATTACHMENT_PICKER_TO_KEYBOARD,
+    }
+
+    private var composeBarBottomInsetLatch = ComposeBarBottomInsetLatch.NONE
+    private var composeBarBottomInsetLatchPx = 0
+    private var wasKeyboardVisible = false
+    private var messagingEdgeToEdgeRegistered = false
     private var messageHolderHelper: MessageHolderHelper? = null
     private var expandedMessageFragment: com.android.mms.fragments.ExpandedMessageFragment? = null
     // Map to store chip display text -> phone number mapping
@@ -102,9 +115,7 @@ class NewConversationActivity : SimpleActivity() {
     private var isScheduledMessage = false
     private val binding by viewBinding(ActivityNewConversationBinding::inflate)
     private var vertOffsetTile = 0
-    private var keyboardHeight = 0
     private var chipboardHeight = 0
-    private var messageInputHeight = 0
     private var draftResumeApplied = false
     /** Thread id of the draft opened from the main list; cleared when recipients no longer match that thread. */
     private var resumedDraftThreadId: Long = 0L
@@ -122,8 +133,11 @@ class NewConversationActivity : SimpleActivity() {
         updateTextColors(binding.newConversationHolder)
         initTheme()
         WindowCompat.setDecorFitsSystemWindows(window, false)
-        setupEdgeToEdge()
-        setupMessageHolderKeyboardSpacing()
+        setupEdgeToEdge(
+            padBottomImeAndSystem = listOf(binding.messageHolder.root),
+            animateIme = false,
+        )
+        setupNewConversationComposeWindowInsets()
         binding.root.post { ViewCompat.requestApplyInsets(binding.root) }
         binding.nestScroll.post {
             postSyncMySearchMenuToolbarGeometry(
@@ -274,41 +288,89 @@ class NewConversationActivity : SimpleActivity() {
     }
 
     /**
-     * Add space between the message holder and screen bottom / keyboard,
-     * matching ThreadActivity edge-to-edge compose bar handling.
+     * Same pattern as [ThreadActivity.makeSystemBarsToTransparent]: root insets re-apply compose IME padding
+     * (latch-aware) after [setupEdgeToEdge], and keep contacts list height in sync with compose layout.
      */
-    private fun setupMessageHolderKeyboardSpacing() {
-        val barContainer = binding.messageHolder.root
-        var extraSpaceDp = 12
-        val extraSpacePx = (extraSpaceDp * resources.displayMetrics.density).toInt()
-        val bottomOffsetDp = -33
-        val bottomOffsetPx = (bottomOffsetDp * resources.displayMetrics.density).toInt()
-
+    private fun setupNewConversationComposeWindowInsets() {
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
-            val imeAndSystem = insets.getInsets(
-                WindowInsetsCompat.Type.ime() or WindowInsetsCompat.Type.systemBars()
-            )
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            val imeBottom = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
-            val bottomMargin = if (imeBottom > 0) {
-                imeAndSystem.bottom + extraSpacePx
-            } else {
-                // Match ThreadActivity: setupEdgeToEdge pads for system bars + small offset
-                systemBars.bottom + bottomOffsetPx
+            if (composeBarBottomInsetLatch != ComposeBarBottomInsetLatch.NONE) {
+                applyComposeBarImePaddingFromInsets()
             }
-            keyboardHeight = bottomMargin + (25 * resources.displayMetrics.density).toInt()
-            val lp = barContainer.layoutParams as? ViewGroup.MarginLayoutParams
-            if (lp != null) {
-                lp.bottomMargin = bottomMargin + (30 * resources.displayMetrics.density).toInt()
-                if (bottomMargin >= getDefaultKeyboardHeight()){
-                    lp.bottomMargin = bottomMargin + (3 * resources.displayMetrics.density).toInt()
-                    keyboardHeight = bottomMargin
-                }
-                barContainer.layoutParams = lp
+            binding.root.post {
+                applyComposeBarImePaddingFromInsets()
+                setRecyclerViewHeight()
             }
-            setRecyclerViewHeight()
             insets
         }
+
+        binding.messageHolder.root.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
+            binding.messageHolder.root.post { setRecyclerViewHeight() }
+        }
+    }
+
+    private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
+
+    /** Same as [ThreadActivity.applyComposeBarImePaddingFromInsets] for the compose strip (non-recycle-bin). */
+    private fun applyComposeBarImePaddingFromInsets() {
+        val rootInsets = ViewCompat.getRootWindowInsets(binding.root)
+            ?: ViewCompat.getRootWindowInsets(window.decorView)
+            ?: return
+        val imeAndSystem = rootInsets.getInsets(
+            WindowInsetsCompat.Type.ime() or WindowInsetsCompat.Type.systemBars()
+        )
+        val rawBottom = imeAndSystem.bottom
+        val bottomPx = when (composeBarBottomInsetLatch) {
+            ComposeBarBottomInsetLatch.KEYBOARD_TO_ATTACHMENT_PICKER ->
+                composeBarBottomInsetLatchPx
+            ComposeBarBottomInsetLatch.ATTACHMENT_PICKER_TO_KEYBOARD -> {
+                val slop = dp(16)
+                val reached = rootInsets.isVisible(WindowInsetsCompat.Type.ime()) &&
+                    rawBottom >= composeBarBottomInsetLatchPx - slop
+                val v = maxOf(rawBottom, composeBarBottomInsetLatchPx)
+                if (reached) {
+                    composeBarBottomInsetLatch = ComposeBarBottomInsetLatch.NONE
+                }
+                v
+            }
+            ComposeBarBottomInsetLatch.NONE -> rawBottom
+        }
+        binding.messageHolder.root.updatePaddingWithBase(bottom = bottomPx)
+    }
+
+    private fun refreshContactsListHeightAfterComposeResize() {
+        binding.messageHolder.root.post { setRecyclerViewHeight() }
+    }
+
+    private fun beginKeyboardToAttachmentPickerComposeInsetLatch() {
+        val rootInsets = ViewCompat.getRootWindowInsets(binding.root)
+            ?: ViewCompat.getRootWindowInsets(window.decorView)
+            ?: return
+        val bottom = rootInsets.getInsets(
+            WindowInsetsCompat.Type.ime() or WindowInsetsCompat.Type.systemBars()
+        ).bottom
+        if (bottom <= 0) return
+        composeBarBottomInsetLatchPx = bottom
+        composeBarBottomInsetLatch = ComposeBarBottomInsetLatch.KEYBOARD_TO_ATTACHMENT_PICKER
+        applyComposeBarImePaddingFromInsets()
+        refreshContactsListHeightAfterComposeResize()
+    }
+
+    private fun beginAttachmentPickerToKeyboardComposeInsetLatch() {
+        val rootInsets = ViewCompat.getRootWindowInsets(binding.root)
+            ?: ViewCompat.getRootWindowInsets(window.decorView)
+            ?: return
+        val nav = rootInsets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom
+        composeBarBottomInsetLatchPx = config.keyboardHeight + nav
+        composeBarBottomInsetLatch = ComposeBarBottomInsetLatch.ATTACHMENT_PICKER_TO_KEYBOARD
+        applyComposeBarImePaddingFromInsets()
+        refreshContactsListHeightAfterComposeResize()
+    }
+
+    private fun clearComposeBarBottomInsetLatch() {
+        if (composeBarBottomInsetLatch == ComposeBarBottomInsetLatch.NONE) return
+        composeBarBottomInsetLatch = ComposeBarBottomInsetLatch.NONE
+        applyComposeBarImePaddingFromInsets()
+        refreshContactsListHeightAfterComposeResize()
     }
 
     private fun setupMessageHolder() {
@@ -324,7 +386,21 @@ class NewConversationActivity : SimpleActivity() {
             onExpandMessage = { showExpandedMessageFragment() },
             onHideAttachmentPickerRequested = {
                 isAttachmentPickerVisible = false
-            }
+                messageHolderHelper?.hideAttachmentPicker()
+                binding.messageHolder.messageHolder.postDelayed({
+                    binding.root.post { ViewCompat.requestApplyInsets(binding.root) }
+                }, 350)
+            },
+            onThreadTypeMessageFocusChange = { hasFocus ->
+                if (!hasFocus && !ignoreInputFocusLossInsetSync &&
+                    composeBarBottomInsetLatch == ComposeBarBottomInsetLatch.ATTACHMENT_PICKER_TO_KEYBOARD
+                ) {
+                    clearComposeBarBottomInsetLatch()
+                }
+            },
+            onPrepareKeyboardFromAttachmentPicker = {
+                beginAttachmentPickerToKeyboardComposeInsetLatch()
+            },
         )
         
         messageHolderHelper?.setup(isSpeechToTextAvailable)
@@ -332,14 +408,25 @@ class NewConversationActivity : SimpleActivity() {
         binding.messageHolder.apply {
             threadAddAttachmentHolder.setOnClickListener {
                 if (attachmentPickerHolder.isVisible()) {
+                    clearComposeBarBottomInsetLatch()
                     isAttachmentPickerVisible = false
                     messageHolderHelper?.hideAttachmentPicker()
                 } else {
+                    ignoreInputFocusLossInsetSync = true
+                    beginKeyboardToAttachmentPickerComposeInsetLatch()
                     hideKeyboard()
                     threadTypeMessage.clearFocus()
                     binding.messageHolderWrapper.postDelayed({
                         isAttachmentPickerVisible = true
                         messageHolderHelper?.showAttachmentPicker()
+                        if (composeBarBottomInsetLatch == ComposeBarBottomInsetLatch.KEYBOARD_TO_ATTACHMENT_PICKER) {
+                            composeBarBottomInsetLatch = ComposeBarBottomInsetLatch.NONE
+                            applyComposeBarImePaddingFromInsets()
+                        }
+                        refreshContactsListHeightAfterComposeResize()
+                        threadTypeMessage.requestApplyInsets()
+                        binding.root.post { ViewCompat.requestApplyInsets(binding.root) }
+                        ignoreInputFocusLossInsetSync = false
                     }, 250)
                 }
             }
@@ -366,8 +453,41 @@ class NewConversationActivity : SimpleActivity() {
         }
         setupScheduleSendUi()
 
+        if (!messagingEdgeToEdgeRegistered) {
+            messagingEdgeToEdgeRegistered = true
+            setupMessagingEdgeToEdge()
+        }
+
         // Handle forwarded messages from Intent.ACTION_SEND or Intent.ACTION_SEND_MULTIPLE
         handleForwardedMessage()
+    }
+
+    /** Same as [ThreadActivity.setupMessagingEdgeToEdge]: keep [config.keyboardHeight] accurate for picker↔IME latch. */
+    private fun setupMessagingEdgeToEdge() {
+        ViewCompat.setOnApplyWindowInsetsListener(binding.messageHolder.threadTypeMessage) { _, insets ->
+            val type = WindowInsetsCompat.Type.ime()
+            val isKeyboardVisible = insets.isVisible(type)
+            if (isKeyboardVisible) {
+                val keyboardInsetBottom = insets.getInsets(type).bottom
+                val bottomBarHeight = insets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom
+                config.keyboardHeight = if (keyboardInsetBottom > 150) {
+                    keyboardInsetBottom - bottomBarHeight
+                } else {
+                    getDefaultKeyboardHeight()
+                }
+                if (!wasKeyboardVisible) {
+                    isAttachmentPickerVisible = false
+                    messageHolderHelper?.hideAttachmentPicker()
+                }
+                wasKeyboardVisible = true
+            } else {
+                wasKeyboardVisible = false
+                if (isAttachmentPickerVisible) {
+                    messageHolderHelper?.showAttachmentPicker()
+                }
+            }
+            insets
+        }
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, resultData: Intent?) {
@@ -438,19 +558,20 @@ class NewConversationActivity : SimpleActivity() {
         }
     }
 
-    private fun setupMessageHeightListener(){
-        binding.messageHolder.threadTypeMessage.addOnLayoutChangeListener { v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom ->
-            messageInputHeight = binding.messageHolder.threadTypeMessageWrapper.height
+    private fun setupMessageHeightListener() {
+        binding.messageHolder.threadTypeMessage.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
             setRecyclerViewHeight()
         }
     }
-    private fun setRecyclerViewHeight(){
+
+    private fun setRecyclerViewHeight() {
         val display = windowManager.defaultDisplay
         val metrics = DisplayMetrics()
         display.getRealMetrics(metrics)
         val totalH = metrics.heightPixels
-        var height = totalH - vertOffsetTile - keyboardHeight - chipboardHeight - messageInputHeight - (200 * resources.displayMetrics.density).toInt()
-
+        val messageStripPx = binding.messageHolder.root.height
+        val fudge = (200 * resources.displayMetrics.density).toInt()
+        val height = (totalH - vertOffsetTile - chipboardHeight - messageStripPx - fudge).coerceAtLeast(0)
         binding.contactsList.setHeight(height)
     }
     @SuppressLint("MissingPermission")
@@ -1791,6 +1912,8 @@ class NewConversationActivity : SimpleActivity() {
 
     override fun onPause() {
         super.onPause()
+        composeBarBottomInsetLatch = ComposeBarBottomInsetLatch.NONE
+        applyComposeBarImePaddingFromInsets()
         saveNewConversationDraft()
     }
 
