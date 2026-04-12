@@ -43,6 +43,8 @@ class MessageHolderHelper(
     private val onTextChanged: ((String) -> Unit)? = null,
     private val onHideAttachmentPickerRequested: (() -> Unit)? = null,
     private val onThreadTypeMessageFocusChange: ((hasFocus: Boolean) -> Unit)? = null,
+    /** Invoked before hiding the attachment picker when the field gains focus and the picker is open (keyboard replacing picker). */
+    private val onPrepareKeyboardFromAttachmentPicker: (() -> Unit)? = null,
 ) {
     private var isCountdownActive = false
     private var isSpeechToTextAvailable = false
@@ -105,6 +107,9 @@ class MessageHolderHelper(
 
             threadTypeMessage.setOnFocusChangeListener { _, hasFocus ->
                 if (hasFocus) {
+                    if (binding.attachmentPickerHolder.isVisible()) {
+                        onPrepareKeyboardFromAttachmentPicker?.invoke()
+                    }
                     onHideAttachmentPickerRequested?.invoke()
                     hideAttachmentPicker()
                     hideEmojiPicker(resumeKeyboard = false)
