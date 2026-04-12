@@ -1663,7 +1663,8 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
     private fun markAsUnread() {
         ensureBackgroundThread {
             conversationsDB.markUnread(threadId)
-            markThreadMessagesUnread(threadId)
+            // Match ConversationsAdapter: single-message unread updates Telephony reliably; bulk thread unread often does not.
+            markLastMessageUnread(threadId)
             runOnUiThread {
                 finish()
                 bus?.post(Events.RefreshConversations())

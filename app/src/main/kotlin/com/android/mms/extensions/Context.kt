@@ -489,7 +489,7 @@ fun Context.getConversations(
     val conversations = ArrayList<Conversation>()
     val simpleContactHelper = SimpleContactsHelper(this)
     val blockedNumbers = getBlockedNumbers()
-//    val unreadMap = getUnreadCountsByThread()
+    val unreadMap = getUnreadCountsByThread()
     try {
         SimpleContactsHelper(this).getAvailableContacts(false) { contacts ->
             queryCursorUnsafe(
@@ -539,15 +539,18 @@ fun Context.getConversations(
                         phoneNumbers.first()
                     ) else ""
                 val isGroupConversation = phoneNumbers.size > 1
-                val read = cursor.getIntValue(Threads.READ) == 1
+                val telephonyThreadRead = cursor.getIntValue(Threads.READ) == 1
                 val archived =
                     if (archiveAvailable) cursor.getIntValue(Threads.ARCHIVED) == 1 else false
 
                 // Updating the Android SMS database on some devices takes a very long time,
                 // so this method does not work correctly when the read/unread status changes quickly.
-                // Therefore, it is better to take data from the application database, as it is updated instantly.
-                //val unreadCount = if (!read) unreadMap[id] ?: 0 else 0
-                val unreadCount = messagesDB.getThreadUnreadMessages(id)
+                // Combine local unread rows with provider unread (local DB can lag or omit messages).
+                val localUnread = messagesDB.getThreadUnreadMessages(id)
+                val providerUnread = unreadMap[id] ?: 0
+                val unreadCount = maxOf(localUnread, providerUnread)
+                // Treat as read only if Telephony says the thread is read and neither store counts unread messages.
+                val read = telephonyThreadRead && unreadCount == 0
 
                 val deleted =
                     if (useRecycleBin) messagesDB.getNonRecycledThreadMessages(id).isEmpty()
@@ -1423,6 +1426,11 @@ fun Context.markThreadMessagesUnread(threadId: Long) {
     val mmsArgs = arrayOf(id, Mms.MESSAGE_BOX_INBOX.toString())
     contentResolver.update(Mms.CONTENT_URI, mmsValues, mmsSelection, mmsArgs)
 
+    try {
+        messagesDB.markThreadInboxUnread(threadId)
+    } catch (_: Exception) {
+    }
+
     conversationsDB.markUnread(threadId)
 }
 
@@ -1484,6 +1492,10 @@ private fun Context.markSingleMessageUnread(messageId: Long, isMms: Boolean) {
 
     try {
         contentResolver.update(uri, values, null, null)
+        try {
+            messagesDB.markUnread(messageId)
+        } catch (_: Exception) {
+        }
     } catch (e: Exception) {
         Log.e("MarkUnread", "Error marking message as unread: ${e.message}")
     }
@@ -1738,6 +1750,14 @@ fun Context.insertOrUpdateConversation(
         updatedConv = updatedConv.copy(
             title = cachedConv.title,
             usesCustomTitle = true
+        )
+    }
+    // Default SMS provider often keeps Threads / message READ as "read" after Mark as Unread.
+    // If our DB already has unread (user action), do not let a Telephony-only refresh flip it back.
+    if (cachedConv != null && !cachedConv.read && updatedConv.read) {
+        updatedConv = updatedConv.copy(
+            read = false,
+            unreadCount = maxOf(updatedConv.unreadCount, cachedConv.unreadCount, 1),
         )
     }
     conversationsDB.insertOrUpdate(updatedConv)
