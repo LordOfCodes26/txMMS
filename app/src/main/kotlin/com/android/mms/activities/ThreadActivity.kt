@@ -2366,7 +2366,9 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                 wasKeyboardVisible = true
             } else {
                 wasKeyboardVisible = false
-                if (isAttachmentPickerVisible) {
+                if (isAttachmentPickerVisible &&
+                    composeBarBottomInsetLatch != ComposeBarBottomInsetLatch.ATTACHMENT_PICKER_TO_KEYBOARD
+                ) {
                     showAttachmentPicker()
                 }
             }

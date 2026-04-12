@@ -102,7 +102,6 @@ class NewConversationActivity : SimpleActivity() {
     private var composeBarBottomInsetLatch = ComposeBarBottomInsetLatch.NONE
     private var composeBarBottomInsetLatchPx = 0
     private var wasKeyboardVisible = false
-    private var messagingEdgeToEdgeRegistered = false
     private var messageHolderHelper: MessageHolderHelper? = null
     private var expandedMessageFragment: com.android.mms.fragments.ExpandedMessageFragment? = null
     // Map to store chip display text -> phone number mapping
@@ -164,16 +163,7 @@ class NewConversationActivity : SimpleActivity() {
         binding.newConversationAddress.hint = getString(R.string.recipients_hint)
         binding.newConversationAddress.getAddressBookButton().setColorFilter(com.goodwy.commons.R.color.bw_000)
 
-        val contentRoot = window.decorView.findViewById<View>(android.R.id.content) as ViewGroup
-        contentRoot.viewTreeObserver.addOnGlobalFocusChangeListener { _, hasFocus ->
-            if (hasFocus == null) { // If keyboard is hidden
-                Log.d("Keyboard", "Hidden")
-            } else {  // If keyboard is shown
-                Log.d("Keyboard", "Shown")
-                isAttachmentPickerVisible = false
-                messageHolderHelper?.hideAttachmentPicker()
-            }
-        }
+        setupMessagingEdgeToEdge()
 
         // READ_CONTACTS permission is not mandatory, but without it we won't be able to show any suggestions during typing
         handlePermission(PERMISSION_READ_CONTACTS) {
@@ -234,7 +224,6 @@ class NewConversationActivity : SimpleActivity() {
 
         setupTitleScrollAnimation()
         setupChipInputHeightListener()
-        setupMessageHeightListener()
 //        binding.newConversationHolder.setBackgroundColor(backgroundColor)
 //        binding.newConversationAddress.setBackgroundColor(backgroundColor)
 //        binding.suggestionsOverlay.setBackgroundColor(backgroundColor)
@@ -337,10 +326,6 @@ class NewConversationActivity : SimpleActivity() {
         binding.messageHolder.root.updatePaddingWithBase(bottom = bottomPx)
     }
 
-    private fun refreshContactsListHeightAfterComposeResize() {
-        binding.messageHolder.root.post { setRecyclerViewHeight() }
-    }
-
     private fun beginKeyboardToAttachmentPickerComposeInsetLatch() {
         val rootInsets = ViewCompat.getRootWindowInsets(binding.root)
             ?: ViewCompat.getRootWindowInsets(window.decorView)
@@ -352,7 +337,7 @@ class NewConversationActivity : SimpleActivity() {
         composeBarBottomInsetLatchPx = bottom
         composeBarBottomInsetLatch = ComposeBarBottomInsetLatch.KEYBOARD_TO_ATTACHMENT_PICKER
         applyComposeBarImePaddingFromInsets()
-        refreshContactsListHeightAfterComposeResize()
+        binding.messageHolder.root.post { setRecyclerViewHeight() }
     }
 
     private fun beginAttachmentPickerToKeyboardComposeInsetLatch() {
@@ -363,14 +348,14 @@ class NewConversationActivity : SimpleActivity() {
         composeBarBottomInsetLatchPx = config.keyboardHeight + nav
         composeBarBottomInsetLatch = ComposeBarBottomInsetLatch.ATTACHMENT_PICKER_TO_KEYBOARD
         applyComposeBarImePaddingFromInsets()
-        refreshContactsListHeightAfterComposeResize()
+        binding.messageHolder.root.post { setRecyclerViewHeight() }
     }
 
     private fun clearComposeBarBottomInsetLatch() {
         if (composeBarBottomInsetLatch == ComposeBarBottomInsetLatch.NONE) return
         composeBarBottomInsetLatch = ComposeBarBottomInsetLatch.NONE
         applyComposeBarImePaddingFromInsets()
-        refreshContactsListHeightAfterComposeResize()
+        binding.messageHolder.root.post { setRecyclerViewHeight() }
     }
 
     private fun setupMessageHolder() {
@@ -396,6 +381,12 @@ class NewConversationActivity : SimpleActivity() {
                     composeBarBottomInsetLatch == ComposeBarBottomInsetLatch.ATTACHMENT_PICKER_TO_KEYBOARD
                 ) {
                     clearComposeBarBottomInsetLatch()
+                }
+                if (!hasFocus && !isAttachmentPickerVisible && !ignoreInputFocusLossInsetSync &&
+                    messageHolderHelper?.isEmojiPickerPaneVisible() != true
+                ) {
+                    applyComposeBarImePaddingFromInsets()
+                    binding.root.post { ViewCompat.requestApplyInsets(binding.root) }
                 }
             },
             onPrepareKeyboardFromAttachmentPicker = {
@@ -423,7 +414,7 @@ class NewConversationActivity : SimpleActivity() {
                             composeBarBottomInsetLatch = ComposeBarBottomInsetLatch.NONE
                             applyComposeBarImePaddingFromInsets()
                         }
-                        refreshContactsListHeightAfterComposeResize()
+                        binding.messageHolder.root.post { setRecyclerViewHeight() }
                         threadTypeMessage.requestApplyInsets()
                         binding.root.post { ViewCompat.requestApplyInsets(binding.root) }
                         ignoreInputFocusLossInsetSync = false
@@ -453,11 +444,6 @@ class NewConversationActivity : SimpleActivity() {
         }
         setupScheduleSendUi()
 
-        if (!messagingEdgeToEdgeRegistered) {
-            messagingEdgeToEdgeRegistered = true
-            setupMessagingEdgeToEdge()
-        }
-
         // Handle forwarded messages from Intent.ACTION_SEND or Intent.ACTION_SEND_MULTIPLE
         handleForwardedMessage()
     }
@@ -482,7 +468,11 @@ class NewConversationActivity : SimpleActivity() {
                 wasKeyboardVisible = true
             } else {
                 wasKeyboardVisible = false
-                if (isAttachmentPickerVisible) {
+                // Avoid briefly re-showing the picker while IME is animating in (picker → keyboard); that
+                // caused a visible flash on [threadTypeMessage]. Thread re-shows only when not in latch.
+                if (isAttachmentPickerVisible &&
+                    composeBarBottomInsetLatch != ComposeBarBottomInsetLatch.ATTACHMENT_PICKER_TO_KEYBOARD
+                ) {
                     messageHolderHelper?.showAttachmentPicker()
                 }
             }
@@ -554,12 +544,6 @@ class NewConversationActivity : SimpleActivity() {
     private fun setupChipInputHeightListener(){
         binding.newConversationAddress.addOnLayoutChangeListener { v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom ->
             chipboardHeight = binding.newConversationAddress.height
-            setRecyclerViewHeight()
-        }
-    }
-
-    private fun setupMessageHeightListener() {
-        binding.messageHolder.threadTypeMessage.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
             setRecyclerViewHeight()
         }
     }
@@ -1913,7 +1897,6 @@ class NewConversationActivity : SimpleActivity() {
     override fun onPause() {
         super.onPause()
         composeBarBottomInsetLatch = ComposeBarBottomInsetLatch.NONE
-        applyComposeBarImePaddingFromInsets()
         saveNewConversationDraft()
     }
 
