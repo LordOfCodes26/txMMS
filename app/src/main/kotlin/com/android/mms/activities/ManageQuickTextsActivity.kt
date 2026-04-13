@@ -1,19 +1,45 @@
 package com.android.mms.activities
 
 import android.content.ActivityNotFoundException
+import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
+import android.view.View
+import android.view.ViewGroup
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
-import com.goodwy.commons.extensions.*
-import com.goodwy.commons.helpers.*
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updateLayoutParams
+import androidx.core.view.updatePadding
+import com.goodwy.commons.extensions.beVisibleIf
+import com.goodwy.commons.extensions.getColoredDrawableWithColor
+import com.goodwy.commons.extensions.getTempFile
+import com.goodwy.commons.extensions.getProperBackgroundColor
+import com.goodwy.commons.extensions.getProperPrimaryColor
+import com.goodwy.commons.extensions.getProperTextColor
+import com.goodwy.commons.extensions.getSurfaceColor
+import com.goodwy.commons.extensions.hideKeyboard
+import com.goodwy.commons.extensions.isDynamicTheme
+import com.goodwy.commons.extensions.isSystemInDarkMode
+import com.goodwy.commons.extensions.showErrorToast
+import com.goodwy.commons.extensions.toast
+import com.goodwy.commons.extensions.underlineText
+import com.goodwy.commons.extensions.updateTextColors
+import com.goodwy.commons.helpers.ExportResult
+import com.goodwy.commons.helpers.ensureBackgroundThread
 import com.goodwy.commons.interfaces.RefreshRecyclerViewListener
 import com.android.mms.R
 import com.android.mms.databinding.ActivityManageQuickTextsBinding
 import com.android.mms.dialogs.AddQuickTextDialog
 import com.android.mms.dialogs.ExportQuickTextsDialog
 import com.android.mms.dialogs.ManageQuickTextsAdapter
+import com.android.mms.extensions.applyLargeTitleOnly
+import com.android.mms.extensions.clearMySearchMenuSpringSync
 import com.android.mms.extensions.config
+import com.android.mms.extensions.postSyncMySearchMenuToolbarGeometry
+import com.android.mms.extensions.setupMySearchMenuSpringSync
 import com.android.mms.extensions.toArrayList
 import com.android.mms.helpers.QuickTextsExporter
 import com.android.mms.helpers.QuickTextsImporter
@@ -22,21 +48,19 @@ import java.io.OutputStream
 
 class ManageQuickTextsActivity : SimpleActivity(), RefreshRecyclerViewListener {
 
-    private val binding by viewBinding(ActivityManageQuickTextsBinding::inflate)
+    private lateinit var binding: ActivityManageQuickTextsBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        binding = ActivityManageQuickTextsBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        updateQuickTexts()
+        initTheme()
+        initMVSideFrames()
+        setupEdgeToEdge()
+        makeSystemBarsToTransparent()
+        setupTopBar()
         setupOptionsMenu()
-
-        setupEdgeToEdge(padBottomImeAndSystem = listOf(binding.manageQuickTextsList))
-        setupMaterialScrollListener(
-            scrollingView = binding.manageQuickTextsList,
-            topAppBar = binding.quickTextsAppbar
-        )
-        updateTextColors(binding.manageQuickTextsWrapper)
-
+        updateQuickTexts()
         binding.manageQuickTextsPlaceholder2.apply {
             underlineText()
             setTextColor(getProperPrimaryColor())
@@ -44,33 +68,144 @@ class ManageQuickTextsActivity : SimpleActivity(), RefreshRecyclerViewListener {
                 addOrEditQuickText()
             }
         }
+        binding.nestScroll.post {
+            postSyncMySearchMenuToolbarGeometry(
+                binding.root,
+                binding.quickTextsAppbar,
+                binding.mainBlurTarget,
+                binding.mVerticalSideFrameTop,
+                binding.manageQuickTextsList,
+            )
+            setupMySearchMenuSpringSync(binding.quickTextsAppbar, binding.manageQuickTextsList)
+            if (config.changeColourTopBar) {
+                scrollingView = binding.manageQuickTextsList
+                val useSurfaceColor = isDynamicTheme() && !isSystemInDarkMode()
+                setupSearchMenuScrollListener(
+                    binding.manageQuickTextsList,
+                    binding.quickTextsAppbar,
+                    useSurfaceColor,
+                )
+            }
+        }
     }
 
     override fun onResume() {
         super.onResume()
-        setupTopAppBar(binding.quickTextsAppbar, NavigationIcon.Arrow)
+        if (isSystemInDarkMode()) {
+            @Suppress("DEPRECATION")
+            window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+        } else {
+            @Suppress("DEPRECATION")
+            window.decorView.systemUiVisibility = (
+                View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                    or View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
+                    or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
+                )
+        }
+
+        val useSurfaceColor = isDynamicTheme() && !isSystemInDarkMode()
+        val backgroundColor = if (useSurfaceColor) getSurfaceColor() else getProperBackgroundColor()
+        binding.rootView.setBackgroundColor(backgroundColor)
+        binding.mainBlurTarget.setBackgroundColor(backgroundColor)
+        binding.manageQuickTextsList.setBackgroundColor(backgroundColor)
+        updateTextColors(binding.rootView)
+        setupTopBar()
+        scrollingView = binding.manageQuickTextsList
+        binding.quickTextsAppbar.updateColors(
+            getStartRequiredStatusBarColor(),
+            scrollingView?.computeVerticalScrollOffset() ?: 0,
+        )
+        setQuickTextsTransparentAppBarBackground()
+    }
+
+    override fun onDestroy() {
+        clearMySearchMenuSpringSync(binding.quickTextsAppbar, binding.manageQuickTextsList)
+        super.onDestroy()
+    }
+
+    private fun initTheme() {
+        window.navigationBarColor = Color.TRANSPARENT
+        window.statusBarColor = Color.TRANSPARENT
+    }
+
+    private fun initMVSideFrames() {
+        binding.mVerticalSideFrameTop.bindBlurTarget(binding.mainBlurTarget)
+        binding.mVerticalSideFrameBottom.bindBlurTarget(binding.mainBlurTarget)
+    }
+
+    private fun makeSystemBarsToTransparent() {
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
+            val nav = insets.getInsets(WindowInsetsCompat.Type.navigationBars())
+            val navHeight = nav.bottom
+            val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
+            val dp5 = (5 * resources.displayMetrics.density).toInt()
+            binding.mVerticalSideFrameBottom.layoutParams =
+                binding.mVerticalSideFrameBottom.layoutParams.apply { height = navHeight + dp5 }
+            applyQuickTextsListBottomInset(navHeight, ime.bottom)
+            insets
+        }
+    }
+
+    private fun applyQuickTextsListBottomInset(navHeight: Int, imeBottom: Int) {
+        val activityMargin = resources.getDimensionPixelSize(com.goodwy.commons.R.dimen.activity_margin)
+        val bottomInset = if (imeBottom > 0) imeBottom else navHeight
+        binding.manageQuickTextsList.updatePadding(bottom = bottomInset + activityMargin)
+    }
+
+    private fun setQuickTextsTransparentAppBarBackground() {
+        binding.quickTextsAppbar.setBackgroundColor(Color.TRANSPARENT)
+        binding.quickTextsAppbar.binding.searchBarContainer.setBackgroundColor(Color.TRANSPARENT)
+    }
+
+    private fun setupTopBar() {
+        binding.quickTextsAppbar.applyLargeTitleOnly(getString(R.string.manage_quick_texts))
+        binding.quickTextsAppbar.requireCustomToolbar().apply {
+            val textColor = getProperTextColor()
+            navigationIcon = resources.getColoredDrawableWithColor(
+                this@ManageQuickTextsActivity,
+                com.android.common.R.drawable.ic_cmn_arrow_left_fill,
+                textColor,
+            )
+            setNavigationContentDescription(com.goodwy.commons.R.string.back)
+            setNavigationOnClickListener {
+                hideKeyboard()
+                finish()
+            }
+            bindBlurTarget(this@ManageQuickTextsActivity, binding.mainBlurTarget)
+        }
+        binding.quickTextsAppbar.searchBeVisibleIf(false)
+        binding.quickTextsAppbar.binding.collapsingTitle.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+            marginStart = (64 * resources.displayMetrics.density).toInt()
+        }
     }
 
     private fun setupOptionsMenu() {
-        binding.quickTextsToolbar.setOnMenuItemClickListener { menuItem ->
-            when (menuItem.itemId) {
-                R.id.add_quick_text -> {
-                    addOrEditQuickText()
-                    true
-                }
+        binding.quickTextsAppbar.requireCustomToolbar().apply {
+            menu.clear()
+            inflateMenu(R.menu.menu_add_quick_text)
+            updateMenuItemColors(menu)
+            setOnMenuItemClickListener { menuItem ->
+                when (menuItem.itemId) {
+                    R.id.add_quick_text -> {
+                        addOrEditQuickText()
+                        true
+                    }
 
-                R.id.export_quick_texts -> {
-                    tryExportQuickTexts()
-                    true
-                }
+                    R.id.export_quick_texts -> {
+                        tryExportQuickTexts()
+                        true
+                    }
 
-                R.id.import_quick_texts -> {
-                    tryImportQuickTexts()
-                    true
-                }
+                    R.id.import_quick_texts -> {
+                        tryImportQuickTexts()
+                        true
+                    }
 
-                else -> false
+                    else -> false
+                }
             }
+            invalidateMenu()
         }
     }
 
@@ -139,7 +274,7 @@ class ManageQuickTextsActivity : SimpleActivity(), RefreshRecyclerViewListener {
                 when (result) {
                     QuickTextsImporter.ImportResult.IMPORT_OK -> com.goodwy.commons.R.string.importing_successful
                     QuickTextsImporter.ImportResult.IMPORT_FAIL -> com.goodwy.commons.R.string.no_items_found
-                }
+                },
             )
             updateQuickTexts()
         }
@@ -156,7 +291,7 @@ class ManageQuickTextsActivity : SimpleActivity(), RefreshRecyclerViewListener {
                         when (it) {
                             ExportResult.EXPORT_OK -> com.goodwy.commons.R.string.exporting_successful
                             else -> com.goodwy.commons.R.string.exporting_failed
-                        }
+                        },
                     )
                 }
             }
@@ -164,20 +299,18 @@ class ManageQuickTextsActivity : SimpleActivity(), RefreshRecyclerViewListener {
     }
 
     private fun tryExportQuickTexts() {
-        val blurTarget = findViewById<eightbitlab.com.blurview.BlurTarget>(R.id.mainBlurTarget)
-            ?: throw IllegalStateException("mainBlurTarget not found")
         ExportQuickTextsDialog(
             activity = this,
             path = config.lastQuickTextExportPath,
             hidePath = true,
-            blurTarget = blurTarget
+            blurTarget = binding.mainBlurTarget,
         ) { file ->
             try {
                 createDocument.launch(file.name)
             } catch (_: ActivityNotFoundException) {
                 toast(
                     com.goodwy.commons.R.string.system_service_disabled,
-                    Toast.LENGTH_LONG
+                    Toast.LENGTH_LONG,
                 )
             } catch (e: Exception) {
                 showErrorToast(e)
@@ -197,7 +330,7 @@ class ManageQuickTextsActivity : SimpleActivity(), RefreshRecyclerViewListener {
                     activity = this,
                     quickTexts = quickTexts,
                     listener = this,
-                    recyclerView = binding.manageQuickTextsList
+                    recyclerView = binding.manageQuickTextsList,
                 ) {
                     addOrEditQuickText(it as String)
                 }.apply {
@@ -211,11 +344,8 @@ class ManageQuickTextsActivity : SimpleActivity(), RefreshRecyclerViewListener {
     }
 
     private fun addOrEditQuickText(text: String? = null) {
-        val blurTarget = findViewById<eightbitlab.com.blurview.BlurTarget>(R.id.mainBlurTarget)
-            ?: throw IllegalStateException("mainBlurTarget not found")
-        AddQuickTextDialog(this, text, blurTarget = blurTarget) {
+        AddQuickTextDialog(this, text, blurTarget = binding.mainBlurTarget) {
             updateQuickTexts()
         }
     }
 }
-

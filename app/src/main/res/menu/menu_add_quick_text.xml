@@ -5,7 +5,7 @@
     tools:ignore="AppCompatResource,AlwaysShowAction">
     <item
         android:id="@+id/add_quick_text"
-        android:icon="@drawable/ic_plus_vector"
+        android:icon="@drawable/ic_cmn_add"
         android:title="@string/add_a_quick_text"
         app:showAsAction="ifRoom" />
     <item
