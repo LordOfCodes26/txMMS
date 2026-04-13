@@ -95,6 +95,7 @@ import com.android.mms.extensions.isImageMimeType
 import com.android.mms.extensions.isVCardMimeType
 import com.android.mms.extensions.isVideoMimeType
 import com.android.mms.extensions.launchViewIntent
+import com.android.mms.extensions.openContactDetailsFromVCardUri
 import com.android.mms.extensions.setPaddingBubble
 import com.android.mms.extensions.startContactDetailsIntentRecommendation
 import com.android.mms.extensions.subscriptionManagerCompat
@@ -1193,7 +1194,14 @@ class ThreadAdapter(
                         activity.startActivity(intent)
                     }
                 },
-                onLongClick = { holder.viewLongClicked() }
+                onLongClick = { holder.viewLongClicked() },
+                onViewContactDetailsClick = {
+                    if (actModeCallback.isSelectable) {
+                        holder.viewClicked(message)
+                    } else {
+                        activity.openContactDetailsFromVCardUri(uri)
+                    }
+                },
             )
         }.root
 

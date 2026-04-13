@@ -95,20 +95,29 @@ fun ItemAttachmentVcardPreviewBinding.setupVCardPreview(
     onClick: (() -> Unit)? = null,
     onLongClick: (() -> Unit)? = null,
     onRemoveButtonClicked: (() -> Unit)? = null,
+    onViewContactDetailsClick: (() -> Unit)? = null,
 ) {
     vcardProgress.beVisible()
-    vcardAttachmentHolder.setupVCardPreview(activity = activity, uri = uri, attachment = true, onClick = onClick, onLongClick = onLongClick) {
-        vcardProgress.beGone()
-        removeAttachmentButtonHolder.removeAttachmentButton.apply {
-            beVisible()
-            background.applyColorFilter(activity.getProperPrimaryColor())
-            if (onRemoveButtonClicked != null) {
-                setOnClickListener {
-                    onRemoveButtonClicked.invoke()
+    vcardAttachmentHolder.setupVCardPreview(
+        activity = activity,
+        uri = uri,
+        attachment = true,
+        onClick = onClick,
+        onLongClick = onLongClick,
+        onVCardLoaded = {
+            vcardProgress.beGone()
+            removeAttachmentButtonHolder.removeAttachmentButton.apply {
+                beVisible()
+                background.applyColorFilter(activity.getProperPrimaryColor())
+                if (onRemoveButtonClicked != null) {
+                    setOnClickListener {
+                        onRemoveButtonClicked.invoke()
+                    }
                 }
             }
-        }
-    }
+        },
+        onViewContactDetailsClick = onViewContactDetailsClick,
+    )
 }
 
 fun ItemAttachmentVcardBinding.setupVCardPreview(
@@ -118,6 +127,7 @@ fun ItemAttachmentVcardBinding.setupVCardPreview(
     onClick: (() -> Unit)? = null,
     onLongClick: (() -> Unit)? = null,
     onVCardLoaded: (() -> Unit)? = null,
+    onViewContactDetailsClick: (() -> Unit)? = null,
 ) {
     val context = root.context
     val textColor = activity.getProperTextColor()
@@ -180,9 +190,18 @@ fun ItemAttachmentVcardBinding.setupVCardPreview(
 
             if (attachment) {
                 onVCardLoaded?.invoke()
+                viewContactDetails.setOnClickListener(null)
+                viewContactDetails.isClickable = false
             } else {
                 viewContactDetails.setTextColor(primaryColor)
                 viewContactDetails.beVisible()
+                if (onViewContactDetailsClick != null) {
+                    viewContactDetails.isClickable = true
+                    viewContactDetails.setOnClickListener { onViewContactDetailsClick() }
+                } else {
+                    viewContactDetails.isClickable = false
+                    viewContactDetails.setOnClickListener(null)
+                }
             }
 
             vcardAttachmentHolder.setOnClickListener {

@@ -12,6 +12,7 @@ import androidx.core.content.res.ResourcesCompat
 import com.goodwy.commons.activities.BaseSimpleActivity
 import com.goodwy.commons.dialogs.NewAppDialog
 import com.goodwy.commons.extensions.darkenColor
+import com.goodwy.commons.extensions.normalizePhoneNumber
 import com.goodwy.commons.extensions.getMimeType
 import com.goodwy.commons.extensions.getProperBackgroundColor
 import com.goodwy.commons.extensions.getProperPrimaryColor
@@ -41,7 +42,11 @@ import com.android.mms.BuildConfig
 import com.android.mms.R
 import com.android.mms.activities.ConversationDetailsActivity
 import com.android.mms.activities.SimpleActivity
+import com.android.mms.activities.VCardViewerActivity
+import com.android.mms.helpers.EXTRA_VCARD_URI
 import com.android.mms.helpers.THREAD_ID
+import com.android.mms.helpers.parseVCardFromUri
+import ezvcard.property.Telephone
 import com.google.android.material.snackbar.Snackbar
 import java.util.Locale
 
@@ -159,6 +164,54 @@ fun Activity.startContactDetailsIntent(contact: SimpleContact) {
                 launchViewContactIntent(publicUri)
             }
         }
+    }
+}
+
+/**
+ * Opens an address-book contact detail for a vCard attachment when any listed phone matches a device
+ * contact (same flow as txDial [MainActivityRecents] info / [ConversationsAdapter.openConversationDetails]).
+ * Falls back to [VCardViewerActivity] when no phones match.
+ */
+fun Activity.openContactDetailsFromVCardUri(uri: Uri) {
+    parseVCardFromUri(this, uri) { vCards ->
+        val rawNumbers = vCards.flatMap { vCard ->
+            vCard.properties.filterIsInstance<Telephone>().mapNotNull { tel ->
+                tel.text?.trim()?.takeIf { it.isNotEmpty() }
+            }
+        }.distinct()
+
+        fun openVCardViewer() {
+            runOnUiThread {
+                Intent(this, VCardViewerActivity::class.java).apply {
+                    putExtra(EXTRA_VCARD_URI, uri)
+                    startActivity(this)
+                }
+            }
+        }
+
+        if (rawNumbers.isEmpty()) {
+            openVCardViewer()
+            return@parseVCardFromUri
+        }
+
+        fun tryAddress(index: Int) {
+            if (index >= rawNumbers.size) {
+                openVCardViewer()
+                return
+            }
+            val raw = rawNumbers[index]
+            val address = raw.normalizePhoneNumber().ifEmpty { raw }
+            getContactFromAddress(address) { contact ->
+                if (contact != null) {
+                    runOnUiThread {
+                        startContactDetailsIntent(contact)
+                    }
+                } else {
+                    tryAddress(index + 1)
+                }
+            }
+        }
+        tryAddress(0)
     }
 }
 
