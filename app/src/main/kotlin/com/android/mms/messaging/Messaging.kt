@@ -89,7 +89,7 @@ fun Context.sendMessageCompat(
                 )
 
                 ERROR_SENDING_MESSAGE -> toast(
-                    msg = getString(R.string.unknown_error_occurred_sending_message, e.errorCode),
+                    msg = getString(R.string.unknown_error_occurred_sending_message),
                     length = LENGTH_LONG
                 )
             }

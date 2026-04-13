@@ -124,6 +124,7 @@ import android.widget.PopupMenu
 import androidx.core.view.updatePadding
 import com.android.common.dialogs.MConfirmDialog
 import com.behaviorule.arturdumchev.library.setHeight
+import com.goodwy.commons.helpers.DARK_GREY
 import eightbitlab.com.blurview.BlurTarget
 import java.util.Locale
 import kotlin.math.abs
@@ -960,7 +961,8 @@ class ThreadAdapter(
             val surfaceColor = if (useSurfaceColor) activity.getProperBackgroundColor() else activity.getSurfaceColor()
             val backgroundReceived = if (activity.config.bubbleInvertColor) primaryOrSenderColor else surfaceColor
             val selectedBubbleOption = getBubbleDrawableOption(activity.config.bubbleDrawableSet)
-            val contrastColorReceived = if (selectedBubbleOption != null) activity.getProperTextColor() else backgroundReceived.getContrastColor()
+//            val contrastColorReceived = if (selectedBubbleOption != null) activity.getProperTextColor() else backgroundReceived.getContrastColor()
+            val contrastColorReceived = DARK_GREY
 
             threadMessageBodyWrapper.apply {
                 setOnTouchListener(pinchToZoomTouchListener)

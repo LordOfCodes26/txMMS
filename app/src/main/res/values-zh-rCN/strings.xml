@@ -137,7 +137,7 @@
     <string name="error_service_is_unavailable">无法发送消息，服务不可用</string>
     <string name="error_radio_turned_off">无法发送消息，无线电收发器关闭</string>
     <string name="carrier_send_error">无法发送消息，运营商错误</string>
-    <string name="unknown_error_occurred_sending_message">无法发送消息，错误代码：%d</string>
+    <string name="unknown_error_occurred_sending_message">无法发送消息。</string>
     <string name="invalid_short_code">无法回复类似这样的短码</string>
     <string name="invalid_short_code_desc">你只能回复类似 \"503501\" 这样的短码，不能回复 \"AB-CD0\" 这样既包含字母又包含数字的短码。</string>
     <string name="attachment_sized_exceeds_max_limit">附件大小超出了彩信上限</string>

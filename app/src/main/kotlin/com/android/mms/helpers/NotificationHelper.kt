@@ -36,7 +36,7 @@ class NotificationHelper(private val context: Context) {
     private val notificationManager = context.notificationManager
     private val soundUri get() = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
     private val user = Person.Builder()
-        .setName(context.getString(R.string.me))
+        .setName(context.getString(R.string.reply))
         .setIcon(IconCompat.createWithResource(context, com.goodwy.commons.R.drawable.placeholder_contact))
         .build()
 

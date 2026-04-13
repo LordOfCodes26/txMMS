@@ -762,4 +762,8 @@
     <string name="hours_letter">%d시간</string>
     <string name="days_letter">%d일</string>
     <string name="select_text">본문선택</string>
+
+    <string name="filename_without_txt">화일이름 (without .txt)</string>
+    <string name="filename_without_json">화일이름 (without .json)</string>
+    <string name="filename_without_zip">화일이름 (without .zip)</string>
 </resources>
