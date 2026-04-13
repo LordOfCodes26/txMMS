@@ -5,13 +5,13 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    app:cardBackgroundColor="@color/white"
+    app:cardBackgroundColor="@color/tx_card_bg"
     app:contentPaddingLeft="@dimen/normal_margin"
     app:contentPaddingRight="@dimen/normal_margin"
     app:contentPaddingBottom="@dimen/medium_margin"
     app:contentPaddingTop="@dimen/medium_margin"
     app:cardCornerRadius="24dp"
-    app:strokeColor="@color/black"
+    app:strokeColor="@color/tx_popup_menu_border"
     app:strokeWidth="0.5dp"
     app:cardElevation="@dimen/cardview_default_elevation">
 
@@ -104,7 +104,8 @@
             android:src="@drawable/ic_cmn_contact_add"
             android:visibility="visible"
             android:padding="@dimen/tiny_margin"
-            tools:tint="@color/dark_grey" />
+            android:backgroundTint="@color/tx_toolbar_icon"
+            tools:tint="@color/tx_toolbar_icon" />
 
         <ImageView
             android:id="@+id/chips_speech_to_text_button"

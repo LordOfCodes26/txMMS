@@ -4,6 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="@dimen/app_lock_view_max_size"
     android:orientation="vertical"
+    android:backgroundTint="@color/transparent"
     android:background="@drawable/bg_keyboard_ic">
     <RelativeLayout
         android:layout_width="match_parent"
@@ -44,6 +45,7 @@
                             <ImageView
                                 android:layout_width="@dimen/list_icon_size_extra_large"
                                 android:layout_height="@dimen/list_icon_size_extra_large"
+                                android:backgroundTint="@color/tx_cardview_bg"
                                 android:background="@drawable/bg_ic_white"
                                 android:clickable="false"
                                 android:layout_gravity="center" />

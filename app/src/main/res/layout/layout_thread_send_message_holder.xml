@@ -140,14 +140,14 @@
         app:layout_constraintEnd_toStartOf="@id/imv_emotic_btn"
         app:layout_constraintHorizontal_weight="1"
         app:layout_constraintStart_toEndOf="@+id/threadAddAttachmentHolder"
-        app:strokeColor="@color/black"
+        app:strokeColor="@color/tx_popup_menu_border"
         app:strokeWidth="@dimen/cardview_stroke">
 
         <com.goodwy.commons.views.MyEditText
             android:id="@+id/threadTypeMessage"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="@color/white"
+            android:background="@color/tx_card_bg"
             android:gravity="center_vertical"
             android:hint="@string/type_a_message"
             android:inputType="textCapSentences|textMultiLine"
@@ -319,6 +319,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:visibility="gone"
+        android:background="@color/tx_card_bg"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.0"

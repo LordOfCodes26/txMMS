@@ -85,9 +85,9 @@
                                 android:visibility="gone"
                                 app:contentPaddingBottom="@dimen/medium_margin"
                                 app:contentPaddingTop="@dimen/medium_margin"
-                                app:cardBackgroundColor="@color/tx_cardview_bg"
+                                app:cardBackgroundColor="@color/tx_card_bg"
                                 app:cardCornerRadius="@dimen/tx_cardview_corner_radius"
-                                app:strokeColor="@color/black"
+                                app:strokeColor="@color/tx_popup_menu_border"
                                 app:strokeWidth="@dimen/cardview_stroke"
                                 app:cardElevation="@dimen/cardview_default_elevation">
                                 <com.goodwy.commons.views.MyRecyclerView
@@ -144,7 +144,7 @@
                                     android:layout_height="wrap_content"
                                     android:layout_marginHorizontal="@dimen/tx_cardview_margin_horizontal"
                                     android:layout_marginTop="@dimen/tx_cardview_margin_vertical"
-                                    app:cardBackgroundColor="@color/tx_cardview_bg"
+                                    app:cardBackgroundColor="@color/tx_card_bg"
                                     app:cardCornerRadius="@dimen/tx_cardview_corner_radius"
                                     app:cardElevation="@dimen/cardview_default_elevation">
                                     <HorizontalScrollView
@@ -190,6 +190,11 @@
                                 android:visibility="gone" />
 
                         </RelativeLayout>
+
+                        <FrameLayout
+                            android:id="@+id/fragment_container"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent" />
                     </FrameLayout>
                 </androidx.core.widget.NestedScrollView>
             </eightbitlab.com.blurview.BlurTarget>
@@ -218,9 +223,5 @@
     </LinearLayout>
 
 
-    <FrameLayout
-        android:id="@+id/fragment_container"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent" />
-<!--    eightbitlab.com.blurview.BlurTarget-->
+    <!--    eightbitlab.com.blurview.BlurTarget-->
 </eightbitlab.com.blurview.BlurTarget>
