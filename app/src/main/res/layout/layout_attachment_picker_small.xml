@@ -3,8 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:backgroundTint="@color/attachment_bg"
-    android:background="@drawable/bg_keyboard_ic"
+    android:background="@drawable/attachment_bg"
     android:orientation="vertical">
     <RelativeLayout
         android:layout_width="match_parent"
@@ -45,7 +44,6 @@
                             <ImageView
                                 android:layout_width="@dimen/list_icon_size_extra_large"
                                 android:layout_height="@dimen/list_icon_size_extra_large"
-                                android:backgroundTint="@color/attachment_icon_bg"
                                 android:background="@drawable/bg_ic_white"
                                 android:clickable="false"
                                 android:layout_gravity="center" />
@@ -103,7 +101,6 @@
                             <ImageView
                                 android:layout_width="@dimen/list_icon_size_extra_large"
                                 android:layout_height="@dimen/list_icon_size_extra_large"
-                                android:backgroundTint="@color/attachment_icon_bg"
                                 android:background="@drawable/bg_ic_white"
                                 android:clickable="false"
                                 android:layout_gravity="center" />
@@ -160,7 +157,6 @@
                             <ImageView
                                 android:layout_width="@dimen/list_icon_size_extra_large"
                                 android:layout_height="@dimen/list_icon_size_extra_large"
-                                android:backgroundTint="@color/attachment_icon_bg"
                                 android:background="@drawable/bg_ic_white"
                                 android:clickable="false"
                                 android:layout_gravity="center" />
@@ -216,7 +212,6 @@
                             <ImageView
                                 android:layout_width="@dimen/list_icon_size_extra_large"
                                 android:layout_height="@dimen/list_icon_size_extra_large"
-                                android:backgroundTint="@color/attachment_icon_bg"
                                 android:background="@drawable/bg_ic_white"
                                 android:clickable="false"
                                 android:layout_gravity="center" />
@@ -282,7 +277,6 @@
                             <ImageView
                                 android:layout_width="@dimen/list_icon_size_extra_large"
                                 android:layout_height="@dimen/list_icon_size_extra_large"
-                                android:backgroundTint="@color/attachment_icon_bg"
                                 android:background="@drawable/bg_ic_white"
                                 android:clickable="false"
                                 android:layout_gravity="center" />
@@ -338,7 +332,6 @@
                             <ImageView
                                 android:layout_width="@dimen/list_icon_size_extra_large"
                                 android:layout_height="@dimen/list_icon_size_extra_large"
-                                android:backgroundTint="@color/attachment_icon_bg"
                                 android:background="@drawable/bg_ic_white"
                                 android:clickable="false"
                                 android:layout_gravity="center" />
@@ -394,7 +387,6 @@
                             <ImageView
                                 android:layout_width="@dimen/list_icon_size_extra_large"
                                 android:layout_height="@dimen/list_icon_size_extra_large"
-                                android:backgroundTint="@color/attachment_icon_bg"
                                 android:background="@drawable/bg_ic_white"
                                 android:clickable="false"
                                 android:layout_gravity="center" />
@@ -451,7 +443,6 @@
                             <ImageView
                                 android:layout_width="@dimen/list_icon_size_extra_large"
                                 android:layout_height="@dimen/list_icon_size_extra_large"
-                                android:backgroundTint="@color/attachment_icon_bg"
                                 android:background="@drawable/bg_ic_white"
                                 android:clickable="false"
                                 android:layout_gravity="center" />
