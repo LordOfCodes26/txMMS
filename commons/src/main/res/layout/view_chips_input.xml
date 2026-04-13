@@ -99,13 +99,10 @@
             android:id="@+id/chips_address_book_button"
             android:layout_width="@dimen/tx_cardview_icon_size"
             android:layout_height="@dimen/tx_cardview_icon_size"
-            android:background="?selectableItemBackgroundBorderless"
+            android:background="@drawable/ic_contact_add"
             android:contentDescription="@string/search_contacts"
-            android:src="@drawable/ic_cmn_contact_add"
             android:visibility="visible"
-            android:padding="@dimen/tiny_margin"
-            android:backgroundTint="@color/tx_toolbar_icon"
-            tools:tint="@color/tx_toolbar_icon" />
+            android:padding="@dimen/tiny_margin"/>
 
         <ImageView
             android:id="@+id/chips_speech_to_text_button"

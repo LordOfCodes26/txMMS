@@ -5,6 +5,7 @@
     android:id="@+id/message_holder"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/tx_common_bg"
     android:clipChildren="false"
     android:clipToPadding="false">
 
@@ -30,6 +31,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:background="@drawable/ripple_all_corners_16dp"
+            android:backgroundTint="@color/popup_menu_border_color"
             android:clickable="true"
             android:focusable="true">
 
@@ -54,6 +56,7 @@
                 android:paddingEnd="@dimen/activity_margin"
                 android:textSize="@dimen/middle_text_size"
                 tools:ignore="HardcodedText"
+                app:strokeColor="@color/tx_popup_menu_border"
                 tools:text="Tomorrow at 6PM GMT +05:30" />
 
             <ImageView
@@ -319,12 +322,11 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:visibility="gone"
-        android:background="@color/tx_card_bg"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
-        android:paddingTop="16dp">
+        android:background="@color/tx_common_bg">
 
         <include
             android:id="@+id/attachment_picker"

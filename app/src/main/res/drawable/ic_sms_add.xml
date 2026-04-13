@@ -6,14 +6,14 @@
   <path
       android:pathData="M48.031,48.03m-47.531,0a47.531,47.531 0,1 1,95.062 0a47.531,47.531 0,1 1,-95.062 0"
       android:strokeWidth="1"
-      android:fillColor="#fff"
-      android:strokeColor="#19191c"/>
+      android:fillColor="@color/tx_card_bg"
+      android:strokeColor="@color/tx_popup_menu_border"/>
   <path
       android:pathData="M48.339,24.85v43.42m21.711,-21.71L26.628,46.56"
       android:strokeLineJoin="round"
       android:strokeWidth="4.5"
       android:fillColor="#00000000"
       android:fillType="evenOdd"
-      android:strokeColor="#393939"
+      android:strokeColor="@color/tx_popup_menu_border"
       android:strokeLineCap="round"/>
 </vector>

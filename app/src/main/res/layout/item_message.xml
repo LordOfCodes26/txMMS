@@ -58,7 +58,7 @@
             android:layout_marginTop="@dimen/tiny_margin"
             android:layout_below="@+id/thread_message_attachments_holder"
             android:layout_toEndOf="@+id/threadMessageSenderPhoto"
-            android:background="@drawable/item_received_background"
+            android:backgroundTint="@color/tx_card_bg"
             android:orientation="vertical">
 
             <TextView
