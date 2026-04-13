@@ -5,7 +5,7 @@
     android:id="@+id/message_holder"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/tx_common_bg"
+    android:background="@color/transparent"
     android:clipChildren="false"
     android:clipToPadding="false">
 
@@ -326,7 +326,7 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
-        android:background="@color/tx_common_bg">
+        android:layout_marginTop="16dp">
 
         <include
             android:id="@+id/attachment_picker"
