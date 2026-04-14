@@ -295,16 +295,19 @@ class SettingsActivity : SimpleActivity() {
             ).forEach {
                 it.applyColorFilter(properTextColor)
             }
-
-            arrayOf(
-                settingsDeliveryReportSummary,
-                settingsShowPhoneNumberSummary,
-                settingsShowSmsRemainedCountSummary
-            ).forEach {
-                it.setColors(com.android.common.R.color.tx_cardview_summary,
-                    com.android.common.R.color.tx_cardview_summary,
-                    com.android.common.R.color.tx_cardview_summary)
-            }
+//            deleted by sun
+//            because duplicate style and text color
+//            ------------->
+//            arrayOf(
+//                settingsDeliveryReportSummary,
+//                settingsShowPhoneNumberSummary,
+//                settingsShowSmsRemainedCountSummary
+//            ).forEach {
+//                it.setColors(com.android.common.R.color.tx_cardview_summary,
+//                    com.android.common.R.color.tx_cardview_summary,
+//                    com.android.common.R.color.tx_cardview_summary)
+//            }
+//            <--------------
         }
         binding.settingsMenu.requireCustomToolbar().menu.let { updateMenuItemColors(it) }
         isRebindingSettings = false
