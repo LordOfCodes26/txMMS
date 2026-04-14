@@ -153,6 +153,7 @@ dependencies {
     api(project(":strings"))
     api(libs.persian.date)
     implementation(libs.behavio.rule)
+    implementation(libs.swipe.action)
     implementation(libs.rx.animation)
     implementation(libs.rx.java)
     api("io.github.kyant0:backdrop:1.0.2")
