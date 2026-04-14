@@ -9,6 +9,11 @@
         android:title="@string/add_a_quick_text"
         app:showAsAction="ifRoom" />
     <item
+        android:id="@+id/select_quick_text"
+        android:icon="@drawable/ic_cmn_multi_check"
+        android:title="@string/add_a_quick_text"
+        app:showAsAction="ifRoom" />
+    <item
         android:id="@+id/import_quick_texts"
         android:title="@string/import_quick_texts"
         app:showAsAction="never" />

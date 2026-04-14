@@ -202,6 +202,11 @@ class ManageQuickTextsActivity : SimpleActivity(), RefreshRecyclerViewListener {
                         true
                     }
 
+                    R.id.select_quick_text -> {
+
+                        true
+                    }
+
                     else -> false
                 }
             }
