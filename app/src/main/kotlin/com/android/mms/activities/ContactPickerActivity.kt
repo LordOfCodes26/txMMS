@@ -546,9 +546,6 @@ class ContactPickerActivity : SimpleActivity() {
                 finish()
             }
         }
-        blurAppBarLayout?.binding?.collapsingTitle?.updateLayoutParams<ViewGroup.MarginLayoutParams> {
-            marginStart = (64 * resources.displayMetrics.density).toInt()
-        }
     }
 
     private fun hideTopBarNavigation() {

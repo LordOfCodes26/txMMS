@@ -205,9 +205,6 @@ class SettingsActivity : SimpleActivity() {
             }
         }
         binding.settingsMenu.searchBeVisibleIf(false)
-        binding.settingsMenu.binding.collapsingTitle.updateLayoutParams<ViewGroup.MarginLayoutParams> {
-            marginStart = (64 * resources.displayMetrics.density).toInt()
-        }
     }
 
     override fun onResume() {

@@ -175,9 +175,6 @@ class ManageQuickTextsActivity : SimpleActivity(), RefreshRecyclerViewListener {
             bindBlurTarget(this@ManageQuickTextsActivity, binding.mainBlurTarget)
         }
         binding.quickTextsAppbar.searchBeVisibleIf(false)
-        binding.quickTextsAppbar.binding.collapsingTitle.updateLayoutParams<ViewGroup.MarginLayoutParams> {
-            marginStart = (64 * resources.displayMetrics.density).toInt()
-        }
     }
 
     private fun setupOptionsMenu() {

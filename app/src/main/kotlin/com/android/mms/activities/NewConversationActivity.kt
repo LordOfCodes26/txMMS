@@ -197,9 +197,6 @@ class NewConversationActivity : SimpleActivity() {
             setTextColor(getProperTextColor())
             setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, getTextSize())
         }
-        binding.newConversationAppbar.binding.collapsingTitle.updateLayoutParams<ViewGroup.MarginLayoutParams> {
-            marginStart = (64 * resources.displayMetrics.density).toInt()
-        }
         binding.newConversationAppbar.requireCustomToolbar().apply {
             val textColor = getProperTextColor()
             navigationIcon = resources.getColoredDrawableWithColor(
