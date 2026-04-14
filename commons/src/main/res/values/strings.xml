@@ -148,6 +148,13 @@
     <string name="unblock_contact">Unblock contact</string>
     <string name="unblock_contact_success">Contact unblocked</string>
     <string name="unblock_contact_fail">Contact could not be unblocked</string>
+    <string name="blocked_items">Blocked items</string>
+    <string name="blocked_calls">Blocked calls</string>
+    <string name="blocked_messages">Blocked messages</string>
+    <string name="blocked_contacts">Blocked contacts</string>
+    <string name="no_blocked_calls">No blocked calls yet.</string>
+    <string name="no_blocked_messages">No blocked messages yet.</string>
+    <string name="no_blocked_contacts">No blocked contacts yet.</string>
 
     <!-- Favorites -->
     <string name="favorites">Favorites</string>

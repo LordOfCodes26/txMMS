@@ -2,6 +2,7 @@ package com.goodwy.commons.views
 
 import android.content.Context
 import android.content.res.ColorStateList
+import android.graphics.Rect
 import android.util.TypedValue
 import android.util.AttributeSet
 import android.view.LayoutInflater
@@ -22,6 +23,8 @@ open class MySearchMenu(context: Context, attrs: AttributeSet) : MyAppBarLayout(
     private var savedScrollFlags: Int? = null
     private var savedAppBarHeight: Int? = null
     private val minCollapsedTitleScale = 0.8f
+    private val navTitleGapDp = 40f
+    private val fallbackNavShiftDp = 10f
 
     init {
         addOnOffsetChangedListener { appBarLayout, verticalOffset ->
@@ -35,6 +38,36 @@ open class MySearchMenu(context: Context, attrs: AttributeSet) : MyAppBarLayout(
             binding.collapsingTitle.pivotY = binding.collapsingTitle.height / 2f
             binding.collapsingTitle.scaleX = targetScale
             binding.collapsingTitle.scaleY = targetScale
+
+            val isNavigationVisible = binding.topToolbar.getNavigationIconView()?.isShown == true
+            if (isNavigationVisible) {
+                val navGapPx = TypedValue.applyDimension(
+                    TypedValue.COMPLEX_UNIT_DIP,
+                    navTitleGapDp,
+                    resources.displayMetrics
+                )
+                val fallbackShiftPx = TypedValue.applyDimension(
+                    TypedValue.COMPLEX_UNIT_DIP,
+                    fallbackNavShiftDp,
+                    resources.displayMetrics
+                )
+
+                val navRect = Rect()
+                val titleRect = Rect()
+                val navView = binding.topToolbar.getNavigationIconView()
+                val hasRects = navView?.getGlobalVisibleRect(navRect) == true &&
+                    binding.collapsingTitle.getGlobalVisibleRect(titleRect)
+                val requiredShiftPx = if (hasRects) {
+                    // Move title so its left edge starts after nav icon + gap.
+                    (navRect.right + navGapPx - titleRect.left).coerceAtLeast(0f)
+                } else {
+                    fallbackShiftPx
+                }
+
+                binding.collapsingTitle.translationX = requiredShiftPx * collapseFraction
+            } else {
+                binding.collapsingTitle.translationX = 0f
+            }
         }
     }
 
@@ -142,7 +175,7 @@ open class MySearchMenu(context: Context, attrs: AttributeSet) : MyAppBarLayout(
     }
 
     fun updateTitle(title: String) {
-        binding.topToolbar.title = title
+//        binding.topToolbar.title = title
         binding.collapsingTitle.text = title
     }
 

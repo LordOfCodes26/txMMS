@@ -56,6 +56,14 @@
             tools:targetApi="tiramisu" />
 
         <activity
+            android:name=".activities.BlockedItemsActivity"
+            android:configChanges="orientation"
+            android:enableOnBackInvokedCallback="true"
+            android:exported="false"
+            android:label="@string/blocked_items"
+            tools:targetApi="tiramisu" />
+
+        <activity
             android:name=".activities.AppLockActivity"
             android:exported="false" />
 

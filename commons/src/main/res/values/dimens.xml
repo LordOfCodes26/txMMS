@@ -33,6 +33,7 @@
     <dimen name="settings_margin">8dp</dimen>
     <dimen name="about_margin">20dp</dimen>
     <dimen name="dialpad_bottom_margin">150dp</dimen>
+    <dimen name="dialpad_margin_bottom_ios">28dp</dimen>
 
     <dimen name="material_dialog_corner_radius">12dp</dimen>
     <dimen name="dialog_corner_radius">12dp</dimen>
