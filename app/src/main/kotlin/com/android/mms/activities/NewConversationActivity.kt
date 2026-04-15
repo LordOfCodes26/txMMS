@@ -1869,10 +1869,30 @@ class NewConversationActivity : SimpleActivity() {
         saveNewConversationDraft()
     }
 
+    /**
+     * Adds recipients typed in the chips field but not yet committed as chips (comma/semicolon separated).
+     * Invalid segments are skipped so a draft can still be saved from valid chips + valid pending input.
+     */
+    private fun mergeRecipientNumbersFromRecipientField(allNumbers: MutableList<String>) {
+        val currentText = binding.newConversationAddress.currentText.trim()
+        if (currentText.isEmpty()) return
+        val textNumbers = currentText.split(",", ";")
+        for (numberText in textNumbers) {
+            val trimmedNumber = numberText.trim()
+            if (trimmedNumber.isEmpty() || !isValidForChip(trimmedNumber)) continue
+            val normalizedNumber = trimmedNumber.normalizePhoneNumber()
+            when {
+                normalizedNumber.isNotEmpty() && !allNumbers.contains(normalizedNumber) ->
+                    allNumbers.add(normalizedNumber)
+                normalizedNumber.isEmpty() && !allNumbers.contains(trimmedNumber) ->
+                    allNumbers.add(trimmedNumber)
+            }
+        }
+    }
+
     private fun saveNewConversationDraft() {
         val chips = binding.newConversationAddress.allChips
         val messageText = binding.messageHolder.threadTypeMessage.text?.toString()?.trim() ?: ""
-        val hasChips = chips.isNotEmpty()
         val hasMessage = messageText.isNotEmpty()
         val staleResumeId = resumedDraftThreadId
         val allNumbers = mutableListOf<String>()
@@ -1886,7 +1906,9 @@ class NewConversationActivity : SimpleActivity() {
             }
         }
 
-        val shouldPersist = hasChips && hasMessage && allNumbers.isNotEmpty()
+        mergeRecipientNumbersFromRecipientField(allNumbers)
+
+        val shouldPersist = hasMessage && allNumbers.isNotEmpty()
         val shouldClearDraftForEmptyMessage = !hasMessage && allNumbers.isNotEmpty()
         if (staleResumeId <= 0L && !shouldPersist && !shouldClearDraftForEmptyMessage) return
 
