@@ -25,7 +25,6 @@ import android.text.format.DateUtils.FORMAT_NO_YEAR
 import android.text.format.DateUtils.FORMAT_SHOW_DATE
 import android.text.format.DateUtils.FORMAT_SHOW_TIME
 import android.text.TextUtils
-import android.util.DisplayMetrics
 import android.util.Log
 import android.view.Gravity
 import android.view.KeyEvent
@@ -77,7 +76,6 @@ import com.android.mms.models.Events
 import com.android.mms.models.SIMCard
 import com.android.mms.BuildConfig
 import com.android.mms.helpers.MessageHolderHelper
-import com.behaviorule.arturdumchev.library.setHeight
 import com.google.gson.annotations.Until
 import org.greenrobot.eventbus.EventBus
 import org.joda.time.DateTime
@@ -113,8 +111,6 @@ class NewConversationActivity : SimpleActivity() {
     private var scheduledDateTime = DateTime.now().plusMinutes(5)
     private var isScheduledMessage = false
     private val binding by viewBinding(ActivityNewConversationBinding::inflate)
-    private var vertOffsetTile = 0
-    private var chipboardHeight = 0
     private var draftResumeApplied = false
     /** Thread id of the draft opened from the main list; cleared when recipients no longer match that thread. */
     private var resumedDraftThreadId: Long = 0L
@@ -219,8 +215,6 @@ class NewConversationActivity : SimpleActivity() {
         binding.newConversationAppbar.setBackgroundColor(Color.TRANSPARENT)
         binding.newConversationAppbar.binding.searchBarContainer.setBackgroundColor(Color.TRANSPARENT)
 
-        setupTitleScrollAnimation()
-        setupChipInputHeightListener()
 //        binding.newConversationHolder.setBackgroundColor(backgroundColor)
 //        binding.newConversationAddress.setBackgroundColor(backgroundColor)
 //        binding.suggestionsOverlay.setBackgroundColor(backgroundColor)
@@ -275,7 +269,7 @@ class NewConversationActivity : SimpleActivity() {
 
     /**
      * Same pattern as [ThreadActivity.makeSystemBarsToTransparent]: root insets re-apply compose IME padding
-     * (latch-aware) after [setupEdgeToEdge], and keep contacts list height in sync with compose layout.
+     * (latch-aware) after [setupEdgeToEdge].
      */
     private fun setupNewConversationComposeWindowInsets() {
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
@@ -284,14 +278,10 @@ class NewConversationActivity : SimpleActivity() {
             }
             binding.root.post {
                 applyComposeBarImePaddingFromInsets()
-                setRecyclerViewHeight()
             }
             insets
         }
 
-        binding.messageHolder.root.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
-            binding.messageHolder.root.post { setRecyclerViewHeight() }
-        }
     }
 
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
@@ -334,7 +324,6 @@ class NewConversationActivity : SimpleActivity() {
         composeBarBottomInsetLatchPx = bottom
         composeBarBottomInsetLatch = ComposeBarBottomInsetLatch.KEYBOARD_TO_ATTACHMENT_PICKER
         applyComposeBarImePaddingFromInsets()
-        binding.messageHolder.root.post { setRecyclerViewHeight() }
     }
 
     private fun beginAttachmentPickerToKeyboardComposeInsetLatch() {
@@ -345,14 +334,12 @@ class NewConversationActivity : SimpleActivity() {
         composeBarBottomInsetLatchPx = config.keyboardHeight + nav
         composeBarBottomInsetLatch = ComposeBarBottomInsetLatch.ATTACHMENT_PICKER_TO_KEYBOARD
         applyComposeBarImePaddingFromInsets()
-        binding.messageHolder.root.post { setRecyclerViewHeight() }
     }
 
     private fun clearComposeBarBottomInsetLatch() {
         if (composeBarBottomInsetLatch == ComposeBarBottomInsetLatch.NONE) return
         composeBarBottomInsetLatch = ComposeBarBottomInsetLatch.NONE
         applyComposeBarImePaddingFromInsets()
-        binding.messageHolder.root.post { setRecyclerViewHeight() }
     }
 
     private fun setupMessageHolder() {
@@ -411,7 +398,6 @@ class NewConversationActivity : SimpleActivity() {
                             composeBarBottomInsetLatch = ComposeBarBottomInsetLatch.NONE
                             applyComposeBarImePaddingFromInsets()
                         }
-                        binding.messageHolder.root.post { setRecyclerViewHeight() }
                         threadTypeMessage.requestApplyInsets()
                         binding.root.post { ViewCompat.requestApplyInsets(binding.root) }
                         ignoreInputFocusLossInsetSync = false
@@ -511,14 +497,6 @@ class NewConversationActivity : SimpleActivity() {
             }
         }
     }
-    private fun setupTitleScrollAnimation() {
-        binding.newConversationAppbar.addOnOffsetChangedListener { _, verticalOffset ->
-            val height = binding.newConversationAppbar.height
-            vertOffsetTile = verticalOffset
-            setRecyclerViewHeight()
-        }
-    }
-
     /** Toolbar / activity title from recipient chips: none → "New conversation", one → chip text, many → first + "and N other(s)". */
     private fun getNewConversationDisplayTitle(): String {
         val chips = binding.newConversationAddress.allChips.filter { it.isNotEmpty() }
@@ -537,23 +515,6 @@ class NewConversationActivity : SimpleActivity() {
         val title = getNewConversationDisplayTitle()
         this.title = title
         binding.newConversationAppbar.applyLargeTitleOnly(title)
-    }
-    private fun setupChipInputHeightListener(){
-        binding.newConversationAddress.addOnLayoutChangeListener { v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom ->
-            chipboardHeight = binding.newConversationAddress.height
-            setRecyclerViewHeight()
-        }
-    }
-
-    private fun setRecyclerViewHeight() {
-        val display = windowManager.defaultDisplay
-        val metrics = DisplayMetrics()
-        display.getRealMetrics(metrics)
-        val totalH = metrics.heightPixels
-        val messageStripPx = binding.messageHolder.root.height
-        val fudge = (200 * resources.displayMetrics.density).toInt()
-        val height = (totalH - vertOffsetTile - chipboardHeight - messageStripPx - fudge).coerceAtLeast(0)
-        binding.contactsList.setHeight(height)
     }
     @SuppressLint("MissingPermission")
     private fun initContacts() {
@@ -1681,9 +1642,13 @@ class NewConversationActivity : SimpleActivity() {
         }
         
         expandedMessageFragment?.let { fragment ->
-            // Hide the main content
+            // Same visibility pattern as [ThreadActivity.showExpandedMessageFragment]: fragment host is a
+            // sibling of the main coordinator (see activity_new_conversation.xml), and the compose strip
+            // is hidden so the expanded editor is the only message UI (matches thread full-screen expand).
             findViewById<View>(R.id.new_conversation_coordinator)?.beGone()
-            
+            findViewById<View>(R.id.message_holder_wrapper)?.beGone()
+            findViewById<View>(R.id.fragment_container)?.beVisible()
+
             supportFragmentManager.beginTransaction()
                 .replace(R.id.fragment_container, fragment)
                 .addToBackStack(null)
@@ -1726,7 +1691,9 @@ class NewConversationActivity : SimpleActivity() {
     private fun hideExpandedMessageFragment() {
         expandedMessageFragment?.let {
             supportFragmentManager.popBackStack()
+            findViewById<View>(R.id.fragment_container)?.beGone()
             findViewById<View>(R.id.new_conversation_coordinator)?.beVisible()
+            findViewById<View>(R.id.message_holder_wrapper)?.beVisible()
             expandedMessageFragment = null
         }
     }
