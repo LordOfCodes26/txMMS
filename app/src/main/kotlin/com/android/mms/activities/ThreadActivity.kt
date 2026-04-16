@@ -55,6 +55,9 @@ import androidx.core.view.updatePadding
 import androidx.core.view.marginTop
 import androidx.core.view.size
 import androidx.documentfile.provider.DocumentFile
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.gson.Gson
@@ -118,6 +121,25 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
     private var isJumpingToMessage = false
     private var isRecycleBin = false
     private var isLaunchedFromShortcut = false
+    /** Main list was in PIN-scoped (secure) mode when this thread was opened; leave that scope when the whole app returns from the background. */
+    private var openedFromSecureConversationList = false
+    private var appEnteredBackgroundWhileOnThisThread = false
+
+    private val secureConversationListProcessObserver = object : DefaultLifecycleObserver {
+        override fun onStop(owner: LifecycleOwner) {
+            if (openedFromSecureConversationList) {
+                appEnteredBackgroundWhileOnThisThread = true
+            }
+        }
+
+        override fun onStart(owner: LifecycleOwner) {
+            if (!openedFromSecureConversationList) return
+            if (!appEnteredBackgroundWhileOnThisThread) return
+            appEnteredBackgroundWhileOnThisThread = false
+            if (config.selectedConversationPin <= 0 || isFinishing) return
+            openMainInNormalModeAfterAppResumeFromSecureThread()
+        }
+    }
 
     private var isScheduledMessage: Boolean = false
     private var messageToResend: Long? = null
@@ -202,6 +224,11 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
 //        }
         isRecycleBin = intent.getBooleanExtra(IS_RECYCLE_BIN, false)
         isLaunchedFromShortcut = intent.getBooleanExtra(IS_LAUNCHED_FROM_SHORTCUT, false)
+        openedFromSecureConversationList =
+            intent.getBooleanExtra(THREAD_OPENED_FROM_SECURE_CONVERSATION_LIST, false)
+        if (openedFromSecureConversationList) {
+            ProcessLifecycleOwner.get().lifecycle.addObserver(secureConversationListProcessObserver)
+        }
 
         bus = EventBus.getDefault()
         bus!!.register(this)
@@ -316,8 +343,28 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
 
     override fun onDestroy() {
         unregisterFeeInfoReceiverIfNeeded()
+        if (openedFromSecureConversationList) {
+            ProcessLifecycleOwner.get().lifecycle.removeObserver(secureConversationListProcessObserver)
+        }
         super.onDestroy()
         bus?.unregister(this)
+    }
+
+    /**
+     * After the whole app was in the background, leave PIN-scoped mode and show [MainActivity]
+     * (normal list) instead of staying on this thread.
+     */
+    private fun openMainInNormalModeAfterAppResumeFromSecureThread() {
+        if (isFinishing) return
+        if (config.selectedConversationPin > 0) {
+            setConversationPinScope(0)
+        }
+        startActivity(
+            Intent(this, MainActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            },
+        )
+        finish()
     }
 
     @SuppressLint("UnspecifiedRegisterReceiverFlag")

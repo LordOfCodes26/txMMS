@@ -12,6 +12,8 @@ import kotlin.math.abs
 import kotlin.random.Random
 
 const val THREAD_ID = "thread_id"
+/** When true, [com.android.mms.activities.ThreadActivity] was opened from the main list while PIN-scoped (secure) mode was active; exiting that scope is deferred until the app returns from the background. */
+const val THREAD_OPENED_FROM_SECURE_CONVERSATION_LIST = "thread_opened_from_secure_conversation_list"
 const val THREAD_TITLE = "thread_title"
 const val THREAD_TEXT = "thread_text"
 const val THREAD_NUMBER = "thread_number"

@@ -52,6 +52,7 @@ import com.google.gson.Gson
 import com.android.mms.helpers.NEW_CONVERSATION_RESUME_DRAFT
 import com.android.mms.helpers.SEARCHED_MESSAGE_ID
 import com.android.mms.helpers.THREAD_ID
+import com.android.mms.helpers.THREAD_OPENED_FROM_SECURE_CONVERSATION_LIST
 import com.android.mms.helpers.THREAD_NUMBER
 import com.android.mms.helpers.THREAD_TITLE
 import com.android.mms.helpers.refreshConversations
@@ -1501,6 +1502,9 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
                         Intent(this, ThreadActivity::class.java).apply {
                             putExtra(THREAD_ID, conversation.threadId)
                             putExtra(THREAD_TITLE, conversation.title)
+                            if (config.selectedConversationPin > 0) {
+                                putExtra(THREAD_OPENED_FROM_SECURE_CONVERSATION_LIST, true)
+                            }
                             startActivity(this)
                         }
                     }
@@ -1508,6 +1512,9 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
                     Intent(this, ThreadActivity::class.java).apply {
                         putExtra(THREAD_ID, conversation.threadId)
                         putExtra(THREAD_TITLE, conversation.title)
+                        if (config.selectedConversationPin > 0) {
+                            putExtra(THREAD_OPENED_FROM_SECURE_CONVERSATION_LIST, true)
+                        }
                         startActivity(this)
                     }
                 }
@@ -1667,6 +1674,9 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
                         putExtra(THREAD_ID, (it as SearchResult).threadId)
                         putExtra(THREAD_TITLE, it.title)
                         putExtra(SEARCHED_MESSAGE_ID, it.messageId)
+                        if (config.selectedConversationPin > 0) {
+                            putExtra(THREAD_OPENED_FROM_SECURE_CONVERSATION_LIST, true)
+                        }
                         startActivity(this)
                     }
                 }.apply {
