@@ -42,6 +42,7 @@ import com.android.mms.extensions.updateLastConversationMessage
 import com.android.mms.extensions.updateConversationPins
 import com.android.mms.extensions.updateScheduledMessagesThreadId
 import com.android.mms.extensions.getNameAndPhotoFromPhoneNumber
+import com.android.mms.extensions.getThreadRecipientPhoneNumbers
 import com.android.mms.helpers.SWIPE_ACTION_ARCHIVE
 import com.android.mms.helpers.SWIPE_ACTION_BLOCK
 import com.android.mms.helpers.SWIPE_ACTION_CALL
@@ -160,13 +161,13 @@ class ConversationsAdapter(
         selectionOverride: List<Conversation>? = null
     ) {
         val selectedItems = selectionOverride?.let { ArrayList(it) } ?: getSelectedItems()
+        getBlockedNumbers = activity.getBlockedNumbers()
+        val anyBlockedInSelection = selectionHasAnyBlockedNumber(selectedItems)
         // One *conversation* in the list, not only one selected key (keys and list can drift briefly).
         val isSingleSelection = selectedItems.size == 1
         val selectedConversation = selectedItems.firstOrNull()
         val isGroupConversation = selectedConversation?.isGroupConversation == true
         val archiveAvailable = activity.config.isArchiveAvailable
-        val isAllBlockedNumbers = isAllBlockedNumbers()
-        val isAllUnblockedNumbers = isAllUnblockedNumbers()
 
         if (isRipple){
             menu.apply {
@@ -189,8 +190,8 @@ class ConversationsAdapter(
         menu.apply {
 //            findItem(R.id.cab_archive)?.isVisible = true
 //            findItem(R.id.cab_conversation_details)?.isVisible = true
-            findItem(R.id.cab_block_number)?.isVisible = !(isAllUnblockedNumbers && !isAllBlockedNumbers)
-            findItem(R.id.cab_unblock_number)?.isVisible = isAllBlockedNumbers && !isAllUnblockedNumbers
+            findItem(R.id.cab_block_number)?.isVisible = !anyBlockedInSelection
+            findItem(R.id.cab_unblock_number)?.isVisible = anyBlockedInSelection
             findItem(R.id.cab_add_number_to_contact)?.isVisible =
                 isSingleSelection && (selectedConversation?.shouldOfferAddNumberToContactAction() == true)
             findItem(R.id.cab_dial_number)?.isVisible =
@@ -292,9 +293,9 @@ class ConversationsAdapter(
             return activity.getString(com.goodwy.commons.R.string.block_number)
         }
         getBlockedNumbers = activity.getBlockedNumbers()
-        val allBlocked = selectedItems.all { activity.isNumberBlocked(it.phoneNumber, getBlockedNumbers) }
+        val anyBlocked = selectionHasAnyBlockedNumber(selectedItems)
         val single = selectedItems.size == 1
-        return if (allBlocked) {
+        return if (anyBlocked) {
             activity.getString(if (single) com.goodwy.strings.R.string.unblock_number else com.goodwy.strings.R.string.unblock_numbers)
         } else {
             activity.getString(if (single) com.goodwy.commons.R.string.block_number else com.goodwy.commons.R.string.block_numbers)
@@ -437,18 +438,20 @@ class ConversationsAdapter(
         actionItemPressed(id)
     }
 
-    private fun isAllBlockedNumbers(): Boolean {
-        getSelectedItems().map { it.phoneNumber }.forEach { number ->
-            if (activity.isNumberBlocked(number, getBlockedNumbers)) return true
+    /** True if this row has at least one blocked recipient (all numbers in group threads are considered). */
+    private fun conversationHasAnyBlockedNumber(conversation: Conversation): Boolean {
+        val blocked = getBlockedNumbers
+        return if (conversation.isGroupConversation) {
+            activity.getThreadRecipientPhoneNumbers(conversation.threadId).any { number ->
+                activity.isNumberBlocked(number, blocked)
+            }
+        } else {
+            activity.isNumberBlocked(conversation.phoneNumber, blocked)
         }
-        return false
     }
 
-    private fun isAllUnblockedNumbers(): Boolean {
-        getSelectedItems().map { it.phoneNumber }.forEach { number ->
-            if (!activity.isNumberBlocked(number, getBlockedNumbers)) return true
-        }
-        return false
+    private fun selectionHasAnyBlockedNumber(items: List<Conversation>): Boolean {
+        return items.any { conversationHasAnyBlockedNumber(it) }
     }
 
     private fun showMConfirmDialog(question: String, onConfirm: () -> Unit) {
