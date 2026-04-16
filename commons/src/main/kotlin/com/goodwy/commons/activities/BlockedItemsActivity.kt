@@ -19,7 +19,7 @@ import com.goodwy.commons.helpers.APP_LAUNCHER_NAME
 import com.goodwy.commons.helpers.NavigationIcon
 import com.qmdeve.liquidglass.view.LiquidGlassTabs
 
-class BlockedItemsActivity : BaseSimpleActivity() {
+open class BlockedItemsActivity : BaseSimpleActivity() {
     private val binding by viewBinding(ActivityBlockedItemsBinding::inflate)
     private var isProgrammaticTabSelection = false
 
@@ -113,7 +113,7 @@ class BlockedItemsActivity : BaseSimpleActivity() {
         binding.mainMenu.updateTitle(getString(titleId))
     }
 
-    private class BlockedItemsPagerAdapter(fragmentManager: FragmentManager) :
+    private inner class BlockedItemsPagerAdapter(fragmentManager: FragmentManager) :
         FragmentPagerAdapter(fragmentManager, BEHAVIOR_RESUME_ONLY_CURRENT_FRAGMENT) {
 
         override fun getCount() = TAB_TITLES.size
@@ -121,11 +121,14 @@ class BlockedItemsActivity : BaseSimpleActivity() {
         override fun getItem(position: Int): Fragment {
             return when (position) {
                 0 -> BlockedCallsFragment()
-                1 -> BlockedMessagesFragment()
+                1 -> createBlockedMessagesFragment()
                 else -> BlockedContactsFragment()
             }
         }
     }
+
+    /** Apps may override to supply a richer blocked-messages tab (e.g. conversation list). */
+    protected open fun createBlockedMessagesFragment(): Fragment = BlockedMessagesFragment()
 
     companion object {
         /** Optional [Intent] extra: initial tab index ([TAB_BLOCKED_CALLS], [TAB_BLOCKED_MESSAGES], [TAB_BLOCKED_CONTACTS]). */

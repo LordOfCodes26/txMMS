@@ -12,7 +12,7 @@ import com.goodwy.commons.helpers.ensureBackgroundThread
 import com.goodwy.commons.views.MyRecyclerView
 import com.android.mms.BuildConfig
 import com.android.mms.R
-import com.android.mms.activities.SimpleActivity
+import com.goodwy.commons.activities.BaseSimpleActivity
 import com.android.mms.extensions.config
 import com.android.mms.extensions.conversationsDB
 import com.android.mms.extensions.deleteConversation
@@ -30,7 +30,7 @@ import com.android.mms.models.Conversation
 import com.android.mms.models.ConversationListItem
 
 class ArchivedConversationsAdapter(
-    activity: SimpleActivity, recyclerView: MyRecyclerView, onRefresh: () -> Unit, itemClick: (Any) -> Unit,
+    activity: BaseSimpleActivity, recyclerView: MyRecyclerView, onRefresh: () -> Unit, itemClick: (Any) -> Unit,
 ) : BaseConversationsAdapter(activity, recyclerView, onRefresh, itemClick, isArchived = true) {
     override fun getActionMenuId() = R.menu.cab_action_menu
     override fun getMorePopupMenuId() = R.menu.cab_archived_conversations

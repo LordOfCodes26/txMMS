@@ -623,7 +623,7 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
             R.id.blocked_list -> {
                 hideKeyboard()
                 binding.mainMenu.closeSearch()
-                Intent(this, BlockedItemsActivity::class.java).apply {
+                Intent(this, MessagingBlockedItemsActivity::class.java).apply {
                     putExtra(APP_ICON_IDS, getAppIconIDs())
                     putExtra(APP_LAUNCHER_NAME, getAppLauncherName())
                     putExtra(

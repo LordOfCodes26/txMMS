@@ -38,7 +38,7 @@ import com.goodwy.commons.extensions.setupViewBackground
 import com.goodwy.commons.helpers.ensureBackgroundThread
 import com.goodwy.commons.views.MyRecyclerView
 import com.android.mms.R
-import com.android.mms.activities.SimpleActivity
+import com.goodwy.commons.activities.BaseSimpleActivity
 import com.android.mms.databinding.ItemConversationBinding
 import com.android.mms.extensions.config
 import com.android.mms.extensions.getDisplayNumberWithoutCountryCode
@@ -64,7 +64,7 @@ import java.util.HashMap
 
 @Suppress("LeakingThis")
 abstract class BaseConversationsAdapter(
-    activity: SimpleActivity,
+    activity: BaseSimpleActivity,
     recyclerView: MyRecyclerView,
     onRefresh: () -> Unit,
     itemClick: (Any) -> Unit,

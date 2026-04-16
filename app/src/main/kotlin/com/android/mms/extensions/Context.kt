@@ -162,6 +162,7 @@ fun Context.getMessages(
     dateFrom: Int = -1,
     includeScheduledMessages: Boolean = true,
     limit: Int = MESSAGES_LIMIT,
+    includeBlockedMessages: Boolean = false,
 ): ArrayList<Message> {
     syncConversationPinScope()
 
@@ -200,7 +201,7 @@ fun Context.getMessages(
 
         val isNumberBlocked = blockStatus.getOrPut(senderNumber) { isNumberBlocked(senderNumber, blockedNumbers) }
 
-        if (isNumberBlocked && !config.showBlockedNumbers) {
+        if (!includeBlockedMessages && isNumberBlocked && !config.showBlockedNumbers) {
             return@queryCursor
         }
 
@@ -284,7 +285,7 @@ fun Context.getMessages(
         messages.add(message)
     }
 
-    messages.addAll(getMMS(threadId, sortOrder, dateFrom))
+    messages.addAll(getMMS(threadId, sortOrder, dateFrom, includeBlockedMessages))
 
     if (includeScheduledMessages) {
         try {
@@ -310,6 +311,7 @@ fun Context.getMMS(
     threadId: Long? = null,
     sortOrder: String? = null,
     dateFrom: Int = -1,
+    includeBlockedMessages: Boolean = false,
 ): ArrayList<Message> {
     val uri = Mms.CONTENT_URI
     val projection = arrayOf(
@@ -365,7 +367,7 @@ fun Context.getMMS(
             
             // Filter out messages from blocked numbers if showBlockedNumbers is false
             val isNumberBlocked = blockStatus.getOrPut(senderNumber) { isNumberBlocked(senderNumber, blockedNumbers) }
-            if (isNumberBlocked && !config.showBlockedNumbers) {
+            if (!includeBlockedMessages && isNumberBlocked && !config.showBlockedNumbers) {
                 return@queryCursor
             }
         }
@@ -449,6 +451,7 @@ fun Context.getUnreadCountsByThread(): Map<Long, Int> {
 fun Context.getConversations(
     threadId: Long? = null,
     privateContacts: ArrayList<SimpleContact> = ArrayList(),
+    threadsWithBlockedNumbersOnly: Boolean = false,
 ): ArrayList<Conversation> {
     syncConversationPinScope()
 
@@ -504,7 +507,7 @@ fun Context.getConversations(
 //            if (snippet.isEmpty()) {
 //                snippet = getThreadSnippet(id)
 //            }
-                val snippet = getThreadSnippet(id)
+                val snippet = getThreadSnippet(id, includeBlockedMessages = threadsWithBlockedNumbersOnly)
 
                 var date = cursor.getLongValue(Threads.DATE)
                 if (date.toString().length > 10) {
@@ -522,7 +525,14 @@ fun Context.getConversations(
                     rawIds.split(" ").filter { it.areDigitsOnly() }.map { it.toInt() }.toMutableList()
                 val phoneNumbers = getThreadPhoneNumbers(recipientIds)
                 val isBlocked = phoneNumbers.any { isNumberBlocked(it, blockedNumbers) }
-                if (phoneNumbers.isEmpty() || (isBlocked && !config.showBlockedNumbers)) {
+                if (phoneNumbers.isEmpty()) {
+                    return@queryCursorUnsafe
+                }
+                if (threadsWithBlockedNumbersOnly) {
+                    if (!isBlocked) {
+                        return@queryCursorUnsafe
+                    }
+                } else if (isBlocked && !config.showBlockedNumbers) {
                     return@queryCursorUnsafe
                 }
 
@@ -597,7 +607,7 @@ fun Context.getConversations(
             && archiveAvailable
         ) {
             config.isArchiveAvailable = false
-            return getConversations(threadId, privateContacts)
+            return getConversations(threadId, privateContacts, threadsWithBlockedNumbersOnly)
         } else {
             showErrorToast(sqliteException)
         }
@@ -609,6 +619,9 @@ fun Context.getConversations(
     conversations.forEach { conversation ->
         try {
             conversation.messageCount = messagesDB.getThreadMessageCount(conversation.threadId)
+            if (threadsWithBlockedNumbersOnly) {
+                conversation.lastMessageType = messagesDB.getLastMessageType(conversation.threadId)
+            }
         } catch (e: Exception) {
             conversation.messageCount = 0
         }
@@ -617,6 +630,14 @@ fun Context.getConversations(
     conversations.sortByDescending { it.date }
     return conversations
 }
+
+fun Context.getBlockedConversations(
+    privateContacts: ArrayList<SimpleContact> = ArrayList(),
+): ArrayList<Conversation> = getConversations(
+    threadId = null,
+    privateContacts = privateContacts,
+    threadsWithBlockedNumbersOnly = true,
+)
 
 private fun Context.queryCursorUnsafe(
     uri: Uri,
@@ -723,9 +744,9 @@ fun Context.getLatestMMS(): Message? {
     return getMMS(sortOrder = sortOrder).firstOrNull()
 }
 
-fun Context.getThreadSnippet(threadId: Long): String {
+fun Context.getThreadSnippet(threadId: Long, includeBlockedMessages: Boolean = false): String {
     val sortOrder = "${Mms.DATE} DESC LIMIT 1"
-    val latestMms = getMMS(threadId, sortOrder).firstOrNull()
+    val latestMms = getMMS(threadId, sortOrder, dateFrom = -1, includeBlockedMessages).firstOrNull()
     var snippet = latestMms?.body ?: ""
 
     val uri = Sms.CONTENT_URI

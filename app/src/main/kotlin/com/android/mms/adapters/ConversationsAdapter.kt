@@ -20,7 +20,7 @@ import com.android.mms.BuildConfig
 import com.android.mms.R
 import com.android.mms.databinding.ItemConversationBinding
 import com.android.mms.activities.MainActivity
-import com.android.mms.activities.SimpleActivity
+import com.goodwy.commons.activities.BaseSimpleActivity
 import com.android.mms.dialogs.RenameConversationDialog
 import com.android.mms.extensions.config
 import com.android.mms.extensions.conversationsDB
@@ -59,7 +59,7 @@ import com.android.common.helper.IconItem
 import eightbitlab.com.blurview.BlurTarget
 
 class ConversationsAdapter(
-    activity: SimpleActivity,
+    activity: BaseSimpleActivity,
     recyclerView: MyRecyclerView,
     onRefresh: () -> Unit,
     itemClick: (Any) -> Unit
@@ -571,6 +571,7 @@ class ConversationsAdapter(
                     finishActMode()
                     refreshConversations()
                     getBlockedNumbers = activity.getBlockedNumbers()
+                    onRefresh()
                 }
             }
         } else {
@@ -598,6 +599,7 @@ class ConversationsAdapter(
                     finishActMode()
                     refreshConversations()
                     getBlockedNumbers = activity.getBlockedNumbers()
+                    onRefresh()
                 }
             }
         }

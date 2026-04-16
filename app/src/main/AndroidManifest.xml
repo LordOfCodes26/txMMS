@@ -179,6 +179,15 @@
             tools:replace="android:label" />
 
         <activity
+            android:name=".activities.MessagingBlockedItemsActivity"
+            android:configChanges="orientation"
+            android:enableOnBackInvokedCallback="true"
+            android:exported="false"
+            android:label="@string/blocked_items"
+            android:parentActivityName=".activities.MainActivity"
+            tools:targetApi="tiramisu" />
+
+        <activity
             android:name=".activities.ManageBlockedKeywordsActivity"
             android:configChanges="orientation"
             android:exported="false"

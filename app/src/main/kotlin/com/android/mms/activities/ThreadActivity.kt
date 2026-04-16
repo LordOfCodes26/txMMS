@@ -123,6 +123,8 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
     private var isLaunchedFromShortcut = false
     /** Main list was in PIN-scoped (secure) mode when this thread was opened; leave that scope when the whole app returns from the background. */
     private var openedFromSecureConversationList = false
+    /** Opened from blocked-messages list: load provider SMS/MMS from blocked numbers even when they are hidden elsewhere. */
+    private var showBlockedMessagesInThread = false
     private var appEnteredBackgroundWhileOnThisThread = false
 
     private val secureConversationListProcessObserver = object : DefaultLifecycleObserver {
@@ -226,6 +228,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         isLaunchedFromShortcut = intent.getBooleanExtra(IS_LAUNCHED_FROM_SHORTCUT, false)
         openedFromSecureConversationList =
             intent.getBooleanExtra(THREAD_OPENED_FROM_SECURE_CONVERSATION_LIST, false)
+        showBlockedMessagesInThread = intent.getBooleanExtra(THREAD_SHOW_BLOCKED_MESSAGES, false)
         if (openedFromSecureConversationList) {
             ProcessLifecycleOwner.get().lifecycle.addObserver(secureConversationListProcessObserver)
         }
@@ -833,7 +836,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
 
             val cachedMessagesCode = messages.clone().hashCode()
             if (!isRecycleBin) {
-                messages = getMessages(threadId)
+                messages = getMessages(threadId, includeBlockedMessages = showBlockedMessagesInThread)
                 if (config.useRecycleBin) {
                     val recycledMessages = messagesDB.getThreadMessagesFromRecycleBin(threadId)
                     messages = messages.filterNotInByKey(recycledMessages) { it.getStableId() }
@@ -1130,7 +1133,11 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
     }
 
     private fun fetchOlderMessages(cutoff: Int): List<Message> {
-        var older = getMessages(threadId, cutoff)
+        var older = getMessages(
+            threadId,
+            dateFrom = cutoff,
+            includeBlockedMessages = showBlockedMessagesInThread,
+        )
             .filterNotInByKey(messages) { it.getStableId() }
         if (config.useRecycleBin && !isRecycleBin) {
             val recycledMessages = messagesDB.getThreadMessagesFromRecycleBin(threadId)
@@ -2057,7 +2064,11 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             refreshedSinceSent = false
             sendMessageCompat(text, addresses, subscriptionId, attachments, messageToResend)
             ensureBackgroundThread {
-                val messages = getMessages(threadId, limit = maxOf(1, attachments.size))
+                val messages = getMessages(
+                    threadId,
+                    limit = maxOf(1, attachments.size),
+                    includeBlockedMessages = showBlockedMessagesInThread,
+                )
                     .filterNotInByKey(messages) { it.getStableId() }
                 for (message in messages) {
                     insertOrUpdateMessage(message)
@@ -2179,7 +2190,11 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
 
         val lastMaxId = messages.filterNot { it.isScheduled }.maxByOrNull { it.id }?.id ?: 0L
         val newThreadId = getThreadId(participants.getAddresses().toSet())
-        val newMessages = getMessages(newThreadId, includeScheduledMessages = false)
+        val newMessages = getMessages(
+            newThreadId,
+            includeScheduledMessages = false,
+            includeBlockedMessages = showBlockedMessagesInThread,
+        )
 
         if (messages.isNotEmpty() && messages.all { it.isScheduled } && newMessages.isNotEmpty()) {
             // update scheduled messages with real thread id

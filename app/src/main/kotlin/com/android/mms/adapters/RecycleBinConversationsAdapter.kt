@@ -8,7 +8,7 @@ import com.goodwy.commons.extensions.notificationManager
 import com.goodwy.commons.helpers.ensureBackgroundThread
 import com.goodwy.commons.views.MyRecyclerView
 import com.android.mms.R
-import com.android.mms.activities.SimpleActivity
+import com.goodwy.commons.activities.BaseSimpleActivity
 import com.android.mms.extensions.config
 import com.android.mms.extensions.createTemporaryThread
 import com.android.mms.extensions.deleteConversation
@@ -29,7 +29,7 @@ import com.android.mms.models.Message
 import kotlin.collections.forEach
 
 class RecycleBinConversationsAdapter(
-    activity: SimpleActivity, recyclerView: MyRecyclerView, onRefresh: () -> Unit, itemClick: (Any) -> Unit
+    activity: BaseSimpleActivity, recyclerView: MyRecyclerView, onRefresh: () -> Unit, itemClick: (Any) -> Unit
 ) : BaseConversationsAdapter(activity, recyclerView, onRefresh, itemClick, isRecycleBin = true) {
     override fun getActionMenuId() = R.menu.cab_action_menu
     override fun getMorePopupMenuId() = R.menu.cab_recycle_bin_conversations
