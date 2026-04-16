@@ -44,7 +44,21 @@ class BlockedItemsActivity : BaseSimpleActivity() {
         }
         updateTopMenuColors()
         setupPager()
-        updateTitleForTab(0)
+        if (savedInstanceState == null) {
+            val initialTab = intent.getIntExtra(EXTRA_INITIAL_TAB_INDEX, TAB_BLOCKED_CALLS)
+                .coerceIn(0, TAB_TITLES.size - 1)
+            if (initialTab != 0) {
+                isProgrammaticTabSelection = true
+                binding.blockedItemsViewPager.setCurrentItem(initialTab, false)
+                binding.blockedItemsTabBar.setSelection(initialTab)
+                binding.blockedItemsTabBar.post {
+                    isProgrammaticTabSelection = false
+                }
+            }
+            updateTitleForTab(binding.blockedItemsViewPager.currentItem)
+        } else {
+            updateTitleForTab(binding.blockedItemsViewPager.currentItem)
+        }
     }
 
     override fun onResume() {
@@ -114,6 +128,13 @@ class BlockedItemsActivity : BaseSimpleActivity() {
     }
 
     companion object {
+        /** Optional [Intent] extra: initial tab index ([TAB_BLOCKED_CALLS], [TAB_BLOCKED_MESSAGES], [TAB_BLOCKED_CONTACTS]). */
+        const val EXTRA_INITIAL_TAB_INDEX = "com.goodwy.commons.blocked_items.initial_tab_index"
+
+        const val TAB_BLOCKED_CALLS = 0
+        const val TAB_BLOCKED_MESSAGES = 1
+        const val TAB_BLOCKED_CONTACTS = 2
+
         @StringRes
         private val TAB_TITLES = listOf(
             R.string.blocked_calls,

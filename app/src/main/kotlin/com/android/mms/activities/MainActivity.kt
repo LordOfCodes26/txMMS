@@ -62,6 +62,7 @@ import com.android.mms.models.Events
 import com.android.mms.models.Message
 import com.android.mms.models.SearchResult
 import com.android.mms.models.groupSearchResultsByDateSections
+import com.goodwy.commons.activities.BlockedItemsActivity
 import com.goodwy.commons.interfaces.ActionModeToolbarHost
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
@@ -619,7 +620,19 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
                     }
                 }
             }
-            R.id.blocked_list -> {}
+            R.id.blocked_list -> {
+                hideKeyboard()
+                binding.mainMenu.closeSearch()
+                Intent(this, BlockedItemsActivity::class.java).apply {
+                    putExtra(APP_ICON_IDS, getAppIconIDs())
+                    putExtra(APP_LAUNCHER_NAME, getAppLauncherName())
+                    putExtra(
+                        BlockedItemsActivity.EXTRA_INITIAL_TAB_INDEX,
+                        BlockedItemsActivity.TAB_BLOCKED_MESSAGES,
+                    )
+                    startActivity(this)
+                }
+            }
             R.id.private_space -> {}
 //            R.id.sim_card_message -> {}
             R.id.settings -> launchSettings()
