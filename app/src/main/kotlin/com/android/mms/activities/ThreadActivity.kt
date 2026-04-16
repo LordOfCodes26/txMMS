@@ -292,8 +292,9 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
     override fun onPause() {
         super.onPause()
         composeBarBottomInsetLatch = ComposeBarBottomInsetLatch.NONE
-        saveDraftMessage()
-        bus?.post(Events.RefreshConversations())
+        // Persist first, then notify: save runs on a background thread; posting before it completes
+        // leaves MainActivity's list without the new draft until the next resume.
+        saveDraftMessage(notifyConversationsAfter = true)
         isActivityVisible = false
     }
 
@@ -579,13 +580,17 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         }
     }
 
-    private fun saveDraftMessage() {
+    private fun saveDraftMessage(notifyConversationsAfter: Boolean = false) {
         val draftMessage = messageHolderHelper?.getMessageText() ?: ""
         ensureBackgroundThread {
             if (draftMessage.isNotEmpty() && (messageHolderHelper?.getAttachmentSelections()?.isEmpty() != false)) {
                 saveSmsDraft(draftMessage, threadId)
             } else {
                 deleteSmsDraft(threadId)
+            }
+            if (notifyConversationsAfter) {
+                // MAIN-thread subscribers; safe to post from the background save thread.
+                bus?.post(Events.RefreshConversations())
             }
         }
     }

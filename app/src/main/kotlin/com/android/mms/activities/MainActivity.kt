@@ -1697,6 +1697,10 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
     @Subscribe(threadMode = ThreadMode.MAIN)
     fun refreshConversations(@Suppress("unused") event: Events.RefreshConversations) {
         initMessenger()
+        // Child activities persist drafts on a background thread; onResume may run before that
+        // finishes. Reload local drafts whenever a refresh is posted so the list shows [draft]
+        // immediately after returning from compose/thread.
+        getOrCreateConversationsAdapter().updateDrafts()
     }
 
     private fun checkWhatsNewDialog() {
