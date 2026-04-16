@@ -50,14 +50,11 @@ import com.android.mms.databinding.ItemConversationDateHeaderBinding
 import com.android.mms.extensions.deleteSmsDraft
 import com.android.mms.extensions.getUnreadCountsByThread
 import com.android.mms.extensions.saveSmsDraft
-import com.goodwy.commons.extensions.getAvatarDrawableIndexForName
+import com.android.mms.helpers.bindConversationListAvatar
 import com.goodwy.commons.extensions.getProperBackgroundColor
 import com.goodwy.commons.extensions.getProperTextColor
 import com.goodwy.commons.extensions.getSurfaceColor
 import com.goodwy.commons.extensions.getTextSizeSmall
-import com.goodwy.commons.helpers.AvatarSource
-import com.goodwy.commons.helpers.GROUP
-import com.goodwy.commons.helpers.MonogramGenerator
 import com.goodwy.commons.views.ContactAvatarView
 import me.thanel.swipeactionview.SwipeActionView
 import me.thanel.swipeactionview.SwipeDirection
@@ -599,7 +596,7 @@ abstract class BaseConversationsAdapter(
             if (showContactThumbnails) {
                 val size = (root.context.pixels(com.goodwy.commons.R.dimen.call_icon_size) * contactThumbnailsSize).toInt()
                 conversationImage.setHeightAndWidth(size)
-                bindContactAvatar(conversationImage, conversation)
+                conversationImage.bindConversationListAvatar(activity, conversation)
 //                if ((title == conversation.phoneNumber || conversation.isCompany) && conversation.photoUri == "") {
 //                    val drawable =
 //                        if (conversation.isCompany) SimpleContactsHelper(activity).getColoredCompanyIcon(conversation.title)
@@ -740,48 +737,6 @@ abstract class BaseConversationsAdapter(
                 }
             }
         }
-    }
-
-    private fun bindContactAvatar(avatarView: ContactAvatarView, conversation: Conversation) {
-        val isUnsavedMessage = conversation.threadId <= 0 || conversation.phoneNumber == conversation.title
-        if (isUnsavedMessage) {
-            // Match txDial RecentCallsAdapter: unsaved numbers use profile icon on gradient, not a letter (empty initials → "A").
-            avatarView.bind(
-                AvatarSource.Monogram(
-                    initials = "",
-                    gradientColors = MonogramGenerator.generateGradientColors(conversation.phoneNumber),
-                    drawableIndex = activity.getAvatarDrawableIndexForName(conversation.phoneNumber).takeIf { it >= 0 },
-                    showProfileIcon = true
-                )
-            )
-            return
-        }
-
-        val avatarSeed = conversation.title.ifEmpty { conversation.phoneNumber }
-        val drawableIndex = activity.getAvatarDrawableIndexForName(avatarSeed).takeIf { it >= 0 }
-        val shouldUsePhoto = !activity.isDestroyed &&
-            !activity.isFinishing &&
-            conversation.photoUri.isNotBlank() &&
-            !conversation.isGroupConversation &&
-            conversation.phoneNumber != conversation.title
-
-        avatarView.bind(
-            if (shouldUsePhoto) {
-                AvatarSource.Photo(conversation.photoUri)
-            } else if (conversation.isGroupConversation) {
-                AvatarSource.Monogram(
-                    initials = GROUP,
-                    gradientColors = MonogramGenerator.generateGradientColors(conversation.phoneNumber),
-                    drawableIndex = activity.getAvatarDrawableIndexForName(conversation.phoneNumber).takeIf { it >= 0 }
-                )
-            } else {
-                AvatarSource.Monogram(
-                    initials = MonogramGenerator.generateInitials(avatarSeed),
-                    gradientColors = MonogramGenerator.generateGradientColors(avatarSeed),
-                    drawableIndex = drawableIndex
-                )
-            }
-        )
     }
 
     private fun setupBadgeCount(view: TextView, isUnread: Boolean, count: Int) {

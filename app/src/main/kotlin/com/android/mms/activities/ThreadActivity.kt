@@ -2536,7 +2536,8 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             conversationTitle = conversation?.title,
             conversationPhoneNumber = conversation?.phoneNumber,
             isCompany = conversation?.isCompany ?: false,
-            participantsCount = participants.size
+            participantsCount = participants.size,
+            threadId = threadId,
         )
     }
 

@@ -9,7 +9,6 @@ import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.core.content.res.ResourcesCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.Fragment
@@ -17,9 +16,11 @@ import com.android.mms.R
 import com.android.mms.databinding.FragmentExpandedMessageBinding
 import com.android.mms.extensions.config
 import com.android.mms.extensions.getTextSizeMessage
+import com.android.mms.helpers.bindConversationListAvatar
+import com.goodwy.commons.activities.BaseSimpleActivity
 import com.goodwy.commons.extensions.*
-import com.goodwy.commons.helpers.NavigationIcon
 import com.goodwy.commons.helpers.SimpleContactsHelper
+import com.goodwy.commons.views.ContactAvatarView
 import douglasspgyn.com.github.circularcountdown.CircularCountdown
 import douglasspgyn.com.github.circularcountdown.listener.CircularListener
 
@@ -69,8 +70,10 @@ class ExpandedMessageFragment : Fragment() {
     private fun setupViews() {
         val activity = requireActivity()
         val textColor = activity.getProperTextColor()
-        val topBarColor = activity.getColoredMaterialStatusBarColor()
-        val properPrimaryColor = activity.getProperPrimaryColor()
+        // Match ThreadActivity / NewConversationActivity toolbar: [EdgeToEdgeActivity.getStartRequiredStatusBarColor]
+        // (scroll-offset-aware surface or background), not the always-material scrolled bar color.
+        val topBarColor = (activity as BaseSimpleActivity).getStartRequiredStatusBarColor()
+        val sendIconTint = activity.getProperTextColor()
 
         // Setup minimize buttons (for both large and compact views)
         binding.expandedMinimizeButton.apply {
@@ -93,8 +96,9 @@ class ExpandedMessageFragment : Fragment() {
         binding.topDetailsCompactExpanded.beGone()
         binding.topDetailsLargeExpanded.beGone()
         
-        // Set background color for topDetailsLargeExpanded
+        // Same top bar fill as main thread / new conversation (large + compact headers).
         binding.topDetailsLargeExpanded.setBackgroundColor(topBarColor)
+        binding.topDetailsCompactExpanded.setBackgroundColor(topBarColor)
         
         // Handle system window insets to avoid status bar overlap
         ViewCompat.setOnApplyWindowInsetsListener(binding.topDetailsLargeExpanded) { view, insets ->
@@ -188,18 +192,11 @@ class ExpandedMessageFragment : Fragment() {
             activity.showKeyboard(this)
         }
 
-        // Setup send button wrappers (for both large and compact views)
-        binding.expandedThreadSendMessage.apply {
-            backgroundTintList = properPrimaryColor.getColorStateList()
-            applyColorFilter(properPrimaryColor.getContrastColor())
-        }
-        
+        // Send control: same drawable + tint as [layout_thread_send_message_holder] / [MessageHolderHelper.setup]
+        binding.expandedThreadSendMessage.applyColorFilter(sendIconTint)
         binding.topDetailsCompactExpanded.findViewById<android.widget.ImageView>(
             com.android.mms.R.id.expandedThreadSendMessageCompact
-        )?.apply {
-            backgroundTintList = properPrimaryColor.getColorStateList()
-            applyColorFilter(properPrimaryColor.getContrastColor())
-        }
+        )?.applyColorFilter(sendIconTint)
         
         // Initialize countdown views (hidden by default)
         binding.expandedThreadSendMessageCountdown.beGone()
@@ -258,15 +255,17 @@ class ExpandedMessageFragment : Fragment() {
     }
 
     fun updateThreadTitle(
-        threadTitle: String, 
-        threadSubtitle: String, 
-        threadTopStyle: Int, 
+        threadTitle: String,
+        threadSubtitle: String,
+        threadTopStyle: Int,
         showContactThumbnails: Boolean,
         conversationPhotoUri: String? = null,
         conversationTitle: String? = null,
         conversationPhoneNumber: String? = null,
         isCompany: Boolean = false,
-        participantsCount: Int = 1
+        participantsCount: Int = 1,
+        /** Same semantics as [com.android.mms.models.Conversation.threadId] for list avatar rules ([BaseConversationsAdapter.bindContactAvatar]). */
+        threadId: Long = 0L,
     ) {
         val textColor = requireActivity().getProperTextColor()
         val contactsHelper = SimpleContactsHelper(requireContext())
@@ -309,7 +308,8 @@ class ExpandedMessageFragment : Fragment() {
                 binding.topDetailsCompactExpanded.beGone()
                 binding.topDetailsLargeExpanded.beVisible()
                 
-                val senderPhotoView = binding.topDetailsLargeExpanded.findViewById<android.widget.ImageView>(R.id.sender_photo_large_expanded)
+                val senderPhotoView =
+                    binding.topDetailsLargeExpanded.findViewById<ContactAvatarView>(R.id.sender_photo_large_expanded)
                 val senderNameView = binding.topDetailsLargeExpanded.findViewById<com.goodwy.commons.views.MyTextView>(R.id.sender_name_large_expanded)
                 val senderNumberView = binding.topDetailsLargeExpanded.findViewById<com.goodwy.commons.views.MyTextView>(R.id.sender_number_large_expanded)
                 
@@ -323,17 +323,16 @@ class ExpandedMessageFragment : Fragment() {
                 senderNumberView?.text = threadSubtitle
                 senderNumberView?.setTextColor(textColor)
                 
-                // Load contact image
+                // Large avatar: same rules as main conversation list ([BaseConversationsAdapter.bindContactAvatar]).
                 if (showContactThumbnails && senderPhotoView != null) {
-                    loadContactImage(
-                        contactsHelper = contactsHelper,
-                        photoUri = conversationPhotoUri,
-                        imageView = senderPhotoView,
-                        threadTitle = threadTitle,
-                        conversationTitle = conversationTitle,
-                        conversationPhoneNumber = conversationPhoneNumber,
-                        isCompany = isCompany,
-                        participantsCount = participantsCount
+                    val activity = requireActivity() as BaseSimpleActivity
+                    senderPhotoView.bindConversationListAvatar(
+                        activity = activity,
+                        threadId = threadId,
+                        title = conversationTitle ?: threadTitle,
+                        phoneNumber = conversationPhoneNumber.orEmpty(),
+                        photoUri = conversationPhotoUri.orEmpty(),
+                        isGroupConversation = participantsCount > 1,
                     )
                 }
             }

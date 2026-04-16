@@ -1677,17 +1677,30 @@ class NewConversationActivity : SimpleActivity() {
         val chips = binding.newConversationAddress.allChips
         val recipientNames = chips.filter { it.isNotEmpty() }
         val threadTitle = getNewConversationDisplayTitle()
-        
+        val expandedThreadId = when {
+            resumedDraftThreadId > 0L -> resumedDraftThreadId
+            recipientNames.isNotEmpty() -> {
+                val numbers = recipientNames.mapNotNull { chipDisplayToPhoneNumber[it] }
+                    .filter { it.isNotEmpty() }
+                    .toSet()
+                if (numbers.isNotEmpty()) getThreadId(numbers) else 0L
+            }
+            else -> 0L
+        }
+        val singleRecipient = recipientNames.singleOrNull()
+        val singlePhone = singleRecipient?.let { chipDisplayToPhoneNumber[it] }
+
         fragment.updateThreadTitle(
             threadTitle = threadTitle,
             threadSubtitle = "",
             threadTopStyle = config.threadTopStyle,
             showContactThumbnails = config.showContactThumbnails,
             conversationPhotoUri = "",
-            conversationTitle = null,
-            conversationPhoneNumber = null,
+            conversationTitle = singleRecipient,
+            conversationPhoneNumber = singlePhone,
             isCompany = false,
-            participantsCount = recipientNames.size
+            participantsCount = recipientNames.size,
+            threadId = expandedThreadId,
         )
     }
     
