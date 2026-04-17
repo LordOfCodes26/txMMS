@@ -11,6 +11,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import kotlin.math.max
 import androidx.fragment.app.Fragment
 import com.android.mms.R
 import com.android.mms.databinding.FragmentExpandedMessageBinding
@@ -122,6 +123,27 @@ class ExpandedMessageFragment : Fragment() {
             )
             insets
         }
+
+        // Edge-to-edge hosts (ThreadActivity / NewConversationActivity) do not resize for IME; pad the
+        // editor container so long multi-line text stays above the keyboard and navigation bar.
+        val messageContent = binding.expandedMessageContent
+        val basePaddingStart = messageContent.paddingStart
+        val basePaddingTop = messageContent.paddingTop
+        val basePaddingEnd = messageContent.paddingEnd
+        val basePaddingBottom = messageContent.paddingBottom
+        ViewCompat.setOnApplyWindowInsetsListener(messageContent) { v, windowInsets ->
+            val imeBottom = windowInsets.getInsets(WindowInsetsCompat.Type.ime()).bottom
+            val navBottom = windowInsets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom
+            val bottomInset = max(imeBottom, navBottom)
+            v.setPaddingRelative(
+                basePaddingStart,
+                basePaddingTop,
+                basePaddingEnd,
+                basePaddingBottom + bottomInset
+            )
+            windowInsets
+        }
+        ViewCompat.requestApplyInsets(messageContent)
 
         // Setup character counters
         val shouldShowCounter = messageText.isNotEmpty() && activity.config.showCharacterCounter
