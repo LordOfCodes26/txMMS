@@ -119,7 +119,7 @@
     <string name="conversation_chogo_label">[초고함]</string>
     <string name="sending">전송중…</string>
     <string name="sending_cancelled">전송 취소됨</string>
-    <string name="pin_conversation">상단에 고정</string>
+    <string name="pin_conversation">우에 고정</string>
     <string name="forward_message">전달</string>
     <string name="compress_error">사진을 선택한 크기로 압축할수 없습니다</string>
     <string name="duplicate_item_warning">중복된 항목이 제외되였습니다</string>
