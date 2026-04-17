@@ -18,6 +18,8 @@
     <dimen name="normal_margin">12dp</dimen>
     <dimen name="normal_activity_margin">14dp</dimen>
     <dimen name="activity_margin">16dp</dimen>
+    <!-- Horizontal gap between the toolbar navigation icon and the collapsing large title when pinned (MySearchMenu). -->
+    <dimen name="tx_collapsed_title_nav_gap">12dp</dimen>
     <dimen name="larger_margin">18dp</dimen>
     <dimen name="bigger_margin">20dp</dimen>
     <dimen name="bigger_md_margin">20dp</dimen>

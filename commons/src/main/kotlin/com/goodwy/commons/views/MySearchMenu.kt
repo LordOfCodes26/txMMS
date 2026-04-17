@@ -2,7 +2,6 @@ package com.goodwy.commons.views
 
 import android.content.Context
 import android.content.res.ColorStateList
-import android.graphics.Rect
 import android.util.TypedValue
 import android.util.AttributeSet
 import android.view.LayoutInflater
@@ -10,6 +9,7 @@ import android.view.View
 import com.google.android.material.appbar.AppBarLayout
 import com.google.android.material.appbar.MaterialToolbar
 import com.goodwy.commons.activities.BaseSimpleActivity
+import com.goodwy.commons.R
 import com.goodwy.commons.databinding.MenuSearchBinding
 import com.goodwy.commons.extensions.baseConfig
 import com.goodwy.commons.extensions.getProperBackgroundColor
@@ -23,8 +23,24 @@ open class MySearchMenu(context: Context, attrs: AttributeSet) : MyAppBarLayout(
     private var savedScrollFlags: Int? = null
     private var savedAppBarHeight: Int? = null
     private val minCollapsedTitleScale = 0.8f
-    private val navTitleGapDp = 40f
-    private val fallbackNavShiftDp = 10f
+
+    /**
+     * Horizontal shift applied at full collapse so the large title sits [R.dimen.tx_collapsed_title_nav_gap]
+     * past the navigation icon. Uses parent-relative geometry only — not [View.getGlobalVisibleRect], which
+     * included the title's own animated screen position and produced unstable gaps or overlap.
+     */
+    private fun collapsedTitleShiftPxForNav(): Float {
+        val navView = binding.topToolbar.getNavigationIconView() ?: return 0f
+        if (navView.visibility != View.VISIBLE || !navView.isShown) return 0f
+        val title = binding.collapsingTitle
+        val toolbar = binding.topToolbar
+        if (!navView.isLaidOut || !title.isLaidOut || !toolbar.isLaidOut) return 0f
+        val gapPx = resources.getDimensionPixelSize(R.dimen.tx_collapsed_title_nav_gap)
+        val navRightInCollapsing = toolbar.left + navView.right
+        val titleParent = title.parent as? View ?: return 0f
+        val titleLeftInCollapsing = titleParent.left + title.left
+        return (navRightInCollapsing + gapPx - titleLeftInCollapsing).toFloat().coerceAtLeast(0f)
+    }
 
     init {
         addOnOffsetChangedListener { appBarLayout, verticalOffset ->
@@ -41,29 +57,7 @@ open class MySearchMenu(context: Context, attrs: AttributeSet) : MyAppBarLayout(
 
             val isNavigationVisible = binding.topToolbar.getNavigationIconView()?.isShown == true
             if (isNavigationVisible) {
-                val navGapPx = TypedValue.applyDimension(
-                    TypedValue.COMPLEX_UNIT_DIP,
-                    navTitleGapDp,
-                    resources.displayMetrics
-                )
-                val fallbackShiftPx = TypedValue.applyDimension(
-                    TypedValue.COMPLEX_UNIT_DIP,
-                    fallbackNavShiftDp,
-                    resources.displayMetrics
-                )
-
-                val navRect = Rect()
-                val titleRect = Rect()
-                val navView = binding.topToolbar.getNavigationIconView()
-                val hasRects = navView?.getGlobalVisibleRect(navRect) == true &&
-                    binding.collapsingTitle.getGlobalVisibleRect(titleRect)
-                val requiredShiftPx = if (hasRects) {
-                    // Move title so its left edge starts after nav icon + gap.
-                    (navRect.right + navGapPx - titleRect.left).coerceAtLeast(0f)
-                } else {
-                    fallbackShiftPx
-                }
-
+                val requiredShiftPx = collapsedTitleShiftPxForNav()
                 binding.collapsingTitle.translationX = requiredShiftPx * collapseFraction
             } else {
                 binding.collapsingTitle.translationX = 0f
