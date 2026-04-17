@@ -146,7 +146,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
     private var isScheduledMessage: Boolean = false
     private var messageToResend: Long? = null
     private var scheduledMessage: Message? = null
-    private lateinit var scheduledDateTime: DateTime
+    private var scheduledDateTime: DateTime = DateTime.now().plusMinutes(5)
 
     private var isAttachmentPickerVisible = false
     /** When true, [threadTypeMessage] focus loss is from opening the attachment picker; skip inset sync. */
@@ -279,12 +279,10 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                 }
             }
 
-            val smsDraft = getSmsDraft(threadId)
-            if (smsDraft.isNotEmpty()) {
-                runOnUiThread {
-                    binding.messageHolder.threadTypeMessage.setText(smsDraft)
-                    binding.messageHolder.threadTypeMessage.setSelection(smsDraft.length)
-                    binding.messageHolder.threadCharacterCounter.beVisibleIf(config.showCharacterCounter)
+            val draftRow = getSmsDraftEntity(threadId)
+            runOnUiThread {
+                if (draftRow != null && draftRow.threadHasPersistedComposeContent()) {
+                    applyThreadDraftRow(draftRow)
                 }
             }
 
@@ -631,16 +629,106 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
     }
 
     private fun saveDraftMessage(notifyConversationsAfter: Boolean = false) {
+        if (isRecycleBin) {
+            if (notifyConversationsAfter) {
+                bus?.post(Events.RefreshConversations())
+            }
+            return
+        }
         val draftMessage = messageHolderHelper?.getMessageText() ?: ""
+        val selections = messageHolderHelper?.getAttachmentSelections().orEmpty()
+        val attachmentsJson = if (selections.isEmpty()) {
+            null
+        } else {
+            val stored = selections.map {
+                DraftStoredAttachment(
+                    uriString = it.uri.toString(),
+                    mimetype = it.mimetype,
+                    filename = it.filename,
+                    isPending = it.isPending,
+                )
+            }
+            Gson().toJson(stored)
+        }
+        val persistCompose = draftMessage.isNotEmpty() ||
+            selections.isNotEmpty() ||
+            isScheduledMessage
+        val scheduledMillis = if (isScheduledMessage) scheduledDateTime.millis else 0L
+
         ensureBackgroundThread {
-            if (draftMessage.isNotEmpty() && (messageHolderHelper?.getAttachmentSelections()?.isEmpty() != false)) {
-                saveSmsDraft(draftMessage, threadId)
+            if (persistCompose) {
+                saveSmsDraft(
+                    body = draftMessage,
+                    threadId = threadId,
+                    attachmentsJson = attachmentsJson,
+                    isScheduled = isScheduledMessage,
+                    scheduledMillis = scheduledMillis,
+                )
             } else {
                 deleteSmsDraft(threadId)
             }
             if (notifyConversationsAfter) {
                 // MAIN-thread subscribers; safe to post from the background save thread.
                 bus?.post(Events.RefreshConversations())
+            }
+        }
+    }
+
+    private fun Draft.threadHasPersistedComposeContent(): Boolean =
+        body.isNotBlank() ||
+            !attachmentsJson.isNullOrBlank() ||
+            (isScheduled && scheduledMillis > 0L)
+
+    private fun applyThreadDraftRow(draft: Draft) {
+        val helper = messageHolderHelper
+        if (helper != null) {
+            helper.setMessageText(draft.body)
+            helper.clearAttachments()
+            val json = draft.attachmentsJson
+            if (!json.isNullOrBlank()) {
+                try {
+                    val type = object : TypeToken<List<DraftStoredAttachment>>() {}.type
+                    val list: List<DraftStoredAttachment> = Gson().fromJson(json, type) ?: emptyList()
+                    for (a in list) {
+                        try {
+                            helper.addAttachmentFromDraft(
+                                a.uriString.toUri(),
+                                a.mimetype,
+                                a.filename,
+                                a.isPending,
+                            )
+                        } catch (_: Exception) {
+                        }
+                    }
+                } catch (_: Exception) {
+                }
+            }
+            binding.messageHolder.threadTypeMessage.setSelection(draft.body.length)
+            binding.messageHolder.threadCharacterCounter.beVisibleIf(
+                config.showCharacterCounter && draft.body.isNotEmpty()
+            )
+        } else if (draft.body.isNotEmpty()) {
+            binding.messageHolder.threadTypeMessage.setText(draft.body)
+            binding.messageHolder.threadTypeMessage.setSelection(draft.body.length)
+            binding.messageHolder.threadCharacterCounter.beVisibleIf(config.showCharacterCounter)
+        }
+
+        if (draft.isScheduled && draft.scheduledMillis > 0L) {
+            scheduledDateTime = DateTime(draft.scheduledMillis)
+            showScheduleMessageDialog()
+        } else {
+            hideScheduleSendUi()
+        }
+    }
+
+    private fun applyThreadDraftAfterHelperInitialized() {
+        if (isRecycleBin) return
+        ensureBackgroundThread {
+            val draftRow = getSmsDraftEntity(threadId) ?: return@ensureBackgroundThread
+            if (!draftRow.threadHasPersistedComposeContent()) return@ensureBackgroundThread
+            runOnUiThread {
+                if (isFinishing || isDestroyed) return@runOnUiThread
+                applyThreadDraftRow(draftRow)
             }
         }
     }
@@ -758,7 +846,14 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                 } else speechToText
             if (draftPlusSpeech.isNotEmpty()) {
                 ensureBackgroundThread {
-                    saveSmsDraft(draftPlusSpeech, threadId)
+                    val existing = getSmsDraftEntity(threadId)
+                    saveSmsDraft(
+                        body = draftPlusSpeech,
+                        threadId = threadId,
+                        attachmentsJson = existing?.attachmentsJson,
+                        isScheduled = existing?.isScheduled ?: false,
+                        scheduledMillis = existing?.scheduledMillis ?: 0L,
+                    )
                 }
                 messageHolderHelper?.setMessageText(draftPlusSpeech)
             }
@@ -1288,6 +1383,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         )
         
         messageHolderHelper?.hideAttachmentPicker()
+        applyThreadDraftAfterHelperInitialized()
     }
     
     private fun setupButtons() = binding.apply {

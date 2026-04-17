@@ -41,6 +41,7 @@ import android.widget.Toast
 import androidx.annotation.RequiresPermission
 import androidx.appcompat.view.menu.MenuBuilder
 import androidx.core.content.res.ResourcesCompat
+import androidx.core.net.toUri
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -76,7 +77,8 @@ import com.android.mms.models.Events
 import com.android.mms.models.SIMCard
 import com.android.mms.BuildConfig
 import com.android.mms.helpers.MessageHolderHelper
-import com.google.gson.annotations.Until
+import com.android.mms.models.Draft
+import com.android.mms.models.DraftStoredAttachment
 import org.greenrobot.eventbus.EventBus
 import org.joda.time.DateTime
 import java.net.URLDecoder
@@ -713,7 +715,12 @@ class NewConversationActivity : SimpleActivity() {
         resumedDraftThreadId = threadId
 
         ensureBackgroundThread {
-            val draft = getSmsDraft(threadId)
+            val draftEntity = getSmsDraftEntity(threadId)
+            val meaningfulDraft = draftEntity != null && (
+                draftEntity.body.isNotBlank() ||
+                    !draftEntity.attachmentsJson.isNullOrBlank() ||
+                    (draftEntity.isScheduled && draftEntity.scheduledMillis > 0L)
+                )
             runOnUiThread {
                 if (isDestroyed || isFinishing) return@runOnUiThread
                 isUpdatingChips = true
@@ -729,13 +736,49 @@ class NewConversationActivity : SimpleActivity() {
                 isUpdatingChips = false
                 binding.newConversationAddress.clearText()
                 updateNewConversationTitle()
-                if (draft.isNotEmpty()) {
-                    messageHolderHelper?.setMessageText(draft)
-                        ?: binding.messageHolder.threadTypeMessage.setText(draft)
-                    messageHolderHelper?.checkSendMessageAvailability()
-                    binding.messageHolder.threadTypeMessage.setSelection(draft.length)
+                if (meaningfulDraft && draftEntity != null) {
+                    applyNewConversationDraftRow(draftEntity)
                 }
             }
+        }
+    }
+
+    private fun applyNewConversationDraftRow(draft: Draft) {
+        val helper = messageHolderHelper
+        if (helper != null) {
+            helper.setMessageText(draft.body)
+            helper.clearAttachments()
+            val json = draft.attachmentsJson
+            if (!json.isNullOrBlank()) {
+                try {
+                    val type = object : TypeToken<List<DraftStoredAttachment>>() {}.type
+                    val list: List<DraftStoredAttachment> = Gson().fromJson(json, type) ?: emptyList()
+                    for (a in list) {
+                        try {
+                            helper.addAttachmentFromDraft(
+                                a.uriString.toUri(),
+                                a.mimetype,
+                                a.filename,
+                                a.isPending,
+                            )
+                        } catch (_: Exception) {
+                        }
+                    }
+                } catch (_: Exception) {
+                }
+            }
+            binding.messageHolder.threadTypeMessage.setSelection(draft.body.length)
+            helper.checkSendMessageAvailability()
+        } else if (draft.body.isNotEmpty()) {
+            binding.messageHolder.threadTypeMessage.setText(draft.body)
+            binding.messageHolder.threadTypeMessage.setSelection(draft.body.length)
+        }
+
+        if (draft.isScheduled && draft.scheduledMillis > 0L) {
+            scheduledDateTime = DateTime(draft.scheduledMillis)
+            showScheduleMessageDialog()
+        } else {
+            hideScheduleSendUi()
         }
     }
 
@@ -1930,7 +1973,9 @@ class NewConversationActivity : SimpleActivity() {
     private fun saveNewConversationDraft() {
         val chips = binding.newConversationAddress.allChips
         val messageText = binding.messageHolder.threadTypeMessage.text?.toString()?.trim() ?: ""
-        val hasMessage = messageText.isNotEmpty()
+        val hasAttachments = messageHolderHelper?.getAttachmentSelections()?.isNotEmpty() == true
+        val hasMessage =
+            messageText.isNotEmpty() || hasAttachments || isScheduledMessage
         val staleResumeId = resumedDraftThreadId
         val allNumbers = mutableListOf<String>()
         chips.forEach { chip ->
@@ -1944,6 +1989,22 @@ class NewConversationActivity : SimpleActivity() {
         }
 
         mergeRecipientNumbersFromRecipientField(allNumbers)
+
+        val selections = messageHolderHelper?.getAttachmentSelections().orEmpty()
+        val attachmentsJson = if (selections.isEmpty()) {
+            null
+        } else {
+            val stored = selections.map {
+                DraftStoredAttachment(
+                    uriString = it.uri.toString(),
+                    mimetype = it.mimetype,
+                    filename = it.filename,
+                    isPending = it.isPending,
+                )
+            }
+            Gson().toJson(stored)
+        }
+        val scheduledMillis = if (isScheduledMessage) scheduledDateTime.millis else 0L
 
         val shouldPersist = hasMessage && allNumbers.isNotEmpty()
         val shouldClearDraftForEmptyMessage = !hasMessage && allNumbers.isNotEmpty()
@@ -1976,7 +2037,13 @@ class NewConversationActivity : SimpleActivity() {
             if (shouldPersist) {
                 val threadId = getThreadId(allNumbers.toSet())
                 if (threadId > 0) {
-                    saveSmsDraft(messageText, threadId)
+                    saveSmsDraft(
+                        body = messageText,
+                        threadId = threadId,
+                        attachmentsJson = attachmentsJson,
+                        isScheduled = isScheduledMessage,
+                        scheduledMillis = scheduledMillis,
+                    )
                     didMutateDrafts = true
                 }
             }

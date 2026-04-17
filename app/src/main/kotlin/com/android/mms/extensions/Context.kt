@@ -1642,21 +1642,37 @@ fun Context.removeDiacriticsIfNeeded(text: String): String {
     return if (config.useSimpleCharacters) text.normalizeString() else text
 }
 
-fun Context.getSmsDraft(threadId: Long): String {
-    val draft = try {
-        draftsDB.getDraftById(threadId)
-    } catch (_: Exception) {
-        null
-    }
+fun Context.getSmsDraftEntity(threadId: Long): Draft? = try {
+    draftsDB.getDraftById(threadId)
+} catch (_: Exception) {
+    null
+}
 
-    return draft?.body.orEmpty()
+fun Context.hasMeaningfulLocalDraft(threadId: Long): Boolean {
+    val d = getSmsDraftEntity(threadId) ?: return false
+    return d.body.isNotBlank() ||
+        !d.attachmentsJson.isNullOrBlank() ||
+        (d.isScheduled && d.scheduledMillis > 0L)
+}
+
+fun Context.getSmsDraft(threadId: Long): String = getSmsDraftEntity(threadId)?.body.orEmpty()
+
+fun Draft.conversationListSnippet(context: Context): String {
+    val trimmed = body.trim()
+    if (trimmed.isNotEmpty()) return body
+    if (!attachmentsJson.isNullOrBlank()) return context.getString(R.string.attachment)
+    if (isScheduled && scheduledMillis > 0L) return context.getString(R.string.draft_scheduled_snippet)
+    return ""
 }
 
 fun Context.getAllDrafts(): HashMap<Long, String> {
     val drafts = HashMap<Long, String>()
     try {
-        draftsDB.getAll().forEach {
-            drafts[it.threadId] = it.body
+        draftsDB.getAll().forEach { row ->
+            val snippet = row.conversationListSnippet(this)
+            if (snippet.isNotEmpty()) {
+                drafts[row.threadId] = snippet
+            }
         }
     } catch (e: Exception) {
         e.printStackTrace()
@@ -1665,11 +1681,20 @@ fun Context.getAllDrafts(): HashMap<Long, String> {
     return drafts
 }
 
-fun Context.saveSmsDraft(body: String, threadId: Long) {
+fun Context.saveSmsDraft(
+    body: String,
+    threadId: Long,
+    attachmentsJson: String? = null,
+    isScheduled: Boolean = false,
+    scheduledMillis: Long = 0L,
+) {
     val draft = Draft(
         threadId = threadId,
         body = body,
-        date = System.currentTimeMillis()
+        date = System.currentTimeMillis(),
+        attachmentsJson = attachmentsJson,
+        isScheduled = isScheduled,
+        scheduledMillis = scheduledMillis,
     )
 
     try {

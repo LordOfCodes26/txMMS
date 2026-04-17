@@ -1499,10 +1499,9 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         val conversation = any as Conversation
         hideKeyboard()
         ensureBackgroundThread {
-            val draftBody = getSmsDraft(conversation.threadId)
             val telephonyMessageCount = getThreadTelephonyMessageCount(conversation.threadId)
             val openNewComposeForDraft =
-                draftBody.isNotEmpty() && telephonyMessageCount == 0
+                hasMeaningfulLocalDraft(conversation.threadId) && telephonyMessageCount == 0
             runOnUiThread {
                 if (openNewComposeForDraft) {
                     var numbers = getThreadRecipientPhoneNumbers(conversation.threadId)

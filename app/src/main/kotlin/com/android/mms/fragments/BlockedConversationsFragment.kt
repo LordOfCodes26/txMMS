@@ -12,7 +12,7 @@ import com.android.mms.activities.ThreadActivity
 import com.android.mms.adapters.ConversationsAdapter
 import com.android.mms.extensions.config
 import com.android.mms.extensions.getBlockedConversations
-import com.android.mms.extensions.getSmsDraft
+import com.android.mms.extensions.hasMeaningfulLocalDraft
 import com.android.mms.extensions.getThreadRecipientPhoneNumbers
 import com.android.mms.extensions.getThreadTelephonyMessageCount
 import com.goodwy.commons.extensions.getMyContactsCursor
@@ -120,10 +120,9 @@ class BlockedConversationsFragment : Fragment(CommonsR.layout.fragment_blocked_m
     private fun openConversation(act: BaseSimpleActivity, conversation: Conversation) {
         act.hideKeyboard()
         ensureBackgroundThread {
-            val draftBody = act.getSmsDraft(conversation.threadId)
             val telephonyMessageCount = act.getThreadTelephonyMessageCount(conversation.threadId)
             val openNewComposeForDraft =
-                draftBody.isNotEmpty() && telephonyMessageCount == 0
+                act.hasMeaningfulLocalDraft(conversation.threadId) && telephonyMessageCount == 0
             act.runOnUiThread {
                 if (!isAdded) return@runOnUiThread
                 if (openNewComposeForDraft) {

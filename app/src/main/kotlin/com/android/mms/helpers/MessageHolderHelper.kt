@@ -483,7 +483,7 @@ class MessageHolderHelper(
 
     fun clearMessage() {
         binding.threadTypeMessage.setText("")
-        getAttachmentsAdapter()?.clear()
+        clearAttachments()
         if (isCountdownActive) {
             isCountdownActive = false
             hideCountdown()
@@ -491,16 +491,37 @@ class MessageHolderHelper(
         checkSendMessageAvailability()
     }
 
-    fun addAttachment(uri: Uri) {
-        val id = uri.toString()
-        if (getAttachmentSelections().any { it.id == id }) {
-            activity.toast(R.string.duplicate_item_warning)
-            return
-        }
+    fun clearAttachments() {
+        getAttachmentsAdapter()?.clear()
+        checkSendMessageAvailability()
+    }
 
+    fun addAttachment(uri: Uri) {
         val mimeType = activity.contentResolver.getType(uri)
         if (mimeType == null) {
             activity.toast(com.goodwy.commons.R.string.unknown_error_occurred)
+            return
+        }
+        addAttachmentWithKnownMime(uri, mimeType, activity.getFilenameFromUri(uri))
+    }
+
+    /**
+     * Restores an attachment from a persisted draft using stored metadata (avoids relying on
+     * [ContentResolver.getType] for URIs that no longer resolve after process death).
+     */
+    fun addAttachmentFromDraft(uri: Uri, mimetype: String, filename: String, isPending: Boolean) {
+        addAttachmentWithKnownMime(uri, mimetype, filename, isPendingOverride = isPending)
+    }
+
+    private fun addAttachmentWithKnownMime(
+        uri: Uri,
+        mimeType: String,
+        filename: String,
+        isPendingOverride: Boolean? = null,
+    ) {
+        val id = uri.toString()
+        if (getAttachmentSelections().any { it.id == id }) {
+            activity.toast(R.string.duplicate_item_warning)
             return
         }
 
@@ -530,12 +551,13 @@ class MessageHolderHelper(
         }
 
         binding.threadAttachmentsRecyclerview.beVisible()
+        val pending = isPendingOverride ?: (isImage && !isGif)
         val attachment = AttachmentSelection(
             id = id,
             uri = uri,
             mimetype = mimeType,
-            filename = activity.getFilenameFromUri(uri),
-            isPending = isImage && !isGif
+            filename = filename,
+            isPending = pending
         )
         adapter.addAttachment(attachment)
         checkSendMessageAvailability()
