@@ -291,9 +291,9 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
 
         val bottomBarColor = getBottomBarColor()
 //        binding.shortCodeHolder.root.setBackgroundColor(bottomBarColor)
-        binding.messageHolder.attachmentPickerHolder.setBackgroundColor(
-            ResourcesCompat.getColor(resources, com.goodwy.commons.R.color.md_grey_100, theme)
-        )
+//        binding.messageHolder.attachmentPickerHolder.setBackgroundColor(
+//            ResourcesCompat.getColor(resources, com.goodwy.commons.R.color.md_grey_100, theme)
+//        )
 
         updateAvailableMessageCountForCurrentSim()
 
