@@ -317,20 +317,20 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
 
     override fun onBackPressedCompat(): Boolean {
         val customToolbar = binding.mainMenu.requireCustomToolbar()
+        if (customToolbar.isSearchExpanded) {
+            endMainMenuSearchMode()
+            return true
+        }
         if (
             config.selectedConversationPin > 0 &&
             !isLaunchingSecretBox &&
             !isLaunchingInternalConversationActivity
         ) {
-            shouldExitSecureModeOnResume = true
+            closeSecureBox()
+            return true
         }
-        return if (customToolbar.isSearchExpanded) {
-            endMainMenuSearchMode()
-            true
-        } else {
-            appLockManager.lock()
-            false
-        }
+        appLockManager.lock()
+        return false
     }
 
     fun getMainMenuVisibleHeight(): Int {
