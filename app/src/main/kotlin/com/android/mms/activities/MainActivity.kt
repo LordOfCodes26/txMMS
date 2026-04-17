@@ -104,6 +104,8 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
     private var pendingThreadIdsToEncrypt: LongArray? = null
     private var shouldExitSecureModeOnResume = false
     private var isLaunchingSecretBox = false
+    /** True while starting Thread/NewConversation from this screen; avoids treating that as leaving the app ([onUserLeaveHint]). */
+    private var isLaunchingInternalConversationActivity = false
 
     var unreadCountHash = HashMap<Long, Int>(128)
 
@@ -180,6 +182,7 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
     @SuppressLint("UnsafeIntentLaunch")
     override fun onResume() {
         super.onResume()
+        isLaunchingInternalConversationActivity = false
         if (shouldExitSecureModeOnResume) {
             shouldExitSecureModeOnResume = false
             if (config.selectedConversationPin > 0) {
@@ -296,7 +299,11 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
 
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
-        if (config.selectedConversationPin > 0 && !isLaunchingSecretBox) {
+        if (
+            config.selectedConversationPin > 0 &&
+            !isLaunchingSecretBox &&
+            !isLaunchingInternalConversationActivity
+        ) {
             shouldExitSecureModeOnResume = true
         }
     }
@@ -310,6 +317,13 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
 
     override fun onBackPressedCompat(): Boolean {
         val customToolbar = binding.mainMenu.requireCustomToolbar()
+        if (
+            config.selectedConversationPin > 0 &&
+            !isLaunchingSecretBox &&
+            !isLaunchingInternalConversationActivity
+        ) {
+            shouldExitSecureModeOnResume = true
+        }
         return if (customToolbar.isSearchExpanded) {
             endMainMenuSearchMode()
             true
@@ -1509,6 +1523,7 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
                             putExtra(THREAD_ID, conversation.threadId)
                             putExtra(THREAD_TITLE, conversation.title)
                             putExtra(THREAD_NUMBER, numberExtra)
+                            isLaunchingInternalConversationActivity = true
                             startActivity(this)
                         }
                     } else {
@@ -1518,6 +1533,7 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
                             if (config.selectedConversationPin > 0) {
                                 putExtra(THREAD_OPENED_FROM_SECURE_CONVERSATION_LIST, true)
                             }
+                            isLaunchingInternalConversationActivity = true
                             startActivity(this)
                         }
                     }
@@ -1528,6 +1544,7 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
                         if (config.selectedConversationPin > 0) {
                             putExtra(THREAD_OPENED_FROM_SECURE_CONVERSATION_LIST, true)
                         }
+                        isLaunchingInternalConversationActivity = true
                         startActivity(this)
                     }
                 }
@@ -1538,6 +1555,7 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
     private fun launchNewConversation() {
         hideKeyboard()
         Intent(this, NewConversationActivity::class.java).apply {
+            isLaunchingInternalConversationActivity = true
             startActivity(this)
         }
     }
@@ -1690,6 +1708,7 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
                         if (config.selectedConversationPin > 0) {
                             putExtra(THREAD_OPENED_FROM_SECURE_CONVERSATION_LIST, true)
                         }
+                        isLaunchingInternalConversationActivity = true
                         startActivity(this)
                     }
                 }.apply {
