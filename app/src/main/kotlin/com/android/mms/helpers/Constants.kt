@@ -196,6 +196,9 @@ const val SWIPE_ACTION_OPEN = 9
 const val SWIPE_ACTION_RESTORE = 10
 const val SWIPE_VIBRATION = "swipe_vibration"
 const val SWIPE_RIPPLE = "swipe_ripple"
+// added by sun
+const val MNC_KANGSONG = 6
+const val MNC_KORYO = 5
 
 fun whatsNewList(): ArrayList<Release> {
     return arrayListOf<Release>().apply {

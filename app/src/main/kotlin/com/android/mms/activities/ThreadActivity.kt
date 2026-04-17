@@ -1421,7 +1421,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                 if (subscriptionInfo.number?.isNotEmpty() == true) {
                     label += " (${subscriptionInfo.number})"
                 }
-                val SIMCard = SIMCard(index + 1, subscriptionInfo.subscriptionId, label)
+                val SIMCard = SIMCard(index + 1, subscriptionInfo.subscriptionId, label, subscriptionInfo.mnc)
                 availableSIMCards.add(SIMCard)
             }
 
