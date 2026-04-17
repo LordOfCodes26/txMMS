@@ -296,6 +296,7 @@ class ContactPickerActivity : SimpleActivity() {
                 val h = menu.height.takeIf { it > 0 } ?: menu.measuredHeight.takeIf { it > 0 } ?: return@post
                 syncBlurTargetTopMarginForMenu(blur, h)
                 syncTopSideFrameHeightForMenu(top, menu, h)
+                blur.invalidate()
                 applyContactPickerListTopPadding()
             }
         }
@@ -356,6 +357,7 @@ class ContactPickerActivity : SimpleActivity() {
         val h = menu.getCollapsedHeightPx().takeIf { it > 0 } ?: return
         syncBlurTargetTopMarginForMenu(blur, h)
         syncTopSideFrameHeightForMenu(top, menu, h)
+        blur.invalidate()
     }
 
     private fun setContactPickerTransparentAppBarBackground() {

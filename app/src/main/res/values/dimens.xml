@@ -55,6 +55,9 @@
     <!-- Fallback when action-mode ripple height not measured yet (avoid clashing with library @dimen/tx_bottom_bar_height). -->
     <dimen name="action_mode_bottom_inset_fallback">56dp</dimen>
 
+    <!-- Extra height on top MVSideFrame below collapsed MySearchMenu chrome so content blurs instead of showing through transparent bars. -->
+    <dimen name="tx_my_search_menu_top_blur_feather">32dp</dimen>
+
     <dimen name="nest_bouncy_content_padding_top">128dp</dimen>
     <dimen name="custom_topbar_top">34dp</dimen>
     <dimen name="padding_vertical_badge">3dp</dimen>

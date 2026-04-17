@@ -22,12 +22,26 @@ fun syncBlurTargetTopMarginForMenu(blurTarget: View, menuHeight: Int) {
     }
 }
 
-fun syncTopSideFrameHeightForMenu(sideFrame: View, menu: MySearchMenu, menuHeight: Int) {
+/**
+ * Sets the top blur side-frame height to collapsed menu height plus an optional feather so blur extends
+ * slightly below transparent app bar chrome (scroll content is not legible under the title row).
+ *
+ * @param extraBlurBelowCollapsedPx when null, uses `R.dimen.tx_my_search_menu_top_blur_feather`; use `0` to disable.
+ */
+fun syncTopSideFrameHeightForMenu(
+    sideFrame: View,
+    menu: MySearchMenu,
+    menuHeight: Int,
+    extraBlurBelowCollapsedPx: Int? = null,
+) {
     if (menuHeight < 0) return
     val collapsedMenuHeight = menu.getCollapsedHeightPx().takeIf { it > 0 } ?: menuHeight
+    val feather = extraBlurBelowCollapsedPx
+        ?: sideFrame.resources.getDimensionPixelSize(R.dimen.tx_my_search_menu_top_blur_feather)
+    val sideFrameHeight = collapsedMenuHeight + max(0, feather)
     sideFrame.updateLayoutParams<ViewGroup.LayoutParams> {
-        if (height != collapsedMenuHeight) {
-            height = collapsedMenuHeight
+        if (height != sideFrameHeight) {
+            height = sideFrameHeight
         }
     }
 }
@@ -115,6 +129,7 @@ fun postSyncMySearchMenuToolbarGeometry(
                     if (topMargin != 0) topMargin = 0
                 }
             }
+            blurTarget.invalidate()
             applyListTop()
         }
     }

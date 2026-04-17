@@ -9,12 +9,10 @@ import android.os.Bundle
 import android.provider.Settings
 import android.view.Menu
 import android.view.View
-import android.view.ViewGroup
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowCompat
-import androidx.core.view.updateLayoutParams
 import androidx.appcompat.content.res.AppCompatResources
 import com.goodwy.commons.dialogs.*
 import com.goodwy.commons.extensions.*
