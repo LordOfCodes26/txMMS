@@ -54,7 +54,7 @@
         <item quantity="other">통보문 %d개</item>
     </plurals>
     <string name="not_blocking_keywords">차단한 검색어가 없습니다. 특정 검색어를 포함한 통보문을 차단하려면 여기에 단어를 추가하십시오.</string>
-    <string name="lock_screen_visibility">잠금화면 알림표시 여부</string>
+    <string name="lock_screen_visibility">잠금화면 알림표시</string>
     <string name="empty_destination_address">빈 번호로 통보문을 보낼수 없습니다</string>
     <string name="unable_to_save_message">통보문을 Telephony보관소에 보관할수 없습니다</string>
     <string name="error_service_is_unavailable">통신 봉사를 사용할수 없어 통보문이 전송되지 않았습니다</string>
