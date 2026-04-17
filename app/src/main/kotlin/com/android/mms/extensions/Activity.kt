@@ -25,6 +25,7 @@ import com.goodwy.commons.extensions.getSurfaceColor
 import com.goodwy.commons.extensions.hideKeyboard
 import com.goodwy.commons.extensions.isPackageInstalled
 import com.goodwy.commons.extensions.launchActivityIntent
+import com.goodwy.commons.extensions.launchCallIntent
 import com.goodwy.commons.extensions.launchViewContactIntent
 import com.goodwy.commons.extensions.lightenColor
 import com.goodwy.commons.extensions.performHapticFeedback
@@ -33,11 +34,9 @@ import com.goodwy.commons.extensions.toast
 import com.goodwy.commons.helpers.CONTACT_ID
 import com.goodwy.commons.helpers.KEY_PHONE
 import com.goodwy.commons.helpers.IS_PRIVATE
-import com.goodwy.commons.helpers.IS_RIGHT_APP
 import com.goodwy.commons.helpers.LICENSE_EVENT_BUS
 import com.goodwy.commons.helpers.LICENSE_INDICATOR_FAST_SCROLL
 import com.goodwy.commons.helpers.LICENSE_SMS_MMS
-import com.goodwy.commons.helpers.PERMISSION_CALL_PHONE
 import com.goodwy.commons.helpers.SimpleContactsHelper
 import com.goodwy.commons.helpers.ensureBackgroundThread
 import com.goodwy.commons.models.FAQItem
@@ -59,22 +58,8 @@ import java.util.Locale
 
 fun BaseSimpleActivity.dialNumber(phoneNumber: String, callback: (() -> Unit)? = null) {
     hideKeyboard()
-    handlePermission(PERMISSION_CALL_PHONE) {
-        val action = if (it) Intent.ACTION_CALL else Intent.ACTION_DIAL
-        Intent(action).apply {
-            data = Uri.fromParts("tel", phoneNumber, null)
-            putExtra(IS_RIGHT_APP, BuildConfig.RIGHT_APP_KEY)
-
-            try {
-                launchActivityIntent(this)
-                callback?.invoke()
-            } catch (_: ActivityNotFoundException) {
-                toast(com.goodwy.commons.R.string.no_app_found)
-            } catch (e: Exception) {
-                showErrorToast(e)
-            }
-        }
-    }
+    launchCallIntent(phoneNumber, key = BuildConfig.RIGHT_APP_KEY)
+    callback?.invoke()
 }
 
 fun Activity.launchViewIntent(uri: Uri, mimetype: String, filename: String) {
