@@ -45,7 +45,6 @@ import com.bumptech.glide.request.RequestOptions
 import com.bumptech.glide.request.target.Target
 import com.goodwy.commons.adapters.MyRecyclerViewListAdapter
 import com.goodwy.commons.models.RecyclerSelectionPayload
-import com.goodwy.commons.dialogs.ConfirmationDialog
 import com.goodwy.commons.extensions.applyColorFilter
 import com.goodwy.commons.extensions.beGone
 import com.goodwy.commons.extensions.beVisible
@@ -84,7 +83,6 @@ import com.android.mms.databinding.ItemAttachmentImageBinding
 import com.android.mms.databinding.ItemAttachmentVcardBinding
 import com.android.mms.databinding.ItemMessageBinding
 import com.android.mms.databinding.ItemThreadDateTimeBinding
-import com.android.mms.dialogs.DeleteConfirmationDialog
 import com.android.mms.dialogs.MessageDetailsDialog
 import com.android.mms.dialogs.SelectTextDialog
 import com.android.mms.extensions.config
@@ -496,6 +494,23 @@ class ThreadAdapter(
         MessageDetailsDialog(activity, message, blurTarget)
     }
 
+    private fun showMConfirmDialog(question: String, onConfirm: () -> Unit) {
+        val blurTarget = activity.findViewById<BlurTarget>(com.android.mms.R.id.mainBlurTarget)
+            ?: throw IllegalStateException("mainBlurTarget not found")
+        val dialog = MConfirmDialog(activity)
+        dialog.bindBlurTarget(blurTarget)
+        dialog.setContent(question)
+        dialog.setConfirmTitle(resources.getString(com.goodwy.commons.R.string.ok))
+        dialog.setCancelTitle(resources.getString(com.goodwy.commons.R.string.cancel))
+        dialog.setCanceledOnTouchOutside(true)
+        dialog.setOnCompleteListener { isConfirm ->
+            if (isConfirm) {
+                onConfirm()
+            }
+        }
+        dialog.show()
+    }
+
     private fun askConfirmDelete(message: Message? = null) {
         val itemsCnt = if (message != null) 1 else selectedKeys.size
 
@@ -514,35 +529,15 @@ class ThreadAdapter(
         }
         val question = String.format(resources.getString(baseString), items)
 
-        val blurTarget = activity.findViewById<eightbitlab.com.blurview.BlurTarget>(com.android.mms.R.id.mainBlurTarget)
-            ?: throw IllegalStateException("mainBlurTarget not found")
-//        DeleteConfirmationDialog(activity, question, activity.config.useRecycleBin && !isRecycleBin, blurTarget) { skipRecycleBin ->
-//            ensureBackgroundThread {
-//                val messagesToRemove = if (message != null) arrayListOf(message) else getSelectedItems()
-//                if (messagesToRemove.isNotEmpty()) {
-//                    val toRecycleBin = !skipRecycleBin && activity.config.useRecycleBin && !isRecycleBin
-//                    deleteMessages(messagesToRemove.filterIsInstance<Message>(), toRecycleBin, false, message != null)
-//                }
-//            }
-//        }
-        val dialog = MConfirmDialog(activity)
-        dialog.bindBlurTarget(blurTarget)
-        dialog.setContent(question)
-        dialog.setConfirmTitle(resources.getString(com.goodwy.commons.R.string.ok))
-        dialog.setCancelTitle(resources.getString(com.goodwy.commons.R.string.cancel))
-        dialog.setCanceledOnTouchOutside(true)
-        dialog.setOnCompleteListener { isConfirm ->
-            if (isConfirm) {
-                ensureBackgroundThread {
-                    val messagesToRemove = if (message != null) arrayListOf(message) else getSelectedItems()
-                    if (messagesToRemove.isNotEmpty()) {
-                        val toRecycleBin = activity.config.useRecycleBin && !isRecycleBin
-                        deleteMessages(messagesToRemove.filterIsInstance<Message>(), toRecycleBin, false, message != null)
-                    }
+        showMConfirmDialog(question) {
+            ensureBackgroundThread {
+                val messagesToRemove = if (message != null) arrayListOf(message) else getSelectedItems()
+                if (messagesToRemove.isNotEmpty()) {
+                    val toRecycleBin = activity.config.useRecycleBin && !isRecycleBin
+                    deleteMessages(messagesToRemove.filterIsInstance<Message>(), toRecycleBin, false, message != null)
                 }
             }
         }
-        dialog.show()
     }
 
     private fun askConfirmRestore() {
@@ -559,9 +554,7 @@ class ThreadAdapter(
         val baseString = R.string.restore_confirmation
         val question = String.format(resources.getString(baseString), items)
 
-        val blurTarget = activity.findViewById<eightbitlab.com.blurview.BlurTarget>(com.android.mms.R.id.mainBlurTarget)
-            ?: throw IllegalStateException("mainBlurTarget not found")
-        ConfirmationDialog(activity, question, blurTarget = blurTarget) {
+        showMConfirmDialog(question) {
             ensureBackgroundThread {
                 val messagesToRestore = getSelectedItems()
                 if (messagesToRestore.isNotEmpty()) {

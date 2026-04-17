@@ -62,7 +62,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import com.goodwy.commons.dialogs.ConfirmationDialog
+import com.android.common.dialogs.MConfirmDialog
 import com.goodwy.commons.dialogs.PermissionRequiredDialog
 import com.goodwy.commons.dialogs.RadioGroupDialog
 import com.goodwy.commons.dialogs.RadioGroupIconDialog
@@ -1739,6 +1739,23 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
 //        }
 //    }
 
+    private fun showMConfirmDialog(question: String, onConfirm: () -> Unit) {
+        val blurTarget = findViewById<eightbitlab.com.blurview.BlurTarget>(R.id.mainBlurTarget)
+            ?: throw IllegalStateException("mainBlurTarget not found")
+        val dialog = MConfirmDialog(this)
+        dialog.bindBlurTarget(blurTarget)
+        dialog.setContent(question)
+        dialog.setConfirmTitle(resources.getString(com.goodwy.commons.R.string.ok))
+        dialog.setCancelTitle(resources.getString(com.goodwy.commons.R.string.cancel))
+        dialog.setCanceledOnTouchOutside(true)
+        dialog.setOnCompleteListener { isConfirm ->
+            if (isConfirm) {
+                onConfirm()
+            }
+        }
+        dialog.show()
+    }
+
     private fun isBlockNumbers(): Boolean {
         return participants.getAddresses().any { isNumberBlocked(it, getBlockedNumbers()) }
     }
@@ -1752,17 +1769,15 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             else com.goodwy.commons.R.string.block_confirmation
         val question = String.format(resources.getString(baseString), numbersString)
 
-        val blurTarget = findViewById<eightbitlab.com.blurview.BlurTarget>(R.id.mainBlurTarget)
-            ?: throw IllegalStateException("mainBlurTarget not found")
-        ConfirmationDialog(this, question, blurTarget = blurTarget) {
+        showMConfirmDialog(question) {
             ensureBackgroundThread {
                 numbers.forEach {
                     if (isBlockNumbers) {
                         deleteBlockedNumber(it)
-                        runOnUiThread { refreshMenuItems()}
+                        runOnUiThread { refreshMenuItems() }
                     } else {
                         addBlockedNumber(it)
-                        runOnUiThread { refreshMenuItems()}
+                        runOnUiThread { refreshMenuItems() }
                     }
                 }
                 refreshConversations()
@@ -1773,9 +1788,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
 
     private fun askConfirmDelete() {
         val confirmationMessage = R.string.delete_whole_conversation_confirmation
-        val blurTarget = findViewById<eightbitlab.com.blurview.BlurTarget>(R.id.mainBlurTarget)
-            ?: throw IllegalStateException("mainBlurTarget not found")
-        ConfirmationDialog(this, getString(confirmationMessage), blurTarget = blurTarget) {
+        showMConfirmDialog(getString(confirmationMessage)) {
             ensureBackgroundThread {
                 if (isRecycleBin) {
                     emptyMessagesRecycleBinForConversation(threadId)
@@ -1791,10 +1804,8 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
     }
 
     private fun askConfirmRestoreAll() {
-        val blurTarget = findViewById<eightbitlab.com.blurview.BlurTarget>(R.id.mainBlurTarget)
-            ?: throw IllegalStateException("mainBlurTarget not found")
-        ConfirmationDialog(this, getString(R.string.restore_confirmation), blurTarget = blurTarget) {
-            ensureBackgroundThread{
+        showMConfirmDialog(getString(R.string.restore_confirmation)) {
+            ensureBackgroundThread {
                 restoreAllMessagesFromRecycleBinForConversation(threadId)
                 runOnUiThread {
                     refreshConversations()
