@@ -127,6 +127,7 @@ class ContactPickerActivity : SimpleActivity() {
     /** Filter bar height + 12dp; set once from a stable layout pass so search and normal modes match. */
     private var contactPickerListTopInsetPx: Int = -1
     private var contactPickerFilterBarInsetListener: ViewTreeObserver.OnGlobalLayoutListener? = null
+    private var contactPickerFilterBarAppBarOffsetListener: AppBarLayout.OnOffsetChangedListener? = null
     private var contactsLetterFastscroller: FastScrollerView? = null
     private var contactsLetterFastscrollerThumb: FastScrollerThumbView? = null
     private val callLogMeta = ArrayList<CallLogEntryMeta>()
@@ -175,7 +176,8 @@ class ContactPickerActivity : SimpleActivity() {
             val rv = contactRecyclerView ?: return@post
             postSyncMySearchMenuToolbarGeometry(rootView!!, menu, blur, top, paddedList = null)
             syncContactPickerBlurGeometryAndListTopPadding()
-            setupMySearchMenuSpringSync(menu, rv)
+            contactPickerFilterBarAppBarOffsetListener =
+                setupMySearchMenuSpringSync(menu, rv, contactPickerFilterBar)
             if (config.changeColourTopBar) {
                 scrollingView = contactRecyclerView
                 val useSurfaceColor = isDynamicTheme() && !isSystemInDarkMode()
@@ -242,7 +244,15 @@ class ContactPickerActivity : SimpleActivity() {
             contactPickerFilterBar?.viewTreeObserver?.removeOnGlobalLayoutListener(listener)
         }
         contactPickerFilterBarInsetListener = null
-        blurAppBarLayout?.let { clearMySearchMenuSpringSync(it, contactRecyclerView) }
+        blurAppBarLayout?.let {
+            clearMySearchMenuSpringSync(
+                it,
+                contactRecyclerView,
+                contactPickerFilterBarAppBarOffsetListener,
+                contactPickerFilterBar,
+            )
+        }
+        contactPickerFilterBarAppBarOffsetListener = null
         contactsCursor?.takeIf { !it.isClosed }?.close()
         contactsCursor = null
         super.onDestroy()
@@ -495,7 +505,6 @@ class ContactPickerActivity : SimpleActivity() {
         contactPickerFilterBar = findViewById(R.id.contact_picker_filter_bar)
         val filterBar = contactPickerFilterBar as? ViewGroup
         callLogPlaceholder = findViewById(R.id.call_log_placeholder)
-        setupFilterBarScrollBehavior()
 //        if (filterBar != null && filterBar.childCount >= 2) {
 //            filterCallLog = filterBar.getChildAt(0) as? MyTextView
 //            filterContacts = filterBar.getChildAt(1) as? MyTextView
@@ -622,18 +631,6 @@ class ContactPickerActivity : SimpleActivity() {
             Configuration.SCREENLAYOUT_LONG_NO -> false
             else -> true
         }
-    }
-
-    /** Hides filter bar when app bar is scrolled (top item going up); shows when app bar is back at original (expanded). */
-    private fun setupFilterBarScrollBehavior() {
-        val bar = blurAppBarLayout ?: return
-        val filterBar = contactPickerFilterBar ?: return
-        bar.addOnOffsetChangedListener(object : AppBarLayout.OnOffsetChangedListener {
-            override fun onOffsetChanged(appBarLayout: AppBarLayout, verticalOffset: Int) {
-//                val expanded = verticalOffset >= -dp(8)
-//                filterBar.visibility = if (expanded) View.VISIBLE else View.GONE
-            }
-        })
     }
 
     private fun searchListByQuery(s: String) {

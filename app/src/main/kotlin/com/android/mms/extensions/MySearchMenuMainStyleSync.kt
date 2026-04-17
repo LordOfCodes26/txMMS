@@ -5,6 +5,7 @@ import android.view.ViewGroup
 import androidx.core.view.updateLayoutParams
 import androidx.core.view.updatePadding
 import com.android.mms.R
+import com.google.android.material.appbar.AppBarLayout
 import com.goodwy.commons.views.MyRecyclerView
 import com.goodwy.commons.views.MySearchMenu
 import kotlin.math.max
@@ -137,13 +138,40 @@ fun postSyncMySearchMenuToolbarGeometry(
     // bogus screen geometry (extra top padding after returning from another activity).
 }
 
-fun setupMySearchMenuSpringSync(menu: MySearchMenu, recycler: MyRecyclerView?) {
-    recycler?.onOverscrollTranslationChanged = { translationY ->
-        menu.translationY = translationY * MAIN_MENU_OVERSCROLL_FACTOR
+/**
+ * Bouncy overscroll moves [menu] slightly; optionally keeps [translationSyncView] at the same
+ * vertical shift as the app bar ([AppBarLayout] offset + menu overscroll [translationY]).
+ */
+fun setupMySearchMenuSpringSync(
+    menu: MySearchMenu,
+    recycler: MyRecyclerView?,
+    translationSyncView: View? = null,
+): AppBarLayout.OnOffsetChangedListener? {
+    var appBarVerticalOffset = 0
+    val offsetListener = if (translationSyncView != null) {
+        AppBarLayout.OnOffsetChangedListener { _, verticalOffset ->
+            appBarVerticalOffset = verticalOffset
+            translationSyncView.translationY = verticalOffset.toFloat() + menu.translationY
+        }.also { menu.addOnOffsetChangedListener(it) }
+    } else {
+        null
     }
+    recycler?.onOverscrollTranslationChanged = { translationY ->
+        val t = translationY * MAIN_MENU_OVERSCROLL_FACTOR
+        menu.translationY = t
+        translationSyncView?.translationY = appBarVerticalOffset.toFloat() + t
+    }
+    return offsetListener
 }
 
-fun clearMySearchMenuSpringSync(menu: MySearchMenu, recycler: MyRecyclerView?) {
+fun clearMySearchMenuSpringSync(
+    menu: MySearchMenu,
+    recycler: MyRecyclerView?,
+    filterBarAppBarOffsetListener: AppBarLayout.OnOffsetChangedListener? = null,
+    translationSyncView: View? = null,
+) {
+    filterBarAppBarOffsetListener?.let { menu.removeOnOffsetChangedListener(it) }
     recycler?.onOverscrollTranslationChanged = null
     menu.translationY = 0f
+    translationSyncView?.translationY = 0f
 }
