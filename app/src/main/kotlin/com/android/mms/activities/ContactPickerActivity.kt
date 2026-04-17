@@ -168,6 +168,7 @@ class ContactPickerActivity : SimpleActivity() {
         initComponent()
         makeSystemBarsToTransparent()
         setupEdgeToEdge()
+        applyContactPickerWindowSurfaces()
 
         findViewById<View>(R.id.nest_scroll).post {
             val menu = blurAppBarLayout ?: return@post
@@ -195,6 +196,15 @@ class ContactPickerActivity : SimpleActivity() {
         window.statusBarColor = Color.TRANSPARENT
     }
 
+    private fun applyContactPickerWindowSurfaces() {
+        val useSurfaceColor = isDynamicTheme() && !isSystemInDarkMode()
+        val backgroundColor = if (useSurfaceColor) getSurfaceColor() else getProperBackgroundColor()
+        rootView?.setBackgroundColor(backgroundColor)
+        findViewById<BlurTarget>(R.id.blurTarget)?.setBackgroundColor(backgroundColor)
+        scrollView?.setBackgroundColor(backgroundColor)
+        contactRecyclerView?.setBackgroundColor(backgroundColor)
+    }
+
     private fun initMVSideFrames() {
         val blurTarget = findViewById<BlurTarget>(R.id.blurTarget)
         findViewById<MVSideFrame>(R.id.m_vertical_side_frame_top).bindBlurTarget(blurTarget)
@@ -215,13 +225,7 @@ class ContactPickerActivity : SimpleActivity() {
                     or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
             )
         }
-        // Use same background logic as MainActivity: surface color only for dynamic theme + light mode, else proper background
-        val useSurfaceColor = isDynamicTheme() && !isSystemInDarkMode()
-        val backgroundColor = if (useSurfaceColor) getSurfaceColor() else getProperBackgroundColor()
-        rootView?.setBackgroundColor(backgroundColor)
-        findViewById<BlurTarget>(R.id.blurTarget)?.setBackgroundColor(backgroundColor)
-        scrollView?.setBackgroundColor(backgroundColor)
-        contactRecyclerView?.setBackgroundColor(backgroundColor)
+        applyContactPickerWindowSurfaces()
         setupTopBarNavigation()
         scrollingView = contactRecyclerView
         blurAppBarLayout?.updateColors(

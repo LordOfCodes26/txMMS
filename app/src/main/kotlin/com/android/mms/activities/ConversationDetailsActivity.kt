@@ -4,6 +4,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Intent
 import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.graphics.PorterDuff
 import android.media.AudioAttributes
 import android.media.AudioManager
@@ -41,6 +42,8 @@ class ConversationDetailsActivity : SimpleActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
+        initConversationDetailsCollapsingScrims()
+        applyConversationDetailsSurfaces()
 
         setupEdgeToEdge(padBottomSystem = listOf(binding.conversationDetailsNestedScrollview))
 
@@ -63,6 +66,22 @@ class ConversationDetailsActivity : SimpleActivity() {
                 setupCustomNotifications()
             }
         }
+    }
+
+    private fun initConversationDetailsCollapsingScrims() {
+        binding.collapsingToolbar.apply {
+            statusBarScrim = ColorDrawable(Color.TRANSPARENT)
+            contentScrim = ColorDrawable(Color.TRANSPARENT)
+            scrimVisibleHeightTrigger = Int.MAX_VALUE
+            setScrimsShown(false, false)
+        }
+    }
+
+    private fun applyConversationDetailsSurfaces() {
+        val useSurface = isDynamicTheme() && !isSystemInDarkMode()
+        val bg = if (useSurface) getSurfaceColor() else getProperBackgroundColor()
+        binding.root.setBackgroundColor(bg)
+        binding.conversationDetailsNestedScrollview.setBackgroundColor(bg)
     }
 
     private fun initButton() {

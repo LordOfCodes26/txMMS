@@ -60,6 +60,7 @@ class ManageQuickTextsActivity : SimpleActivity(), RefreshRecyclerViewListener {
         makeSystemBarsToTransparent()
         setupTopBar()
         setupOptionsMenu()
+        applyQuickTextsWindowSurfacesAndChrome()
         updateQuickTexts()
         binding.manageQuickTextsPlaceholder2.apply {
             underlineText()
@@ -103,13 +104,18 @@ class ManageQuickTextsActivity : SimpleActivity(), RefreshRecyclerViewListener {
                 )
         }
 
+        applyQuickTextsWindowSurfacesAndChrome()
+        updateTextColors(binding.rootView)
+        setupTopBar()
+    }
+
+    private fun applyQuickTextsWindowSurfacesAndChrome() {
         val useSurfaceColor = isDynamicTheme() && !isSystemInDarkMode()
         val backgroundColor = if (useSurfaceColor) getSurfaceColor() else getProperBackgroundColor()
+        binding.root.setBackgroundColor(backgroundColor)
         binding.rootView.setBackgroundColor(backgroundColor)
         binding.mainBlurTarget.setBackgroundColor(backgroundColor)
         binding.manageQuickTextsList.setBackgroundColor(backgroundColor)
-        updateTextColors(binding.rootView)
-        setupTopBar()
         scrollingView = binding.manageQuickTextsList
         binding.quickTextsAppbar.updateColors(
             getStartRequiredStatusBarColor(),

@@ -127,6 +127,7 @@ class SettingsActivity : SimpleActivity() {
         makeSystemBarsToTransparent()
         setupOptionsMenu()
         setupSettingsTopAppBar()
+        applySettingsWindowBackgroundsAndTopChrome()
 
         binding.settingsNestedScrollview.post {
             postSyncMySearchMenuToolbarGeometry(
@@ -147,6 +148,18 @@ class SettingsActivity : SimpleActivity() {
             }
             refreshSettingsTopBarColors()
         }
+    }
+
+    private fun applySettingsWindowBackgroundsAndTopChrome() {
+        val useSurfaceColor = isDynamicTheme() && !isSystemInDarkMode()
+        val backgroundColor = if (useSurfaceColor) getSurfaceColor() else getProperBackgroundColor()
+        binding.root.setBackgroundColor(backgroundColor)
+        binding.rootView.setBackgroundColor(backgroundColor)
+        binding.mainBlurTarget.setBackgroundColor(backgroundColor)
+        binding.settingsNestedScrollview.setBackgroundColor(Color.TRANSPARENT)
+        binding.settingsHolder.setBackgroundColor(backgroundColor)
+        scrollingView = binding.settingsNestedScrollview
+        refreshSettingsTopBarColors()
     }
 
     private fun initTheme() {
@@ -219,12 +232,7 @@ class SettingsActivity : SimpleActivity() {
                 )
         }
 
-        val useSurfaceColor = isDynamicTheme() && !isSystemInDarkMode()
-        val backgroundColor = if (useSurfaceColor) getSurfaceColor() else getProperBackgroundColor()
-        binding.rootView.setBackgroundColor(backgroundColor)
-        binding.mainBlurTarget.setBackgroundColor(backgroundColor)
-        binding.settingsNestedScrollview.setBackgroundColor(Color.TRANSPARENT)
-        binding.settingsHolder.setBackgroundColor(backgroundColor)
+        applySettingsWindowBackgroundsAndTopChrome()
 
         isRebindingSettings = true
         stopCurrentlyPlayingRingtone()

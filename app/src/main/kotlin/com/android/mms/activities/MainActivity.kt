@@ -122,6 +122,7 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
         initTheme()
+        applyMainScreenBackgroundAndTopChrome()
         setupTwoFingerSwipeGesture()
         makeSystemBarsToTransparent()
         val isFirstLaunch = baseConfig.appRunCount == 0
@@ -196,12 +197,7 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
             return
         }
 
-        binding.mainMenu.updateColors(
-            background = getStartRequiredStatusBarColor(),
-            scrollOffset = scrollingView?.computeVerticalScrollOffset() ?: 0
-        )
-        setMainMenuTransparentBackground()
-        binding.mainMenu.requireCustomToolbar().updateSearchColors()
+        applyMainScreenBackgroundAndTopChrome()
 
         refreshMenuItemsAndTitle()
 
@@ -227,14 +223,6 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         }
 
         updateTextColors(binding.conversationsNestedScroll)
-        // Use same background logic as Contacts: surface color only for dynamic theme + light mode, else proper background
-        val useSurfaceColor = isDynamicTheme() && !isSystemInDarkMode()
-        val backgroundColor = if (useSurfaceColor) getSurfaceColor() else getProperBackgroundColor()
-        binding.searchHolder.setBackgroundColor(backgroundColor)
-//        binding.conversationsFastscroller.setBackgroundColor(backgroundColor)
-        binding.conversationsNestedScroll.setBackgroundColor(backgroundColor)
-        binding.conversationsList.setBackgroundColor(backgroundColor)
-        binding.searchResultsList.setBackgroundColor(backgroundColor)
 
         val properPrimaryColor = getProperPrimaryColor()
         binding.noConversationsPlaceholder2.setTextColor(getProperTextColor())
@@ -1168,6 +1156,25 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
     private fun setMainMenuTransparentBackground() {
         binding.mainMenu.setBackgroundColor(Color.TRANSPARENT)
         binding.mainMenu.binding.searchBarContainer.setBackgroundColor(Color.TRANSPARENT)
+    }
+
+    /** Root, blur host, lists, and [MySearchMenu] chrome — used from [onCreate] before first draw and in [onResume]. */
+    private fun applyMainScreenBackgroundAndTopChrome() {
+        binding.mainMenu.updateColors(
+            background = getStartRequiredStatusBarColor(),
+            scrollOffset = scrollingView?.computeVerticalScrollOffset() ?: 0,
+        )
+        setMainMenuTransparentBackground()
+        binding.mainMenu.requireCustomToolbar().updateSearchColors()
+
+        val useSurfaceColor = isDynamicTheme() && !isSystemInDarkMode()
+        val backgroundColor = if (useSurfaceColor) getSurfaceColor() else getProperBackgroundColor()
+        binding.root.setBackgroundColor(backgroundColor)
+        binding.mainBlurTarget.setBackgroundColor(backgroundColor)
+        binding.searchHolder.setBackgroundColor(backgroundColor)
+        binding.conversationsNestedScroll.setBackgroundColor(backgroundColor)
+        binding.conversationsList.setBackgroundColor(backgroundColor)
+        binding.searchResultsList.setBackgroundColor(backgroundColor)
     }
 
     private fun loadMessages() {

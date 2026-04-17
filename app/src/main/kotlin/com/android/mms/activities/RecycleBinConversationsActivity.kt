@@ -8,6 +8,7 @@ import com.goodwy.commons.extensions.areSystemAnimationsEnabled
 import com.goodwy.commons.extensions.beGoneIf
 import com.goodwy.commons.extensions.beVisibleIf
 import com.goodwy.commons.extensions.getProperAccentColor
+import com.goodwy.commons.extensions.getProperBackgroundColor
 import com.goodwy.commons.extensions.getSurfaceColor
 import com.goodwy.commons.extensions.hideKeyboard
 import com.goodwy.commons.extensions.isDynamicTheme
@@ -40,6 +41,7 @@ class RecycleBinConversationsActivity : SimpleActivity() {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
         setupOptionsMenu()
+        applyRecycleBinConversationSurfaces()
 
         setupEdgeToEdge(padBottomImeAndSystem = listOf(binding.conversationsList))
         setupMaterialScrollListener(
@@ -52,6 +54,7 @@ class RecycleBinConversationsActivity : SimpleActivity() {
 
     override fun onResume() {
         super.onResume()
+        applyRecycleBinConversationSurfaces()
         setupTopAppBar(binding.recycleBinAppbar, NavigationIcon.Arrow)
         loadRecycleBinConversations()
         binding.conversationsFastscroller.updateColors(getProperAccentColor())
@@ -77,6 +80,13 @@ class RecycleBinConversationsActivity : SimpleActivity() {
             }
             return@setOnMenuItemClickListener true
         }
+    }
+
+    private fun applyRecycleBinConversationSurfaces() {
+        val useSurface = isDynamicTheme() && !isSystemInDarkMode()
+        val bg = if (useSurface) getSurfaceColor() else getProperBackgroundColor()
+        binding.root.setBackgroundColor(bg)
+        binding.conversationsList.setBackgroundColor(bg)
     }
 
     private fun updateOptionsMenu(conversations: ArrayList<Conversation>) {

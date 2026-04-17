@@ -129,6 +129,7 @@ class NewConversationActivity : SimpleActivity() {
         updateNewConversationTitle()
         updateTextColors(binding.newConversationHolder)
         initTheme()
+        applyNewConversationWindowBackgroundsAndTopChrome()
         WindowCompat.setDecorFitsSystemWindows(window, false)
         setupEdgeToEdge(
             padBottomImeAndSystem = listOf(binding.messageHolder.root),
@@ -186,10 +187,7 @@ class NewConversationActivity : SimpleActivity() {
                     or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
             )
         }
-        val useSurfaceColor = isDynamicTheme() && !isSystemInDarkMode()
-        val backgroundColor = if (useSurfaceColor) getSurfaceColor() else getProperBackgroundColor()
-        // Match ContactPickerActivity: MySearchMenu with same top bar pattern
-        binding.root.setBackgroundColor(backgroundColor)
+        applyNewConversationWindowBackgroundsAndTopChrome()
         updateNewConversationTitle()
         binding.newConversationAppbar.binding.collapsingTitle.apply {
             setTextColor(getProperTextColor())
@@ -212,19 +210,10 @@ class NewConversationActivity : SimpleActivity() {
             }
             bindBlurTarget(this@NewConversationActivity, binding.conversationScrollBlur)
         }
-        scrollingView = binding.nestScroll
-        binding.newConversationAppbar.updateColors(
-            getStartRequiredStatusBarColor(),
-            scrollingView?.computeVerticalScrollOffset() ?: 0,
-        )
-        binding.newConversationAppbar.setBackgroundColor(Color.TRANSPARENT)
-        binding.newConversationAppbar.binding.searchBarContainer.setBackgroundColor(Color.TRANSPARENT)
-
 //        binding.newConversationHolder.setBackgroundColor(backgroundColor)
 //        binding.newConversationAddress.setBackgroundColor(backgroundColor)
 //        binding.suggestionsOverlay.setBackgroundColor(backgroundColor)
         binding.suggestionsOverlay.beGone()
-        binding.conversationScrollBlur.setBackgroundColor(backgroundColor)
 
         binding.noContactsPlaceholder2.setTextColor(getProperPrimaryColor)
         binding.noContactsPlaceholder2.underlineText()
@@ -255,6 +244,21 @@ class NewConversationActivity : SimpleActivity() {
     private fun initTheme() {
         window.navigationBarColor = Color.TRANSPARENT
         window.statusBarColor = Color.TRANSPARENT
+    }
+
+    private fun applyNewConversationWindowBackgroundsAndTopChrome() {
+        val useSurfaceColor = isDynamicTheme() && !isSystemInDarkMode()
+        val backgroundColor = if (useSurfaceColor) getSurfaceColor() else getProperBackgroundColor()
+        binding.root.setBackgroundColor(backgroundColor)
+        binding.mainBlurTarget.setBackgroundColor(backgroundColor)
+        binding.conversationScrollBlur.setBackgroundColor(backgroundColor)
+        scrollingView = binding.nestScroll
+        binding.newConversationAppbar.updateColors(
+            getStartRequiredStatusBarColor(),
+            scrollingView?.computeVerticalScrollOffset() ?: 0,
+        )
+        binding.newConversationAppbar.setBackgroundColor(Color.TRANSPARENT)
+        binding.newConversationAppbar.binding.searchBarContainer.setBackgroundColor(Color.TRANSPARENT)
     }
 
     /** Same idea as [SettingsActivity.refreshSideFrameBlurAndInsets]: blur + toolbar geometry after resume. */

@@ -27,6 +27,7 @@ class ManageBlockedKeywordsActivity : SimpleActivity(), RefreshRecyclerViewListe
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
+        applyBlockedKeywordsSurfaces()
         updateBlockedKeywords()
         setupOptionsMenu()
 
@@ -48,7 +49,15 @@ class ManageBlockedKeywordsActivity : SimpleActivity(), RefreshRecyclerViewListe
 
     override fun onResume() {
         super.onResume()
+        applyBlockedKeywordsSurfaces()
         setupTopAppBar(binding.blockKeywordsAppbar, NavigationIcon.Arrow)
+    }
+
+    private fun applyBlockedKeywordsSurfaces() {
+        val useSurface = isDynamicTheme() && !isSystemInDarkMode()
+        val bg = if (useSurface) getSurfaceColor() else getProperBackgroundColor()
+        binding.root.setBackgroundColor(bg)
+        binding.manageBlockedKeywordsList.setBackgroundColor(bg)
     }
 
     private fun setupOptionsMenu() {

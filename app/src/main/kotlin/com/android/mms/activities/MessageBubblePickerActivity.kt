@@ -44,6 +44,7 @@ class MessageBubblePickerActivity : SimpleActivity() {
         initMVSideFrames()
         setupEdgeToEdge()
         makeSystemBarsToTransparent()
+        applyBubblePickerWindowSurfacesAndChrome()
         setupTopBar()
         setupActionTabs()
         setupList()
@@ -82,13 +83,18 @@ class MessageBubblePickerActivity : SimpleActivity() {
                 )
         }
 
+        applyBubblePickerWindowSurfacesAndChrome()
+        updateTextColors(binding.rootView)
+        setupTopBar()
+    }
+
+    private fun applyBubblePickerWindowSurfacesAndChrome() {
         val useSurfaceColor = isDynamicTheme() && !isSystemInDarkMode()
         val backgroundColor = if (useSurfaceColor) getSurfaceColor() else getProperBackgroundColor()
+        binding.root.setBackgroundColor(backgroundColor)
         binding.rootView.setBackgroundColor(backgroundColor)
         binding.mainBlurTarget.setBackgroundColor(backgroundColor)
         binding.bubblePickerList.setBackgroundColor(backgroundColor)
-        updateTextColors(binding.rootView)
-        setupTopBar()
         scrollingView = binding.bubblePickerList
         binding.bubblePickerAppbar.updateColors(
             getStartRequiredStatusBarColor(),

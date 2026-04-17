@@ -9,6 +9,7 @@ import com.goodwy.commons.extensions.beGoneIf
 import com.goodwy.commons.extensions.beVisibleIf
 import com.goodwy.commons.extensions.getProperAccentColor
 import com.goodwy.commons.extensions.getProperTextColor
+import com.goodwy.commons.extensions.getProperBackgroundColor
 import com.goodwy.commons.extensions.getSurfaceColor
 import com.goodwy.commons.extensions.hideKeyboard
 import com.goodwy.commons.extensions.isDynamicTheme
@@ -40,6 +41,7 @@ class ArchivedConversationsActivity : SimpleActivity() {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
         setupOptionsMenu()
+        applyArchivedConversationSurfaces()
 
         setupEdgeToEdge(padBottomImeAndSystem = listOf(binding.conversationsList))
         setupMaterialScrollListener(
@@ -52,6 +54,7 @@ class ArchivedConversationsActivity : SimpleActivity() {
 
     override fun onResume() {
         super.onResume()
+        applyArchivedConversationSurfaces()
         setupTopAppBar(binding.archiveAppbar, NavigationIcon.Arrow)
         loadArchivedConversations()
         binding.conversationsFastscroller.updateColors(getProperAccentColor())
@@ -77,6 +80,13 @@ class ArchivedConversationsActivity : SimpleActivity() {
             }
             return@setOnMenuItemClickListener true
         }
+    }
+
+    private fun applyArchivedConversationSurfaces() {
+        val useSurface = isDynamicTheme() && !isSystemInDarkMode()
+        val bg = if (useSurface) getSurfaceColor() else getProperBackgroundColor()
+        binding.root.setBackgroundColor(bg)
+        binding.conversationsList.setBackgroundColor(bg)
     }
 
     private fun updateOptionsMenu(conversations: ArrayList<Conversation>) {

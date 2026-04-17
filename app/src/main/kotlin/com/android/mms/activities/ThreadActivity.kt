@@ -14,6 +14,7 @@ import android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION
 import android.content.IntentFilter
 import android.content.res.ColorStateList
 import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.media.AudioManager
 import android.net.Uri
 import android.os.Bundle
@@ -237,6 +238,10 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         bus!!.register(this)
 
         ensureDefaultBubbleType()
+        // While [setupCachedMessages] loads many rows from disk, the list is still empty: keep blur
+        // host + window filled so MVSideFrame does not flash a dark band over the transparent app bar.
+        applyThreadListBackgroundColors()
+        applyThreadTopBarChrome()
         loadConversation()
         maybeSetupRecycleBinView()
     }
@@ -246,25 +251,8 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         if (config.threadTopStyle == THREAD_TOP_LARGE) binding.topDetailsCompact.root.beGone()
         else binding.topDetailsLarge.beGone()
 
-        val topBarColor = getStartRequiredStatusBarColor()
-        updateTopBarColors(binding.threadToolbar, topBarColor)
-        // Zero elevation for app bar
-        val stateListAnimator = StateListAnimator()
-        stateListAnimator.addState(
-            IntArray(0),
-            ObjectAnimator.ofFloat(binding.threadAppbar, "elevation", 0.0f)
-        )
-        binding.threadAppbar.stateListAnimator = stateListAnimator
-        // Setup CustomToolbar navigation icon and colors
-        val toolbar = binding.threadToolbar
-        val contrastColor = topBarColor.getContrastColor()
-        val itemColor = if (baseConfig.topAppBarColorIcon) getProperPrimaryColor() else contrastColor
-        setupThreadToolbarNavigation(color = itemColor)
-        // Update menu button color
-        val overflowIconRes = getOverflowIcon(baseConfig.overflowIcon)
-        toolbar.overflowIcon = resources.getColoredDrawableWithColor(this, overflowIconRes, itemColor)
-        // Update menu item icon colors (including action buttons like dial_number)
-        updateMenuItemIconColors()
+        applyThreadListBackgroundColors()
+        applyThreadTopBarChrome()
 
         isActivityVisible = true
 
@@ -296,8 +284,6 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
 //        )
 
         updateAvailableMessageCountForCurrentSim()
-
-        applyThreadListBackgroundColors()
 
         refreshSideFrameBlurAndInsets()
     }
@@ -408,6 +394,31 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         appBar.stateListAnimator = null
         appBar.isLiftOnScroll = false
         appBar.isLifted = false
+        binding.collapsingToolbar.apply {
+            statusBarScrim = ColorDrawable(Color.TRANSPARENT)
+            contentScrim = ColorDrawable(Color.TRANSPARENT)
+            scrimVisibleHeightTrigger = Int.MAX_VALUE
+            setScrimsShown(false, false)
+        }
+    }
+
+    /** Status bar + toolbar chrome; safe to call before messages have bound (heavy DB load). */
+    private fun applyThreadTopBarChrome() {
+        val topBarColor = getStartRequiredStatusBarColor()
+        updateTopBarColors(binding.threadToolbar, topBarColor)
+        val stateListAnimator = StateListAnimator()
+        stateListAnimator.addState(
+            IntArray(0),
+            ObjectAnimator.ofFloat(binding.threadAppbar, "elevation", 0.0f),
+        )
+        binding.threadAppbar.stateListAnimator = stateListAnimator
+        val toolbar = binding.threadToolbar
+        val contrastColor = topBarColor.getContrastColor()
+        val itemColor = if (baseConfig.topAppBarColorIcon) getProperPrimaryColor() else contrastColor
+        setupThreadToolbarNavigation(color = itemColor)
+        val overflowIconRes = getOverflowIcon(baseConfig.overflowIcon)
+        toolbar.overflowIcon = resources.getColoredDrawableWithColor(this, overflowIconRes, itemColor)
+        updateMenuItemIconColors()
     }
 
     private fun isDarkTheme(): Boolean {
@@ -1016,6 +1027,8 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         val backgroundColor = if (useSurfaceColor) getSurfaceColor() else getProperBackgroundColor()
         binding.threadHolder.setBackgroundColor(backgroundColor)
         binding.threadMessagesList.setBackgroundColor(backgroundColor)
+        binding.mainBlurTarget.setBackgroundColor(backgroundColor)
+        binding.root.setBackgroundColor(backgroundColor)
         return backgroundColor
     }
 
@@ -1051,6 +1064,10 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                 val shouldScrollToBottom =
                     currentList.lastOrNull() != threadItems.lastOrNull() && lastPosition - lastVisiblePosition == 1
                 updateMessages(threadItems, if (shouldScrollToBottom) lastPosition else -1)
+            }
+            binding.threadMessagesList.post {
+                applyThreadListBackgroundColors()
+                applyThreadTopBarChrome()
             }
         }
 
