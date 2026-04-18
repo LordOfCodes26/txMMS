@@ -1,11 +1,15 @@
 package com.android.mms.extensions
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.graphics.Color
 import android.net.Uri
 import android.provider.ContactsContract
+import android.telecom.PhoneAccount
+import android.telecom.PhoneAccountHandle
+import android.telecom.TelecomManager
 import android.view.View
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.content.res.ResourcesCompat
@@ -43,9 +47,12 @@ import com.android.mms.R
 import com.android.mms.activities.ConversationDetailsActivity
 import com.android.mms.activities.SimpleActivity
 import com.android.mms.activities.VCardViewerActivity
+import com.android.mms.dialogs.SelectSIMDialog
 import com.android.mms.helpers.EXTRA_VCARD_URI
 import com.android.mms.helpers.THREAD_ID
 import com.android.mms.helpers.parseVCardFromUri
+import com.goodwy.commons.extensions.telecomManager
+import com.goodwy.commons.helpers.PERMISSION_READ_PHONE_STATE
 import ezvcard.property.Telephone
 import com.google.android.material.snackbar.Snackbar
 import java.util.Locale
@@ -335,3 +342,22 @@ fun SimpleActivity.launchAbout() {
         subscriptionYearIdListRu = arrayListOf(subscriptionYearIdX1, subscriptionYearIdX2, subscriptionYearIdX3),
     )
 }
+
+fun SimpleActivity.showSelectSimDialog(
+    phoneNumber: String,
+    callback: (handle: PhoneAccountHandle?) -> Unit
+) {
+    val blurTarget = findViewById<eightbitlab.com.blurview.BlurTarget>(R.id.mainBlurTarget)
+        ?: throw IllegalStateException("mainBlurTarget not found")
+
+    SelectSIMDialog(
+        activity = this,
+        blurTarget = blurTarget,
+        onDismiss = { finish() }
+    ) { simAccount, _ ->
+        callback(simAccount.handle)
+    }
+    return
+
+}
+

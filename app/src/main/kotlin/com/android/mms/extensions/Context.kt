@@ -67,9 +67,11 @@ import com.android.mms.models.Message
 import com.android.mms.models.MessageAttachment
 import com.android.mms.models.NamePhoto
 import com.android.mms.models.RecycleBinMessage
+import com.android.mms.models.SIMAccount
 import org.xmlpull.v1.XmlPullParserException
 import java.io.FileNotFoundException
 import java.util.Locale
+import kotlin.collections.get
 
 val Context.config: Config
     get() = Config.newInstance(applicationContext)
@@ -1966,4 +1968,52 @@ fun Context.getTextSizeMessage() = when (config.fontSizeMessage) {
     FONT_SIZE_MEDIUM -> resources.getDimension(com.goodwy.commons.R.dimen.normal_text_size)
     FONT_SIZE_LARGE -> resources.getDimension(com.goodwy.commons.R.dimen.bigger_text_size)
     else -> resources.getDimension(com.goodwy.commons.R.dimen.big_text_size)
+}
+
+
+@SuppressLint("MissingPermission")
+fun Context.getAvailableSIMCardLabels(): List<SIMAccount> {
+    val simAccounts = mutableListOf<SIMAccount>()
+    try {
+        var simIndex = 1
+        telecomManager.callCapablePhoneAccounts.forEachIndexed { index, account ->
+            var subcriptionInfoList = subscriptionManager.activeSubscriptionInfoList
+            val phoneAccount = telecomManager.getPhoneAccount(account)
+            var label = phoneAccount.label.toString()
+            if(subcriptionInfoList?.get(index)?.mnc == 5) {
+                label = getString(R.string.koryo_label)
+                simIndex = 1
+            } else if (subcriptionInfoList?.get(index)?.mnc == 6) {
+                label = getString(R.string.kangsong_label)
+                simIndex = 2
+            } else if (subcriptionInfoList?.get(index)?.mnc == 3) {
+                label = getString(R.string.mirae_label)
+                simIndex = 3
+            }
+            var address = phoneAccount.address.toString()
+            if (address.startsWith("tel:") && address.substringAfter("tel:").isNotEmpty()) {
+                address = Uri.decode(address.substringAfter("tel:"))
+                label += " ($address)"
+            }
+
+            val simColor = try {
+                config.simIconsColors[simIndex]
+            } catch (_: Exception) {
+                phoneAccount.highlightColor
+            }
+            simAccounts.add(
+                SIMAccount(
+                    id = index + 1,
+                    simTypeId = simIndex,
+                    handle = phoneAccount.accountHandle,
+                    label = label,
+                    phoneNumber = address.substringAfter("tel:"),
+                    color = simColor
+                )
+            )
+        }
+    } catch (_: Exception) {
+    }
+
+    return simAccounts
 }

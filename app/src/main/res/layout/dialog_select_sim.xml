@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.android.common.view.MBlurView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/blurView"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_gravity="center_horizontal"
+    android:gravity="center">
+
+    <LinearLayout
+        android:id="@+id/select_sim_radio_holder"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+        <douglasspgyn.com.github.circularcountdown.CircularCountdown
+            android:id="@+id/countdownView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:visibility="visible"
+            app:countdownBackgroundColor="?attr/colorControlNormal"
+            app:countdownForegroundColor="?attr/colorPrimary"
+            app:countdownTextColor="?attr/colorPrimary"
+            app:countdownTextSize="24sp" />
+
+        <RadioGroup
+            android:id="@+id/select_sim_radio_group"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/activity_margin"
+            android:layout_marginEnd="@dimen/activity_margin"
+            android:layout_marginBottom="@dimen/medium_margin" />
+
+        <RelativeLayout
+            android:id="@+id/selectSimRememberHolder"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/small_margin"
+            android:background="?attr/selectableItemBackground">
+
+            <com.goodwy.commons.views.MyAppCompatCheckbox
+                android:id="@+id/select_sim_remember"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@null"
+                android:clickable="false"
+                android:text="@string/always_use_this_sim" />
+        </RelativeLayout>
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/select_sim_holder"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        android:orientation="vertical">
+
+        <RelativeLayout
+            android:id="@+id/sim1Holder"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="@dimen/small_margin" />
+
+        <include
+            android:id="@+id/divider"
+            layout="@layout/divider" />
+
+        <RelativeLayout
+            android:id="@+id/sim2Holder"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="@dimen/small_margin" />
+
+    </LinearLayout>
+
+</com.android.common.view.MBlurView>

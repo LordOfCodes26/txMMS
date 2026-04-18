@@ -1,15 +1,12 @@
 package com.android.mms.helpers
 
 import android.annotation.SuppressLint
-import android.graphics.drawable.GradientDrawable
+import android.app.Activity
 import android.content.Intent
 import android.media.AudioManager
 import android.net.Uri
-import android.provider.ContactsContract
-import android.provider.MediaStore
 import android.telephony.SmsManager
 import android.telephony.SmsMessage
-import android.telephony.SubscriptionInfo
 import android.util.TypedValue
 import android.view.KeyEvent
 import android.view.ViewGroup
@@ -26,7 +23,6 @@ import com.android.mms.R
 import com.android.mms.adapters.AttachmentsAdapter
 import com.android.mms.databinding.LayoutThreadSendMessageHolderBinding
 import com.android.mms.extensions.*
-import com.android.mms.messaging.sendMessageCompat
 import com.android.mms.models.Attachment
 import com.android.mms.models.AttachmentSelection
 import com.android.mms.models.SIMCard

@@ -1793,12 +1793,12 @@ class NewConversationActivity : SimpleActivity() {
 //                        val simId = currentSIMCard.id
 //                        if (simId in 1..4) config.simIconsColors[simId] else config.simIconsColors[0]
 //                    }
-                    // <------------
                     val simColor = if (!config.colorSimIcons) textColor
                     else {
                         val simMnc = currentSIMCard.mnc
                         if (simMnc == MNC_KANGSONG) config.simIconsColors[2] else config.simIconsColors[0]
                     }
+                    // <------------
                     binding.messageHolder.threadSelectSimIcon.applyColorFilter(simColor)
                     val currentSubscriptionId = currentSIMCard.subscriptionId
                     // Only save preference if we have phone numbers

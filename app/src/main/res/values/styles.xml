@@ -30,4 +30,9 @@
         <item name="android:textSize">@dimen/too_tiny_text_size</item>
         <item name="android:alpha">0.8</item>
     </style>
+
+    <style name="MDialogSimSelect" parent="MDialogStyle">
+        <item name="android:windowMinWidthMajor">60%</item>
+        <item name="android:windowMinWidthMinor">60%</item>
+    </style>
 </resources>

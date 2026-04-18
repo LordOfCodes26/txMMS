@@ -187,4 +187,9 @@
     <string name="day">日</string>
     <string name="select_sim_1">有10个相似度，费用：100</string>
     <string name="select_sim_2">有2个相似度，费用：10</string>
+    <string name="always_use_this_sim">为此号码一直使用该 SIM 卡</string>
+    <string name="ch350_emoji_max_stickers">您无法在一条消息中添加更多贴纸。</string>
+    <string name="koryo_label">高丽</string>
+    <string name="kangsong_label">强盛</string>
+    <string name="mirae_label">未来</string>
 </resources>

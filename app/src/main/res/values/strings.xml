@@ -222,4 +222,8 @@
     <string name="select_sim_2">2 options, fee:10</string>
     <string name="ch350_emoji_max_stickers">You cannot add more stickers in one message.</string>
     <string name="ch350_emoji_pack_missing">CH350 emoticons need libresutils.so (jniLibs) and .obb packs (assets/ch350_emoji or files). The 350 Git tree usually omits both—copy them from a CH350 APK or OEM build. See jniLibs/README.txt.</string>
+    <string name="always_use_this_sim">Always this SIM for this</string>
+    <string name="koryo_label">Koryo</string>
+    <string name="kangsong_label">Kangsong</string>
+    <string name="mirae_label">Mirae</string>
 </resources>
