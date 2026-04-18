@@ -58,11 +58,6 @@
         tools:replace="android:label">
 
         <activity
-            android:name=".activities.SplashActivity"
-            android:exported="false"
-            android:theme="@style/SplashTheme" />
-
-        <activity
             android:name=".activities.MainActivity"
             android:configChanges="orientation"
             android:theme="@style/BlurAppBarTheme"
@@ -327,12 +322,12 @@
         </provider>
 
         <activity-alias
-            android:name=".activities.SplashActivity.Original"
+            android:name=".activities.MainActivity.Original"
             android:enabled="true"
             android:exported="true"
             android:icon="@mipmap/ic_launcher"
             android:roundIcon="@mipmap/ic_launcher"
-            android:targetActivity=".activities.SplashActivity">
+            android:targetActivity=".activities.MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -340,12 +335,12 @@
         </activity-alias>
 
         <activity-alias
-            android:name=".activities.SplashActivity.One"
+            android:name=".activities.MainActivity.One"
             android:enabled="false"
             android:exported="true"
             android:icon="@mipmap/ic_launcher_one"
             android:roundIcon="@mipmap/ic_launcher_one"
-            android:targetActivity=".activities.SplashActivity">
+            android:targetActivity=".activities.MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -353,12 +348,12 @@
         </activity-alias>
 
         <activity-alias
-            android:name=".activities.SplashActivity.Two"
+            android:name=".activities.MainActivity.Two"
             android:enabled="false"
             android:exported="true"
             android:icon="@mipmap/ic_launcher_two"
             android:roundIcon="@mipmap/ic_launcher_two"
-            android:targetActivity=".activities.SplashActivity">
+            android:targetActivity=".activities.MainActivity">
 
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -367,12 +362,12 @@
         </activity-alias>
 
         <activity-alias
-            android:name=".activities.SplashActivity.Three"
+            android:name=".activities.MainActivity.Three"
             android:enabled="false"
             android:exported="true"
             android:icon="@mipmap/ic_launcher_three"
             android:roundIcon="@mipmap/ic_launcher_three"
-            android:targetActivity=".activities.SplashActivity">
+            android:targetActivity=".activities.MainActivity">
 
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -381,12 +376,12 @@
         </activity-alias>
 
         <activity-alias
-            android:name=".activities.SplashActivity.Four"
+            android:name=".activities.MainActivity.Four"
             android:enabled="false"
             android:exported="true"
             android:icon="@mipmap/ic_launcher_four"
             android:roundIcon="@mipmap/ic_launcher_four"
-            android:targetActivity=".activities.SplashActivity">
+            android:targetActivity=".activities.MainActivity">
 
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -395,12 +390,12 @@
         </activity-alias>
 
         <activity-alias
-            android:name=".activities.SplashActivity.Five"
+            android:name=".activities.MainActivity.Five"
             android:enabled="false"
             android:exported="true"
             android:icon="@mipmap/ic_launcher_five"
             android:roundIcon="@mipmap/ic_launcher_five"
-            android:targetActivity=".activities.SplashActivity">
+            android:targetActivity=".activities.MainActivity">
 
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -409,12 +404,12 @@
         </activity-alias>
 
         <activity-alias
-            android:name=".activities.SplashActivity.Six"
+            android:name=".activities.MainActivity.Six"
             android:enabled="false"
             android:exported="true"
             android:icon="@mipmap/ic_launcher_six"
             android:roundIcon="@mipmap/ic_launcher_six"
-            android:targetActivity=".activities.SplashActivity">
+            android:targetActivity=".activities.MainActivity">
 
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -423,12 +418,12 @@
         </activity-alias>
 
         <activity-alias
-            android:name=".activities.SplashActivity.Seven"
+            android:name=".activities.MainActivity.Seven"
             android:enabled="false"
             android:exported="true"
             android:icon="@mipmap/ic_launcher_seven"
             android:roundIcon="@mipmap/ic_launcher_seven"
-            android:targetActivity=".activities.SplashActivity">
+            android:targetActivity=".activities.MainActivity">
 
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -437,12 +432,12 @@
         </activity-alias>
 
         <activity-alias
-            android:name=".activities.SplashActivity.Eight"
+            android:name=".activities.MainActivity.Eight"
             android:enabled="false"
             android:exported="true"
             android:icon="@mipmap/ic_launcher_eight"
             android:roundIcon="@mipmap/ic_launcher_eight"
-            android:targetActivity=".activities.SplashActivity">
+            android:targetActivity=".activities.MainActivity">
 
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -451,12 +446,12 @@
         </activity-alias>
 
         <activity-alias
-            android:name=".activities.SplashActivity.Nine"
+            android:name=".activities.MainActivity.Nine"
             android:enabled="false"
             android:exported="true"
             android:icon="@mipmap/ic_launcher_nine"
             android:roundIcon="@mipmap/ic_launcher_nine"
-            android:targetActivity=".activities.SplashActivity">
+            android:targetActivity=".activities.MainActivity">
 
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -465,12 +460,12 @@
         </activity-alias>
 
         <activity-alias
-            android:name=".activities.SplashActivity.Ten"
+            android:name=".activities.MainActivity.Ten"
             android:enabled="false"
             android:exported="true"
             android:icon="@mipmap/ic_launcher_ten"
             android:roundIcon="@mipmap/ic_launcher_ten"
-            android:targetActivity=".activities.SplashActivity">
+            android:targetActivity=".activities.MainActivity">
 
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -479,12 +474,12 @@
         </activity-alias>
 
         <activity-alias
-            android:name=".activities.SplashActivity.Eleven"
+            android:name=".activities.MainActivity.Eleven"
             android:enabled="false"
             android:exported="true"
             android:icon="@mipmap/ic_launcher_eleven"
             android:roundIcon="@mipmap/ic_launcher_eleven"
-            android:targetActivity=".activities.SplashActivity">
+            android:targetActivity=".activities.MainActivity">
 
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
