@@ -399,11 +399,11 @@
                                 android:paddingHorizontal="@dimen/zero"
                                 android:layout_gravity="center"
                                 android:backgroundTintMode="src_in"
-                                android:backgroundTint="@color/attachment_icon_bg"
+                                android:backgroundTint="@color/tx_cardview_summary"
                                 android:src="@drawable/ic_sms_extra_camera"
                                 app:rippleColor="?attr/colorControlHighlight" />
 
-                        </androidx.coordinatorlayout.widget.CoordinatorLayout>>
+                        </androidx.coordinatorlayout.widget.CoordinatorLayout>
 
 
                     </RelativeLayout>
