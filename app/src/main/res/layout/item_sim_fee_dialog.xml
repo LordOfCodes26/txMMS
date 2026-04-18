@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/simItemHolder"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_gravity="center_horizontal"
+    android:gravity="center"
+    android:orientation="horizontal"
+    android:paddingVertical="@dimen/tx_dialog_content_item_padding">
+
+    <ImageView
+        android:id="@+id/simItemIcon"
+        android:layout_width="@dimen/list_icon_size_medium"
+        android:layout_height="@dimen/list_icon_size_medium"
+        android:contentDescription="@null" />
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/medium_margin"
+        android:layout_gravity="center_vertical"
+        android:orientation="vertical">
+
+        <com.goodwy.commons.views.MyTextView
+            android:id="@+id/simItemName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="@dimen/bigger_text_size" />
+
+        <com.goodwy.commons.views.MyTextView
+            android:id="@+id/simItemFeeInfo"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/small_margin"
+            android:alpha="0.7"
+            android:textSize="@dimen/tx_small_text" />
+    </LinearLayout>
+</LinearLayout>
