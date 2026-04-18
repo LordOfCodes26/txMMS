@@ -1382,7 +1382,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         }
         
         messageHolderHelper?.setupAttachmentPicker(
-            onChoosePhoto = { launchGetContentIntent(arrayOf("image/*", "video/*"), MessageHolderHelper.PICK_PHOTO_INTENT) },
+            onChoosePhoto = { launchGetContentIntent(arrayOf("image/*"), MessageHolderHelper.PICK_PHOTO_INTENT) },
             onChooseVideo = { launchGetContentIntent(arrayOf("video/*"), MessageHolderHelper.PICK_VIDEO_INTENT) },
             onTakePhoto = { launchCapturePhotoIntent() },
             onRecordVideo = { launchCaptureVideoIntent() },

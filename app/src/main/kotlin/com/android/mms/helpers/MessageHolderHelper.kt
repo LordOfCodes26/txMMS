@@ -318,7 +318,6 @@ class MessageHolderHelper(
             chooseEmoji.setOnClickListener { showEmojiPicker() }
             chooseText.setOnClickListener { onPickQuickText() }
             chooseCamera.setOnClickListener { onTakePhoto() }
-            chooseCamera.setOnClickListener { onRecordVideo() }
             chooseVoice.setOnClickListener { onRecordAudio() }
 //            pickFile.setOnClickListener { onPickFile() }
             chooseContact.setOnClickListener { onPickContact() }
