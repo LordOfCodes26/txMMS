@@ -2185,6 +2185,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
 
                 runOnUiThread {
                     clearCurrentMessage()
+                    deleteComposeAttachmentCacheIfUnnecessary()
                     hideScheduleSendUi()
                     scheduledMessage = null
                 }
@@ -2215,6 +2216,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                 }
             }
             clearCurrentMessage()
+            deleteComposeAttachmentCacheIfUnnecessary()
 
         } catch (e: Exception) {
             showErrorToast(e)

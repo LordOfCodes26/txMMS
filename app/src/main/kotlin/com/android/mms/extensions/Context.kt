@@ -69,6 +69,7 @@ import com.android.mms.models.NamePhoto
 import com.android.mms.models.RecycleBinMessage
 import com.android.mms.models.SIMAccount
 import org.xmlpull.v1.XmlPullParserException
+import java.io.File
 import java.io.FileNotFoundException
 import java.util.Locale
 import kotlin.collections.get
@@ -1961,6 +1962,33 @@ fun Context.copyToUri(src: Uri, dst: Uri) {
     contentResolver.openInputStream(src)?.use { input ->
         contentResolver.openOutputStream(dst, "rwt")?.use { out ->
             input.copyTo(out)
+        }
+    }
+}
+
+private const val COMPOSE_CACHE_ATTACHMENT_SUBDIR = "attachments"
+private const val COMPOSE_CACHE_COMPRESSED_SUBDIR = "compressed"
+
+/**
+ * Clears [cacheDir]/attachments (picker copies, camera temps) and [cacheDir]/compressed (MMS image compression).
+ * Runs on a background thread. Prefer calling after a successful send once [MessageHolderHelper.clearMessage]
+ * has run — not while the user still has compose attachments that reference files under those folders.
+ */
+fun Context.deleteComposeAttachmentCacheIfUnnecessary() {
+    ensureBackgroundThread {
+        deleteComposeAttachmentCacheDirsSync()
+    }
+}
+
+fun Context.deleteComposeAttachmentCacheDirsSync() {
+    arrayOf(COMPOSE_CACHE_ATTACHMENT_SUBDIR, COMPOSE_CACHE_COMPRESSED_SUBDIR).forEach { name ->
+        val dir = File(cacheDir, name)
+        if (!dir.isDirectory) return@forEach
+        dir.listFiles()?.forEach { child ->
+            try {
+                child.deleteRecursively()
+            } catch (_: Exception) {
+            }
         }
     }
 }

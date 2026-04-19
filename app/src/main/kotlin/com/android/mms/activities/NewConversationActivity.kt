@@ -1352,7 +1352,8 @@ class NewConversationActivity : SimpleActivity() {
             
             // Clear message and attachments
             messageHolderHelper?.clearMessage()
-            
+            deleteComposeAttachmentCacheIfUnnecessary()
+
             val staleResumeId = resumedDraftThreadId
             // Delete any draft for this thread to prevent it from showing in ThreadActivity;
             // also drop the list draft for the pre-edit recipient set if the user changed chips.
@@ -1541,6 +1542,7 @@ class NewConversationActivity : SimpleActivity() {
                     runOnUiThread {
                         resumedDraftThreadId = 0L
                         messageHolderHelper?.clearMessage()
+                        deleteComposeAttachmentCacheIfUnnecessary()
                         hideScheduleSendUi()
                         val numbersString = allNumbers.joinToString(";")
                         val displayName = if (allNumbers.size == 1) allNumbers[0] else "${allNumbers.size} recipients"
