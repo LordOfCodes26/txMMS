@@ -95,6 +95,7 @@
     <string name="enable_custom_notifications">Enable custom notifications</string>
     <string name="customize_notifications">Customize notifications</string>
     <string name="notification_sound">Notification sound</string>
+    <string name="allow_modify_system_settings_default_notification_sound">To sync the system default notification sound, enable \"Modify system settings\" for this app on the next screen, then return here.</string>
     <string name="delivery_report_sound">Delivery report sound</string>
     <string name="exposed_dropdown_menu">Show dropdown menu</string>
     <string name="message_bubble_type">Type %1$d</string>

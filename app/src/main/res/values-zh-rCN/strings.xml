@@ -152,6 +152,7 @@
     <string name="enable_custom_notifications">启用自定义通知</string>
     <string name="customize_notifications">自定义通知</string>
     <string name="notification_sound">通知声音</string>
+    <string name="allow_modify_system_settings_default_notification_sound">要将系统默认通知铃声与此应用同步，请在下一屏为此应用开启“修改系统设置”，然后返回本界面。</string>
     <string name="delivery_report_sound">发送报告声音</string>
     <string name="exposed_dropdown_menu">显示下拉菜单</string>
     <string name="message_bubble_type">类型 %1$d</string>

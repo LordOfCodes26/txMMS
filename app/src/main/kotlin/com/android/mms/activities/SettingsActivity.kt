@@ -3,6 +3,8 @@ package com.android.mms.activities
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.graphics.Color
+import android.net.Uri
+import android.os.Build
 import android.media.AudioManager
 import android.media.RingtoneManager
 import android.os.Bundle
@@ -27,6 +29,8 @@ import com.android.common.view.MVSideFrame
 import eightbitlab.com.blurview.BlurTarget
 
 class SettingsActivity : SimpleActivity() {
+    /** Pending ringtone to apply to [RingtoneManager.setActualDefaultRingtoneUri] after user grants [Settings.ACTION_MANAGE_WRITE_SETTINGS]. */
+    private var pendingSystemNotificationSoundUri: Uri? = null
     private var blockedNumbersAtPause = -1
     private var currentlyPlayingRingtone: android.media.Ringtone? = null
     private var isRebindingSettings = false
@@ -220,6 +224,7 @@ class SettingsActivity : SimpleActivity() {
 
     override fun onResume() {
         super.onResume()
+        flushPendingSystemNotificationSoundIfPossible()
         if (isSystemInDarkMode()) {
             @Suppress("DEPRECATION")
             window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
@@ -470,19 +475,52 @@ class SettingsActivity : SimpleActivity() {
         private const val PICK_DELIVERY_REPORT_SOUND_INTENT_ID = 1002
     }
 
+    /**
+     * Updates the global “Default notification sound” in system settings.
+     * On API 23+, [android.Manifest.permission.WRITE_SETTINGS] requires the user to allow
+     * “Modify system settings” in app settings; [Settings.System.canWrite] reflects that.
+     */
     private fun updateSystemNotificationSound(uri: android.net.Uri?) {
         try {
-            // Check if we have permission to modify system settings
-            if (Settings.System.canWrite(this)) {
+            val canModifySystemSettings =
+                Build.VERSION.SDK_INT < Build.VERSION_CODES.M || Settings.System.canWrite(this)
+            if (canModifySystemSettings) {
                 RingtoneManager.setActualDefaultRingtoneUri(
                     this,
                     RingtoneManager.TYPE_NOTIFICATION,
                     uri
                 )
+                pendingSystemNotificationSoundUri = null
+                return
             }
-            // Silently skip if permission not granted - this is an optional feature
+            pendingSystemNotificationSoundUri = uri
+            val intent = Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS).apply {
+                data = Uri.parse("package:$packageName")
+            }
+            if (intent.resolveActivity(packageManager) != null) {
+                toast(R.string.allow_modify_system_settings_default_notification_sound)
+                startActivity(intent)
+            } else {
+                pendingSystemNotificationSoundUri = null
+            }
         } catch (e: Exception) {
-            // Log error but don't show to user as this is optional
+            e.printStackTrace()
+        }
+    }
+
+    private fun flushPendingSystemNotificationSoundIfPossible() {
+        val pending = pendingSystemNotificationSoundUri ?: return
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.System.canWrite(this)) {
+            return
+        }
+        try {
+            RingtoneManager.setActualDefaultRingtoneUri(
+                this,
+                RingtoneManager.TYPE_NOTIFICATION,
+                pending
+            )
+            pendingSystemNotificationSoundUri = null
+        } catch (e: Exception) {
             e.printStackTrace()
         }
     }

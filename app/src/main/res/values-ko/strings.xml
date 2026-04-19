@@ -42,6 +42,7 @@
     <string name="enable_custom_notifications">사용자지정 알림사용</string>
     <string name="customize_notifications">알림설정</string>
     <string name="notification_sound">알림음</string>
+    <string name="allow_modify_system_settings_default_notification_sound">다음 화면에서 ‘체계설정 변경’을 허용해야합니다.</string>
     <string name="delivery_report_sound">전송보고알림음</string>
     <string name="exposed_dropdown_menu">내리펼침목록 현시</string>
     <string name="message_bubble_type">류형 %1$d</string>
