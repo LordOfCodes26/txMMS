@@ -186,7 +186,13 @@
             android:background="@color/transparent"
             android:paddingBottom="0dp" />
 
-
+        <!-- Bottom nav blur strip must sit under the ripple bar (earlier sibling = lower z-order). -->
+        <com.android.common.view.MVSideFrame
+            android:id="@+id/m_vertical_side_frame_bottom"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/tx_mv_side_top_frame_height"
+            android:layout_gravity="bottom"
+            app:isTopFrame="false"/>
 
         <FrameLayout
             android:id="@+id/lyt_action"
@@ -203,13 +209,6 @@
                 android:layout_height="wrap_content"
                 android:visibility="visible"/>
         </FrameLayout>
-
-        <com.android.common.view.MVSideFrame
-            android:id="@+id/m_vertical_side_frame_bottom"
-            android:layout_width="match_parent"
-            android:layout_height="@dimen/tx_mv_side_top_frame_height"
-            android:layout_gravity="bottom"
-            app:isTopFrame="false"/>
 
     </androidx.coordinatorlayout.widget.CoordinatorLayout>
 </FrameLayout>
