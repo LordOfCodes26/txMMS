@@ -124,6 +124,13 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
      */
     private val conversationsLoadSeq = AtomicInteger(0)
 
+    /**
+     * `config.selectedConversationPin` after the last full [setupConversations] apply.
+     * Used to skip the empty cached staging step on secure refreshes (e.g. returning from [ThreadActivity])
+     * so the list is not cleared and the progress bar is not shown before the async provider load.
+     */
+    private var lastMessengerAppliedPin: Int = -1
+
     @SuppressLint("InlinedApi")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -1301,7 +1308,16 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
                 if (loadSeq != conversationsLoadSeq.get()) {
                     return@runOnUiThread
                 }
-                setupConversations(conversations, cached = true)
+                val currentPin = config.selectedConversationPin
+                val skipSecureEmptyCache =
+                    currentPin > 0 && lastMessengerAppliedPin == currentPin
+                if (shouldUseCached) {
+                    setupConversations(conversations, cached = true)
+                } else if (!skipSecureEmptyCache) {
+                    // First time entering PIN scope (or PIN changed): empty list + progress is correct.
+                    // While already showing that scope, keep the visible list until [getNewConversations] finishes.
+                    setupConversations(conversations, cached = true)
+                }
                 getNewConversations((conversations + archived).toMutableList() as ArrayList<Conversation>, loadSeq)
             }
             if (shouldUseCached) {
@@ -1495,6 +1511,7 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
             }
         } catch (_: Exception) {
         }
+        lastMessengerAppliedPin = config.selectedConversationPin
     }
 
     private fun showOrHideProgress(show: Boolean) {
