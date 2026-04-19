@@ -68,6 +68,7 @@ import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
 import java.util.*
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.text.toFloat
 
 class MainActivity : SimpleActivity(), ActionModeToolbarHost {
@@ -116,6 +117,12 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
     private var fullMenuHeight: Int = -1
     private val mainMenuOverscrollFactor = 0.35f
     private var isStartActionMode = false
+
+    /**
+     * Incremented on each [initMessenger] refresh. Background loads compare against this so an older,
+     * slower run cannot overwrite the list after mode switches (e.g. normal → secure box).
+     */
+    private val conversationsLoadSeq = AtomicInteger(0)
 
     @SuppressLint("InlinedApi")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -1240,7 +1247,8 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
     }
 
     private fun initMessenger() {
-        getCachedConversations()
+        val loadSeq = conversationsLoadSeq.incrementAndGet()
+        getCachedConversations(loadSeq)
 //        binding.noConversationsPlaceholder2.setOnClickListener {
 //            launchNewConversation()
 //        }
@@ -1250,8 +1258,11 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         }
     }
 
-    private fun getCachedConversations() {
+    private fun getCachedConversations(loadSeq: Int) {
         ensureBackgroundThread {
+            if (loadSeq != conversationsLoadSeq.get()) {
+                return@ensureBackgroundThread
+            }
             // PIN-scoped mode should not render PIN=0 cached conversations first.
             val shouldUseCached = config.selectedConversationPin == 0
             val conversations = if (shouldUseCached) {
@@ -1287,8 +1298,11 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
             }
 
             runOnUiThread {
+                if (loadSeq != conversationsLoadSeq.get()) {
+                    return@runOnUiThread
+                }
                 setupConversations(conversations, cached = true)
-                getNewConversations((conversations + archived).toMutableList() as ArrayList<Conversation>)
+                getNewConversations((conversations + archived).toMutableList() as ArrayList<Conversation>, loadSeq)
             }
             if (shouldUseCached) {
                 conversations.forEach {
@@ -1298,12 +1312,17 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         }
     }
 
-    private fun getNewConversations(cachedConversations: ArrayList<Conversation>) {
+    private fun getNewConversations(cachedConversations: ArrayList<Conversation>, loadSeq: Int) {
         val privateCursor = getMyContactsCursor(favoritesOnly = false, withPhoneNumbersOnly = true)
         ensureBackgroundThread {
+            if (loadSeq != conversationsLoadSeq.get()) {
+                return@ensureBackgroundThread
+            }
             val privateContacts = MyContactsContentProvider.getSimpleContacts(this, privateCursor)
-            val conversations = getConversations(privateContacts = privateContacts)
+            // Decide mode before getConversations(): it calls syncConversationPinScope(), which can
+            // update config from the provider and would otherwise mis-route the non-secure branch.
             val isSecureMode = config.selectedConversationPin > 0
+            val conversations = getConversations(privateContacts = privateContacts)
 
             if (isSecureMode) {
                 // In secure mode, show only provider-filtered conversations for selected PIN.
@@ -1317,6 +1336,9 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
                     }
                 }
                 runOnUiThread {
+                    if (loadSeq != conversationsLoadSeq.get()) {
+                        return@runOnUiThread
+                    }
                     setupConversations(conversations)
                 }
                 return@ensureBackgroundThread
@@ -1390,6 +1412,9 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
                 }
             }
             runOnUiThread {
+                if (loadSeq != conversationsLoadSeq.get()) {
+                    return@runOnUiThread
+                }
                 setupConversations(allConversations)
             }
 
