@@ -1,106 +1,83 @@
 package com.android.mms.dialogs
 
+import android.app.Activity
 import android.view.View
-import androidx.appcompat.app.AlertDialog
+import android.view.ViewGroup
+import android.widget.TextView
+import com.android.common.view.MDialog
 import com.goodwy.commons.activities.BaseSimpleActivity
-import com.goodwy.commons.extensions.*
+import com.goodwy.commons.databinding.DialogOptionListBinding
+import com.goodwy.commons.databinding.ItemOptionListRowBinding
+import com.goodwy.commons.dialogs.OptionListDialog
+import com.goodwy.commons.extensions.beVisible
+import com.goodwy.commons.extensions.setupMDialogStuff
 import com.android.mms.R
-import com.android.mms.databinding.DialogQuickTextSelectionBinding
 import com.android.mms.extensions.config
 import eightbitlab.com.blurview.BlurTarget
 
+/** Same blurred bottom-sheet list style as conversation long-press ([com.android.mms.adapters.ConversationsAdapter.showConversationActionsDialog]). */
 class QuickTextSelectionDialog(
-    val activity: BaseSimpleActivity,
-    val blurTarget: BlurTarget,
-    val callback: (selectedText: String) -> Unit
+    private val activity: BaseSimpleActivity,
+    private val blurTarget: BlurTarget,
+    private val callback: (selectedText: String) -> Unit
 ) {
-    private var dialog: AlertDialog? = null
-
     init {
-        val view = DialogQuickTextSelectionBinding.inflate(activity.layoutInflater, null, false)
-        val quickTexts = activity.config.quickTexts.toList()
+        if (!activity.isDestroyed && !activity.isFinishing) {
+            val quickTexts = activity.config.quickTexts.toList()
 
-        // Setup BlurView
-        val blurView = view.blurView
-        val decorView = activity.window.decorView
-        val windowBackground = decorView.background
-        
-        blurView.setOverlayColor(activity.getProperBlurOverlayColor())
-        blurView.setupWith(blurTarget)
-            // .setFrameClearDrawable(windowBackground)
-            .setBlurRadius(16f)
-            .setBlurAutoUpdate(true)
-
-        // Setup title
-        val titleTextView = view.dialogTitle
-        titleTextView.text = activity.resources.getString(R.string.quick_texts)
-        titleTextView.beVisible()
-
-        // Setup list
-        val listContainer = view.dialogQuickTextList
-        val textColor = activity.getProperTextColor()
-        val primaryColor = activity.getProperPrimaryColor()
-        
-        if (quickTexts.isEmpty()) {
-            val emptyView = activity.layoutInflater.inflate(
-                com.goodwy.commons.R.layout.item_simple_list,
-                listContainer,
-                false
-            )
-            val binding = com.goodwy.commons.databinding.ItemSimpleListBinding.bind(emptyView)
-            binding.bottomSheetItemTitle.text = activity.resources.getString(R.string.no_quick_texts)
-            binding.bottomSheetItemTitle.setTextColor(textColor)
-            binding.bottomSheetItemIcon.beGone()
-            binding.bottomSheetButton.beGone()
-            binding.root.isClickable = false
-            listContainer.addView(emptyView)
-        } else {
-            quickTexts.forEach { quickText: String ->
-                val itemView = activity.layoutInflater.inflate(
-                    com.goodwy.commons.R.layout.item_simple_list,
-                    listContainer,
-                    false
-                )
-                val binding = com.goodwy.commons.databinding.ItemSimpleListBinding.bind(itemView)
-
-                binding.bottomSheetItemTitle.text = quickText
-                binding.bottomSheetItemTitle.setTextColor(textColor)
-                binding.bottomSheetItemIcon.beGone()
-                binding.bottomSheetButton.beGone()
-
-                itemView.setOnClickListener {
-                    callback(quickText)
-                    dialog?.dismiss()
+            if (quickTexts.isNotEmpty()) {
+                val title = activity.getString(R.string.quick_texts)
+                val options = quickTexts.map { text ->
+                    text to { callback(text) }
                 }
-
-                // Add ripple effect
-                itemView.background = activity.resources.getDrawable(
-                    com.goodwy.commons.R.drawable.ripple_all_corners,
-                    activity.theme
+                OptionListDialog(
+                    activity = activity as Activity,
+                    title = title,
+                    options = options,
+                    blurTarget = blurTarget,
+                    cancelListener = null
                 )
-
-                listContainer.addView(itemView)
-            }
-        }
-
-        // Setup cancel button
-        val positiveButton = view.positiveButton
-        positiveButton.visibility = View.VISIBLE
-        positiveButton.text = activity.resources.getString(com.goodwy.commons.R.string.cancel)
-        positiveButton.setTextColor(primaryColor)
-        positiveButton.setOnClickListener {
-            dialog?.dismiss()
-        }
-
-        val buttonsContainer = view.buttonsContainer
-        buttonsContainer.visibility = View.VISIBLE
-
-        val builder = activity.getAlertDialogBuilder()
-        builder.apply {
-            activity.setupDialogStuff(view.root, this, titleText = "", cancelOnTouchOutside = true) { alertDialog ->
-                dialog = alertDialog
+            } else {
+                showEmptyQuickTextsDialog()
             }
         }
     }
-}
 
+    private fun showEmptyQuickTextsDialog() {
+        val view = DialogOptionListBinding.inflate(activity.layoutInflater, null, false)
+        val container = view.optionListContainer
+
+        val rowBinding = ItemOptionListRowBinding.inflate(activity.layoutInflater, null, false)
+        rowBinding.optionRowText.text = activity.getString(R.string.no_quick_texts)
+
+        var dialog: MDialog? = null
+        rowBinding.root.setOnClickListener {
+            dialog?.dismiss()
+        }
+
+        container.addView(
+            rowBinding.root,
+            ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+        )
+
+        val titleTextView = view.root.findViewById<TextView>(com.goodwy.commons.R.id.dialog_title)
+        val titleDivider = view.root.findViewById<View>(com.goodwy.commons.R.id.dialog_option_list_title_divider)
+        val title = activity.getString(R.string.quick_texts)
+        titleTextView?.apply {
+            beVisible()
+            text = title
+        }
+        titleDivider?.beVisible()
+
+        activity.setupMDialogStuff(
+            view = view.root,
+            blurView = view.blurView,
+            blurTarget = blurTarget,
+            titleText = "",
+            cancelOnTouchOutside = true,
+            cancelListener = null
+        ) { mDialog ->
+            dialog = mDialog
+        }
+    }
+}
