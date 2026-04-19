@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/manage_quick_text_holder"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
@@ -17,24 +18,35 @@
         android:layout_marginTop="@dimen/normal_margin"
         android:layout_marginEnd="@dimen/activity_margin"
         android:layout_marginBottom="@dimen/normal_margin"
-        android:layout_toStartOf="@+id/overflow_menu_icon" />
+        android:layout_toStartOf="@+id/quick_text_end_container" />
 
-    <ImageView
-        android:id="@+id/overflow_menu_icon"
-        style="@style/OverflowEditIconStyle"
+    <FrameLayout
+        android:id="@+id/quick_text_end_container"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginEnd="@dimen/smaller_margin"
-        android:layout_alignParentTop="true"
         android:layout_alignParentEnd="true"
-        android:layout_centerVertical="true" />
+        android:layout_centerVertical="true">
 
-    <View
-        android:id="@+id/overflow_menu_anchor"
-        style="@style/OverflowMenuAnchorStyle"
-        android:layout_marginEnd="@dimen/smaller_margin"
-        android:layout_alignParentEnd="true"
-        android:layout_centerVertical="true" />
+        <ImageView
+            android:id="@+id/overflow_menu_icon"
+            style="@style/OverflowEditIconStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical|end"
+            android:layout_marginEnd="@dimen/smaller_margin"
+            tools:ignore="ContentDescription" />
+
+        <com.android.common.view.MCycleCheckBox
+            android:id="@+id/quick_text_checkbox"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical|end"
+            android:layout_marginEnd="@dimen/smaller_margin"
+            android:clickable="true"
+            android:focusable="false"
+            android:visibility="gone"
+            tools:visibility="visible" />
+    </FrameLayout>
 
 </RelativeLayout>
 

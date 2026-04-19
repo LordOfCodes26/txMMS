@@ -29,7 +29,9 @@ import com.goodwy.commons.extensions.underlineText
 import com.goodwy.commons.extensions.updateTextColors
 import com.goodwy.commons.helpers.ExportResult
 import com.goodwy.commons.helpers.ensureBackgroundThread
+import com.goodwy.commons.interfaces.ActionModeToolbarHost
 import com.goodwy.commons.interfaces.RefreshRecyclerViewListener
+import com.goodwy.commons.views.CustomActionModeToolbar
 import com.android.mms.R
 import com.android.mms.databinding.ActivityManageQuickTextsBinding
 import com.android.mms.dialogs.AddQuickTextDialog
@@ -45,8 +47,7 @@ import com.android.mms.helpers.QuickTextsExporter
 import com.android.mms.helpers.QuickTextsImporter
 import java.io.FileOutputStream
 import java.io.OutputStream
-
-class ManageQuickTextsActivity : SimpleActivity(), RefreshRecyclerViewListener {
+class ManageQuickTextsActivity : SimpleActivity(), RefreshRecyclerViewListener, ActionModeToolbarHost {
 
     private lateinit var binding: ActivityManageQuickTextsBinding
 
@@ -148,15 +149,83 @@ class ManageQuickTextsActivity : SimpleActivity(), RefreshRecyclerViewListener {
             val dp5 = (5 * resources.displayMetrics.density).toInt()
             binding.mVerticalSideFrameBottom.layoutParams =
                 binding.mVerticalSideFrameBottom.layoutParams.apply { height = navHeight + dp5 }
-            applyQuickTextsListBottomInset(navHeight, ime.bottom)
+            val bottomInset = maxOf(navHeight, ime.bottom)
+            val rippleLp = binding.actionModeRippleToolbar.layoutParams as? ViewGroup.MarginLayoutParams
+            if (rippleLp != null) {
+                val rippleBase = resources.getDimensionPixelSize(R.dimen.ripple_bottom)
+                rippleLp.bottomMargin = rippleBase + bottomInset
+                binding.actionModeRippleToolbar.layoutParams = rippleLp
+            }
+            syncManageQuickTextsListBottomPadding()
             insets
         }
     }
 
-    private fun applyQuickTextsListBottomInset(navHeight: Int, imeBottom: Int) {
+    private fun syncManageQuickTextsListBottomPadding() {
         val activityMargin = resources.getDimensionPixelSize(com.goodwy.commons.R.dimen.activity_margin)
-        val bottomInset = if (imeBottom > 0) imeBottom else navHeight
-        binding.manageQuickTextsList.updatePadding(bottom = bottomInset + activityMargin)
+        val rootInsets = ViewCompat.getRootWindowInsets(binding.root)
+        val nav = rootInsets?.getInsets(WindowInsetsCompat.Type.navigationBars())?.bottom ?: 0
+        val ime = rootInsets?.getInsets(WindowInsetsCompat.Type.ime())?.bottom ?: 0
+        val bottomInset = maxOf(nav, ime)
+
+        val rippleExtra = if (binding.actionModeRippleToolbar.visibility == View.VISIBLE) {
+            val ripple = binding.actionModeRippleToolbar
+            val h = ripple.height.takeIf { it > 0 } ?: ripple.measuredHeight.takeIf { it > 0 }
+                ?: resources.getDimensionPixelSize(R.dimen.action_mode_bottom_inset_fallback)
+            val margin = (25 * resources.displayMetrics.density).toInt()
+            h + margin
+        } else {
+            0
+        }
+
+        binding.manageQuickTextsList.updatePadding(bottom = bottomInset + activityMargin + rippleExtra)
+    }
+
+    override fun getActionModeToolbar(): CustomActionModeToolbar =
+        binding.quickTextsAppbar.getActionModeToolbar()
+
+    override fun showActionModeToolbar() {
+        binding.quickTextsAppbar.showActionModeToolbar()
+        binding.root.post {
+            applyActionModeRippleToolbarForQuickTexts()
+            binding.root.post { syncManageQuickTextsListBottomPadding() }
+        }
+    }
+
+    override fun hideActionModeToolbar() {
+        binding.quickTextsAppbar.hideActionModeToolbar()
+        binding.actionModeRippleToolbar.visibility = View.GONE
+        syncManageQuickTextsListBottomPadding()
+    }
+
+    override fun getBlurTargetView() = binding.mainBlurTarget
+
+    /**
+     * Bottom [com.android.common.view.MRippleToolBar] for quick text selection ([MainActivity] pattern).
+     */
+    private fun applyActionModeRippleToolbarForQuickTexts() {
+        val blurTarget = binding.mainBlurTarget
+        val adapter = binding.manageQuickTextsList.adapter as? ManageQuickTextsAdapter ?: return
+        if (!adapter.isActionModeActive()) {
+            binding.actionModeRippleToolbar.visibility = View.GONE
+            return
+        }
+        val (items, _) = adapter.buildQuickTextsRippleToolbar()
+        if (items.isEmpty()) {
+            binding.actionModeRippleToolbar.visibility = View.GONE
+            return
+        }
+        binding.actionModeRippleToolbar.setTabs(this, items, blurTarget)
+        binding.actionModeRippleToolbar.setOnClickedListener { index ->
+            adapter.dispatchRippleToolbarAction(index)
+        }
+        binding.actionModeRippleToolbar.visibility = View.VISIBLE
+    }
+
+    fun refreshActionModeRippleToolbarIfNeeded() {
+        if (isDestroyed || isFinishing) return
+        applyActionModeRippleToolbarForQuickTexts()
+        binding.root.post { syncManageQuickTextsListBottomPadding() }
     }
 
     private fun setQuickTextsTransparentAppBarBackground() {
@@ -206,7 +275,10 @@ class ManageQuickTextsActivity : SimpleActivity(), RefreshRecyclerViewListener {
                     }
 
                     R.id.select_quick_text -> {
-
+                        val adapter = binding.manageQuickTextsList.adapter as? ManageQuickTextsAdapter
+                        if (adapter != null && adapter.itemCount > 0) {
+                            adapter.startActMode()
+                        }
                         true
                     }
 
