@@ -751,25 +751,17 @@ class NewConversationActivity : SimpleActivity() {
         val helper = messageHolderHelper
         if (helper != null) {
             helper.setMessageText(draft.body)
-            helper.clearAttachments()
             val json = draft.attachmentsJson
             if (!json.isNullOrBlank()) {
                 try {
                     val type = object : TypeToken<List<DraftStoredAttachment>>() {}.type
                     val list: List<DraftStoredAttachment> = Gson().fromJson(json, type) ?: emptyList()
-                    for (a in list) {
-                        try {
-                            helper.addAttachmentFromDraft(
-                                a.uriString.toUri(),
-                                a.mimetype,
-                                a.filename,
-                                a.isPending,
-                            )
-                        } catch (_: Exception) {
-                        }
-                    }
+                    helper.replaceAttachmentsFromDraft(list)
                 } catch (_: Exception) {
+                    helper.replaceAttachmentsFromDraft(emptyList())
                 }
+            } else {
+                helper.replaceAttachmentsFromDraft(emptyList())
             }
             binding.messageHolder.threadTypeMessage.setSelection(draft.body.length)
             helper.checkSendMessageAvailability()
@@ -1412,6 +1404,7 @@ class NewConversationActivity : SimpleActivity() {
             addCategory(Intent.CATEGORY_OPENABLE)
             type = "*/*"
             putExtra(Intent.EXTRA_MIME_TYPES, mimeTypes)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             launchActivityForResult(this, requestCode)
         }
     }

@@ -1,6 +1,8 @@
 package com.android.mms.adapters
 
 import android.content.Intent
+import android.graphics.BitmapFactory
+import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.view.LayoutInflater
 import android.view.ViewGroup
@@ -107,6 +109,22 @@ class AttachmentsAdapter(
         submitList(attachments.toList())
     }
 
+    /**
+     * Replaces all rows in one [submitList] call. Draft restore used to call [clear] then many
+     * [addAttachment] calls; [androidx.recyclerview.widget.AsyncListDiffer] can apply those
+     * [submitList] updates out of order so an empty list wins and previews never appear.
+     */
+    fun submitAttachments(newAttachments: List<AttachmentSelection>) {
+        attachments.clear()
+        attachments.addAll(newAttachments)
+        submitList(ArrayList(newAttachments))
+        if (newAttachments.isEmpty()) {
+            recyclerView.onGlobalLayout {
+                onAttachmentsRemoved()
+            }
+        }
+    }
+
     private fun removeAttachment(attachment: AttachmentSelection) {
         attachments.removeAll { AttachmentSelection.areItemsTheSame(it, attachment) }
         if (attachments.isEmpty()) {
@@ -118,6 +136,13 @@ class AttachmentsAdapter(
 
     private fun setupMediaPreview(binding: ItemAttachmentMediaPreviewBinding, attachment: AttachmentSelection) {
         binding.apply {
+            // RecyclerView reuse: XML leaves compression_progress visible by default; a recycled row can
+            // hide the thumbnail until Glide finishes unless we reset before branching.
+            Glide.with(thumbnail).clear(thumbnail)
+            thumbnail.setImageDrawable(null)
+            compressionProgress.beGone()
+            playIcon.beGone()
+
             mediaAttachmentHolder.background.applyColorFilter(primaryColor.darkenColor())
             mediaAttachmentHolder.setOnClickListener {
                 activity.launchViewIntent(attachment.uri, attachment.mimetype, attachment.filename)
@@ -182,6 +207,28 @@ class AttachmentsAdapter(
             .apply(options)
             .listener(object : RequestListener<Drawable> {
                 override fun onLoadFailed(e: GlideException?, model: Any?, target: Target<Drawable>, isFirstResource: Boolean): Boolean {
+                    // Sending uses ContentResolver.openInputStream; Glide may still fail on some URIs/models.
+                    if (attachment.mimetype.isVideoMimeType()) {
+                        binding.thumbnail.setImageDrawable(null)
+                        binding.thumbnail.beVisible()
+                        binding.playIcon.beVisible()
+                        binding.compressionProgress.beGone()
+                        return true
+                    }
+                    if (attachment.mimetype.isImageMimeType() || attachment.mimetype.isGifMimeType()) {
+                        try {
+                            activity.contentResolver.openInputStream(attachment.uri)?.use { stream ->
+                                BitmapFactory.decodeStream(stream)?.let { bitmap ->
+                                    binding.thumbnail.setImageDrawable(BitmapDrawable(resources, bitmap))
+                                    binding.thumbnail.beVisible()
+                                    binding.playIcon.beGone()
+                                    binding.compressionProgress.beGone()
+                                    return true
+                                }
+                            }
+                        } catch (_: Exception) {
+                        }
+                    }
                     removeAttachment(attachment)
                     activity.toast(com.goodwy.commons.R.string.unknown_error_occurred)
                     return false

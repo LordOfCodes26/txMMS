@@ -30,7 +30,10 @@ data class AttachmentSelection(
         }
 
         fun areContentsTheSame(first: AttachmentSelection, second: AttachmentSelection): Boolean {
-            return first.uri == second.uri && first.mimetype == second.mimetype && first.filename == second.filename
+            return first.uri == second.uri &&
+                first.mimetype == second.mimetype &&
+                first.filename == second.filename &&
+                first.isPending == second.isPending
         }
     }
 }

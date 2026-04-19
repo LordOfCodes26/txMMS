@@ -12,7 +12,9 @@ import android.view.KeyEvent
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import android.widget.Toast
+import androidx.core.net.toUri
 import androidx.core.view.updateLayoutParams
+import java.io.File
 import androidx.core.content.res.ResourcesCompat
 import com.android.mms.emoji.ChatPaneEmoji
 import com.android.mms.emoji.Ch350EmojiBootstrap
@@ -25,6 +27,7 @@ import com.android.mms.databinding.LayoutThreadSendMessageHolderBinding
 import com.android.mms.extensions.*
 import com.android.mms.models.Attachment
 import com.android.mms.models.AttachmentSelection
+import com.android.mms.models.DraftStoredAttachment
 import com.android.mms.models.SIMCard
 import com.goodwy.commons.extensions.*
 import douglasspgyn.com.github.circularcountdown.CircularCountdown
@@ -505,11 +508,87 @@ class MessageHolderHelper(
     }
 
     /**
-     * Restores an attachment from a persisted draft using stored metadata (avoids relying on
-     * [ContentResolver.getType] for URIs that no longer resolve after process death).
+     * Restores compose attachments from draft in one adapter update so list diffing cannot apply an
+     * intermediate empty list after a clear (see [AttachmentsAdapter.submitAttachments]).
      */
-    fun addAttachmentFromDraft(uri: Uri, mimetype: String, filename: String, isPending: Boolean) {
-        addAttachmentWithKnownMime(uri, mimetype, filename, isPendingOverride = isPending)
+    fun replaceAttachmentsFromDraft(stored: List<DraftStoredAttachment>) {
+        val seenIds = HashSet<String>()
+        val selections = ArrayList<AttachmentSelection>(stored.size)
+        for (s in stored) {
+            try {
+                val uri = s.uriString.toUri()
+                if (!seenIds.add(uri.toString())) continue
+                if (!passesNonImageAttachmentSizeCap(uri, s.mimetype)) continue
+                val pending = resolveDraftAttachmentPending(uri, s.mimetype)
+                selections.add(buildAttachmentSelection(uri, s.mimetype, s.filename, pending))
+            } catch (_: Exception) {
+            }
+        }
+        if (selections.isEmpty()) {
+            getAttachmentsAdapter()?.submitAttachments(emptyList())
+            binding.threadAttachmentsRecyclerview.beGone()
+            checkSendMessageAvailability()
+            return
+        }
+        var adapter = getAttachmentsAdapter()
+        if (adapter == null) {
+            adapter = AttachmentsAdapter(
+                activity = activity,
+                recyclerView = binding.threadAttachmentsRecyclerview,
+                onAttachmentsRemoved = {
+                    binding.threadAttachmentsRecyclerview.beGone()
+                    checkSendMessageAvailability()
+                },
+                onReady = { checkSendMessageAvailability() },
+            )
+            binding.threadAttachmentsRecyclerview.adapter = adapter
+        }
+        binding.threadAttachmentsRecyclerview.beVisible()
+        adapter.submitAttachments(selections)
+        binding.threadAttachmentsRecyclerview.post {
+            binding.threadAttachmentsRecyclerview.requestLayout()
+        }
+        checkSendMessageAvailability()
+    }
+
+    /**
+     * Draft JSON stores [AttachmentSelection.isPending]. After leaving the screen, restored rows should
+     * match [AttachmentsAdapter]/[ImageCompressor]: only stay "pending" when the file still exceeds the
+     * MMS limit. Otherwise load the thumbnail immediately (same as a fresh gallery pick after inline check).
+     */
+    private fun resolveDraftAttachmentPending(uri: Uri, mimetype: String): Boolean {
+        if (!mimetype.isImageMimeType() || mimetype.isGifMimeType()) return false
+        val limit = activity.config.mmsFileSizeLimit
+        if (limit == FILE_SIZE_NONE) return false
+        val fileSize = activity.getFileSizeFromUri(uri)
+        if (fileSize < 0L || fileSize == FILE_SIZE_NONE) return false
+        return fileSize > limit
+    }
+
+    private fun passesNonImageAttachmentSizeCap(uri: Uri, mimeType: String): Boolean {
+        val isImage = mimeType.isImageMimeType()
+        val isGif = mimeType.isGifMimeType()
+        if (isGif || !isImage) {
+            val fileSize = activity.getFileSizeFromUri(uri)
+            val limit = activity.config.mmsFileSizeLimit
+            if (limit != FILE_SIZE_NONE && fileSize > limit) {
+                return false
+            }
+        }
+        return true
+    }
+
+    private fun buildAttachmentSelection(
+        uri: Uri,
+        mimeType: String,
+        filename: String,
+        isPendingOverride: Boolean?,
+    ): AttachmentSelection {
+        val id = uri.toString()
+        val isImage = mimeType.isImageMimeType()
+        val isGif = mimeType.isGifMimeType()
+        val pending = isPendingOverride ?: (isImage && !isGif)
+        return AttachmentSelection(id, uri, mimeType, filename, pending)
     }
 
     private fun addAttachmentWithKnownMime(
@@ -524,15 +603,9 @@ class MessageHolderHelper(
             return
         }
 
-        val isImage = mimeType.isImageMimeType()
-        val isGif = mimeType.isGifMimeType()
-        if (isGif || !isImage) {
-            val fileSize = activity.getFileSizeFromUri(uri)
-            val mmsFileSizeLimit = activity.config.mmsFileSizeLimit
-            if (mmsFileSizeLimit != FILE_SIZE_NONE && fileSize > mmsFileSizeLimit) {
-                activity.toast(R.string.attachment_sized_exceeds_max_limit, length = Toast.LENGTH_LONG)
-                return
-            }
+        if (!passesNonImageAttachmentSizeCap(uri, mimeType)) {
+            activity.toast(R.string.attachment_sized_exceeds_max_limit, length = Toast.LENGTH_LONG)
+            return
         }
 
         var adapter = getAttachmentsAdapter()
@@ -550,14 +623,7 @@ class MessageHolderHelper(
         }
 
         binding.threadAttachmentsRecyclerview.beVisible()
-        val pending = isPendingOverride ?: (isImage && !isGif)
-        val attachment = AttachmentSelection(
-            id = id,
-            uri = uri,
-            mimetype = mimeType,
-            filename = filename,
-            isPending = pending
-        )
+        val attachment = buildAttachmentSelection(uri, mimeType, filename, isPendingOverride)
         adapter.addAttachment(attachment)
         checkSendMessageAvailability()
     }
@@ -578,9 +644,51 @@ class MessageHolderHelper(
             PICK_PHOTO_INTENT,
             PICK_VIDEO_INTENT -> {
                 if (data != null) {
-                    addAttachment(data)
+                    val stableUri = stabilizePickerResultUri(resultData, data)
+                    addAttachment(stableUri)
                 }
             }
+        }
+    }
+
+    /**
+     * Draft save/restore stores [Uri] strings. Temporary [content://] access from pickers expires when the
+     * activity is destroyed, so Glide fails after leave / re-enter unless we persist permission or copy locally.
+     */
+    private fun stabilizePickerResultUri(resultIntent: Intent?, uri: Uri): Uri {
+        if (!"content".equals(uri.scheme, ignoreCase = true)) {
+            return uri
+        }
+        if (resultIntent == null) {
+            return copyPickedUriToAttachmentCache(uri) ?: uri
+        }
+        val hasPersistable = resultIntent.flags and Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION != 0
+        if (hasPersistable) {
+            val takeFlags = resultIntent.flags and
+                (Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+            if (takeFlags != 0) {
+                try {
+                    activity.applicationContext.contentResolver.takePersistableUriPermission(uri, takeFlags)
+                    return uri
+                } catch (_: SecurityException) {
+                }
+            }
+        }
+        return copyPickedUriToAttachmentCache(uri) ?: uri
+    }
+
+    private fun copyPickedUriToAttachmentCache(uri: Uri): Uri? {
+        return try {
+            val name = activity.getFilenameFromUri(uri).trim()
+            val base = if (name.isNotEmpty()) name else "attachment"
+            val safeBase = base.replace(Regex("[^A-Za-z0-9._-]"), "_")
+            val dir = File(activity.cacheDir, "attachments").apply { mkdirs() }
+            val dest = File(dir, "${System.currentTimeMillis()}_$safeBase")
+            val destUri = activity.getMyFileUri(dest)
+            activity.copyToUri(uri, destUri)
+            if (dest.length() > 0L) destUri else null
+        } catch (_: Exception) {
+            null
         }
     }
 
