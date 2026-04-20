@@ -301,7 +301,7 @@ class ChipsInputView @JvmOverloads constructor(
 
         val close = ImageView(context).apply {
             setImageResource(R.drawable.ic_clear_round)
-            imageTintList = ColorStateList.valueOf(textColor.adjustAlpha(0.6f))
+            imageTintList = ColorStateList.valueOf(textColor.adjustAlpha(0.4f))
             scaleType = ImageView.ScaleType.CENTER_INSIDE
             layoutParams = LinearLayout.LayoutParams((iconSize*1.5).toInt(), (iconSize*1.5).toInt()).apply {
                 marginStart = res.getDimensionPixelSize(R.dimen.tiny_margin)
