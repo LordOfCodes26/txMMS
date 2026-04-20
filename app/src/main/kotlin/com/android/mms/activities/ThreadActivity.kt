@@ -15,7 +15,6 @@ import android.content.IntentFilter
 import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
-import android.media.AudioManager
 import android.net.Uri
 import android.os.Bundle
 import android.provider.ContactsContract
@@ -26,7 +25,6 @@ import android.provider.Telephony.Sms.MESSAGE_TYPE_QUEUED
 import android.provider.Telephony.Sms.STATUS_NONE
 import android.speech.RecognizerIntent
 import android.telephony.SmsManager
-import android.telephony.SmsMessage
 import android.telephony.SubscriptionInfo
 import android.text.TextUtils
 import android.text.format.DateUtils
@@ -34,27 +32,15 @@ import android.text.format.DateUtils.FORMAT_NO_YEAR
 import android.text.format.DateUtils.FORMAT_SHOW_DATE
 import android.text.format.DateUtils.FORMAT_SHOW_TIME
 import android.util.Log
-import android.util.TypedValue
-import android.view.KeyEvent
 import android.view.View
 import android.view.WindowManager
-import android.view.animation.DecelerateInterpolator
-import android.view.animation.OvershootInterpolator
 import android.os.Handler
-import android.os.Looper
 import android.view.ViewGroup
-import android.widget.LinearLayout
-import android.widget.RelativeLayout
-import android.widget.Toast
 import androidx.annotation.StringRes
 import androidx.core.content.res.ResourcesCompat
-import androidx.core.net.toUri
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.updatePadding
-import androidx.core.view.marginTop
-import androidx.core.view.size
 import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
@@ -75,7 +61,6 @@ import com.goodwy.commons.models.RadioItem
 import com.goodwy.commons.models.SimpleContact
 import com.android.mms.BuildConfig
 import com.android.mms.R
-import com.android.mms.adapters.AttachmentsAdapter
 import com.android.mms.adapters.ThreadAdapter
 import com.android.mms.helpers.MessageHolderHelper
 import com.android.mms.databinding.ActivityThreadBinding
@@ -84,7 +69,7 @@ import com.android.mms.dialogs.RenameConversationDialog
 import com.android.mms.dialogs.showScheduleDateTimePicker
 import com.android.mms.extensions.*
 import com.android.mms.extensions.getDisplayNumberWithoutCountryCode
-import com.android.common.view.MVSideFrame
+import com.android.mms.dialogs.SelectSIMDialog
 import com.android.mms.helpers.*
 import com.android.mms.messaging.*
 import com.android.mms.models.*
@@ -93,13 +78,11 @@ import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
 import org.joda.time.DateTime
-import douglasspgyn.com.github.circularcountdown.CircularCountdown
-import douglasspgyn.com.github.circularcountdown.listener.CircularListener
+import eightbitlab.com.blurview.BlurTarget
 import java.io.File
 import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
-import kotlin.collections.HashSet
 import kotlin.collections.set
 
 class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
@@ -2666,7 +2649,11 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             val text = expandedMessageFragment?.getMessageText() ?: ""
             binding.messageHolder.threadTypeMessage.setText(text)
             hideExpandedMessageFragment()
-            sendMessage()
+            val blurTarget = this.findViewById<BlurTarget>(R.id.mainBlurTarget)
+            SelectSIMDialog(this, blurTarget) { _, selectedHandleIndex ->
+                this.config.currentSIMCardIndex = selectedHandleIndex
+                sendMessage()
+            }
         }
         
         expandedMessageFragment?.setOnMinimizeListener {

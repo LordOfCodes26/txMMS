@@ -13,6 +13,7 @@ import com.android.mms.extensions.getAvailableSIMCardLabels
 import com.android.mms.helpers.FeeInfoUtils
 import com.android.mms.models.SIMAccount
 import com.android.mms.R
+import com.android.mms.models.SIMCard
 import com.goodwy.commons.extensions.beGone
 import com.goodwy.commons.extensions.beVisible
 import com.goodwy.commons.extensions.getProperTextColor
@@ -35,7 +36,7 @@ class SelectSIMDialog(
     private val position: DialpadSimListDialogPosition = DialpadSimListDialogPosition.BOTTOM,
     private val verticalOffsetPx: Int = 250,
     private val onDismiss: () -> Unit = {},
-    private val callback: (simAccount: SIMAccount, index: Int) -> Unit,
+    private val callback: (simAccount: SIMCard, index: Int) -> Unit,
 ) {
     private var dialog: MDialog? = null
     private var selectionConfirmed = false
@@ -112,7 +113,7 @@ class SelectSIMDialog(
         window.attributes = params
     }
 
-    private fun selectSim(simAccount: SIMAccount, index: Int) {
+    private fun selectSim(simAccount: SIMCard, index: Int) {
         selectionConfirmed = true
         callback(simAccount, index)
         dialog?.dismiss()

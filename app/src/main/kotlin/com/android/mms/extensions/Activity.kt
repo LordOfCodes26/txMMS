@@ -328,21 +328,4 @@ fun SimpleActivity.launchAbout() {
     )
 }
 
-fun SimpleActivity.showSelectSimDialog(
-    phoneNumber: String,
-    callback: (handle: PhoneAccountHandle?) -> Unit
-) {
-    val blurTarget = findViewById<eightbitlab.com.blurview.BlurTarget>(R.id.mainBlurTarget)
-        ?: throw IllegalStateException("mainBlurTarget not found")
-
-    SelectSIMDialog(
-        activity = this,
-        blurTarget = blurTarget,
-        onDismiss = { finish() }
-    ) { simAccount, _ ->
-        callback(simAccount.handle)
-    }
-    return
-
-}
 

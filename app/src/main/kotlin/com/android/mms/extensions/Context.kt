@@ -67,12 +67,11 @@ import com.android.mms.models.Message
 import com.android.mms.models.MessageAttachment
 import com.android.mms.models.NamePhoto
 import com.android.mms.models.RecycleBinMessage
-import com.android.mms.models.SIMAccount
+import com.android.mms.models.SIMCard
 import org.xmlpull.v1.XmlPullParserException
 import java.io.File
 import java.io.FileNotFoundException
 import java.util.Locale
-import kotlin.collections.get
 
 val Context.config: Config
     get() = Config.newInstance(applicationContext)
@@ -2025,48 +2024,28 @@ fun Context.getTextSizeMessage() = when (config.fontSizeMessage) {
 
 
 @SuppressLint("MissingPermission")
-fun Context.getAvailableSIMCardLabels(): List<SIMAccount> {
-    val simAccounts = mutableListOf<SIMAccount>()
-    try {
-        var simIndex = 1
-        telecomManager.callCapablePhoneAccounts.forEachIndexed { index, account ->
-            var subcriptionInfoList = subscriptionManager.activeSubscriptionInfoList
-            val phoneAccount = telecomManager.getPhoneAccount(account)
-            var label = phoneAccount.label.toString()
-            if(subcriptionInfoList?.get(index)?.mnc == 5) {
+fun Context.getAvailableSIMCardLabels(): List<SIMCard> {
+    val availableSIMs = subscriptionManagerCompat().activeSubscriptionInfoList
+    val simAccounts = mutableListOf<SIMCard>()
+    if (availableSIMs?.size!! > 1) {
+        availableSIMs.forEachIndexed { index, subscriptionInfo ->
+            var label = subscriptionInfo.displayName?.toString() ?: ""
+            if(subscriptionInfo.mnc == 5) {
                 label = getString(R.string.koryo_label)
-                simIndex = 1
-            } else if (subcriptionInfoList?.get(index)?.mnc == 6) {
+            } else if (subscriptionInfo.mnc == 6) {
                 label = getString(R.string.kangsong_label)
-                simIndex = 2
-            } else if (subcriptionInfoList?.get(index)?.mnc == 3) {
+            } else if (subscriptionInfo.mnc == 3) {
                 label = getString(R.string.mirae_label)
-                simIndex = 3
-            }
-            var address = phoneAccount.address.toString()
-            if (address.startsWith("tel:") && address.substringAfter("tel:").isNotEmpty()) {
-                address = Uri.decode(address.substringAfter("tel:"))
-                label += " ($address)"
-            }
-
-            val simColor = try {
-                config.simIconsColors[simIndex]
-            } catch (_: Exception) {
-                phoneAccount.highlightColor
             }
             simAccounts.add(
-                SIMAccount(
+                SIMCard(
                     id = index + 1,
-                    simTypeId = simIndex,
-                    handle = phoneAccount.accountHandle,
+                    subscriptionId = subscriptionInfo.subscriptionId,
                     label = label,
-                    phoneNumber = address.substringAfter("tel:"),
-                    color = simColor
+                    mnc = subscriptionInfo.mnc
                 )
             )
         }
-    } catch (_: Exception) {
     }
-
     return simAccounts
 }
