@@ -238,7 +238,9 @@ abstract class EdgeToEdgeActivity : AppCompatActivity() {
         val itemColor = if (topAppBarColorIcon) colorPrimary else contrastColor
         val titleColor = if (topAppBarColorTitle) colorPrimary else contrastColor
 
-        window.setSystemBarsAppearance(colorBackground)
+        val systemBarAppearanceColor =
+            if (colorBackground == Color.TRANSPARENT) getProperBackgroundColor else colorBackground
+        window.setSystemBarsAppearance(systemBarAppearanceColor)
         topAppBar.setBackgroundColor(colorBackground)
         
         // Handle MaterialToolbar
@@ -296,7 +298,9 @@ abstract class EdgeToEdgeActivity : AppCompatActivity() {
         val itemColor = if (topAppBarColorIcon) colorPrimary else contrastColor
         val titleColor = if (topAppBarColorTitle) colorPrimary else contrastColor
 
-        window.setSystemBarsAppearance(colorBackground)
+        val systemBarAppearanceColor =
+            if (colorBackground == Color.TRANSPARENT) getProperBackgroundColor else colorBackground
+        window.setSystemBarsAppearance(systemBarAppearanceColor)
 
         customToolbar.setTitleTextColor(titleColor)
         customToolbar.navigationIcon?.applyColorFilter(itemColor)
@@ -328,7 +332,9 @@ abstract class EdgeToEdgeActivity : AppCompatActivity() {
         val itemColor = if (topAppBarColorIcon) colorPrimary else contrastColor
         val titleColor = if (topAppBarColorTitle) colorPrimary else contrastColor
 
-        window.setSystemBarsAppearance(colorBackground)
+        val systemBarAppearanceColor =
+            if (colorBackground == Color.TRANSPARENT) getProperBackgroundColor else colorBackground
+        window.setSystemBarsAppearance(systemBarAppearanceColor)
         toolbar.setTitleTextColor(titleColor)
         toolbar.navigationIcon?.applyColorFilter(itemColor)
         toolbar.collapseIcon = resources.getColoredDrawableWithColor(this, R.drawable.ic_chevron_left_vector, itemColor)

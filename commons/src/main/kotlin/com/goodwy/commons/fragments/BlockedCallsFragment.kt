@@ -9,27 +9,36 @@ import android.view.View
 import androidx.fragment.app.Fragment
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.goodwy.commons.R
+import com.goodwy.commons.activities.BaseSimpleActivity
 import com.goodwy.commons.adapters.BlockedCallItem
-import com.goodwy.commons.adapters.BlockedCallsAdapter
+import com.goodwy.commons.adapters.BlockedCallsListAdapter
+import com.goodwy.commons.R
+import com.goodwy.commons.extensions.baseConfig
 import com.goodwy.commons.extensions.getSharedPrefs
 import com.goodwy.commons.extensions.trimToComparableNumber
 import com.goodwy.commons.views.MyRecyclerView
+import com.android.common.view.MRippleToolBar
+import eightbitlab.com.blurview.BlurTarget
 
 class BlockedCallsFragment : Fragment(R.layout.fragment_blocked_calls) {
     private lateinit var blockedCallsList: MyRecyclerView
     private lateinit var blockedCallsPlaceholder: View
-    private lateinit var blockedCallsAdapter: BlockedCallsAdapter
+    private lateinit var blockedCallsAdapter: BlockedCallsListAdapter
+
+    private var appliedContactThumbnailSize: Int? = null
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         blockedCallsList = view.findViewById(R.id.blocked_calls_list)
         blockedCallsPlaceholder = view.findViewById(R.id.blocked_calls_placeholder)
-        blockedCallsAdapter = BlockedCallsAdapter(
-            isMultiSimSupported = getPhoneCount() > 1
-        ) { item ->
-            openBlockedCallDetails(item)
-        }
+        val activity = requireActivity() as BaseSimpleActivity
+        blockedCallsAdapter = BlockedCallsListAdapter(
+            activity = activity,
+            recyclerView = blockedCallsList,
+            isMultiSimSupported = getPhoneCount() > 1,
+            onOpenItem = { item -> openBlockedCallDetails(item) },
+            onListRefresh = { loadBlockedCallLogs() },
+        )
 
         blockedCallsList.layoutManager = LinearLayoutManager(requireContext())
         blockedCallsList.adapter = blockedCallsAdapter
@@ -38,6 +47,30 @@ class BlockedCallsFragment : Fragment(R.layout.fragment_blocked_calls) {
     override fun onResume() {
         super.onResume()
         loadBlockedCallLogs()
+    }
+
+    /** @return true if action mode was started */
+    fun tryStartSelectionActionMode(): Boolean {
+        if (!::blockedCallsAdapter.isInitialized || blockedCallsAdapter.itemCount == 0) return false
+        blockedCallsAdapter.startActMode()
+        return true
+    }
+
+    fun bindRippleToolbarIfNeeded(ripple: MRippleToolBar, blurTarget: BlurTarget) {
+        if (!::blockedCallsAdapter.isInitialized || !blockedCallsAdapter.isActionModeActive()) {
+            ripple.visibility = View.GONE
+            return
+        }
+        blockedCallsAdapter.bindRippleToolbar(ripple, blurTarget)
+    }
+
+    /** @return true if this fragment had selection mode and it was closed */
+    fun finishSelectionActionModeIfActive(): Boolean {
+        if (::blockedCallsAdapter.isInitialized && blockedCallsAdapter.isActionModeActive()) {
+            blockedCallsAdapter.finishActMode()
+            return true
+        }
+        return false
     }
 
     private fun loadBlockedCallLogs() {
@@ -85,6 +118,7 @@ class BlockedCallsFragment : Fragment(R.layout.fragment_blocked_calls) {
                                 phoneNumber = number,
                                 timestamp = date,
                                 simId = resolveSimId(accountId, phoneCount),
+                                allCallLogIds = listOf(callLogId).filter { it > 0L },
                             )
                         )
                     }
@@ -99,7 +133,12 @@ class BlockedCallsFragment : Fragment(R.layout.fragment_blocked_calls) {
 
             view?.post {
                 if (!isAdded) return@post
-                blockedCallsAdapter.submitList(groupedBlockedCalls)
+                val cfg = requireContext().baseConfig.contactThumbnailsSize
+                val thumbDirty = appliedContactThumbnailSize != null && appliedContactThumbnailSize != cfg
+                appliedContactThumbnailSize = cfg
+                blockedCallsAdapter.submitList(groupedBlockedCalls) {
+                    if (thumbDirty) blockedCallsAdapter.notifyDataSetChanged()
+                }
                 val hasBlockedCalls = groupedBlockedCalls.isNotEmpty()
                 blockedCallsList.isVisible = hasBlockedCalls
                 blockedCallsPlaceholder.isVisible = !hasBlockedCalls
@@ -151,7 +190,11 @@ class BlockedCallsFragment : Fragment(R.layout.fragment_blocked_calls) {
 
         return grouped.values.map { group ->
             val latest = group.maxByOrNull { it.timestamp }!!
-            latest.copy(groupedCount = group.size)
+            val mergedIds = group.flatMap { it.allCallLogIds }.filter { it > 0L }.distinct()
+            latest.copy(
+                groupedCount = group.size,
+                allCallLogIds = mergedIds,
+            )
         }.sortedByDescending { it.timestamp }
     }
 

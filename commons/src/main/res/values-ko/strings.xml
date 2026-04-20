@@ -198,6 +198,7 @@
     <string name="share">공유</string>
     <string name="share_via">공유 방법</string>
     <string name="resize">크기 변경</string>
+    <string name="select">선택</string>
     <string name="select_all">전체 선택</string>
     <string name="hide">숨김</string>
     <string name="unhide">숨김 해제</string>
@@ -766,4 +767,8 @@
     <string name="filename_without_txt">화일이름 (without .txt)</string>
     <string name="filename_without_json">화일이름 (without .json)</string>
     <string name="filename_without_zip">화일이름 (without .zip)</string>
+    <string name="blocked_items">차단목록</string>
+    <string name="blocked_calls">차단된 전화</string>
+    <string name="blocked_messages">차단된 통보문</string>
+    <string name="blocked_contacts">차단된 주소록</string>
 </resources>

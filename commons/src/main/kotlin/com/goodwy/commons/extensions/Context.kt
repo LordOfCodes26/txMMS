@@ -47,6 +47,7 @@ import android.provider.Settings
 import android.telecom.TelecomManager
 import android.telephony.PhoneNumberUtils
 import android.telephony.SubscriptionManager
+import android.telephony.TelephonyManager
 import android.text.TextUtils
 import android.util.Log
 import android.util.TypedValue
@@ -1024,6 +1025,7 @@ fun Context.getTextSizeSmall() = when (baseConfig.fontSize) {
 }
 
 val Context.telecomManager: TelecomManager get() = getSystemService(Context.TELECOM_SERVICE) as TelecomManager
+val Context.telephonyManager: TelephonyManager get() = getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
 
 val Context.subscriptionManager: SubscriptionManager get() = getSystemService(Context.TELEPHONY_SUBSCRIPTION_SERVICE) as SubscriptionManager
 val Context.windowManager: WindowManager get() = getSystemService(Context.WINDOW_SERVICE) as WindowManager
@@ -1082,6 +1084,7 @@ fun Context.getBlockedNumbersWithContact(callback: (ArrayList<BlockedNumber>) ->
         val blockedNumbers = ArrayList<BlockedNumber>()
         if (!isDefaultDialer()) {
             callback(blockedNumbers)
+            return@getContactsHasMap
         }
 
         val uri = BlockedNumbers.CONTENT_URI
@@ -1161,6 +1164,32 @@ fun Context.deleteBlockedNumber(number: String): Boolean {
         deletedRowCount > 0
     } else {
         true
+    }
+}
+
+/**
+ * Removes one blocked-number row. Prefer deleting by stable row [BlockedNumber.id] so selection mode
+ * always lifts the intended provider row; fall back to [deleteBlockedNumber] by stored original number.
+ */
+fun Context.removeBlockedNumberEntry(blocked: BlockedNumber): Boolean {
+    return try {
+        val byUri = contentResolver.delete(
+            ContentUris.withAppendedId(BlockedNumbers.CONTENT_URI, blocked.id),
+            null,
+            null,
+        )
+        if (byUri > 0) return true
+
+        val byId = contentResolver.delete(
+            BlockedNumbers.CONTENT_URI,
+            "${BlockedNumbers.COLUMN_ID} = ?",
+            arrayOf(blocked.id.toString()),
+        )
+        if (byId > 0) return true
+
+        deleteBlockedNumber(blocked.number)
+    } catch (_: Exception) {
+        deleteBlockedNumber(blocked.number)
     }
 }
 

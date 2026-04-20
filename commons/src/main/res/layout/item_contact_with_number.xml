@@ -11,6 +11,7 @@
     android:foreground="@drawable/selector">
 
     <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/item_contact_holder"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:minHeight="@dimen/recent_call_height"
@@ -32,7 +33,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="@dimen/medium_normal_margin"
-            android:layout_marginTop="@dimen/smaller_margin"
+            android:layout_marginTop="@dimen/normal_margin"
             android:ellipsize="end"
             android:maxLines="1"
             android:textDirection="firstStrongLtr"
@@ -41,6 +42,7 @@
             app:layout_constraintEnd_toStartOf="@+id/item_contact_info_holder"
             app:layout_constraintStart_toEndOf="@+id/item_contact_image"
             app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_bias="0"
             tools:text="John Doe" />
 
         <TextView

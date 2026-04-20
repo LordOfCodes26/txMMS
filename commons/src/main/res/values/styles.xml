@@ -537,7 +537,7 @@
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">wrap_content</item>
         <item name="android:paddingStart">@dimen/tx_cardview_padding_left</item>
-        <item name="android:paddingEnd">@dimen/tx_cardview_padding_right</item>
+        <item name="android:paddingEnd">@dimen/normal_margin</item>
         <item name="android:paddingTop">@dimen/setting_switch_item_vertical_margin</item>
         <item name="android:paddingBottom">@dimen/setting_switch_item_vertical_margin</item>
     </style>
@@ -587,12 +587,10 @@
     <style name="SettingsTextValueStyle">
         <item name="android:layout_width">wrap_content</item>
         <item name="android:layout_height">wrap_content</item>
-        <item name="android:maxWidth">@dimen/settings_value_width</item>
         <item name="android:layout_centerVertical">true</item>
         <item name="android:textSize">@dimen/tx_small_text</item>
         <item name="android:textColor">@color/tx_cardview_summary</item>
         <item name="android:gravity">end</item>
-        <item name="android:alpha">0.6</item>
         <item name="android:textAlignment">viewEnd</item>
     </style>
 

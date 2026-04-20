@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:ignore="AlwaysShowAction,AppCompatResource">
+    <item
+        android:id="@+id/add_blocked_number"
+        android:icon="@drawable/ic_cmn_add"
+        android:orderInCategory="1"
+        android:title="@string/add_a_blocked_number"
+        app:showAsAction="always" />
+
+    <item
+        android:id="@+id/more"
+        android:icon="@drawable/ic_cmn_more"
+        android:orderInCategory="3"
+        android:title="@string/more_options"
+        app:showAsAction="always" />
+</menu>

@@ -40,7 +40,7 @@ abstract class MyRecyclerViewListAdapter<T>(
     protected var surfaceColor = activity.getSurfaceColor()
     protected var properPrimaryColor = activity.getProperPrimaryColor()
     protected var contrastColor = properPrimaryColor.getContrastColor()
-    protected var contactThumbnailsSize = contactThumbnailsSize()
+    protected var contactThumbnailsSize = computeContactThumbnailScale()
     protected var actModeCallback: MyActionModeCallback
     protected var selectedKeys = LinkedHashSet<Int>()
     protected var positionOffset = 0
@@ -296,7 +296,7 @@ abstract class MyRecyclerViewListAdapter<T>(
         }
     }
 
-    fun updateTitle() {
+    open fun updateTitle() {
         val selectableItemCount = getSelectableItemCount()
         val selectedCount = min(selectedKeys.size, selectableItemCount)
         val oldTitle = actBarToolbar?.title
@@ -565,13 +565,17 @@ abstract class MyRecyclerViewListAdapter<T>(
         onRefresh.invoke()
     }
 
-    private fun contactThumbnailsSize(): Float {
-        return when (activity.baseConfig.contactThumbnailsSize) {
+    private fun computeContactThumbnailScale(): Float =
+        when (activity.baseConfig.contactThumbnailsSize) {
             CONTACT_THUMBNAILS_SIZE_SMALL -> 0.9F
             CONTACT_THUMBNAILS_SIZE_LARGE -> 1.15F
             CONTACT_THUMBNAILS_SIZE_EXTRA_LARGE -> 1.3F
             else -> 1.0F
         }
+
+    /** Re-read [BaseSimpleActivity.baseConfig] thumbnail size (e.g. after settings change). */
+    protected fun refreshContactThumbnailScale() {
+        contactThumbnailsSize = computeContactThumbnailScale()
     }
 
     protected fun createViewHolder(layoutType: Int, parent: ViewGroup?): ViewHolder {

@@ -149,9 +149,9 @@
     <string name="unblock_contact_success">Contact unblocked</string>
     <string name="unblock_contact_fail">Contact could not be unblocked</string>
     <string name="blocked_items">Blocked items</string>
-    <string name="blocked_calls">Blocked calls</string>
-    <string name="blocked_messages">Blocked messages</string>
-    <string name="blocked_contacts">Blocked contacts</string>
+    <string name="blocked_calls">Calls</string>
+    <string name="blocked_messages">Messages</string>
+    <string name="blocked_contacts">Contacts</string>
     <string name="no_blocked_calls">No blocked calls yet.</string>
     <string name="no_blocked_messages">No blocked messages yet.</string>
     <string name="no_blocked_contacts">No blocked contacts yet.</string>
@@ -437,6 +437,7 @@
     <string name="share">Share</string>
     <string name="share_via">Share via</string>
     <string name="resize">Resize</string>
+    <string name="select">Select</string>
     <string name="select_all">Select all</string>
     <string name="select_text">Select text</string>
     <string name="hide">Hide</string>
