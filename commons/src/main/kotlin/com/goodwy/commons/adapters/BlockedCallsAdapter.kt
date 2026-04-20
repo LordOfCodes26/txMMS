@@ -14,15 +14,6 @@ import com.goodwy.commons.extensions.getTextSize
 import com.goodwy.commons.extensions.getTextSizeSmall
 import com.goodwy.commons.helpers.AvatarResolver
 
-data class BlockedCallItem(
-    val callLogId: Long,
-    val displayName: String?,
-    val phoneNumber: String,
-    val timestamp: Long,
-    val simId: Int = -1,
-    val groupedCount: Int = 1,
-)
-
 class BlockedCallsAdapter(
     private val isMultiSimSupported: Boolean,
     private val onItemClick: ((BlockedCallItem) -> Unit)? = null,

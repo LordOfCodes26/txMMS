@@ -3,6 +3,15 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
+    <com.goodwy.commons.views.MyRecyclerView
+        android:id="@+id/blocked_messages_list"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clipToPadding="false"
+        android:paddingBottom="@dimen/activity_margin"
+        android:scrollbars="vertical"
+        android:visibility="gone" />
+
     <com.goodwy.commons.views.MyTextView
         android:id="@+id/blocked_messages_placeholder"
         android:layout_width="match_parent"

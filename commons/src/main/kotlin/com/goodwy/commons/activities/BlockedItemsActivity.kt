@@ -10,6 +10,7 @@ import androidx.annotation.StringRes
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.FragmentPagerAdapter
+import com.android.common.R as CommonR
 import com.android.common.helper.IconItem
 import com.goodwy.commons.R
 import com.goodwy.commons.databinding.ActivityBlockedItemsBinding
@@ -54,7 +55,7 @@ open class BlockedItemsActivity : BaseSimpleActivity(), ActionModeToolbarHost {
         setupOptionsMenu()
         updateTopMenuColors()
         setupPager()
-        updateTitleForTab(0)
+        applyInitialTabFromIntent()
     }
 
     override fun onResume() {
@@ -198,12 +199,12 @@ open class BlockedItemsActivity : BaseSimpleActivity(), ActionModeToolbarHost {
         binding.blockedItemsViewPager.offscreenPageLimit = TAB_TITLES.size
 
         val tabItems = ArrayList<IconItem>()
-        TAB_TITLES.zip(TAB_ICONS).forEach { (titleId, iconRes) ->
+        for (i in TAB_TITLES.indices) {
             tabItems.add(
                 IconItem().apply {
-                    icon = iconRes
-                    title = getString(titleId)
-                }
+                    icon = TAB_ICONS[i]
+                    title = getString(TAB_TITLES[i])
+                },
             )
         }
         binding.blockedItemsTabBar.setTabs(this, tabItems, binding.mainBlurTarget)
@@ -231,6 +232,17 @@ open class BlockedItemsActivity : BaseSimpleActivity(), ActionModeToolbarHost {
         })
     }
 
+    private fun applyInitialTabFromIntent() {
+        val initialTab =
+            intent.getIntExtra(EXTRA_INITIAL_TAB_INDEX, TAB_BLOCKED_CALLS).coerceIn(
+                TAB_BLOCKED_CALLS,
+                TAB_BLOCKED_CONTACTS,
+            )
+        binding.blockedItemsViewPager.setCurrentItem(initialTab, false)
+        binding.blockedItemsTabBar.setSelection(initialTab)
+        updateTitleForTab(initialTab)
+    }
+
     private fun updateTitleForTab(index: Int) {
         val titleId = TAB_TITLES.getOrElse(index) { R.string.blocked_items }
         binding.mainMenu.updateTitle(getString(titleId))
@@ -254,17 +266,24 @@ open class BlockedItemsActivity : BaseSimpleActivity(), ActionModeToolbarHost {
     protected open fun createBlockedMessagesFragment(): Fragment = BlockedMessagesFragment()
 
     companion object {
+        const val EXTRA_INITIAL_TAB_INDEX = "com.goodwy.commons.BlockedItemsActivity.INITIAL_TAB_INDEX"
+
+        const val TAB_BLOCKED_CALLS = 0
+        const val TAB_BLOCKED_MESSAGES = 1
+        const val TAB_BLOCKED_CONTACTS = 2
+
         @StringRes
         private val TAB_TITLES = listOf(
             R.string.blocked_calls,
             R.string.blocked_messages,
-            R.string.blocked_contacts
+            R.string.blocked_contacts,
         )
 
+        // ic_cmn_* drawables live in commons/libs/common.aar (com.android.common.R)
         private val TAB_ICONS = listOf(
-            R.drawable.ic_cmn_clock_fill,
-            R.drawable.ic_cmn_sms_send_fill, // TODO: should change the icon
-            R.drawable.ic_cmn_circle_profile_fill
+            CommonR.drawable.ic_cmn_clock_fill,
+            CommonR.drawable.ic_cmn_sms_send_fill,
+            CommonR.drawable.ic_cmn_circle_profile_fill,
         )
     }
 }
