@@ -1,11 +1,13 @@
 package com.android.mms.helpers
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.content.pm.PackageManager
 import android.content.Context
 import android.net.Uri
 import android.telephony.SmsManager
 import android.util.Log
+import androidx.annotation.RequiresPermission
 import com.android.mms.extensions.subscriptionManagerCompat
 import com.android.mms.models.SIMCard
 
@@ -79,12 +81,17 @@ object FeeInfoUtils {
                     }
                 }
                 Log.d(TAG, "getAvailableSmsCountForSlot: finished scan, rowCount=$rowCount")
-                Log.d(TAG, "getAvailableSmsCountForSlot: no matching row for slotId=$slotId")
                 null
             }
         } catch (e: Exception) {
             Log.e(TAG, "getAvailableSmsCountForSlot: query failed for slotId=$slotId", e)
             null
         }
+    }
+    // added by sun
+    @SuppressLint("MissingPermission")
+    fun getSimSlotIndexForSubscriptionId(context: Context, subscriptionId: Int): Int? {
+        val activeSIMS = context.subscriptionManagerCompat().activeSubscriptionInfoList ?: return null
+        return activeSIMS.firstOrNull { it.subscriptionId == subscriptionId }?.simSlotIndex
     }
 }

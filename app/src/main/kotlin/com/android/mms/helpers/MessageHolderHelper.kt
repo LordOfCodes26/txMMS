@@ -47,7 +47,7 @@ class MessageHolderHelper(
     /** Invoked before hiding the attachment picker when the field gains focus and the picker is open (keyboard replacing picker). */
     private val onPrepareKeyboardFromAttachmentPicker: (() -> Unit)? = null,
 ) {
-    private var isCountdownActive = false
+    var isCountdownActive = false
     private var isSpeechToTextAvailable = false
     private val availableSIMCards = ArrayList<SIMCard>()
     private var currentSIMCardIndex = 0
@@ -152,9 +152,9 @@ class MessageHolderHelper(
                 threadTypeMessage.setOnKeyListener { _, keyCode, event ->
                     if (keyCode == KeyEvent.KEYCODE_ENTER && event.action == KeyEvent.ACTION_UP) {
                         if (activity.config.messageSendDelay > 0 && !isCountdownActive) {
-                            startSendMessageCountdown()
+                           resolveSubscriptionThen { startSendMessageCountdown(it) }
                         } else {
-                            sendMessage()
+                            pickSimAndSendOrSendDirect()
                         }
                         return@setOnKeyListener true
                     }
@@ -344,9 +344,9 @@ class MessageHolderHelper(
                     contentDescription = activity.getString(R.string.sending)
                     setOnClickListener {
                         if (activity.config.messageSendDelay > 0 && !isCountdownActive) {
-                            startSendMessageCountdown()
+                            resolveSubscriptionThen { startSendMessageCountdown(it) }
                         } else {
-                            sendMessage()
+                            pickSimAndSendOrSendDirect()
                             if (activity.config.soundOnOutGoingMessages) {
                                 val audioManager = activity.getSystemService(AudioManager::class.java)
                                 audioManager.playSoundEffect(AudioManager.FX_KEYPRESS_SPACEBAR)
@@ -397,12 +397,12 @@ class MessageHolderHelper(
         updateSendButtonDrawable()
     }
 
-    private fun startSendMessageCountdown() {
+    fun startSendMessageCountdown(subscriptionId: Int) {
         if (isCountdownActive) return
 
         val delaySeconds = activity.config.messageSendDelay
         if (delaySeconds <= 0) {
-            sendMessage()
+            sendMessage(subscriptionId)
             if (activity.config.soundOnOutGoingMessages) {
                 val audioManager = activity.getSystemService(AudioManager::class.java)
                 audioManager.playSoundEffect(AudioManager.FX_KEYPRESS_SPACEBAR)
@@ -430,7 +430,7 @@ class MessageHolderHelper(
                         override fun onFinish(newCycle: Boolean, cycleCount: Int) {
                             isCountdownActive = false
                             hideCountdown()
-                            sendMessage()
+                            sendMessage(subscriptionId)
                             if (activity.config.soundOnOutGoingMessages) {
                                 val audioManager = activity.getSystemService(AudioManager::class.java)
                                 audioManager.playSoundEffect(AudioManager.FX_KEYPRESS_SPACEBAR)
@@ -441,7 +441,7 @@ class MessageHolderHelper(
             } catch (e: Exception) {
                 isCountdownActive = false
                 hideCountdown()
-                sendMessage()
+                sendMessage(subscriptionId)
                 if (activity.config.soundOnOutGoingMessages) {
                     val audioManager = activity.getSystemService(AudioManager::class.java)
                     audioManager.playSoundEffect(AudioManager.FX_KEYPRESS_SPACEBAR)
@@ -460,21 +460,37 @@ class MessageHolderHelper(
             threadSendMessage.beVisible()
         }
     }
+    // added by sun
+    // when use multi sim, show dialog sim select
+    // ----->
+    @SuppressLint("MissingPermission")
+    private fun resolveSubscriptionThen(onSubId: (Int) -> Unit) {
+        val subs = activity.subscriptionManagerCompat().activeSubscriptionInfoList
+        if (!subs.isNullOrEmpty() && subs.size > 1) {
+            val blurTarget = activity.findViewById<BlurTarget>(R.id.mainBlurTarget)
+            SelectSIMDialog(activity as SimpleActivity, blurTarget) { simCard, _ ->
+                onSubId(simCard.subscriptionId)
+            }
+        }
+        else {
+            val subId = when {
+                subs?.size == 1 -> subs[0].subscriptionId
+                else ->getSubscriptionId()
+            }
+            subId?.let { onSubId(it) }
+        }
+    }
+    private fun pickSimAndSendOrSendDirect() {
+        resolveSubscriptionThen { sendMessage(it) }
+    }
+    // <-----------
 
-    fun sendMessage() {
+    @SuppressLint("SuspiciousIndentation")
+    fun sendMessage(subscriptionId: Int) {
         val text = binding.threadTypeMessage.value.trim()
         val attachments = buildMessageAttachments()
-        // added by sun
-        // when use multi sim, show dialog sim select
-        val blurTarget = activity.findViewById<BlurTarget>(R.id.mainBlurTarget)
 
-        if (SmsManager.getDefaultSmsSubscriptionId() < 0) {
-            SelectSIMDialog(activity as SimpleActivity, blurTarget) { simCard, selectedHandleIndex ->
-                onSendMessage(text, simCard.subscriptionId, attachments)
-            }
-        } else {
-            onSendMessage(text, getSubscriptionId(), attachments)
-        }
+        onSendMessage(text, subscriptionId, attachments)
     }
 
     fun getMessageText(): String = binding.threadTypeMessage.value

@@ -19,6 +19,7 @@ import com.goodwy.commons.extensions.beVisible
 import com.goodwy.commons.extensions.getProperTextColor
 import com.goodwy.commons.extensions.setupMDialogStuff
 import com.goodwy.commons.extensions.viewBinding
+import com.goodwy.commons.helpers.ensureBackgroundThread
 import eightbitlab.com.blurview.BlurTarget
 import kotlin.getValue
 
@@ -51,8 +52,19 @@ class SelectSIMDialog(
                 val rowBinding = ItemSimFeeDialogBinding.inflate(LayoutInflater.from(activity), null, false).apply {
                     simItemName.text = simAccount.label
                     simItemName.setTextColor(activity.getProperTextColor())
-                    simItemFeeInfo.text = "sms: 12"
-                    simItemFeeInfo.setTextColor(activity.getProperTextColor())
+                    val slotId = FeeInfoUtils.getSimSlotIndexForSubscriptionId(activity, simAccount.subscriptionId)
+                    ensureBackgroundThread {
+                        val smsCount = slotId?.let { FeeInfoUtils.getAvailableSmsCountForSlot(activity, it) }
+                        activity.runOnUiThread {
+                            if (smsCount !== null) {
+                                simItemFeeInfo.text = activity.getString(R.string.available_sms_count, smsCount)
+                                simItemFeeInfo.setTextColor(activity.getProperTextColor())
+                                simItemFeeInfo.beVisible()
+                            } else {
+                                simItemFeeInfo.beGone()
+                            }
+                        }
+                    }
 
                     val iconRes = when (simAccount.label) {
                         activity.getString(R.string.koryo_label) -> R.drawable.ic_koryo
