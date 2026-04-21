@@ -207,7 +207,7 @@ class NewConversationActivity : SimpleActivity() {
         refreshNewConversationInsetsAndToolbarGeometry()
         
         setupMessageHolder()
-        handlePermission(PERMISSION_READ_PHONE_STATE) @androidx.annotation.RequiresPermission(android.Manifest.permission.READ_PHONE_STATE) {
+        handlePermission(PERMISSION_READ_PHONE_STATE) {
             if (it) {
                 setupSIMSelector()
             }
@@ -1802,7 +1802,7 @@ class NewConversationActivity : SimpleActivity() {
 
             if (availableSIMCards.isNotEmpty()) {
                 binding.messageHolder.threadSelectSimIconHolder.setOnClickListener {
-                    binding.messageHolder.simPopupPicker.beVisible()
+//                    binding.messageHolder.simPopupPicker.beVisible()
                     currentSIMCardIndex = (currentSIMCardIndex + 1) % availableSIMCards.size
                     val currentSIMCard = availableSIMCards[currentSIMCardIndex]
                     @SuppressLint("SetTextI18n")
@@ -1858,7 +1858,7 @@ class NewConversationActivity : SimpleActivity() {
             }
         } else {
             binding.messageHolder.threadSelectSimIconHolder.beGone()
-            binding.messageHolder.simPopupPicker.beGone()
+//            binding.messageHolder.simPopupPicker.beGone()
         }
         updateAvailableMessageCountForCurrentSim()
     }

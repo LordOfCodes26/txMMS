@@ -154,11 +154,7 @@ class MessageHolderHelper(
                         if (activity.config.messageSendDelay > 0 && !isCountdownActive) {
                             startSendMessageCountdown()
                         } else {
-                            val blurTarget = activity.findViewById<BlurTarget>(R.id.mainBlurTarget)
-                            SelectSIMDialog(activity as SimpleActivity, blurTarget) { simCard, selectedHandleIndex ->
-                                sendMessage(simCard.subscriptionId)
-                            }
-//                            sendMessage(simCard.subscriptionId)
+                            sendMessage()
                         }
                         return@setOnKeyListener true
                     }
@@ -350,12 +346,7 @@ class MessageHolderHelper(
                         if (activity.config.messageSendDelay > 0 && !isCountdownActive) {
                             startSendMessageCountdown()
                         } else {
-                            val blurTarget = activity.findViewById<BlurTarget>(R.id.mainBlurTarget)
-                            SelectSIMDialog(activity as SimpleActivity, blurTarget) { simCard, selectedHandleIndex ->
-//                                activity.config.currentSIMCardIndex = selectedHandleIndex
-                                sendMessage(simCard.subscriptionId)
-                            }
-//                            sendMessage()
+                            sendMessage()
                             if (activity.config.soundOnOutGoingMessages) {
                                 val audioManager = activity.getSystemService(AudioManager::class.java)
                                 audioManager.playSoundEffect(AudioManager.FX_KEYPRESS_SPACEBAR)
@@ -411,11 +402,7 @@ class MessageHolderHelper(
 
         val delaySeconds = activity.config.messageSendDelay
         if (delaySeconds <= 0) {
-            val blurTarget = activity.findViewById<BlurTarget>(R.id.mainBlurTarget)
-            SelectSIMDialog(activity as SimpleActivity, blurTarget) { simCard, selectedHandleIndex ->
-                sendMessage(simCard.subscriptionId)
-            }
-//            sendMessage(simCard.subscriptionId)
+            sendMessage()
             if (activity.config.soundOnOutGoingMessages) {
                 val audioManager = activity.getSystemService(AudioManager::class.java)
                 audioManager.playSoundEffect(AudioManager.FX_KEYPRESS_SPACEBAR)
@@ -443,11 +430,7 @@ class MessageHolderHelper(
                         override fun onFinish(newCycle: Boolean, cycleCount: Int) {
                             isCountdownActive = false
                             hideCountdown()
-                            val blurTarget = activity.findViewById<BlurTarget>(R.id.mainBlurTarget)
-                            SelectSIMDialog(activity as SimpleActivity, blurTarget) { simCard, selectedHandleIndex ->
-                                sendMessage(simCard.subscriptionId)
-                            }
-//                            sendMessage(simCard.subscriptionId)
+                            sendMessage()
                             if (activity.config.soundOnOutGoingMessages) {
                                 val audioManager = activity.getSystemService(AudioManager::class.java)
                                 audioManager.playSoundEffect(AudioManager.FX_KEYPRESS_SPACEBAR)
@@ -458,11 +441,7 @@ class MessageHolderHelper(
             } catch (e: Exception) {
                 isCountdownActive = false
                 hideCountdown()
-                val blurTarget = activity.findViewById<BlurTarget>(R.id.mainBlurTarget)
-                SelectSIMDialog(activity as SimpleActivity, blurTarget) { simCard, selectedHandleIndex ->
-                    sendMessage(simCard.subscriptionId)
-                }
-//                sendMessage(simCard.subscriptionId)
+                sendMessage()
                 if (activity.config.soundOnOutGoingMessages) {
                     val audioManager = activity.getSystemService(AudioManager::class.java)
                     audioManager.playSoundEffect(AudioManager.FX_KEYPRESS_SPACEBAR)
@@ -482,11 +461,20 @@ class MessageHolderHelper(
         }
     }
 
-    fun sendMessage(subscriptionId: Int) {
+    fun sendMessage() {
         val text = binding.threadTypeMessage.value.trim()
         val attachments = buildMessageAttachments()
-//        val subscriptionId = getSubscriptionId()
-        onSendMessage(text, subscriptionId, attachments)
+        // added by sun
+        // when use multi sim, show dialog sim select
+        val blurTarget = activity.findViewById<BlurTarget>(R.id.mainBlurTarget)
+
+        if (SmsManager.getDefaultSmsSubscriptionId() < 0) {
+            SelectSIMDialog(activity as SimpleActivity, blurTarget) { simCard, selectedHandleIndex ->
+                onSendMessage(text, simCard.subscriptionId, attachments)
+            }
+        } else {
+            onSendMessage(text, getSubscriptionId(), attachments)
+        }
     }
 
     fun getMessageText(): String = binding.threadTypeMessage.value
