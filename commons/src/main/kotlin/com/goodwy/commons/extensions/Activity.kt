@@ -1,5 +1,6 @@
 package com.goodwy.commons.extensions
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.Dialog
@@ -36,6 +37,7 @@ import androidx.biometric.BiometricPrompt
 import androidx.biometric.auth.AuthPromptCallback
 import androidx.biometric.auth.AuthPromptHost
 import androidx.biometric.auth.Class2BiometricAuthPrompt
+import androidx.core.app.ActivityCompat
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.FragmentActivity
@@ -635,25 +637,61 @@ fun Activity.launchViewContactIntent(uri: Uri) {
     }
 }
 
+@SuppressLint("MissingPermission")
 fun BaseSimpleActivity.launchCallIntent(recipient: String, handle: PhoneAccountHandle? = null, key: String = "") {
-    handlePermission(PERMISSION_CALL_PHONE) {
-        val action = if (it) Intent.ACTION_CALL else Intent.ACTION_DIAL
-        Intent(action).apply {
-            data = Uri.fromParts("tel", recipient, null)
-
-            if (handle != null) {
-                putExtra(TelecomManager.EXTRA_PHONE_ACCOUNT_HANDLE, handle)
+//    changed by sun call intent inCallUI
+//    handlePermission(PERMISSION_CALL_PHONE) {
+//        val action = if (it) Intent.ACTION_CALL else Intent.ACTION_DIAL
+//        Intent(action).apply {
+//            data = Uri.fromParts("tel", recipient, null)
+//
+//            if (handle != null) {
+//                putExtra(TelecomManager.EXTRA_PHONE_ACCOUNT_HANDLE, handle)
+//            }
+//            putExtra(IS_RIGHT_APP, key)
+//
+//            if (isDefaultDialer()) {
+//                val prefix = appPrefix()
+//                val packageName = if (baseConfig.appId.contains(".debug", true)) prefix + "android.dialer" else prefix + "android.dialer"
+//                val className = prefix + "android.dialer.activities.DialerActivity"
+//                setClassName(packageName, className)
+//            }
+//
+//            launchActivityIntent(this)
+//        }
+//    }
+    handlePermission(PERMISSION_CALL_PHONE) { granted ->
+        val uri = Uri.fromParts("tel", recipient, null)
+        if (granted) {
+            val extras = Bundle().apply {
+                if (handle != null) {
+                    putParcelable(TelecomManager.EXTRA_PHONE_ACCOUNT_HANDLE, handle)
+                }
+                putString(IS_RIGHT_APP, key)
             }
-            putExtra(IS_RIGHT_APP, key)
+            try {
+                telecomManager.placeCall(uri, extras)
+            }catch (_: Exception) {
+                Intent(Intent.ACTION_CALL).apply {
+                    data = Uri.fromParts("tel", recipient, null)
 
-            if (isDefaultDialer()) {
-                val prefix = appPrefix()
-                val packageName = if (baseConfig.appId.contains(".debug", true)) prefix + "android.dialer" else prefix + "android.dialer"
-                val className = prefix + "android.dialer.activities.DialerActivity"
-                setClassName(packageName, className)
+                    if (handle != null) {
+                        putExtra(TelecomManager.EXTRA_PHONE_ACCOUNT_HANDLE, handle)
+                    }
+                    putExtra(IS_RIGHT_APP, key)
+                    launchActivityIntent(this)
+                }
             }
+        } else {
+            Intent(Intent.ACTION_DIAL).apply {
+                data = uri
 
-            launchActivityIntent(this)
+                if (handle != null) {
+                    putExtra(TelecomManager.EXTRA_PHONE_ACCOUNT_HANDLE, handle)
+                }
+                putExtra(IS_RIGHT_APP, key)
+                launchActivityIntent(this)
+            }
         }
     }
 }

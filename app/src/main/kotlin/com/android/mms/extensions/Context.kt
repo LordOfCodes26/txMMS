@@ -10,6 +10,7 @@ import android.database.sqlite.SQLiteException
 import android.graphics.Bitmap
 import android.graphics.drawable.Drawable
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -21,6 +22,7 @@ import android.provider.Telephony.MmsSms
 import android.provider.Telephony.Sms
 import android.provider.Telephony.Threads
 import android.provider.Telephony.ThreadsColumns
+import android.telecom.PhoneAccountHandle
 import android.telephony.PhoneNumberUtils
 import android.telephony.SubscriptionManager
 import android.telephony.TelephonyManager
@@ -2050,4 +2052,16 @@ fun Context.getAvailableSIMCardLabels(): List<SIMCard> {
         }
     }
     return simAccounts
+}
+
+@SuppressLint("MissingPermission")
+fun Context.getPhoneAccountHandleForSubscription(subscriptionId: Int) : PhoneAccountHandle? {
+    return try {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            telecomManager.getSimCallManagerForSubscription(subscriptionId)
+        } else {
+        }
+    } catch (_: Exception) {
+        null
+    } as PhoneAccountHandle?
 }
