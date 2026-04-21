@@ -167,7 +167,6 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
 
         unreadCountHash = getUnreadCountsByThread() as HashMap<Long, Int>
 
-        setupVerticalSideFrameBlur()
         binding.conversationsList.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
                 super.onScrollStateChanged(recyclerView, newState)
@@ -277,8 +276,6 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
 
         binding.mainMenu.post { setMainMenuHeight(null, animated = true) }
 
-        binding.root.post { setupVerticalSideFrameBlur() }
-
         refreshSideFrameBlurAndInsets()
 
         (binding.searchResultsList.adapter as? SearchResultsAdapter)?.scheduleGroupedTodayTimeRefresh()
@@ -288,8 +285,6 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
     private fun refreshSideFrameBlurAndInsets() {
         binding.root.post {
             ViewCompat.requestApplyInsets(binding.root)
-            binding.mainBlurTarget.invalidate()
-            binding.blurTarget.invalidate()
             setupVerticalSideFrameBlur()
             setMainMenuTransparentBackground()
         }

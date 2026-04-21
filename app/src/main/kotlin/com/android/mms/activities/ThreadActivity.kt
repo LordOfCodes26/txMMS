@@ -178,7 +178,6 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             scrollingView = binding.threadMessagesList
         }
         initTheme()
-        initMVSideFrames()
         initThreadAppBar()
         setupOptionsMenu()
         refreshMenuItems()
@@ -278,7 +277,6 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
     private fun refreshSideFrameBlurAndInsets() {
         binding.root.post {
             ViewCompat.requestApplyInsets(binding.root)
-            binding.mainBlurTarget.invalidate()
             binding.mVerticalSideFrameTop.bindBlurTarget(binding.mainBlurTarget)
             binding.mVerticalSideFrameBottom.bindBlurTarget(binding.mainBlurTarget)
         }
@@ -360,11 +358,6 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
     private fun initTheme() {
         window.navigationBarColor = Color.TRANSPARENT
         window.statusBarColor = Color.TRANSPARENT
-    }
-
-    private fun initMVSideFrames() {
-        binding.mVerticalSideFrameTop.bindBlurTarget(binding.mainBlurTarget)
-        binding.mVerticalSideFrameBottom.bindBlurTarget(binding.mainBlurTarget)
     }
 
     /**

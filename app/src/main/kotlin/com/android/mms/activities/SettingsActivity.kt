@@ -129,7 +129,6 @@ class SettingsActivity : SimpleActivity() {
         paintSettingsWindowBeforeContentView()
         setContentView(binding.root)
         initTheme()
-        initMVSideFrames()
         setupEdgeToEdge()
         makeSystemBarsToTransparent()
         setupOptionsMenu()
@@ -179,7 +178,6 @@ class SettingsActivity : SimpleActivity() {
         window.decorView.setBackgroundColor(backgroundColor)
         binding.root.setBackgroundColor(backgroundColor)
         binding.rootView.setBackgroundColor(backgroundColor)
-        binding.mainBlurTarget.setBackgroundColor(backgroundColor)
         binding.settingsNestedScrollview.setBackgroundColor(Color.TRANSPARENT)
         binding.settingsHolder.setBackgroundColor(backgroundColor)
         scrollingView = binding.settingsNestedScrollview
@@ -189,11 +187,6 @@ class SettingsActivity : SimpleActivity() {
     private fun initTheme() {
         window.navigationBarColor = Color.TRANSPARENT
         window.statusBarColor = Color.TRANSPARENT
-    }
-
-    private fun initMVSideFrames() {
-        binding.mVerticalSideFrameTop.bindBlurTarget(binding.mainBlurTarget)
-        binding.mVerticalSideFrameBottom.bindBlurTarget(binding.mainBlurTarget)
     }
 
     private fun makeSystemBarsToTransparent() {
@@ -244,6 +237,7 @@ class SettingsActivity : SimpleActivity() {
 
     override fun onResume() {
         super.onResume()
+
         flushPendingSystemNotificationSoundIfPossible()
         if (isSystemInDarkMode()) {
             @Suppress("DEPRECATION")
@@ -348,7 +342,6 @@ class SettingsActivity : SimpleActivity() {
     private fun refreshSideFrameBlurAndInsets() {
         binding.root.post {
             ViewCompat.requestApplyInsets(binding.root)
-            binding.mainBlurTarget.invalidate()
             binding.mVerticalSideFrameTop.bindBlurTarget(binding.mainBlurTarget)
             binding.mVerticalSideFrameBottom.bindBlurTarget(binding.mainBlurTarget)
             postSyncMySearchMenuToolbarGeometry(
