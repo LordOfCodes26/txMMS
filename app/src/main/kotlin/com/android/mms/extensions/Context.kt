@@ -2037,12 +2037,14 @@ fun Context.getAvailableSIMCardLabels(): List<SIMCard> {
             } else if (subscriptionInfo.mnc == 3) {
                 label = getString(R.string.mirae_label)
             }
+            val lineNumber = subscriptionInfo.number?.trim().orEmpty()
             simAccounts.add(
                 SIMCard(
                     id = index + 1,
                     subscriptionId = subscriptionInfo.subscriptionId,
                     label = label,
-                    mnc = subscriptionInfo.mnc
+                    mnc = subscriptionInfo.mnc,
+                    number = lineNumber
                 )
             )
         }

@@ -8,4 +8,5 @@ data class SIMCard(
     val subscriptionId: Int,
     val label: String,
     val mnc:Int,
+    val number: String = ""
 )

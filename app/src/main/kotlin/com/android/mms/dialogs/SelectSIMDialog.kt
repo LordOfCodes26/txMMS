@@ -50,14 +50,22 @@ class SelectSIMDialog(
         if (simAccounts.isNotEmpty()) {
             simAccounts.forEachIndexed { index, simAccount ->
                 val rowBinding = ItemSimFeeDialogBinding.inflate(LayoutInflater.from(activity), null, false).apply {
-                    simItemName.text = simAccount.label
+
+                    val lineNumber = simAccount.number.trim()
+                    if (lineNumber.isNotEmpty()) {
+                        simItemName.text = simAccount.label + " (" + lineNumber + ") "
+
+                    } else {
+                        simItemName.text = simAccount.label
+                    }
+
                     simItemName.setTextColor(activity.getProperTextColor())
                     val slotId = FeeInfoUtils.getSimSlotIndexForSubscriptionId(activity, simAccount.subscriptionId)
                     ensureBackgroundThread {
                         val smsCount = slotId?.let { FeeInfoUtils.getAvailableSmsCountForSlot(activity, it) }
                         activity.runOnUiThread {
                             if (smsCount !== null) {
-                                simItemFeeInfo.text = activity.getString(R.string.available_sms_count, smsCount)
+                                simItemFeeInfo.text = activity.getString(R.string.remained_sms_count, smsCount)
                                 simItemFeeInfo.setTextColor(activity.getProperTextColor())
                                 simItemFeeInfo.beVisible()
                             } else {
