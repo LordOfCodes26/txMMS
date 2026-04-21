@@ -171,6 +171,8 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Theme.Material3.Dark windowBackground is dark; paint window + decor before inflation so edge-to-edge does not flash behind transparent bars.
+        paintThreadWindowBeforeContentView()
         setContentView(binding.root)
         if (config.changeColourTopBar) {
             scrollingView = binding.threadMessagesList
@@ -997,10 +999,27 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         updateContactImage()
     }
 
+    /** Same surface / background logic as [MainActivity.mainContentBackgroundColor]. */
+    private fun mainContentBackgroundColor(): Int {
+        val useSurfaceColor = isDynamicTheme() && !isSystemInDarkMode()
+        return if (useSurfaceColor) getSurfaceColor() else getProperBackgroundColor()
+    }
+
+    /**
+     * Runs after [super.onCreate] and **before** [setContentView]: replaces the dark Material3 Dark
+     * `windowBackground` so transparent system bars do not reveal it before messages load.
+     */
+    private fun paintThreadWindowBeforeContentView() {
+        val backgroundColor = mainContentBackgroundColor()
+        window.setBackgroundDrawable(ColorDrawable(backgroundColor))
+        window.decorView.setBackgroundColor(backgroundColor)
+    }
+
     /** Same as [MainActivity] onResume: surface only for dynamic theme + light mode, else proper background. */
     private fun applyThreadListBackgroundColors(): Int {
-        val useSurfaceColor = isDynamicTheme() && !isSystemInDarkMode()
-        val backgroundColor = if (useSurfaceColor) getSurfaceColor() else getProperBackgroundColor()
+        val backgroundColor = mainContentBackgroundColor()
+        window.setBackgroundDrawable(ColorDrawable(backgroundColor))
+        window.decorView.setBackgroundColor(backgroundColor)
         binding.threadHolder.setBackgroundColor(backgroundColor)
         binding.threadMessagesList.setBackgroundColor(backgroundColor)
         binding.mainBlurTarget.setBackgroundColor(backgroundColor)

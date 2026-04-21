@@ -3,6 +3,7 @@ package com.android.mms.activities
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.net.Uri
 import android.os.Build
 import android.media.AudioManager
@@ -124,6 +125,8 @@ class SettingsActivity : SimpleActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Theme.Material3.Dark windowBackground is dark; paint window + decor before inflation so edge-to-edge does not flash behind transparent bars.
+        paintSettingsWindowBeforeContentView()
         setContentView(binding.root)
         initTheme()
         initMVSideFrames()
@@ -154,9 +157,26 @@ class SettingsActivity : SimpleActivity() {
         }
     }
 
-    private fun applySettingsWindowBackgroundsAndTopChrome() {
+    /** Same surface / background logic as [MainActivity.mainContentBackgroundColor]. */
+    private fun mainContentBackgroundColor(): Int {
         val useSurfaceColor = isDynamicTheme() && !isSystemInDarkMode()
-        val backgroundColor = if (useSurfaceColor) getSurfaceColor() else getProperBackgroundColor()
+        return if (useSurfaceColor) getSurfaceColor() else getProperBackgroundColor()
+    }
+
+    /**
+     * Runs after [super.onCreate] and **before** [setContentView]: replaces the dark Material3 Dark
+     * `windowBackground` so transparent system bars do not reveal it before settings content loads.
+     */
+    private fun paintSettingsWindowBeforeContentView() {
+        val backgroundColor = mainContentBackgroundColor()
+        window.setBackgroundDrawable(ColorDrawable(backgroundColor))
+        window.decorView.setBackgroundColor(backgroundColor)
+    }
+
+    private fun applySettingsWindowBackgroundsAndTopChrome() {
+        val backgroundColor = mainContentBackgroundColor()
+        window.setBackgroundDrawable(ColorDrawable(backgroundColor))
+        window.decorView.setBackgroundColor(backgroundColor)
         binding.root.setBackgroundColor(backgroundColor)
         binding.rootView.setBackgroundColor(backgroundColor)
         binding.mainBlurTarget.setBackgroundColor(backgroundColor)

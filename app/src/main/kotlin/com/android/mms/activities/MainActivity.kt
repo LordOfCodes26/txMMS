@@ -9,6 +9,7 @@ import android.content.pm.ShortcutInfo
 import android.content.pm.ShortcutManager
 import android.graphics.Color
 import android.graphics.PorterDuff
+import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.Icon
 import android.graphics.drawable.LayerDrawable
 import android.os.Bundle
@@ -134,6 +135,8 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
     @SuppressLint("InlinedApi")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Theme.Material3.Dark windowBackground is dark; paint window + decor before inflation so edge-to-edge does not flash behind transparent bars.
+        paintMainScreenWindowBeforeContentView()
         setContentView(binding.root)
         initTheme()
         applyMainScreenBackgroundAndTopChrome()
@@ -1170,6 +1173,22 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         config.needRestart = false
     }
 
+    /** Same surface / background logic as list chrome — single source for pre-content window paint and views. */
+    private fun mainContentBackgroundColor(): Int {
+        val useSurfaceColor = isDynamicTheme() && !isSystemInDarkMode()
+        return if (useSurfaceColor) getSurfaceColor() else getProperBackgroundColor()
+    }
+
+    /**
+     * Runs after [super.onCreate] and **before** [setContentView]: replaces the dark Material3 Dark
+     * `windowBackground` so transparent system bars do not reveal it before the conversation list loads.
+     */
+    private fun paintMainScreenWindowBeforeContentView() {
+        val backgroundColor = mainContentBackgroundColor()
+        window.setBackgroundDrawable(ColorDrawable(backgroundColor))
+        window.decorView.setBackgroundColor(backgroundColor)
+    }
+
     /** After updateColors, restore transparent app bar so blur/glass shows (txDial MainActivity pattern). */
     private fun setMainMenuTransparentBackground() {
         binding.mainMenu.setBackgroundColor(Color.TRANSPARENT)
@@ -1185,8 +1204,9 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         setMainMenuTransparentBackground()
         binding.mainMenu.requireCustomToolbar().updateSearchColors()
 
-        val useSurfaceColor = isDynamicTheme() && !isSystemInDarkMode()
-        val backgroundColor = if (useSurfaceColor) getSurfaceColor() else getProperBackgroundColor()
+        val backgroundColor = mainContentBackgroundColor()
+        window.setBackgroundDrawable(ColorDrawable(backgroundColor))
+        window.decorView.setBackgroundColor(backgroundColor)
         binding.root.setBackgroundColor(backgroundColor)
         binding.mainBlurTarget.setBackgroundColor(backgroundColor)
         binding.searchHolder.setBackgroundColor(backgroundColor)
