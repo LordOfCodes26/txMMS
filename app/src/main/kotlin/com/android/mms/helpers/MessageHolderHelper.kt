@@ -466,7 +466,8 @@ class MessageHolderHelper(
     @SuppressLint("MissingPermission")
     private fun resolveSubscriptionThen(onSubId: (Int) -> Unit) {
         val subs = activity.subscriptionManagerCompat().activeSubscriptionInfoList
-        if (!subs.isNullOrEmpty() && subs.size > 1) {
+        val defaultSmsSubscriptionId = SmsManager.getDefaultSmsSubscriptionId()
+        if (!subs.isNullOrEmpty() && subs.size > 1 && defaultSmsSubscriptionId < 0) {       // when muti sim and always check sms in system setting
             val blurTarget = activity.findViewById<BlurTarget>(R.id.mainBlurTarget)
             SelectSIMDialog(activity as SimpleActivity, blurTarget) { simCard, _ ->
                 onSubId(simCard.subscriptionId)
@@ -475,6 +476,7 @@ class MessageHolderHelper(
         else {
             val subId = when {
                 subs?.size == 1 -> subs[0].subscriptionId
+                subs?.size == 2 -> defaultSmsSubscriptionId
                 else ->getSubscriptionId()
             }
             subId?.let { onSubId(it) }
