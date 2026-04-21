@@ -114,15 +114,7 @@ class NewConversationActivity : SimpleActivity() {
             animateIme = false,
         )
         setupNewConversationComposeWindowInsets()
-        binding.root.post { ViewCompat.requestApplyInsets(binding.root) }
         binding.nestScroll.post {
-            postSyncMySearchMenuToolbarGeometry(
-                binding.root,
-                binding.newConversationAppbar,
-                binding.conversationScrollBlur,
-                topSideFrame = null,
-                binding.newConversationHolder,
-            )
             setupMySearchMenuSpringSync(binding.newConversationAppbar, binding.contactsList)
             scrollingView = binding.nestScroll
             if (config.changeColourTopBar) {
@@ -186,7 +178,6 @@ class NewConversationActivity : SimpleActivity() {
                 hideKeyboard()
                 finish()
             }
-            bindBlurTarget(this@NewConversationActivity, binding.conversationScrollBlur)
         }
 //        binding.newConversationHolder.setBackgroundColor(backgroundColor)
 //        binding.newConversationAddress.setBackgroundColor(backgroundColor)
@@ -243,6 +234,10 @@ class NewConversationActivity : SimpleActivity() {
     private fun refreshNewConversationInsetsAndToolbarGeometry() {
         binding.root.post {
             ViewCompat.requestApplyInsets(binding.root)
+            binding.newConversationAppbar.requireCustomToolbar().bindBlurTarget(
+                this@NewConversationActivity,
+                binding.conversationScrollBlur,
+            )
             binding.conversationScrollBlur.invalidate()
             postSyncMySearchMenuToolbarGeometry(
                 binding.root,

@@ -59,7 +59,6 @@ class ManageQuickTextsActivity : SimpleActivity(), RefreshRecyclerViewListener, 
         binding = ActivityManageQuickTextsBinding.inflate(layoutInflater)
         setContentView(binding.root)
         initTheme()
-        initMVSideFrames()
         setupEdgeToEdge()
         makeSystemBarsToTransparent()
         setupTopBar()
@@ -74,13 +73,6 @@ class ManageQuickTextsActivity : SimpleActivity(), RefreshRecyclerViewListener, 
             }
         }
         binding.nestScroll.post {
-            postSyncMySearchMenuToolbarGeometry(
-                binding.root,
-                binding.quickTextsAppbar,
-                binding.mainBlurTarget,
-                binding.mVerticalSideFrameTop,
-                binding.manageQuickTextsList,
-            )
             setupMySearchMenuSpringSync(binding.quickTextsAppbar, binding.manageQuickTextsList)
             if (config.changeColourTopBar) {
                 scrollingView = binding.manageQuickTextsList
@@ -111,6 +103,27 @@ class ManageQuickTextsActivity : SimpleActivity(), RefreshRecyclerViewListener, 
         applyQuickTextsWindowSurfacesAndChrome()
         updateTextColors(binding.rootView)
         setupTopBar()
+        refreshSideFrameBlurAndInsets()
+    }
+
+    /** BlurView + MVSideFrame can stop updating after another activity was shown; re-apply insets and re-bind. */
+    private fun refreshSideFrameBlurAndInsets() {
+        binding.root.post {
+            ViewCompat.requestApplyInsets(binding.root)
+            binding.mVerticalSideFrameTop.bindBlurTarget(binding.mainBlurTarget)
+            binding.mVerticalSideFrameBottom.bindBlurTarget(binding.mainBlurTarget)
+            binding.quickTextsAppbar.requireCustomToolbar().bindBlurTarget(
+                this@ManageQuickTextsActivity,
+                binding.mainBlurTarget,
+            )
+            postSyncMySearchMenuToolbarGeometry(
+                binding.root,
+                binding.quickTextsAppbar,
+                binding.mainBlurTarget,
+                binding.mVerticalSideFrameTop,
+                binding.manageQuickTextsList,
+            )
+        }
     }
 
     private fun applyQuickTextsWindowSurfacesAndChrome() {
@@ -136,11 +149,6 @@ class ManageQuickTextsActivity : SimpleActivity(), RefreshRecyclerViewListener, 
     private fun initTheme() {
         window.navigationBarColor = Color.TRANSPARENT
         window.statusBarColor = Color.TRANSPARENT
-    }
-
-    private fun initMVSideFrames() {
-        binding.mVerticalSideFrameTop.bindBlurTarget(binding.mainBlurTarget)
-        binding.mVerticalSideFrameBottom.bindBlurTarget(binding.mainBlurTarget)
     }
 
     private fun makeSystemBarsToTransparent() {
@@ -255,7 +263,6 @@ class ManageQuickTextsActivity : SimpleActivity(), RefreshRecyclerViewListener, 
                 hideKeyboard()
                 finish()
             }
-            bindBlurTarget(this@ManageQuickTextsActivity, binding.mainBlurTarget)
         }
         binding.quickTextsAppbar.searchBeVisibleIf(false)
     }
