@@ -6,6 +6,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.view.View
 import android.view.ViewGroup
+import android.widget.EditText
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.view.ViewCompat
@@ -13,6 +14,7 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updateLayoutParams
 import androidx.core.view.updatePadding
+import com.android.common.dialogs.MRenameDialog
 import com.goodwy.commons.extensions.beVisibleIf
 import com.goodwy.commons.extensions.getColoredDrawableWithColor
 import com.goodwy.commons.extensions.getTempFile
@@ -34,7 +36,6 @@ import com.goodwy.commons.interfaces.RefreshRecyclerViewListener
 import com.goodwy.commons.views.CustomActionModeToolbar
 import com.android.mms.R
 import com.android.mms.databinding.ActivityManageQuickTextsBinding
-import com.android.mms.dialogs.AddQuickTextDialog
 import com.android.mms.dialogs.ExportQuickTextsDialog
 import com.android.mms.dialogs.ManageQuickTextsAdapter
 import com.android.mms.extensions.applyLargeTitleOnly
@@ -45,6 +46,7 @@ import com.android.mms.extensions.setupMySearchMenuSpringSync
 import com.android.mms.extensions.toArrayList
 import com.android.mms.helpers.QuickTextsExporter
 import com.android.mms.helpers.QuickTextsImporter
+import com.goodwy.commons.extensions.showKeyboard
 import java.io.FileOutputStream
 import java.io.OutputStream
 class ManageQuickTextsActivity : SimpleActivity(), RefreshRecyclerViewListener, ActionModeToolbarHost {
@@ -424,8 +426,23 @@ class ManageQuickTextsActivity : SimpleActivity(), RefreshRecyclerViewListener, 
     }
 
     private fun addOrEditQuickText(text: String? = null) {
-        AddQuickTextDialog(this, text, blurTarget = binding.mainBlurTarget) {
+        val dialog = MRenameDialog(this)
+        dialog.bindBlurTarget(binding.mainBlurTarget)
+        dialog.setTitle(getString(if (text == null) R.string.add_a_quick_text else R.string.quick_text))
+        dialog.setHintText(getString(com.android.common.R.string.tx_input_name))
+        dialog.setContentText(text.orEmpty())
+        dialog.setOnRenameListener { newQuickText ->
+            if (text != null && newQuickText != text) {
+                config.removeQuickText(text)
+            }
+            if (newQuickText.isNotEmpty()) {
+                config.addQuickText(newQuickText)
+            }
             updateQuickTexts()
+        }
+        dialog.show()
+        dialog.window?.decorView?.findViewById<EditText>(com.android.common.R.id.input_text)?.let { et ->
+            et.post { showKeyboard(et) }
         }
     }
 }
