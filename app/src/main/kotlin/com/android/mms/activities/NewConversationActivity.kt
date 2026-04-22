@@ -182,7 +182,6 @@ class NewConversationActivity : SimpleActivity() {
 //        binding.newConversationHolder.setBackgroundColor(backgroundColor)
 //        binding.newConversationAddress.setBackgroundColor(backgroundColor)
 //        binding.suggestionsOverlay.setBackgroundColor(backgroundColor)
-        binding.suggestionsOverlay.beGone()
 
         binding.noContactsPlaceholder2.setTextColor(getProperPrimaryColor)
         binding.noContactsPlaceholder2.underlineText()
@@ -203,6 +202,8 @@ class NewConversationActivity : SimpleActivity() {
                 setupSIMSelector()
             }
         }
+
+        updateSuggestionsOverlayVisibility()
     }
 
     override fun onDestroy() {
@@ -588,20 +589,8 @@ class NewConversationActivity : SimpleActivity() {
         }
 
         binding.newConversationAddress.setOnTextChangedListener { searchString ->
-            // Hide/show suggestions based on text input
-            if (searchString.isNotEmpty()) {
-//                binding.suggestionsLabel.beGone()
-                binding.suggestionsScrollview.beGone()
-                binding.suggestionsOverlay.beGone()
-            } else {
-                // Show suggestions only if they exist (check if suggestionsHolder has children)
-                if (binding.suggestionsHolder.childCount > 0) {
-//                    binding.suggestionsLabel.beVisible()
-                    binding.suggestionsOverlay.beVisible()
-                    binding.suggestionsScrollview.beVisible()
-                }
-            }
-            
+            updateSuggestionsOverlayVisibility(searchString)
+
             val filteredContacts = ArrayList<SimpleContact>()
             allContacts.forEach { contact ->
                 // Check if contact name matches
@@ -874,6 +863,27 @@ class NewConversationActivity : SimpleActivity() {
         setupLetterFastscroller(contactPhonePairs)
     }
 
+    /**
+     * Shows the suggested-contacts strip when the recipient field filter is empty and
+     * [binding.suggestionsHolder] has been populated; hides while the user is typing.
+     * [ChipsInputView] does not invoke the text listener for the initial empty field, so this is
+     * also called after [fillSuggestedContacts] runs and from [onResume].
+     */
+    private fun updateSuggestionsOverlayVisibility(recipientFilterText: String = binding.newConversationAddress.currentText) {
+        if (recipientFilterText.isNotEmpty()) {
+            binding.suggestionsScrollview.beGone()
+            binding.suggestionsOverlay.beGone()
+            return
+        }
+        if (binding.suggestionsHolder.childCount > 0) {
+            binding.suggestionsOverlay.beVisible()
+            binding.suggestionsScrollview.beVisible()
+        } else {
+            binding.suggestionsScrollview.beGone()
+            binding.suggestionsOverlay.beGone()
+        }
+    }
+
     private fun fillSuggestedContacts(callback: (ArrayList<SimpleContact>) -> Unit) {
         val privateCursor = getMyContactsCursor(false, true)
         ensureBackgroundThread {
@@ -883,12 +893,7 @@ class NewConversationActivity : SimpleActivity() {
                 val suggestions = getSuggestedContacts(contacts)
                 runOnUiThread {
                     binding.suggestionsHolder.removeAllViews()
-                    if (suggestions.isEmpty()) {
-//                        binding.suggestionsLabel.beGone()
-                        binding.suggestionsScrollview.beGone()
-                    } else {
-                        //binding.suggestionsLabel.beVisible()
-                        binding.suggestionsScrollview.beVisible()
+                    if (suggestions.isNotEmpty()) {
                         suggestions.forEach { contact ->
                             ItemSuggestedContactBinding.inflate(layoutInflater).apply {
                                 suggestedContactName.text = contact.name
@@ -936,6 +941,7 @@ class NewConversationActivity : SimpleActivity() {
                         }
                     }
                     callback(it)
+                    updateSuggestionsOverlayVisibility()
                 }
             }
         }
