@@ -74,13 +74,16 @@ class ManageQuickTextsAdapter(
 
     fun isActionModeActive(): Boolean = actModeCallback.isSelectable
 
+    fun hasRippleToolbarSelection(): Boolean = selectedKeys.isNotEmpty()
+
     /**
      * Bottom toolbar for [com.android.common.view.MRippleToolBar] in [ManageQuickTextsActivity].
      */
     fun buildQuickTextsRippleToolbar(): Pair<ArrayList<IconItem>, ArrayList<Int>> {
         val items = ArrayList<IconItem>()
         val ids = ArrayList<Int>()
-        if (selectedKeys.isEmpty()) {
+//        if (selectedKeys.isEmpty()) {
+        if (quickTexts.isEmpty()) {
             return items to ids
         }
         items.add(

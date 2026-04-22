@@ -42,6 +42,7 @@ import com.android.mms.extensions.applyLargeTitleOnly
 import com.android.mms.extensions.clearMySearchMenuSpringSync
 import com.android.mms.extensions.config
 import com.android.mms.extensions.postSyncMySearchMenuToolbarGeometry
+import com.android.mms.extensions.setRippleTabEnabledWidthAlpha
 import com.android.mms.extensions.setupMySearchMenuSpringSync
 import com.android.mms.extensions.toArrayList
 import com.android.mms.helpers.QuickTextsExporter
@@ -222,7 +223,12 @@ class ManageQuickTextsActivity : SimpleActivity(), RefreshRecyclerViewListener, 
             adapter.dispatchRippleToolbarAction(index)
         }
         binding.actionModeRippleToolbar.visibility = View.VISIBLE
+        val hasSelection = adapter.hasRippleToolbarSelection()
+        for (i in 0 until items.size) {
+            binding.actionModeRippleToolbar.setRippleTabEnabledWidthAlpha(i, hasSelection)
+        }
     }
+
 
     fun refreshActionModeRippleToolbarIfNeeded() {
         if (isDestroyed || isFinishing) return

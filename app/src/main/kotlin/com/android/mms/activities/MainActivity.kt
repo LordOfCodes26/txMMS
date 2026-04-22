@@ -500,6 +500,10 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
             adapter.dispatchRippleToolbarAction(index)
         }
         binding.actionModeRippleToolbar.visibility = View.VISIBLE
+        val hasSelection = adapter.getSelectedItems().isNotEmpty()
+        for (i in 0 until items.size) {
+            binding.actionModeRippleToolbar.setRippleTabEnabledWidthAlpha(i, hasSelection)
+        }
     }
 
     fun refreshActionModeRippleToolbarIfNeeded() {

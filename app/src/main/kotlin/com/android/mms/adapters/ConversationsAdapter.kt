@@ -326,7 +326,7 @@ class ConversationsAdapter(
         // Single-select only; visibility comes from [configureCabConversationsMenu] (details: group or contact; add: unknown number).
         val selectedItemSize = getSelectedItems().size
         // val exactlyOneConversation = getSelectedItems().size == 1
-        if (selectedItemSize >= 1){
+//        if (selectedItemSize >= 1){
             add(
                 com.android.common.R.drawable.ic_cmn_delete_fill,
                 activity.getString(com.goodwy.commons.R.string.delete),
@@ -374,7 +374,7 @@ class ConversationsAdapter(
                     R.id.cab_ripple_secure_box_unlock,
                 )
             }
-        }
+//        }
 
 //        if (exactlyOneConversation && m.findItem(R.id.cab_conversation_details)?.isVisible == true) {
 //            add(

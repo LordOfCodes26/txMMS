@@ -133,6 +133,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
     private var scheduledDateTime: DateTime = DateTime.now().plusMinutes(5)
 
     private var isAttachmentPickerVisible = false
+
     /** When true, [threadTypeMessage] focus loss is from opening the attachment picker; skip inset sync. */
     private var ignoreInputFocusLossInsetSync = false
     /**
@@ -2803,10 +2804,18 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             adapter.dispatchRippleToolbarAction(index)
         }
         binding.actionModeRippleToolbar.visibility = View.VISIBLE
-        if (adapter.getSelectedItems().isEmpty()){
-            for (i in 0 until 3){
-                binding.actionModeRippleToolbar.setEnable(i, false)
-            }
+//        if (adapter.getSelectedItems().isEmpty()){
+//            for (i in 0 until 3){
+//                binding.actionModeRippleToolbar.setEnable(i, false)
+//            }
+//        }
+        val hasSelection = adapter.getSelectedItems().isNotEmpty()
+//        for (i in 0 until items.size) {
+//            binding.actionModeRippleToolbar.setRippleTabEnabledWidthAlpha(i, hasSelection)
+//        }
+        for (i in 0 until items.size) {
+            binding.actionModeRippleToolbar.setRippleTabEnabledWidthAlpha(i,
+                adapter.isThreadRippleTabInteractionEnabled(i))
         }
     }
 

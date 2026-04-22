@@ -189,6 +189,12 @@ class ThreadAdapter(
         private const val MAX_MEDIA_HEIGHT_RATIO = 3
         private const val SIM_BITS = 21
         private const val SIM_MASK = (1L shl SIM_BITS) - 1
+
+        private val THREAD_RIPPLE_TOOLBAR_IDS = listOf(
+            R.id.cab_ripple_delete,
+            R.id.cab_ripple_message_conversion,
+            R.id.cab_ripple_copy
+        )
     }
 
     @DrawableRes
@@ -252,6 +258,21 @@ class ThreadAdapter(
         (activity as? ThreadActivity)?.refreshActionModeRippleToolbarIfNeeded()
     }
 
+    fun isThreadRippleTabInteractionEnabled(tabIndex: Int): Boolean {
+        val id = THREAD_RIPPLE_TOOLBAR_IDS.getOrNull(tabIndex) ?: return false
+        if (selectedKeys.isEmpty()) return false
+        val isOneItemSelected = isOneItemSelected()
+        val selectedItem = getSelectedItems().firstOrNull() as? Message
+        val hasText = selectedItem?.body?.isNotBlank() == true
+        val selectedmessages = getSelectedItems().filterIsInstance<Message>()
+        val hasAnyText = selectedmessages.any { it.body.isNotBlank() }
+        return when (id) {
+            R.id.cab_ripple_delete -> true
+            R.id.cab_ripple_message_conversion -> hasAnyText
+            R.id.cab_ripple_copy -> isOneItemSelected && hasText
+            else -> false
+        }
+    }
     /**
      * Bottom [com.android.common.view.MRippleToolBar] for thread selection (same pattern as [com.android.mms.activities.MainActivity]).
      */
@@ -275,11 +296,11 @@ class ThreadAdapter(
             ids.add(id)
         }
 
-        val orderedIds = listOf(
-            R.id.cab_ripple_delete,
-            R.id.cab_ripple_message_conversion,
-            R.id.cab_ripple_copy
-        )
+//        val orderedIds = listOf(
+//            R.id.cab_ripple_delete,
+//            R.id.cab_ripple_message_conversion,
+//            R.id.cab_ripple_copy
+//        )
         val iconForId = { itemId: Int ->
             when (itemId) {
                 R.id.cab_ripple_copy -> R.drawable.ic_sms_ripple_copy
@@ -288,15 +309,28 @@ class ThreadAdapter(
                 else -> 0
             }
         }
-        for (itemId in orderedIds) {
-            val mi = m.findItem(itemId) ?: continue
-            if (!mi.isVisible) continue
-            val iconRes = iconForId(itemId)
-//            if (iconRes == 0) continue
-            if (getSelectedItems().size == 0){
-                break
+//        for (itemId in orderedIds) {
+//            val mi = m.findItem(itemId) ?: continue
+//            if (!mi.isVisible) continue
+//            val iconRes = iconForId(itemId)
+////            if (iconRes == 0) continue
+//            if (getSelectedItems().size == 0){
+//                break
+//            }
+//            add(iconRes, mi.title ?: "", itemId)
+        val titleForId = { itemId: Int ->
+            val fromMenu = m.findItem(itemId)?.title?.toString().orEmpty()
+            fromMenu.ifEmpty {
+                when(itemId) {
+                    R.id.cab_ripple_delete -> activity.getString(com.goodwy.commons.R.string.delete)
+                    R.id.cab_ripple_message_conversion -> activity.getString(R.string.message_conversion)
+                    R.id.cab_ripple_copy -> activity.getString(com.goodwy.commons.R.string.copy)
+                    else -> ""
+                }
             }
-            add(iconRes, mi.title ?: "", itemId)
+        }
+        for (itemId in THREAD_RIPPLE_TOOLBAR_IDS) {
+            add(iconForId(itemId), titleForId(itemId), itemId)
         }
         return items to ids
     }
