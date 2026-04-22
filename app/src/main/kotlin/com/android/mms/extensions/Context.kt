@@ -542,9 +542,8 @@ fun Context.getConversations(
 
                 val names = getThreadContactNames(phoneNumbers, privateContacts)
                 // Use thread address as title when it would otherwise be stripped (e.g. "1912345678" not "912345678")
-                val title = if (phoneNumbers.size == 1 && names.size == 1 &&
-                    names[0] == getDisplayNumberWithoutCountryCode(phoneNumbers.first())) {
-                    phoneNumbers.first()
+                val title = if (phoneNumbers.size == 1 && names.size == 1) {
+                    names[0]
                 } else {
                     TextUtils.join(", ", names.toTypedArray())
                 }
@@ -918,7 +917,12 @@ fun Context.getThreadContactNames(
         } else {
             val privateContact = privateContacts.firstOrNull { it.doesHavePhoneNumber(number) }
             if (privateContact == null) {
-                names.add(getDisplayNumberWithoutCountryCode(name))
+                if (name.startsWith("+")) {
+                    names.add(getDisplayNumberWithoutCountryCode(name))
+                } else {
+                    names.add(name)
+                }
+
             } else {
                 names.add(privateContact.name)
             }
