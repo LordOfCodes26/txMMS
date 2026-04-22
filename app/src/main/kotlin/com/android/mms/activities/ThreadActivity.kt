@@ -41,6 +41,7 @@ import androidx.core.content.res.ResourcesCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updateLayoutParams
 import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
@@ -277,6 +278,26 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             ViewCompat.requestApplyInsets(binding.root)
             binding.mVerticalSideFrameTop.bindBlurTarget(binding.mainBlurTarget)
             binding.mVerticalSideFrameBottom.bindBlurTarget(binding.mainBlurTarget)
+            syncThreadTopBlurStripGeometry()
+        }
+    }
+
+    /**
+     * Same idea as [com.android.mms.extensions.postSyncMySearchMenuToolbarGeometry] / MainActivity blur
+     * sync: [mainBlurTarget] needs a negative top margin and the top [MVSideFrame] height must match the
+     * app bar so BlurView samples the list region under transparent toolbar chrome correctly.
+     */
+    private fun syncThreadTopBlurStripGeometry() {
+        binding.threadAppbar.post {
+            val appBar = binding.threadAppbar
+            val h = appBar.height.takeIf { it > 0 } ?: appBar.measuredHeight.takeIf { it > 0 } ?: return@post
+            val feather = resources.getDimensionPixelSize(R.dimen.tx_my_search_menu_top_blur_feather)
+            binding.mVerticalSideFrameTop.updateLayoutParams<ViewGroup.LayoutParams> {
+                val newHeight = h + maxOf(0, feather)
+                if (height != newHeight) height = newHeight
+            }
+            syncBlurTargetTopMarginForMenu(binding.mainBlurTarget, h)
+            binding.mainBlurTarget.invalidate()
         }
     }
 
@@ -1634,6 +1655,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         }
         val threadSubtitle = participants.getThreadSubtitle(this@ThreadActivity)
         bindThreadHeaderUi(threadTitle, threadSubtitle, participants.size, bindInteractions = true)
+        syncThreadTopBlurStripGeometry()
     }
 
     @SuppressLint("MissingPermission")
