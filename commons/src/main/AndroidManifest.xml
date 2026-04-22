@@ -25,6 +25,9 @@
         tools:node="remove" />
 
     <uses-permission android:name="com.goodwy.android.permission.WRITE_GLOBAL_SETTINGS" />
+    <!-- added by sun for change sms default subscription id -->
+    <uses-permission android:name="android.permission.MODIFY_PHONE_STATE"
+        tools:ignore="ProtectedPermissions" />
 
     <application android:supportsRtl="true">
         <activity

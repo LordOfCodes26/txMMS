@@ -1620,6 +1620,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                         val simMnc = currentSIMCard.mnc
                         if (simMnc == MNC_KANGSONG) config.simIconsColors[2] else config.simIconsColors[0]
                     }
+                    trySetSystemDefaultSmsSubscriptionId(currentSIMCard.subscriptionId)
                     // <------------
 
                     binding.messageHolder.threadSelectSimIcon.applyColorFilter(simColor)
