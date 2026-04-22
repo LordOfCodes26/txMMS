@@ -264,8 +264,8 @@ class ThreadAdapter(
         val isOneItemSelected = isOneItemSelected()
         val selectedItem = getSelectedItems().firstOrNull() as? Message
         val hasText = selectedItem?.body?.isNotBlank() == true
-        val selectedmessages = getSelectedItems().filterIsInstance<Message>()
-        val hasAnyText = selectedmessages.any { it.body.isNotBlank() }
+        val selectedMessages = getSelectedItems().filterIsInstance<Message>()
+        val hasAnyText = selectedMessages.any { it.body.isNotBlank() }
         return when (id) {
             R.id.cab_ripple_delete -> true
             R.id.cab_ripple_message_conversion -> hasAnyText
