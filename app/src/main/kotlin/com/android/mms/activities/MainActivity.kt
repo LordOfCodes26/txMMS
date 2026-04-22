@@ -56,6 +56,7 @@ import com.android.mms.helpers.THREAD_ID
 import com.android.mms.helpers.THREAD_OPENED_FROM_SECURE_CONVERSATION_LIST
 import com.android.mms.helpers.THREAD_NUMBER
 import com.android.mms.helpers.THREAD_TITLE
+import com.android.mms.helpers.THREAD_URI
 import com.android.mms.helpers.refreshConversations
 import com.android.mms.helpers.whatsNewList
 import com.android.mms.models.Conversation
@@ -1567,6 +1568,28 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
     private fun handleConversationClick(any: Any) {
         val conversation = any as Conversation
         hideKeyboard()
+
+        fun startThreadActivity() {
+            Intent(this, ThreadActivity::class.java).apply {
+                putExtra(THREAD_ID, conversation.threadId)
+                putExtra(THREAD_TITLE, conversation.title)
+                putExtra(THREAD_NUMBER, conversation.phoneNumber)
+                putExtra(THREAD_URI, conversation.photoUri)
+                if (config.selectedConversationPin > 0) {
+                    putExtra(THREAD_OPENED_FROM_SECURE_CONVERSATION_LIST, true)
+                }
+                isLaunchingInternalConversationActivity = true
+                startActivity(this)
+            }
+        }
+
+        // When the list already has messages, route to NewConversation vs Thread on a background check
+        // but start the thread immediately after that check when we do open it.
+        if (conversation.messageCount > 0) {
+            startThreadActivity()
+            return
+        }
+
         ensureBackgroundThread {
             val telephonyMessageCount = getThreadTelephonyMessageCount(conversation.threadId)
             val openNewComposeForDraft =
@@ -1591,26 +1614,10 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
                             startActivity(this)
                         }
                     } else {
-                        Intent(this, ThreadActivity::class.java).apply {
-                            putExtra(THREAD_ID, conversation.threadId)
-                            putExtra(THREAD_TITLE, conversation.title)
-                            if (config.selectedConversationPin > 0) {
-                                putExtra(THREAD_OPENED_FROM_SECURE_CONVERSATION_LIST, true)
-                            }
-                            isLaunchingInternalConversationActivity = true
-                            startActivity(this)
-                        }
+                        startThreadActivity()
                     }
                 } else {
-                    Intent(this, ThreadActivity::class.java).apply {
-                        putExtra(THREAD_ID, conversation.threadId)
-                        putExtra(THREAD_TITLE, conversation.title)
-                        if (config.selectedConversationPin > 0) {
-                            putExtra(THREAD_OPENED_FROM_SECURE_CONVERSATION_LIST, true)
-                        }
-                        isLaunchingInternalConversationActivity = true
-                        startActivity(this)
-                    }
+                    startThreadActivity()
                 }
             }
         }
@@ -1768,6 +1775,8 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
                     Intent(this, ThreadActivity::class.java).apply {
                         putExtra(THREAD_ID, (it as SearchResult).threadId)
                         putExtra(THREAD_TITLE, it.title)
+                        putExtra(THREAD_NUMBER, it.phoneNumber)
+                        putExtra(THREAD_URI, it.photoUri)
                         putExtra(SEARCHED_MESSAGE_ID, it.messageId)
                         if (config.selectedConversationPin > 0) {
                             putExtra(THREAD_OPENED_FROM_SECURE_CONVERSATION_LIST, true)

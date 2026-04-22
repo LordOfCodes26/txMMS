@@ -25,7 +25,9 @@ import com.android.mms.extensions.conversationsDB
 import com.android.mms.extensions.emptyMessagesRecycleBin
 import com.android.mms.helpers.IS_RECYCLE_BIN
 import com.android.mms.helpers.THREAD_ID
+import com.android.mms.helpers.THREAD_NUMBER
 import com.android.mms.helpers.THREAD_TITLE
+import com.android.mms.helpers.THREAD_URI
 import com.android.mms.models.Conversation
 import com.android.mms.models.Events
 import org.greenrobot.eventbus.EventBus
@@ -190,6 +192,8 @@ class RecycleBinConversationsActivity : SimpleActivity() {
             val conversation = any as Conversation
             putExtra(THREAD_ID, conversation.threadId)
             putExtra(THREAD_TITLE, conversation.title)
+            putExtra(THREAD_NUMBER, conversation.phoneNumber)
+            putExtra(THREAD_URI, conversation.photoUri)
             putExtra(IS_RECYCLE_BIN, true)
             startActivity(this)
         }

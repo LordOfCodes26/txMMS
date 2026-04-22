@@ -23,6 +23,7 @@ import com.android.mms.helpers.THREAD_NUMBER
 import com.android.mms.helpers.THREAD_OPENED_FROM_SECURE_CONVERSATION_LIST
 import com.android.mms.helpers.THREAD_SHOW_BLOCKED_MESSAGES
 import com.android.mms.helpers.THREAD_TITLE
+import com.android.mms.helpers.THREAD_URI
 import com.android.mms.models.Conversation
 import com.goodwy.commons.R as CommonsR
 import com.goodwy.commons.helpers.MyContactsContentProvider
@@ -119,6 +120,10 @@ class BlockedConversationsFragment : Fragment(CommonsR.layout.fragment_blocked_m
     @SuppressLint("UnsafeIntentLaunch")
     private fun openConversation(act: BaseSimpleActivity, conversation: Conversation) {
         act.hideKeyboard()
+        if (conversation.messageCount > 0) {
+            startThreadWithBlockedVisible(act, conversation)
+            return
+        }
         ensureBackgroundThread {
             val telephonyMessageCount = act.getThreadTelephonyMessageCount(conversation.threadId)
             val openNewComposeForDraft =
@@ -156,6 +161,8 @@ class BlockedConversationsFragment : Fragment(CommonsR.layout.fragment_blocked_m
         Intent(act, ThreadActivity::class.java).apply {
             putExtra(THREAD_ID, conversation.threadId)
             putExtra(THREAD_TITLE, conversation.title)
+            putExtra(THREAD_NUMBER, conversation.phoneNumber)
+            putExtra(THREAD_URI, conversation.photoUri)
             putExtra(THREAD_SHOW_BLOCKED_MESSAGES, true)
             if (act.config.selectedConversationPin > 0) {
                 putExtra(THREAD_OPENED_FROM_SECURE_CONVERSATION_LIST, true)

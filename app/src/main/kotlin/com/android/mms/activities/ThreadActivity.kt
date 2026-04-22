@@ -207,9 +207,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         isSpeechToTextAvailable = if (config.useSpeechToText) isSpeechToTextAvailable() else false
 
         threadId = intent.getLongExtra(THREAD_ID, 0L)
-//        intent.getStringExtra(THREAD_TITLE)?.let {
-//            binding.threadToolbar.title = it
-//        }
+        applyInitialThreadHeaderFromIntent()
         isRecycleBin = intent.getBooleanExtra(IS_RECYCLE_BIN, false)
         isLaunchedFromShortcut = intent.getBooleanExtra(IS_LAUNCHED_FROM_SHORTCUT, false)
         openedFromSecureConversationList =
@@ -859,25 +857,21 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
     private fun setupCachedMessages(callback: () -> Unit) {
         ensureBackgroundThread {
             messages = try {
-                if (isRecycleBin) {
-                    messagesDB.getThreadMessagesFromRecycleBin(threadId)
-                } else {
-                    if (config.useRecycleBin) {
-                        messagesDB.getNonRecycledThreadMessages(threadId)
-                    } else {
-                        messagesDB.getThreadMessages(threadId)
-                    }
-                }.toMutableList() as ArrayList<Message>
+                val recent = when {
+                    isRecycleBin -> messagesDB.getRecentRecycleBinThreadMessages(threadId, MESSAGES_LIMIT)
+                    config.useRecycleBin -> messagesDB.getRecentNonRecycledThreadMessages(threadId, MESSAGES_LIMIT)
+                    else -> messagesDB.getRecentThreadMessages(threadId, MESSAGES_LIMIT)
+                }
+                ArrayList(recent.asReversed())
             } catch (_: Exception) {
                 ArrayList()
             }
+            allMessagesFetched = messages.size < MESSAGES_LIMIT
+
             clearExpiredScheduledMessages(threadId, messages)
             messages.removeAll { it.isScheduled && it.millis() < System.currentTimeMillis() }
 
             messages.sortBy { it.date }
-            if (messages.size > MESSAGES_LIMIT) {
-                messages = ArrayList(messages.takeLast(MESSAGES_LIMIT))
-            }
 
             setupParticipants()
             setupAdapter()
@@ -1490,8 +1484,135 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         }
     }
 
-    private fun setupThreadTitle() = binding.apply {
+    /**
+     * Paints toolbar / header from [THREAD_TITLE], [THREAD_NUMBER], and [THREAD_URI] so the UI matches
+     * the conversation list before Room and telephony finish loading.
+     */
+    private fun applyInitialThreadHeaderFromIntent() {
+        val titleExtra = intent.getStringExtra(THREAD_TITLE)?.trim().orEmpty()
+        val rawNumberExtra = intent.getStringExtra(THREAD_NUMBER)
+        if (titleExtra.isEmpty() && rawNumberExtra.isNullOrBlank()) {
+            return
+        }
+
+        val numbers = getPhoneNumbersFromIntent()
+        var threadTitle = titleExtra
+        var threadSubtitle = ""
+
+        when {
+            numbers.size <= 1 -> {
+                val phoneNumber = when {
+                    numbers.isNotEmpty() -> numbers.first().trim()
+                    !rawNumberExtra.isNullOrBlank() -> rawNumberExtra.trim()
+                    else -> ""
+                }
+                if (phoneNumber.isNotEmpty()) {
+                    val normalizedPhone = phoneNumber.normalizePhoneNumber()
+                    val normalizedTitle = threadTitle.normalizePhoneNumber()
+                    if (threadTitle.isNotEmpty() &&
+                        (normalizedTitle == normalizedPhone || threadTitle == phoneNumber) &&
+                        threadTitle.startsWith("+")
+                    ) {
+                        threadTitle = getDisplayNumberWithoutCountryCode(phoneNumber)
+                    }
+                    val displayPhone = getDisplayNumberWithoutCountryCode(phoneNumber)
+                    val showPhoneSubtitle = config.showPhoneNumber ||
+                        threadTitle.isEmpty() ||
+                        normalizedTitle == normalizedPhone ||
+                        threadTitle == phoneNumber
+                    if (showPhoneSubtitle && displayPhone.isNotEmpty()) {
+                        threadSubtitle = displayPhone
+                    }
+                    if (threadSubtitle.isNotEmpty() &&
+                        (threadSubtitle == threadTitle || displayPhone == threadTitle)
+                    ) {
+                        threadSubtitle = ""
+                    }
+                }
+            }
+            else -> {
+                threadSubtitle =
+                    TextUtils.join(
+                        ", ",
+                        numbers.map { getDisplayNumberWithoutCountryCode(it) }.toTypedArray(),
+                    )
+            }
+        }
+
+        if (threadTitle.isEmpty() && numbers.isNotEmpty()) {
+            threadTitle = getDisplayNumberWithoutCountryCode(numbers.first())
+        }
+
+        val participantCount = when {
+            numbers.size > 1 -> numbers.size
+            else -> 1
+        }
+
+        bindThreadHeaderUi(threadTitle, threadSubtitle, participantCount, bindInteractions = false)
+        binding.root.post { updateContactImage() }
+    }
+
+    /**
+     * Shared header layout for [setupThreadTitle] and [applyInitialThreadHeaderFromIntent].
+     */
+    private fun bindThreadHeaderUi(
+        threadTitle: String,
+        threadSubtitle: String,
+        participantCount: Int,
+        bindInteractions: Boolean,
+    ) = binding.apply {
         val textColor = getProperTextColor()
+        threadToolbar.title = ""
+        when (config.threadTopStyle) {
+            THREAD_TOP_COMPACT -> {
+                topDetailsLarge.beGone()
+                topDetailsCompact.root.beVisible()
+                topDetailsCompact.apply {
+                    senderPhoto.beVisibleIf(config.showContactThumbnails)
+                    if (threadTitle.isNotEmpty()) {
+                        senderName.text = threadTitle
+                        senderName.setTextColor(textColor)
+                    }
+                    senderNumber.beGoneIf(
+                        threadSubtitle.isEmpty() || threadTitle == threadSubtitle || participantCount > 1,
+                    )
+                    senderNumber.text = threadSubtitle
+                    senderNumber.setTextColor(textColor)
+                    if (bindInteractions) {
+                        arrayOf(senderPhoto, senderName, senderNumber).forEach {
+                            it.setOnClickListener {
+                                if (conversation != null) launchConversationDetails(threadId)
+                            }
+                        }
+                        senderName.setOnLongClickListener { copyToClipboard(senderName.value); true }
+                        senderNumber.setOnLongClickListener { copyToClipboard(senderNumber.value); true }
+                    }
+                }
+            }
+            THREAD_TOP_LARGE -> {
+                topDetailsCompact.root.beGone()
+                topDetailsLarge.beVisible()
+                topDetailsLarge.apply {
+                    if (threadTitle.isNotEmpty()) {
+                        senderNameLarge.text = threadTitle
+                        senderNameLarge.setTextColor(textColor)
+                        senderNameLarge.isSelected = true
+                        senderNameLarge.post { senderNameLarge.isSelected = true }
+                    }
+                    senderNumberLarge.beGoneIf(
+                        threadSubtitle.isEmpty() || threadTitle == threadSubtitle || participantCount > 1,
+                    )
+                    senderNumberLarge.text = threadSubtitle
+                    senderNumberLarge.setTextColor(textColor)
+                    if (bindInteractions) {
+                        senderNameLarge.setOnLongClickListener { copyToClipboard(senderNameLarge.value); true }
+                    }
+                }
+            }
+        }
+    }
+
+    private fun setupThreadTitle() {
         val title = conversation?.title
         // For multiple participants always show "first user's name or phone and N others" in sender_name_large/sender_name
         var threadTitle = if (participants.size > 1) {
@@ -1504,69 +1625,15 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             val phoneNumber = participants.first().phoneNumbers.firstOrNull()?.normalizedNumber ?: ""
             val normalizedTitle = threadTitle.normalizePhoneNumber()
             val normalizedPhone = phoneNumber.normalizePhoneNumber()
-            if (phoneNumber.isNotEmpty() && (normalizedTitle == normalizedPhone || threadTitle == phoneNumber) && threadTitle.startsWith("+")) {
+            if (phoneNumber.isNotEmpty() &&
+                (normalizedTitle == normalizedPhone || threadTitle == phoneNumber) &&
+                threadTitle.startsWith("+")
+            ) {
                 threadTitle = getDisplayNumberWithoutCountryCode(phoneNumber)
             }
         }
         val threadSubtitle = participants.getThreadSubtitle(this@ThreadActivity)
-        threadToolbar.title = ""
-        when (config.threadTopStyle) {
-            THREAD_TOP_COMPACT -> {
-                topDetailsLarge.beGone()
-                topDetailsCompact.root.beVisible()
-                topDetailsCompact.apply {
-                    senderPhoto.beVisibleIf(config.showContactThumbnails)
-                    if (threadTitle.isNotEmpty()) {
-                        senderName.text = threadTitle
-                        senderName.setTextColor(textColor)
-                    }
-                    senderNumber.beGoneIf(threadSubtitle.isEmpty() || threadTitle == threadSubtitle || participants.size > 1)
-                    senderNumber.text = threadSubtitle
-                    senderNumber.setTextColor(textColor)
-                    arrayOf(
-                        senderPhoto,
-                        senderName,
-                        senderNumber
-                    ).forEach {
-                        it.setOnClickListener {
-                            if (conversation != null) launchConversationDetails(threadId)
-                        }
-                    }
-                    senderName.setOnLongClickListener { copyToClipboard(senderName.value); true }
-                    senderNumber.setOnLongClickListener { copyToClipboard(senderNumber.value); true }
-                }
-            }
-            THREAD_TOP_LARGE -> {
-                topDetailsCompact.root.beGone()
-                topDetailsLarge.beVisible()
-                topDetailsLarge.apply {
-                    // senderPhotoLarge.beVisibleIf(config.showContactThumbnails)
-                    if (threadTitle.isNotEmpty()) {
-                        senderNameLarge.text = threadTitle
-                        senderNameLarge.setTextColor(textColor)
-                        senderNameLarge.isSelected = true
-                        // Marquee starts after layout; re-apply selection so it reliably runs in AppBar.
-                        senderNameLarge.post {
-                            senderNameLarge.isSelected = true
-                        }
-                    }
-                    senderNumberLarge.beGoneIf(threadSubtitle.isEmpty() || threadTitle == threadSubtitle || participants.size > 1)
-                    senderNumberLarge.text = threadSubtitle
-                    senderNumberLarge.setTextColor(textColor)
-                    arrayOf(
-                        // senderPhotoLarge,
-                        senderNameLarge,
-//                        senderNumberLarge
-                    ).forEach {
-                        it.setOnClickListener {
-//                            if (conversation != null) launchConversationDetails(threadId)
-                        }
-                    }
-                    senderNameLarge.setOnLongClickListener { copyToClipboard(senderNameLarge.value); true }
-//                    senderNumberLarge.setOnLongClickListener { copyToClipboard(senderNumberLarge.value); true }
-                }
-            }
-        }
+        bindThreadHeaderUi(threadTitle, threadSubtitle, participants.size, bindInteractions = true)
     }
 
     @SuppressLint("MissingPermission")
@@ -2593,7 +2660,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         const val TYPE_DELETE = 16
         const val MIN_DATE_TIME_DIFF_SECS = 300
         const val SCROLL_TO_BOTTOM_FAB_LIMIT = 20
-        const val PREFETCH_THRESHOLD = 45
+        const val PREFETCH_THRESHOLD = 15
         const val PICK_SAVE_FILE_INTENT = 1008
         const val PICK_SAVE_DIR_INTENT = 1009
     }

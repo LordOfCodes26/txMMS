@@ -30,14 +30,30 @@ interface MessagesDao {
     @Query("SELECT * FROM messages WHERE thread_id = :threadId")
     fun getThreadMessages(threadId: Long): List<Message>
 
+    /** Latest [limit] rows by date (descending). Reverse in Kotlin for chronological order. */
+    @Query("SELECT * FROM messages WHERE thread_id = :threadId ORDER BY date DESC LIMIT :limit")
+    fun getRecentThreadMessages(threadId: Long, limit: Int): List<Message>
+
     @Query("SELECT messages.* FROM messages LEFT OUTER JOIN recycle_bin_messages ON messages.id = recycle_bin_messages.id WHERE recycle_bin_messages.id IS NULL AND thread_id = :threadId")
     fun getNonRecycledThreadMessages(threadId: Long): List<Message>
+
+    @Query(
+        "SELECT messages.* FROM messages LEFT OUTER JOIN recycle_bin_messages ON messages.id = recycle_bin_messages.id " +
+            "WHERE recycle_bin_messages.id IS NULL AND thread_id = :threadId ORDER BY date DESC LIMIT :limit",
+    )
+    fun getRecentNonRecycledThreadMessages(threadId: Long, limit: Int): List<Message>
 
     @Query("SELECT type FROM messages LEFT OUTER JOIN recycle_bin_messages ON messages.id = recycle_bin_messages.id WHERE recycle_bin_messages.id IS NULL AND thread_id = :threadId ORDER BY date DESC LIMIT 1")
     fun getLastMessageType(threadId: Long): Int?
 
     @Query("SELECT messages.* FROM messages LEFT OUTER JOIN recycle_bin_messages ON messages.id = recycle_bin_messages.id WHERE recycle_bin_messages.id IS NOT NULL AND thread_id = :threadId")
     fun getThreadMessagesFromRecycleBin(threadId: Long): List<Message>
+
+    @Query(
+        "SELECT messages.* FROM messages LEFT OUTER JOIN recycle_bin_messages ON messages.id = recycle_bin_messages.id " +
+            "WHERE recycle_bin_messages.id IS NOT NULL AND thread_id = :threadId ORDER BY date DESC LIMIT :limit",
+    )
+    fun getRecentRecycleBinThreadMessages(threadId: Long, limit: Int): List<Message>
 
     @Query("SELECT messages.* FROM messages LEFT OUTER JOIN recycle_bin_messages ON messages.id = recycle_bin_messages.id WHERE recycle_bin_messages.id IS NULL AND thread_id = :threadId AND is_scheduled = 1")
     fun getScheduledThreadMessages(threadId: Long): List<Message>
