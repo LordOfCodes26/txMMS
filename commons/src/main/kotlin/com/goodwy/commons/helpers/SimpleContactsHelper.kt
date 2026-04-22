@@ -48,6 +48,156 @@ class SimpleContactsHelper(val context: Context) {
         }
     }
 
+    /**
+     * Searches phone/name rows in the contacts provider with a SQL [LIMIT] on the cursor
+     * (plus grouping by raw contact), for responsive recipient pickers on large address books.
+     *
+     * Account filtering matches [getContactPhoneNumbers] in Kotlin (not in SQL), because OEM
+     * SQL support for `LIKE … ESCAPE`, `COLLATE LOCALIZED`, and strict account WHERE clauses varies
+     * and can yield no rows or throw (swallowed by [queryCursor]).
+     */
+    @SuppressLint("MissingPermission")
+    fun getAvailableContactsMatchingSearchSync(
+        favoritesOnly: Boolean,
+        searchText: String,
+        limit: Int,
+    ): ArrayList<SimpleContact> {
+        if (!context.hasPermission(PERMISSION_READ_CONTACTS)) {
+            return ArrayList()
+        }
+        val trimmed = searchText.trim()
+        if (trimmed.isEmpty() || limit <= 0) {
+            return ArrayList()
+        }
+
+        SimpleContact.collator = Collator.getInstance(context.sysLocale())
+        Contact.collator = Collator.getInstance(context.sysLocale() ?: Locale.getDefault())
+
+        // Binder args only — strip LIKE metacharacters from user text (no ESCAPE clause; some CPs reject it).
+        fun sanitizeLikeUserInput(s: String): String =
+            s.replace("%", "").replace("_", "").replace("\\", "")
+
+        val safeNeedle = sanitizeLikeUserInput(trimmed)
+        if (safeNeedle.isEmpty()) {
+            return ArrayList()
+        }
+        val likePattern = "%$safeNeedle%"
+        val digitsOnly = safeNeedle.filter { it.isDigit() }
+        val digitPattern = if (digitsOnly.length >= 2) "%$digitsOnly%" else null
+
+        val searchParts = mutableListOf<String>()
+        val selectionArgs = ArrayList<String>()
+        searchParts.add("${Phone.NUMBER} LIKE ?")
+        selectionArgs.add(likePattern)
+        searchParts.add("ifnull(${Phone.NORMALIZED_NUMBER},'') LIKE ?")
+        selectionArgs.add(likePattern)
+        searchParts.add("ifnull(${Data.DISPLAY_NAME},'') LIKE ?")
+        selectionArgs.add(likePattern)
+        if (digitPattern != null) {
+            searchParts.add("${Phone.NUMBER} LIKE ?")
+            selectionArgs.add(digitPattern)
+            searchParts.add("ifnull(${Phone.NORMALIZED_NUMBER},'') LIKE ?")
+            selectionArgs.add(digitPattern)
+        }
+
+        var selection = "(${searchParts.joinToString(" OR ")})"
+        if (favoritesOnly) {
+            selection = "($selection) AND ${Data.STARRED} = 1"
+        }
+
+        val rowLimit = (limit * 25).coerceIn(50, 2000)
+        val sortOrder = "${Data.RAW_CONTACT_ID} ASC LIMIT $rowLimit"
+
+        val uri = Phone.CONTENT_URI
+        val projection = buildList {
+            add(Data.RAW_CONTACT_ID)
+            add(Data.CONTACT_ID)
+            add(Phone.NUMBER)
+            add(Phone.NORMALIZED_NUMBER)
+            add(Phone.TYPE)
+            add(Phone.LABEL)
+            add(Phone.IS_PRIMARY)
+            add(Phone.PHOTO_URI)
+            add(Data.DISPLAY_NAME)
+            add(RawContacts.ACCOUNT_NAME)
+            add(RawContacts.ACCOUNT_TYPE)
+            if (favoritesOnly) add(Data.STARRED)
+        }.toTypedArray()
+
+        val contactsMap = LinkedHashMap<Int, SimpleContact>()
+        try {
+            context.contentResolver.query(
+                uri,
+                projection,
+                selection,
+                selectionArgs.toTypedArray(),
+                sortOrder,
+            )?.use { cursor ->
+                while (cursor.moveToNext()) {
+                    val accountName = cursor.getStringValue(RawContacts.ACCOUNT_NAME) ?: ""
+                    val accountType = cursor.getStringValue(RawContacts.ACCOUNT_TYPE) ?: ""
+                    if (!isSimOrPhoneStorage(accountName, accountType)) {
+                        continue
+                    }
+
+                    val number = cursor.getStringValue(Phone.NUMBER) ?: continue
+                    val normalizedNumber = cursor.getStringValue(Phone.NORMALIZED_NUMBER)
+                        ?: number.normalizePhoneNumber()
+                    if (normalizedNumber.isEmpty()) {
+                        continue
+                    }
+
+                    val rawId = cursor.getIntValue(Data.RAW_CONTACT_ID)
+                    val contactId = cursor.getIntValue(Data.CONTACT_ID)
+                    val type = cursor.getIntValue(Phone.TYPE)
+                    val label = cursor.getStringValue(Phone.LABEL) ?: ""
+                    val isPrimary = cursor.getIntValue(Phone.IS_PRIMARY) != 0
+                    val photoUri = cursor.getStringValue(Phone.PHOTO_URI) ?: ""
+                    val displayName = cursor.getStringValue(Data.DISPLAY_NAME) ?: ""
+
+                    var contact = contactsMap[rawId]
+                    if (contact == null) {
+                        if (contactsMap.size >= limit) {
+                            continue
+                        }
+                        contact = SimpleContact(
+                            rawId,
+                            contactId,
+                            displayName.trim(),
+                            photoUri,
+                            ArrayList(),
+                            ArrayList(),
+                            ArrayList(),
+                        )
+                        contactsMap[rawId] = contact
+                    }
+                    if (contact.name.isEmpty() && displayName.isNotEmpty()) {
+                        contact.name = displayName.trim()
+                    }
+
+                    val phoneNumber = PhoneNumber(number, type, label, normalizedNumber, isPrimary)
+                    if (contact.phoneNumbers.none { it.normalizedNumber == phoneNumber.normalizedNumber }) {
+                        contact.phoneNumbers.add(phoneNumber)
+                    }
+                }
+            }
+        } catch (_: Exception) {
+            return ArrayList()
+        }
+
+        val merged = contactsMap.values.mapNotNull { contact ->
+            if (contact.phoneNumbers.isEmpty()) {
+                return@mapNotNull null
+            }
+            if (contact.name.isEmpty()) {
+                contact.name = contact.phoneNumbers.first().value
+            }
+            contact
+        }.toMutableList()
+        merged.sort()
+        return ArrayList(merged.take(limit))
+    }
+
     fun getAvailableContactsSync(favoritesOnly: Boolean, withPhoneNumbersOnly: Boolean = true): ArrayList<SimpleContact> {
         SimpleContact.collator = Collator.getInstance(context.sysLocale())
         val names = getContactNames(favoritesOnly)

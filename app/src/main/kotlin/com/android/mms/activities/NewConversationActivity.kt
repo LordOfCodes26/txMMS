@@ -9,6 +9,9 @@ import android.content.res.Configuration
 import android.media.AudioManager
 import android.net.Uri
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.os.SystemClock
 import android.provider.ContactsContract
 import android.provider.Telephony.Sms.MESSAGE_TYPE_QUEUED
 import android.provider.Telephony.Sms.STATUS_NONE
@@ -95,10 +98,19 @@ class NewConversationActivity : SimpleActivity() {
     /** Thread id of the draft opened from the main list; cleared when recipients no longer match that thread. */
     private var resumedDraftThreadId: Long = 0L
 
+    private val recipientSearchHandler = Handler(Looper.getMainLooper())
+    private var recipientSearchThrottleRunnable: Runnable? = null
+    /** ElapsedRealtime when [runRecipientSearchForChipFilter] last started; used to cap search frequency. */
+    private var lastRecipientSearchRunElapsed = 0L
+
     companion object {
         private const val PICK_SAVE_FILE_INTENT = 1008
         private const val PICK_SAVE_DIR_INTENT = 1009
         private const val REQUEST_CODE_CONTACT_PICKER = 1010
+        /** Cap recipient search suggestions so filtering stays responsive with large address books. */
+        private const val MAX_RECIPIENT_SEARCH_SUGGESTIONS = 6
+        /** Min interval between contact-provider searches while the user is typing (throttle). */
+        private const val RECIPIENT_SEARCH_THROTTLE_MS = 250L
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -207,6 +219,8 @@ class NewConversationActivity : SimpleActivity() {
     }
 
     override fun onDestroy() {
+        recipientSearchThrottleRunnable?.let { recipientSearchHandler.removeCallbacks(it) }
+        recipientSearchThrottleRunnable = null
         clearMySearchMenuSpringSync(binding.newConversationAppbar, binding.contactsList)
         super.onDestroy()
     }
@@ -591,26 +605,28 @@ class NewConversationActivity : SimpleActivity() {
         binding.newConversationAddress.setOnTextChangedListener { searchString ->
             updateSuggestionsOverlayVisibility(searchString)
 
-            val filteredContacts = ArrayList<SimpleContact>()
-            allContacts.forEach { contact ->
-                // Check if contact name matches
-                val nameMatches = contact.name.contains(searchString, true) ||
-                    contact.name.contains(searchString.normalizeString(), true) ||
-                    contact.name.normalizeString().contains(searchString, true)
-                
-                // Check if any phone number matches
-                val phoneMatches = contact.phoneNumbers.any { 
-                    it.normalizedNumber.contains(searchString, true) ||
-                    it.value.contains(searchString, true)
-                }
-                
-                if (nameMatches || phoneMatches) {
-                    filteredContacts.add(contact)
-                }
+            if (searchString.isEmpty()) {
+                recipientSearchThrottleRunnable?.let { recipientSearchHandler.removeCallbacks(it) }
+                recipientSearchThrottleRunnable = null
+                lastRecipientSearchRunElapsed = 0L
+                return@setOnTextChangedListener
             }
 
-            filteredContacts.sortWith(compareBy { !it.name.startsWith(searchString, true) })
-            setupAdapter(filteredContacts, searchString.isNotEmpty())
+            recipientSearchThrottleRunnable?.let { recipientSearchHandler.removeCallbacks(it) }
+            val now = SystemClock.elapsedRealtime()
+            val sinceLastRun = if (lastRecipientSearchRunElapsed == 0L) {
+                RECIPIENT_SEARCH_THROTTLE_MS
+            } else {
+                now - lastRecipientSearchRunElapsed
+            }
+            val delayMs = if (sinceLastRun >= RECIPIENT_SEARCH_THROTTLE_MS) {
+                0L
+            } else {
+                RECIPIENT_SEARCH_THROTTLE_MS - sinceLastRun
+            }
+            val runnable = Runnable { runRecipientSearchForChipFilter() }
+            recipientSearchThrottleRunnable = runnable
+            recipientSearchHandler.postDelayed(runnable, delayMs)
         }
 
         binding.newConversationAddress.setSpeechToTextButtonVisible(false)
@@ -631,6 +647,91 @@ class NewConversationActivity : SimpleActivity() {
 //        binding.contactsLetterFastscrollerThumb.fontSize = getTextSize()
 //        binding.contactsLetterFastscrollerThumb.textColor = properAccentColor.getContrastColor()
 //        binding.contactsLetterFastscrollerThumb.thumbColor = properAccentColor.getColorStateList()
+    }
+
+    /**
+     * Runs throttled recipient search using the current chip-field text (see [RECIPIENT_SEARCH_THROTTLE_MS]).
+     */
+    private fun runRecipientSearchForChipFilter() {
+        recipientSearchThrottleRunnable = null
+        val query = binding.newConversationAddress.currentText
+        if (query.isEmpty()) {
+            lastRecipientSearchRunElapsed = 0L
+            setupAdapter(ArrayList(), showSearchResults = false)
+            return
+        }
+        lastRecipientSearchRunElapsed = SystemClock.elapsedRealtime()
+        ensureBackgroundThread {
+            val helper = SimpleContactsHelper(this@NewConversationActivity)
+            var systemMatches = helper.getAvailableContactsMatchingSearchSync(
+                favoritesOnly = false,
+                searchText = query,
+                limit = MAX_RECIPIENT_SEARCH_SUGGESTIONS,
+            )
+            if (systemMatches.isEmpty() && allContacts.isNotEmpty()) {
+                systemMatches = filterAllContactsForRecipientSearch(query)
+            }
+            val privateMatches = ArrayList<SimpleContact>()
+            for (contact in privateContacts) {
+                if (privateMatches.size >= MAX_RECIPIENT_SEARCH_SUGGESTIONS) {
+                    break
+                }
+                val nameMatches = contact.name.contains(query, true) ||
+                    contact.name.contains(query.normalizeString(), true) ||
+                    contact.name.normalizeString().contains(query, true)
+                val phoneMatches = contact.phoneNumbers.any {
+                    it.normalizedNumber.contains(query, true) ||
+                        it.value.contains(query, true)
+                }
+                if ((nameMatches || phoneMatches) && contact.phoneNumbers.isNotEmpty()) {
+                    privateMatches.add(contact)
+                }
+            }
+
+            val merged = ArrayList<SimpleContact>(systemMatches)
+            val systemRawIds = systemMatches.mapTo(HashSet()) { it.rawId }
+            for (c in privateMatches) {
+                if (!systemRawIds.contains(c.rawId)) {
+                    merged.add(c)
+                }
+            }
+            merged.sortWith(compareBy { !it.name.startsWith(query, true) })
+            val contactsForAdapter =
+                if (merged.size > MAX_RECIPIENT_SEARCH_SUGGESTIONS) {
+                    ArrayList(merged.subList(0, MAX_RECIPIENT_SEARCH_SUGGESTIONS))
+                } else {
+                    merged
+                }
+
+            runOnUiThread {
+                if (isDestroyed || isFinishing) return@runOnUiThread
+                if (binding.newConversationAddress.currentText != query) return@runOnUiThread
+                setupAdapter(contactsForAdapter, showSearchResults = true)
+            }
+        }
+    }
+
+    /** In-memory search over [allContacts]; used when the contacts-provider query returns nothing. */
+    private fun filterAllContactsForRecipientSearch(searchString: String): ArrayList<SimpleContact> {
+        val filtered = ArrayList<SimpleContact>()
+        for (contact in allContacts) {
+            val nameMatches = contact.name.contains(searchString, true) ||
+                contact.name.contains(searchString.normalizeString(), true) ||
+                contact.name.normalizeString().contains(searchString, true)
+            val phoneMatches = contact.phoneNumbers.any {
+                it.normalizedNumber.contains(searchString, true) ||
+                    it.value.contains(searchString, true)
+            }
+            if (nameMatches || phoneMatches) {
+                filtered.add(contact)
+            }
+        }
+        filtered.sortWith(compareBy { !it.name.startsWith(searchString, true) })
+        return if (filtered.size > MAX_RECIPIENT_SEARCH_SUGGESTIONS) {
+            ArrayList(filtered.subList(0, MAX_RECIPIENT_SEARCH_SUGGESTIONS))
+        } else {
+            filtered
+        }
     }
 
     private fun isThirdPartyIntent(): Boolean {
@@ -794,7 +895,11 @@ class NewConversationActivity : SimpleActivity() {
         }
     }
 
-    private fun setupAdapter(contacts: ArrayList<SimpleContact>, isSearchEmpty: Boolean) {
+    /**
+     * @param showSearchResults When false, the recipient search list and its placeholders stay hidden
+     * (no typing text in the chip field). When true, the list is shown only if there are matches.
+     */
+    private fun setupAdapter(contacts: ArrayList<SimpleContact>, showSearchResults: Boolean) {
         // Expand contacts with multiple phone numbers into separate entries
         val contactPhonePairs = ArrayList<ContactPhonePair>()
         contacts.forEach { contact ->
@@ -811,13 +916,18 @@ class NewConversationActivity : SimpleActivity() {
                 }
             }
         }
-        
+
+        if (showSearchResults && contactPhonePairs.size > MAX_RECIPIENT_SEARCH_SUGGESTIONS) {
+            val keep = MAX_RECIPIENT_SEARCH_SUGGESTIONS
+            contactPhonePairs.subList(keep, contactPhonePairs.size).clear()
+        }
+
         val hasContacts = contactPhonePairs.isNotEmpty()
 //        binding.contactsList.beVisibleIf(hasContacts)
-        binding.contactsListWrapper.beVisibleIf(hasContacts && isSearchEmpty)
-        binding.noContactsPlaceholder.beVisibleIf(!hasContacts)
+        binding.contactsListWrapper.beVisibleIf(hasContacts && showSearchResults)
+        binding.noContactsPlaceholder.beVisibleIf(!hasContacts && showSearchResults)
         binding.noContactsPlaceholder2.beVisibleIf(
-            !hasContacts && !hasPermission(
+            showSearchResults && !hasContacts && !hasPermission(
                 PERMISSION_READ_CONTACTS
             )
         )
@@ -875,6 +985,7 @@ class NewConversationActivity : SimpleActivity() {
             binding.suggestionsOverlay.beGone()
             return
         }
+        setupAdapter(ArrayList(), showSearchResults = false)
         if (binding.suggestionsHolder.childCount > 0) {
             binding.suggestionsOverlay.beVisible()
             binding.suggestionsScrollview.beVisible()
