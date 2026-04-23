@@ -50,7 +50,8 @@
 
                         <RelativeLayout
                             android:layout_width="match_parent"
-                            android:layout_height="match_parent">
+                            android:layout_height="match_parent"
+                            android:layout_marginTop="-60dp">
 
                             <com.google.android.material.progressindicator.LinearProgressIndicator
                                 android:id="@+id/conversations_progress_bar"
@@ -82,12 +83,12 @@
                                 android:layout_height="wrap_content"
                                 android:layout_below="@+id/no_conversations_placeholder"
                                 android:layout_centerHorizontal="true"
-                                android:background="@drawable/ripple_all_corners"
                                 android:gravity="center"
                                 android:padding="@dimen/activity_margin"
                                 android:text="@string/no_conversations_found"
                                 android:textSize="@dimen/bigger_text_size"
-                                android:visibility="gone"
+                                android:textColor="@color/tx_cardview_arrow_icon"
+                                android:visibility="visible"
                                 tools:visibility="visible" />
 
                         </RelativeLayout>

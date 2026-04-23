@@ -239,7 +239,7 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         updateTextColors(binding.conversationsNestedScroll)
 
         val properPrimaryColor = getProperPrimaryColor()
-        binding.noConversationsPlaceholder2.setTextColor(getProperTextColor())
+//        binding.noConversationsPlaceholder2.setTextColor(getProperTextColor())
         // binding.noConversationsPlaceholder2.underlineText()
 //        binding.conversationsFastscroller.updateColors(getProperAccentColor())
         // binding.conversationsProgressBar.setIndicatorColor(properPrimaryColor)
@@ -1526,6 +1526,7 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         }
     }
 
+    @SuppressLint("ResourceAsColor")
     private fun showOrHidePlaceholder(show: Boolean) {
 //        binding.conversationsFastscroller.beGoneIf(show)
         binding.noConversationsPlaceholder.beVisibleIf(show)

@@ -7,7 +7,7 @@ import com.android.common.view.MRippleToolBar
 
 private const val MRIPPLE_TAB_ID_BASE = 0x10000
 private const val RIPPLE_TAB_ENABLE_ALPHA = 1f
-private const val RIPPLE_TAB_DISABLE_ALPHA = 0.5f
+private const val RIPPLE_TAB_DISABLE_ALPHA = 0.9f
 
 fun MRippleToolBar.setRippleTabEnabledWidthAlpha(index: Int, enabled: Boolean) {
     setEnable(index, enabled)
