@@ -61,22 +61,22 @@ import java.util.Locale
 @SuppressLint("MissingPermission")
 fun BaseSimpleActivity.dialNumber(phoneNumber: String, callback: (() -> Unit)? = null) {
     hideKeyboard()
-//    launchCallIntent(phoneNumber, key = BuildConfig.RIGHT_APP_KEY)
-//    callback?.invoke()
-    val subs = subscriptionManagerCompat().activeSubscriptionInfoList
-    if (!subs.isNullOrEmpty() && subs.size >1) {
-        val blurTarget = findViewById<BlurTarget>(R.id.mainBlurTarget)?: throw IllegalStateException("mainBlurTarget not found")
-        SelectSIMDialog(this as SimpleActivity, blurTarget )  { simCard, _ ->
-            val handle = getPhoneAccountHandleForSubscription(simCard.subscriptionId)
-            launchCallIntent(phoneNumber, handle, BuildConfig.RIGHT_APP_KEY)
-            callback?.invoke()
-        }
-    } else {
-        val subId = subs?.singleOrNull()?.subscriptionId
-        val handle = subId?.let { getPhoneAccountHandleForSubscription(it) }
-        launchCallIntent(phoneNumber, handle, BuildConfig.RIGHT_APP_KEY)
-        callback?.invoke()
-    }
+    launchCallIntent(phoneNumber, key = BuildConfig.RIGHT_APP_KEY)
+    callback?.invoke()
+//    val subs = subscriptionManagerCompat().activeSubscriptionInfoList
+//    if (!subs.isNullOrEmpty() && subs.size >1) {
+//        val blurTarget = findViewById<BlurTarget>(R.id.mainBlurTarget)?: throw IllegalStateException("mainBlurTarget not found")
+//        SelectSIMDialog(this as SimpleActivity, blurTarget )  { simCard, _ ->
+//            val handle = getPhoneAccountHandleForSubscription(simCard.subscriptionId)
+//            launchCallIntent(phoneNumber, handle, BuildConfig.RIGHT_APP_KEY)
+//            callback?.invoke()
+//        }
+//    } else {
+//        val subId = subs?.singleOrNull()?.subscriptionId
+//        val handle = subId?.let { getPhoneAccountHandleForSubscription(it) }
+//        launchCallIntent(phoneNumber, handle, BuildConfig.RIGHT_APP_KEY)
+//        callback?.invoke()
+//    }
 }
 
 fun Activity.launchViewIntent(uri: Uri, mimetype: String, filename: String) {
