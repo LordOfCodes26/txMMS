@@ -581,6 +581,14 @@ class ConversationsAdapter(
                     removeAll { it is ConversationListItem.ConversationItem && (it as ConversationListItem.ConversationItem).conversation in toRemoveSet }
                 },
             )
+            val hideBlockedFromList = !activity.config.showBlockedNumbers
+            if (hideBlockedFromList) {
+                activity.runOnUiThread {
+                    submitList(newList)
+                    selectedKeys.clear()
+                    finishActMode()
+                }
+            }
             ensureBackgroundThread {
                 //mark read
                 numbersToBlock.filter { conversation -> !conversation.read }.forEach {
@@ -594,12 +602,12 @@ class ConversationsAdapter(
                 }
 
                 activity.runOnUiThread {
-                    if (!activity.config.showBlockedNumbers) submitList(newList)
-                    selectedKeys.clear()
-                    finishActMode()
+                    if (!hideBlockedFromList) {
+                        selectedKeys.clear()
+                        finishActMode()
+                    }
                     refreshConversations()
                     getBlockedNumbers = activity.getBlockedNumbers()
-                    onRefresh()
                 }
             }
         }

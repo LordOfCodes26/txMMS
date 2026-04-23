@@ -1338,6 +1338,24 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         }
     }
 
+    /**
+     * When blocked threads are hidden, keep them out of the recents list even if Room or the
+     * telephony merge has not yet dropped the row (same rules as [getConversations]).
+     */
+    private fun filterHiddenBlockedConversationsIfNeeded(conversations: ArrayList<Conversation>) {
+        if (config.showBlockedNumbers) {
+            return
+        }
+        val blockedNumbers = getBlockedNumbers()
+        conversations.removeAll { conv ->
+            if (conv.isGroupConversation) {
+                getThreadRecipientPhoneNumbers(conv.threadId).any { isNumberBlocked(it, blockedNumbers) }
+            } else {
+                isNumberBlocked(conv.phoneNumber, blockedNumbers)
+            }
+        }
+    }
+
     private fun getCachedConversations(loadSeq: Int) {
         ensureBackgroundThread {
             if (loadSeq != conversationsLoadSeq.get()) {
@@ -1353,6 +1371,9 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
                 }
             } else {
                 ArrayList()
+            }
+            if (shouldUseCached) {
+                filterHiddenBlockedConversationsIfNeeded(conversations)
             }
 
             val archived = if (shouldUseCached) {
@@ -1500,6 +1521,7 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
                     conversation.lastMessageType = null
                 }
             }
+            filterHiddenBlockedConversationsIfNeeded(allConversations)
             runOnUiThread {
                 if (loadSeq != conversationsLoadSeq.get()) {
                     return@runOnUiThread
