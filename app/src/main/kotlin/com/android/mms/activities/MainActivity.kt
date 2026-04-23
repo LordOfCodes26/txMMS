@@ -348,15 +348,24 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
      * [R.id.main_menu] on screen. Using [View.getHeight] alone double-counts with CoordinatorLayout /
      * negative [R.id.blur_target] margin and produced a large empty band under the title.
      *
+     * Geometry is only applied when it matches about one app bar height; stale [View.getLocationOnScreen]
+     * values right after [onResume] (before the coordinator and blur negative margin settle) used to
+     * pass the old `height * 3` bound and pushed the list down by a large fraction of the screen.
+     *
      * Screens that use [com.goodwy.commons.views.MySearchMenu] over a [eightbitlab.com.blurview.BlurTarget]
      * must wire the same CoordinatorLayout scrolling as [R.layout.activity_main]: set
      * `app:layout_behavior="@string/appbar_scrolling_view_behavior"` on the blur target and on the
      * nested scrolling child (see [R.layout.activity_message_bubble_picker], [R.layout.activity_settings]).
+     *
+     * Pass the same [View] you will pad (e.g. [R.id.conversations_list] vs [R.id.search_results_list]);
+     * screen geometry differs between the conversation list and the search overlay list.
      */
-    fun getRecentsListTopInsetPx(): Int {
+    private fun listTopInsetPx(list: View): Int {
         val menu = binding.mainMenu
-        val list = binding.conversationsList
+        val toolbar = menu.requireCustomToolbar()
         var base = getMainMenuVisibleHeight()
+        val minSearchListTop = resources.getDimensionPixelSize(R.dimen.nest_bouncy_content_padding_top)
+        val slack = (48 * resources.displayMetrics.density).toInt()
         if (
             list.visibility == View.VISIBLE &&
             menu.visibility == View.VISIBLE &&
@@ -369,17 +378,25 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
             menu.getLocationOnScreen(mLoc)
             list.getLocationOnScreen(lLoc)
             val inset = (mLoc[1] + menu.height) - lLoc[1]
-            if (inset > 0 && inset < menu.height * 3) {
+            // Normal mode: trust ~one collapsed toolbar. Search: locked bar height is shorter than the
+            // visible search chrome, so allow geometry up to minSearch row + slack (still rejects stale half-screen).
+            val maxTrustInset = if (toolbar.isSearchExpanded) {
+                maxOf(menu.height + slack, minSearchListTop + slack)
+            } else {
+                menu.height + slack
+            }
+            if (inset > 0 && inset <= maxTrustInset) {
                 base = inset
             }
         }
         // Locked AppBar height can be smaller than the visible search row; ensure we never under-pad.
-        if (menu.requireCustomToolbar().isSearchExpanded) {
-            val minSearchListTop = resources.getDimensionPixelSize(R.dimen.nest_bouncy_content_padding_top)
+        if (toolbar.isSearchExpanded) {
             return maxOf(base, minSearchListTop)
         }
         return base
     }
+
+    fun getRecentsListTopInsetPx(): Int = listTopInsetPx(binding.conversationsList)
 
     fun getMainMenuHeightForRecentsInset(): Int = getRecentsListTopInsetPx()
 
@@ -395,19 +412,49 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         )
     }
 
+    /**
+     * Same cap as [com.android.mms.extensions.applyMySearchMenuListTopPadding]: never apply a raw inset
+     * larger than roughly one toolbar (stale inset values during layout/animation).
+     */
+    private fun capRecentsListTopPaddingPx(rawInset: Int): Int {
+        if (rawInset <= 0) return 0
+        val menu = binding.mainMenu
+        if (!menu.isLaidOut || menu.height <= 0) return 0
+        val slack = (48 * resources.displayMetrics.density).toInt()
+        val minSearchListTop = resources.getDimensionPixelSize(R.dimen.nest_bouncy_content_padding_top)
+        val cap = if (menu.requireCustomToolbar().isSearchExpanded) {
+            maxOf(menu.height + slack, minSearchListTop + slack)
+        } else {
+            menu.height + slack
+        }
+        return minOf(rawInset, cap)
+    }
+
     /** Re-apply when the app bar finishes layout (e.g. after unlockCollapsing); based on txDial MainActivityRecents (no dialpad in Messages). */
     private fun applyFinalRecentsListTopPadding(recentsList: MyRecyclerView) {
-        var inset = getMainMenuHeightWithFallback()
-        if (inset > 0) {
-            recentsList.updatePadding(top = inset)
-            logRecentsListTopPadding("applyFinal(immediate inset=$inset)", recentsList)
+        val menu = binding.mainMenu
+        if (!menu.isAttachedToWindow || !menu.isLaidOut || menu.height <= 0) {
+            menu.post {
+                if (!isFinishing && !isDestroyed) {
+                    applyFinalRecentsListTopPadding(recentsList)
+                }
+            }
             return
         }
-        findViewById<View>(R.id.main_menu)?.post {
-            inset = getMainMenuHeightWithFallback()
-            if (inset > 0) {
-                recentsList.updatePadding(top = inset)
-                logRecentsListTopPadding("applyFinal(posted inset=$inset)", recentsList)
+        val rawInset = listTopInsetPx(recentsList)
+        val topPad = capRecentsListTopPaddingPx(rawInset)
+        if (topPad > 0) {
+            recentsList.updatePadding(top = topPad)
+            logRecentsListTopPadding("applyFinal(immediate topPad=$topPad raw=$rawInset)", recentsList)
+            return
+        }
+        menu.post {
+            if (isFinishing || isDestroyed) return@post
+            val retryInset = listTopInsetPx(recentsList)
+            val retryTop = capRecentsListTopPaddingPx(retryInset)
+            if (retryTop > 0) {
+                recentsList.updatePadding(top = retryTop)
+                logRecentsListTopPadding("applyFinal(posted topPad=$retryTop raw=$retryInset)", recentsList)
             } else {
                 logRecentsListTopPadding("applyFinal(posted inset still 0)", recentsList)
             }
@@ -420,13 +467,19 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         }
         val conv = binding.conversationsList as MyRecyclerView
         val searchRv = binding.searchResultsList as MyRecyclerView
-        // Search mode: [getRecentsListTopInsetPx] uses max(geometry, nest_bouncy_content_padding_top)
+        // Search mode: [listTopInsetPx] uses max(geometry, nest_bouncy_content_padding_top)
         // so list padding clears the visible search row despite locked short AppBar height.
         applyFinalRecentsListTopPadding(conv)
         applyFinalRecentsListTopPadding(searchRv)
         if (binding.searchHolder.childCount > 0) {
-            val inset = getMainMenuHeightWithFallback()
-            binding.searchHolder.getChildAt(0)!!.updatePadding(top = if (inset > 0) inset else 0)
+            val listForHolderInset = if (binding.mainMenu.requireCustomToolbar().isSearchExpanded) {
+                if (binding.searchResultsList.visibility == View.VISIBLE) binding.searchResultsList
+                else binding.conversationsList
+            } else {
+                binding.conversationsList
+            }
+            val inset = capRecentsListTopPaddingPx(listTopInsetPx(listForHolderInset))
+            binding.searchHolder.getChildAt(0)!!.updatePadding(top = inset)
         }
         val mainMenuHeight = getMainMenuHeightWithFallback()
         logRecentsListTopPadding(

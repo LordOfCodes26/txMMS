@@ -64,10 +64,16 @@ fun getMySearchMenuListTopInsetPx(menu: MySearchMenu, list: View): Int {
         menu.getLocationOnScreen(mLoc)
         list.getLocationOnScreen(lLoc)
         val inset = (mLoc[1] + menu.height) - lLoc[1]
-        // Only trust geometry when it matches ~one app bar height. Stale coordinates after
-        // resume (before coordinator + blur margin settle) often produce values up to ~3× height.
         val slack = (48 * list.resources.displayMetrics.density).toInt()
-        if (inset > 0 && inset <= menu.height + slack) {
+        val minSearchListTop = list.resources.getDimensionPixelSize(R.dimen.nest_bouncy_content_padding_top)
+        // Normal: ~one collapsed toolbar. Search: locked bar is shorter than visible search chrome;
+        // allow geometry up to minSearch + slack (still rejects stale half-screen from resume).
+        val maxTrustInset = if (menu.requireCustomToolbar().isSearchExpanded) {
+            max(menu.height + slack, minSearchListTop + slack)
+        } else {
+            menu.height + slack
+        }
+        if (inset > 0 && inset <= maxTrustInset) {
             base = inset
         }
     }
@@ -86,11 +92,9 @@ fun applyMySearchMenuListTopPadding(menu: MySearchMenu, list: View) {
     if (inset <= 0) return
     val density = list.resources.displayMetrics.density
     val slack = (48 * density).toInt()
+    val minSearchListTop = list.resources.getDimensionPixelSize(R.dimen.nest_bouncy_content_padding_top)
     val cap = if (menu.requireCustomToolbar().isSearchExpanded) {
-        max(
-            list.resources.getDimensionPixelSize(R.dimen.nest_bouncy_content_padding_top),
-            menu.height + slack,
-        )
+        max(menu.height + slack, minSearchListTop + slack)
     } else {
         menu.height + slack
     }
