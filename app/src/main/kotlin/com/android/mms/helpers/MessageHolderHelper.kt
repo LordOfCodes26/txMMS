@@ -6,6 +6,8 @@ import android.media.AudioManager
 import android.net.Uri
 import android.telephony.SmsManager
 import android.telephony.SmsMessage
+import android.os.Handler
+import android.os.Looper
 import android.util.TypedValue
 import android.view.KeyEvent
 import android.view.ViewGroup
@@ -57,6 +59,21 @@ class MessageHolderHelper(
     var isScheduledMessage: Boolean = false
         private set
 
+    private val composeUiHandler = Handler(Looper.getMainLooper())
+    private val debouncedRefreshCharacterCounter = object : Runnable {
+        override fun run() {
+            refreshCharacterCounterNow()
+        }
+    }
+
+    /** Last applied send-row mode so we do not reset [View.setOnClickListener] on every keystroke. */
+    private enum class ComposeSendMode { SEND, SPEECH, DISABLED }
+
+    private var appliedComposeSendMode: ComposeSendMode? = null
+
+    /** Avoid [SmsMessage.calculateLength] / normalization on every key when the counter is debounced. */
+    private var lastExpandIconVisible: Boolean? = null
+
     companion object {
         const val CAPTURE_PHOTO_INTENT = 1001
         const val CAPTURE_VIDEO_INTENT = 1002
@@ -65,6 +82,8 @@ class MessageHolderHelper(
         const val PICK_VIDEO_INTENT = 1005
         const val PICK_DOCUMENT_INTENT = 1006
         const val PICK_CONTACT_INTENT = 1007
+
+        private const val CHARACTER_COUNTER_DEBOUNCE_MS = 48L
     }
 
     fun setup(isSpeechToTextAvailable: Boolean = false) {
@@ -122,15 +141,20 @@ class MessageHolderHelper(
             threadTypeMessage.onTextChangeListener {
                 onTextChanged?.invoke(it)
                 checkSendMessageAvailability()
-                val messageString = if (activity.config.useSimpleCharacters) {
-                    it.normalizeString()
+                if (activity.config.showCharacterCounter) {
+                    if (it.isEmpty()) {
+                        composeUiHandler.removeCallbacks(debouncedRefreshCharacterCounter)
+                        threadCharacterCounter.beGone()
+                    } else {
+                        composeUiHandler.removeCallbacks(debouncedRefreshCharacterCounter)
+                        composeUiHandler.postDelayed(
+                            debouncedRefreshCharacterCounter,
+                            CHARACTER_COUNTER_DEBOUNCE_MS,
+                        )
+                    }
                 } else {
-                    it
+                    composeUiHandler.removeCallbacks(debouncedRefreshCharacterCounter)
                 }
-                val messageLength = SmsMessage.calculateLength(messageString, false)
-                @SuppressLint("SetTextI18n")
-                threadCharacterCounter.text = "${messageLength[2]}/${messageLength[0]}"
-                threadCharacterCounter.beVisibleIf(threadTypeMessage.value.isNotEmpty() && activity.config.showCharacterCounter)
                 updateExpandIconVisibility()
             }
 
@@ -334,51 +358,98 @@ class MessageHolderHelper(
     }
 
     fun checkSendMessageAvailability() {
-        updateSendButtonDrawable()
+        val selections = getAttachmentSelections()
+        val hasReadyAttachments = selections.isNotEmpty() && !selections.any { it.isPending }
+        val hasText = binding.threadTypeMessage.text?.isNotEmpty() == true
+        val canSend = hasText || hasReadyAttachments
+
+        val newMode = when {
+            canSend -> ComposeSendMode.SEND
+            isSpeechToTextAvailable -> ComposeSendMode.SPEECH
+            else -> ComposeSendMode.DISABLED
+        }
+
+        if (newMode != appliedComposeSendMode) {
+            appliedComposeSendMode = newMode
+            applyComposeSendMode(newMode)
+        }
+
+        updateSendButtonDrawable(selections)
+    }
+
+    private fun applyComposeSendMode(mode: ComposeSendMode) {
         binding.apply {
-            if (threadTypeMessage.text!!.isNotEmpty() || (getAttachmentSelections().isNotEmpty() && !getAttachmentSelections().any { it.isPending })) {
-                threadSendMessageWrapper.apply {
-                    isEnabled = true
-                    isClickable = true
-                    alpha = 1f
-                    contentDescription = activity.getString(R.string.sending)
-                    setOnClickListener {
-                        if (activity.config.messageSendDelay > 0 && !isCountdownActive) {
-                            resolveSubscriptionThen { startSendMessageCountdown(it) }
-                        } else {
-                            pickSimAndSendOrSendDirect()
-                            if (activity.config.soundOnOutGoingMessages) {
-                                val audioManager = activity.getSystemService(AudioManager::class.java)
-                                audioManager.playSoundEffect(AudioManager.FX_KEYPRESS_SPACEBAR)
+            when (mode) {
+                ComposeSendMode.SEND -> {
+                    threadSendMessageWrapper.apply {
+                        isEnabled = true
+                        isClickable = true
+                        alpha = 1f
+                        contentDescription = activity.getString(R.string.sending)
+                        setOnClickListener {
+                            if (activity.config.messageSendDelay > 0 && !isCountdownActive) {
+                                resolveSubscriptionThen { startSendMessageCountdown(it) }
+                            } else {
+                                pickSimAndSendOrSendDirect()
+                                if (activity.config.soundOnOutGoingMessages) {
+                                    val audioManager = activity.getSystemService(AudioManager::class.java)
+                                    audioManager.playSoundEffect(AudioManager.FX_KEYPRESS_SPACEBAR)
+                                }
                             }
                         }
                     }
                 }
-            } else if (isSpeechToTextAvailable) {
-                threadSendMessageWrapper.apply {
-                    isEnabled = true
-                    isClickable = true
-                    alpha = 1f
-                    contentDescription = activity.getString(com.goodwy.strings.R.string.voice_input)
-                    setOnClickListener {
-                        onSpeechToText()
+                ComposeSendMode.SPEECH -> {
+                    threadSendMessageWrapper.apply {
+                        isEnabled = true
+                        isClickable = true
+                        alpha = 1f
+                        contentDescription = activity.getString(com.goodwy.strings.R.string.voice_input)
+                        setOnClickListener {
+                            onSpeechToText()
+                        }
                     }
                 }
-            } else {
-                threadSendMessageWrapper.apply {
-                    isEnabled = false
-                    isClickable = false
-                    alpha = 0.4f
+                ComposeSendMode.DISABLED -> {
+                    threadSendMessageWrapper.apply {
+                        isEnabled = false
+                        isClickable = false
+                        alpha = 0.4f
+                    }
                 }
             }
         }
     }
 
-    fun updateSendButtonDrawable() {
+    private fun refreshCharacterCounterNow() {
+        if (activity.isFinishing || activity.isDestroyed) return
+        if (!activity.config.showCharacterCounter) {
+            binding.threadCharacterCounter.beGone()
+            return
+        }
+        val text = binding.threadTypeMessage.text?.toString() ?: ""
+        if (text.isEmpty()) {
+            binding.threadCharacterCounter.beGone()
+            return
+        }
+        val messageString = if (activity.config.useSimpleCharacters) {
+            text.normalizeString()
+        } else {
+            text
+        }
+        val messageLength = SmsMessage.calculateLength(messageString, false)
+        @SuppressLint("SetTextI18n")
+        binding.threadCharacterCounter.text = "${messageLength[2]}/${messageLength[0]}"
+        binding.threadCharacterCounter.beVisible()
+    }
+
+    fun updateSendButtonDrawable(selectionsOverride: List<AttachmentSelection>? = null) {
+        val selections = selectionsOverride ?: getAttachmentSelections()
+        val hasReadyAttachments = selections.isNotEmpty() && !selections.any { it.isPending }
+        val hasText = binding.threadTypeMessage.text?.isNotEmpty() == true
         val drawableResId = if (isScheduledMessage) {
             R.drawable.ic_schedule_send_vector
-        } else if (binding.threadTypeMessage.text!!.isNotEmpty() ||
-            (getAttachmentSelections().isNotEmpty() && !getAttachmentSelections().any { it.isPending })) {
+        } else if (hasText || hasReadyAttachments) {
             R.drawable.ic_send_vector
         } else if (isSpeechToTextAvailable) {
             com.goodwy.commons.R.drawable.ic_microphone_vector
@@ -513,7 +584,6 @@ class MessageHolderHelper(
         val newText = currentText.substring(0, start) + text + currentText.substring(end)
         editText.setText(newText)
         editText.setSelection(start + text.length)
-        checkSendMessageAvailability()
     }
 
     fun clearMessage() {
@@ -523,7 +593,6 @@ class MessageHolderHelper(
             isCountdownActive = false
             hideCountdown()
         }
-        checkSendMessageAvailability()
     }
 
     fun clearAttachments() {
@@ -754,7 +823,10 @@ class MessageHolderHelper(
 
     private fun updateExpandIconVisibility() {
         val lineCount = binding.threadTypeMessage.lineCount
-        binding.threadExpandMessage.beVisibleIf(lineCount > 2)
+        val visible = lineCount > 2
+        if (lastExpandIconVisible == visible) return
+        lastExpandIconVisible = visible
+        binding.threadExpandMessage.beVisibleIf(visible)
     }
 
     private fun getAttachmentsAdapter(): AttachmentsAdapter? {
