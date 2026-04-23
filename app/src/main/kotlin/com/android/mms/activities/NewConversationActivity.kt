@@ -2111,6 +2111,7 @@ class NewConversationActivity : SimpleActivity() {
                     allNumbers.isEmpty() || (currentTid > 0L && currentTid != staleResumeId)
                 if (recipientsChanged) {
                     deleteSmsDraft(staleResumeId)
+                    refreshConversationRowFromTelephony(staleResumeId)
                     runOnUiThread { resumedDraftThreadId = 0L }
                     didMutateDrafts = true
                 }
@@ -2120,6 +2121,7 @@ class NewConversationActivity : SimpleActivity() {
                 val tid = getThreadId(allNumbers.toSet())
                 if (tid > 0L) {
                     deleteSmsDraft(tid)
+                    refreshConversationRowFromTelephony(tid)
                     didMutateDrafts = true
                 }
                 if (staleResumeId > 0L && staleResumeId == tid) {
@@ -2138,11 +2140,15 @@ class NewConversationActivity : SimpleActivity() {
                         scheduledMillis = scheduledMillis,
                     )
                     didMutateDrafts = true
+                    refreshConversationRowFromTelephony(threadId)
                 }
             }
 
             if (didMutateDrafts) {
-                runOnUiThread { EventBus.getDefault().post(Events.RefreshConversations()) }
+                val localOnly = config.selectedConversationPin == 0
+                runOnUiThread {
+                    EventBus.getDefault().post(Events.RefreshConversations(localListRefreshOnly = localOnly))
+                }
             }
         }
     }

@@ -3,6 +3,7 @@ package com.android.mms.interfaces
 import androidx.room.*
 import com.android.mms.models.Message
 import com.android.mms.models.RecycleBinMessage
+import com.android.mms.models.ThreadNonScheduledMessageCount
 
 @Dao
 interface MessagesDao {
@@ -121,4 +122,15 @@ interface MessagesDao {
 
     @Query("SELECT COUNT(*) FROM messages LEFT OUTER JOIN recycle_bin_messages ON messages.id = recycle_bin_messages.id WHERE recycle_bin_messages.id IS NULL AND thread_id = :threadId AND is_scheduled = 0")
     fun getThreadMessageCount(threadId: Long): Int
+
+    /**
+     * All thread counts in one query (avoids N round-trips when refreshing a large conversation list).
+     */
+    @Query(
+        "SELECT messages.thread_id AS thread_id, COUNT(*) AS message_count FROM messages " +
+            "LEFT OUTER JOIN recycle_bin_messages ON messages.id = recycle_bin_messages.id " +
+            "WHERE recycle_bin_messages.id IS NULL AND messages.is_scheduled = 0 " +
+            "GROUP BY messages.thread_id",
+    )
+    fun getNonScheduledNonRecycledMessageCountsByThread(): List<ThreadNonScheduledMessageCount>
 }

@@ -1326,6 +1326,31 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         }
     }
 
+    /**
+     * Fast path when only local Room changed (e.g. new draft row). Skips Telephony [getConversations] merge.
+     */
+    private fun reloadConversationsFromLocalDatabase() {
+        val loadSeq = conversationsLoadSeq.incrementAndGet()
+        ensureBackgroundThread {
+            if (loadSeq != conversationsLoadSeq.get()) {
+                return@ensureBackgroundThread
+            }
+            val conversations = try {
+                conversationsDB.getNonArchived().toMutableList() as ArrayList<Conversation>
+            } catch (_: Exception) {
+                ArrayList()
+            }
+            filterHiddenBlockedConversationsIfNeeded(conversations)
+            applyNonScheduledMessageCounts(conversations)
+            runOnUiThread {
+                if (loadSeq != conversationsLoadSeq.get()) {
+                    return@runOnUiThread
+                }
+                setupConversations(conversations, cached = false)
+            }
+        }
+    }
+
     private fun initMessenger() {
         val loadSeq = conversationsLoadSeq.incrementAndGet()
         getCachedConversations(loadSeq)
@@ -1387,15 +1412,8 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
             }
 
             if (shouldUseCached) {
-                // Load message counts only; lastMessageType already set from getNonArchived/getAllArchived snippet query
-                conversations.forEach { conversation ->
-                    try {
-                        conversation.messageCount = messagesDB.getThreadMessageCount(conversation.threadId)
-                    } catch (_: Exception) {
-                        conversation.messageCount = 0
-                        conversation.lastMessageType = null
-                    }
-                }
+                // Message counts in one query; lastMessageType already set from getNonArchived/getAllArchived snippet query
+                applyNonScheduledMessageCounts(conversations)
             }
 
             runOnUiThread {
@@ -1436,12 +1454,11 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
 
             if (isSecureMode) {
                 // In secure mode, show only provider-filtered conversations for selected PIN.
+                applyNonScheduledMessageCounts(conversations)
                 conversations.forEach { conversation ->
                     try {
-                        conversation.messageCount = messagesDB.getThreadMessageCount(conversation.threadId)
                         conversation.lastMessageType = messagesDB.getLastMessageType(conversation.threadId)
                     } catch (_: Exception) {
-                        conversation.messageCount = 0
                         conversation.lastMessageType = null
                     }
                 }
@@ -1512,15 +1529,8 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
             }
 
             val allConversations = conversationsDB.getNonArchived() as ArrayList<Conversation>
-            // Load message counts only; lastMessageType already set from getNonArchived snippet query
-            allConversations.forEach { conversation ->
-                try {
-                    conversation.messageCount = messagesDB.getThreadMessageCount(conversation.threadId)
-                } catch (_: Exception) {
-                    conversation.messageCount = 0
-                    conversation.lastMessageType = null
-                }
-            }
+            // lastMessageType already set from getNonArchived snippet query
+            applyNonScheduledMessageCounts(allConversations)
             filterHiddenBlockedConversationsIfNeeded(allConversations)
             runOnUiThread {
                 if (loadSeq != conversationsLoadSeq.get()) {
@@ -1755,13 +1765,12 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
                 val searchQuery = "%$text%"
                 val messages = messagesDB.getMessagesWithText(searchQuery)
                 val conversations = conversationsDB.getConversationsWithText(searchQuery)
-                // Load message counts for search results
+                applyNonScheduledMessageCounts(conversations)
                 conversations.forEach { conversation ->
                     try {
-                        conversation.messageCount = messagesDB.getThreadMessageCount(conversation.threadId)
                         conversation.lastMessageType = messagesDB.getLastMessageType(conversation.threadId)
                     } catch (_: Exception) {
-                        conversation.messageCount = 0
+                        conversation.lastMessageType = null
                     }
                 }
                 if (text == lastSearchedText) {
@@ -1885,8 +1894,12 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
-    fun refreshConversations(@Suppress("unused") event: Events.RefreshConversations) {
-        initMessenger()
+    fun refreshConversations(event: Events.RefreshConversations) {
+        if (event.localListRefreshOnly && config.selectedConversationPin == 0) {
+            reloadConversationsFromLocalDatabase()
+        } else {
+            initMessenger()
+        }
         // Child activities persist drafts on a background thread; onResume may run before that
         // finishes. Reload local drafts whenever a refresh is posted so the list shows [draft]
         // immediately after returning from compose/thread.

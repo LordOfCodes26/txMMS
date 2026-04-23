@@ -673,12 +673,19 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                     isScheduled = isScheduledMessage,
                     scheduledMillis = scheduledMillis,
                 )
+                if (notifyConversationsAfter && threadId > 0L) {
+                    refreshConversationRowFromTelephony(threadId)
+                }
             } else {
                 deleteSmsDraft(threadId)
+                if (notifyConversationsAfter && threadId > 0L) {
+                    refreshConversationRowFromTelephony(threadId)
+                }
             }
             if (notifyConversationsAfter) {
+                val localOnly = config.selectedConversationPin == 0
                 // MAIN-thread subscribers; safe to post from the background save thread.
-                bus?.post(Events.RefreshConversations())
+                bus?.post(Events.RefreshConversations(localListRefreshOnly = localOnly))
             }
         }
     }

@@ -137,8 +137,8 @@ fun refreshMessages() {
     EventBus.getDefault().post(Events.RefreshMessages())
 }
 
-fun refreshConversations() {
-    EventBus.getDefault().post(Events.RefreshConversations())
+fun refreshConversations(localListRefreshOnly: Boolean = false) {
+    EventBus.getDefault().post(Events.RefreshConversations(localListRefreshOnly))
 }
 
 /** Not to be used with real messages persisted in the telephony db. This is for internal use only (e.g. scheduled messages, notification ids etc). */

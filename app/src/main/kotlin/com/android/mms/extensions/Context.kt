@@ -92,6 +92,18 @@ val Context.messageAttachmentsDB: MessageAttachmentsDao
 val Context.messagesDB: MessagesDao
     get() = getMessagesDB().MessagesDao()
 
+/** Applies [MessagesDao.getNonScheduledNonRecycledMessageCountsByThread] in one query instead of N [MessagesDao.getThreadMessageCount] calls. */
+fun Context.applyNonScheduledMessageCounts(conversations: Iterable<Conversation>) {
+    val map = try {
+        messagesDB.getNonScheduledNonRecycledMessageCountsByThread().associate { it.threadId to it.count }
+    } catch (_: Exception) {
+        emptyMap()
+    }
+    for (c in conversations) {
+        c.messageCount = map[c.threadId] ?: 0
+    }
+}
+
 val Context.draftsDB: DraftsDao
     get() = getMessagesDB().DraftsDao()
 
@@ -618,15 +630,14 @@ fun Context.getConversations(
         showErrorToast(e)
     }
 
-    // Load message counts for all conversations efficiently
-    conversations.forEach { conversation ->
-        try {
-            conversation.messageCount = messagesDB.getThreadMessageCount(conversation.threadId)
-            if (threadsWithBlockedNumbersOnly) {
+    applyNonScheduledMessageCounts(conversations)
+    if (threadsWithBlockedNumbersOnly) {
+        conversations.forEach { conversation ->
+            try {
                 conversation.lastMessageType = messagesDB.getLastMessageType(conversation.threadId)
+            } catch (_: Exception) {
+                conversation.lastMessageType = null
             }
-        } catch (e: Exception) {
-            conversation.messageCount = 0
         }
     }
 
@@ -1793,6 +1804,37 @@ fun Context.clearAllMessagesIfNeeded(callback: () -> Unit) {
 
 fun Context.subscriptionManagerCompat(): SubscriptionManager {
     return getSystemService(SubscriptionManager::class.java)
+}
+
+/**
+ * Re-reads one thread from Telephony and updates Room so [snippet]/date match after draft save or delete.
+ * Without this, [reloadConversationsFromLocalDatabase] can show stale draft text in the list.
+ */
+fun Context.refreshConversationRowFromTelephony(threadId: Long) {
+    if (config.selectedConversationPin != 0 || threadId <= 0L) return
+    try {
+        val privateCursor =
+            getMyContactsCursor(favoritesOnly = false, withPhoneNumbersOnly = true)
+        val privateContacts =
+            MyContactsContentProvider.getSimpleContacts(this, privateCursor)
+        val one = getConversations(threadId = threadId, privateContacts = privateContacts)
+        if (one.isNotEmpty()) {
+            insertOrUpdateConversation(one.first())
+        } else {
+            // Thread dropped out of Telephony (e.g. draft-only after draft delete). Full [initMessenger]
+            // merge removes these; local refresh must drop the Room row or the ghost stays until app restart.
+            try {
+                val stillHasDraft = draftsDB.getDraftById(threadId) != null
+                val msgCount = messagesDB.getThreadMessageCount(threadId)
+                val hasScheduled = messagesDB.getScheduledThreadMessages(threadId).isNotEmpty()
+                if (!stillHasDraft && msgCount == 0 && !hasScheduled) {
+                    conversationsDB.deleteThreadId(threadId)
+                }
+            } catch (_: Exception) {
+            }
+        }
+    } catch (_: Exception) {
+    }
 }
 
 fun Context.insertOrUpdateConversation(
