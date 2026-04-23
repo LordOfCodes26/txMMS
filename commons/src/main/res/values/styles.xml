@@ -414,9 +414,9 @@
     <style name="OverflowEditIconStyle">
         <item name="srcCompat">@drawable/ic_edit_btn</item>
         <item name="android:background">?attr/selectableItemBackgroundBorderless</item>
-        <item name="android:paddingStart">@dimen/activity_margin</item>
+        <item name="android:paddingStart">@dimen/normal_margin</item>
         <item name="android:paddingTop">@dimen/normal_margin</item>
-        <item name="android:paddingEnd">@dimen/activity_margin</item>
+        <item name="android:paddingEnd">@dimen/normal_margin</item>
         <item name="android:paddingBottom">@dimen/normal_margin</item>
     </style>
     <!-- end -->

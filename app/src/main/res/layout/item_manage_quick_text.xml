@@ -17,7 +17,8 @@
         android:layout_marginStart="@dimen/bigger_margin"
         android:layout_marginTop="@dimen/normal_margin"
         android:layout_marginEnd="@dimen/activity_margin"
-        android:layout_marginBottom="@dimen/normal_margin"
+        android:layout_marginBottom="@dimen/normal_activity_margin"
+        android:textSize="@dimen/tx_normal_text"
         android:layout_toStartOf="@+id/quick_text_end_container" />
 
     <FrameLayout
@@ -33,7 +34,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center_vertical|end"
-            android:layout_marginEnd="@dimen/smaller_margin"
+            android:layout_marginEnd="@dimen/small_margin"
             tools:ignore="ContentDescription" />
 
         <com.android.common.view.MCycleCheckBox
@@ -41,7 +42,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center_vertical|end"
-            android:layout_marginEnd="@dimen/smaller_margin"
+            android:layout_marginEnd="@dimen/small_margin"
             android:clickable="true"
             android:focusable="false"
             android:visibility="gone"
