@@ -55,7 +55,6 @@ open class BlockedItemsActivity : BaseSimpleActivity(), ActionModeToolbarHost {
         setupOptionsMenu()
         updateTopMenuColors()
         setupPager()
-        applyInitialTabFromIntent()
     }
 
     override fun onResume() {
@@ -195,8 +194,16 @@ open class BlockedItemsActivity : BaseSimpleActivity(), ActionModeToolbarHost {
 
 
     private fun setupPager() {
+        val initialTab =
+            intent.getIntExtra(EXTRA_INITIAL_TAB_INDEX, TAB_BLOCKED_CALLS).coerceIn(
+                TAB_BLOCKED_CALLS,
+                TAB_BLOCKED_CONTACTS,
+            )
+
         binding.blockedItemsViewPager.adapter = BlockedItemsPagerAdapter(supportFragmentManager)
         binding.blockedItemsViewPager.offscreenPageLimit = TAB_TITLES.size
+        // Open the requested tab immediately so the blocked-messages list is not preceded by tab 0.
+        binding.blockedItemsViewPager.setCurrentItem(initialTab, false)
 
         val tabItems = ArrayList<IconItem>()
         for (i in TAB_TITLES.indices) {
@@ -208,7 +215,8 @@ open class BlockedItemsActivity : BaseSimpleActivity(), ActionModeToolbarHost {
             )
         }
         binding.blockedItemsTabBar.setTabs(this, tabItems, binding.mainBlurTarget)
-        binding.blockedItemsTabBar.setSelection(0)
+        binding.blockedItemsTabBar.setSelection(initialTab)
+        updateTitleForTab(initialTab)
 
         binding.blockedItemsViewPager.onPageChangeListener { index ->
             updateTitleForTab(index)
@@ -230,17 +238,6 @@ open class BlockedItemsActivity : BaseSimpleActivity(), ActionModeToolbarHost {
 
             override fun onTabReselected(position: Int) {}
         })
-    }
-
-    private fun applyInitialTabFromIntent() {
-        val initialTab =
-            intent.getIntExtra(EXTRA_INITIAL_TAB_INDEX, TAB_BLOCKED_CALLS).coerceIn(
-                TAB_BLOCKED_CALLS,
-                TAB_BLOCKED_CONTACTS,
-            )
-        binding.blockedItemsViewPager.setCurrentItem(initialTab, false)
-        binding.blockedItemsTabBar.setSelection(initialTab)
-        updateTitleForTab(initialTab)
     }
 
     private fun updateTitleForTab(index: Int) {

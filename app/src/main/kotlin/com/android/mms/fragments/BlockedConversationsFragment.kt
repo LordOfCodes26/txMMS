@@ -31,6 +31,7 @@ import com.goodwy.commons.activities.BaseSimpleActivity
 import com.goodwy.commons.helpers.ensureBackgroundThread
 import com.goodwy.commons.views.MyRecyclerView
 import com.google.gson.Gson
+import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * Conversation list for threads that include at least one blocked number; opens [ThreadActivity] with
@@ -41,22 +42,27 @@ class BlockedConversationsFragment : Fragment(CommonsR.layout.fragment_blocked_m
     private lateinit var list: MyRecyclerView
     private lateinit var placeholder: View
     private var adapter: ConversationsAdapter? = null
+    private val loadGeneration = AtomicInteger(0)
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         list = view.findViewById(CommonsR.id.blocked_messages_list)
         placeholder = view.findViewById(CommonsR.id.blocked_messages_placeholder)
         list.layoutManager = LinearLayoutManager(requireContext())
+        // Avoid flashing the empty placeholder while the real list is still loading.
+        placeholder.isVisible = false
+        list.isVisible = false
     }
 
-    override fun onResume() {
-        super.onResume()
+    override fun onStart() {
+        super.onStart()
         loadBlockedConversations()
     }
 
     @SuppressLint("UnsafeIntentLaunch")
     private fun loadBlockedConversations() {
         val act = activity as? BaseSimpleActivity ?: return
+        val generation = loadGeneration.incrementAndGet()
         ensureBackgroundThread {
             val privateCursor = act.getMyContactsCursor(favoritesOnly = false, withPhoneNumbersOnly = true)
             val privateContacts = MyContactsContentProvider.getSimpleContacts(act, privateCursor)
@@ -67,13 +73,14 @@ class BlockedConversationsFragment : Fragment(CommonsR.layout.fragment_blocked_m
             }
             val sorted = sortLikeMainList(act, raw)
             act.runOnUiThread {
-                if (!isAdded) return@runOnUiThread
+                if (!isAdded || generation != loadGeneration.get()) return@runOnUiThread
                 val hasItems = sorted.isNotEmpty()
                 list.isVisible = hasItems
                 placeholder.isVisible = !hasItems
                 if (!hasItems) return@runOnUiThread
                 val convAdapter = getOrCreateAdapter(act)
-                convAdapter.updateConversations(sorted) {
+                convAdapter.updateConversations(sorted) label@{
+                    if (!isAdded || generation != loadGeneration.get()) return@label
                     list.isVisible = convAdapter.currentList.isNotEmpty()
                     placeholder.isVisible = convAdapter.currentList.isEmpty()
                 }
