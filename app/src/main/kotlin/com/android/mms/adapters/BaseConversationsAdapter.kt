@@ -109,13 +109,11 @@ abstract class BaseConversationsAdapter(
         updateDrafts()
         recyclerView.itemAnimator?.changeDuration = 0
 
+        // Do not restore scroll state in [onItemRangeInserted]/[onItemRangeMoved]: [submitList] applies
+        // a diff in steps; mid-diff restores reapply a stale [Parcelable] and can leave blank rows
+        // or a recycled view with no bound content until the next layout.
         registerAdapterDataObserver(object : RecyclerView.AdapterDataObserver() {
             override fun onChanged() = restoreRecyclerViewState()
-            override fun onItemRangeMoved(fromPosition: Int, toPosition: Int, itemCount: Int) =
-                restoreRecyclerViewState()
-
-            override fun onItemRangeInserted(positionStart: Int, itemCount: Int) =
-                restoreRecyclerViewState()
         })
     }
 
@@ -129,11 +127,25 @@ abstract class BaseConversationsAdapter(
         newConversations: ArrayList<Conversation>,
         commitCallback: (() -> Unit)? = null,
     ) {
+        val unique = uniqueConversationsByThreadId(newConversations)
         saveRecyclerViewState()
-        submitList(groupConversationsByDateSections(newConversations)) {
+        submitList(groupConversationsByDateSections(unique)) {
+            restoreRecyclerViewState()
             commitCallback?.invoke()
             scheduleGroupedTodayTimeRefresh()
         }
+    }
+
+    /**
+     * One row per [Conversation.threadId]. Duplicates (same id, two list entries) make
+     * [getItemId] non-unique and break [RecyclerView] stable-id recycling, which can show
+     * empty or wrong rows after async list updates.
+     */
+    private fun uniqueConversationsByThreadId(conversations: List<Conversation>): List<Conversation> {
+        if (conversations.size <= 1) return conversations
+        if (conversations.size == conversations.distinctBy { it.threadId }.size) return conversations
+        val seen = mutableSetOf<Long>()
+        return conversations.filter { seen.add(it.threadId) }
     }
 
     /** Call from activity [android.app.Activity.onResume]. */
