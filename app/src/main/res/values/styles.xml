@@ -32,7 +32,7 @@
     </style>
 
     <style name="MDialogSimSelect" parent="MDialogStyle">
-        <item name="android:windowMinWidthMajor">60%</item>
-        <item name="android:windowMinWidthMinor">60%</item>
+        <item name="android:windowMinWidthMajor">0%</item>
+        <item name="android:windowMinWidthMinor">0%</item>
     </style>
 </resources>

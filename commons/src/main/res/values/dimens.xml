@@ -190,4 +190,12 @@
     <dimen name="spacing_s">4dp</dimen>
     <dimen name="spacing_xs">2dp</dimen>
 
+    <!--  select sim dialog  -->
+    <dimen name="select_sim_dialog_width">169dp</dimen>
+    <dimen name="select_sim_dialog_height">96dp</dimen>
+    <dimen name="select_sim_dialog_padding">17dp</dimen>
+    <dimen name="select_sim_dialog_above_anchor_margin">15dp</dimen>
+    <dimen name="select_sim_dialog_anchor_overlap">25dp</dimen>
+    <dimen name="select_sim_row_gap">10dp</dimen>
+
 </resources>

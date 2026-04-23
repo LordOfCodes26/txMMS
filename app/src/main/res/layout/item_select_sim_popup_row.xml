@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:gravity="center_vertical"
+    android:orientation="horizontal">
+
+    <FrameLayout
+        android:layout_width="13dp"
+        android:layout_height="16.5dp"
+        android:layout_gravity="center_vertical">
+
+        <androidx.appcompat.widget.AppCompatImageView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:id="@+id/simSelectSlotIcon"
+            android:contentDescription="@null"
+            android:scaleType="fitCenter"
+            app:srcCompat="@drawable/ic_sim_vector" />
+
+        <com.google.android.material.textview.MaterialTextView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:id="@+id/simSelectSlotId"
+            android:gravity="center"
+            android:includeFontPadding="false"
+            android:lines="1"
+            android:textColor="@color/white"
+            android:textSize="@dimen/tx_tiny_text"
+            tools:text="1" />
+    </FrameLayout>
+
+    <com.google.android.material.textview.MaterialTextView
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:id="@+id/simSelectLabel"
+        android:layout_marginStart="6dp"
+        android:layout_weight="1"
+        android:ellipsize="end"
+        android:gravity="center_vertical"
+        android:lines="1"
+        android:textColor="@color/tx_title_text"
+        android:textSize="@dimen/tx_sub_section"
+        tools:text="@string/select_sim_1" />
+
+</LinearLayout>

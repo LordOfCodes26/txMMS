@@ -432,7 +432,6 @@ fun Context.createAvatarGradientDrawable(
 ): Drawable {
 //    val (topColor, bottomColor) = avatarColor.createGradientColors()
 
-    Log.d("CHero-createAvatarDrawable", "idx=$drawableIndex dark=$isDarkMode")
 
     val resId = contactAvatarBgResId(drawableIndex, isDarkMode)
     return getDrawable(resId) ?: getDrawable(R.drawable.contact_avatar_bg_1)!!
@@ -444,7 +443,6 @@ fun Context.createContactGradientDrawable(
 ): Drawable {
 //    val (topColor, bottomColor) = avatarColor.createGradientColors()
 
-    Log.d("CHero-createAvatarDrawable", drawableIndex.toString())
 
     // Convert drawableIndex to resource number (1-27)
     // drawableIndex 0 -> contact_avatar_bg_1, drawableIndex 1 -> contact_avatar_bg_2, etc.

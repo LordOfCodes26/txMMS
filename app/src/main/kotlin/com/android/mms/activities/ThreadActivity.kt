@@ -2652,7 +2652,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             binding.messageHolder.threadTypeMessage.setText(text)
             hideExpandedMessageFragment()
             val blurTarget = this.findViewById<BlurTarget>(R.id.mainBlurTarget)
-            SelectSIMDialog(this, blurTarget) { _, selectedHandleIndex ->
+            SelectSIMDialog(this, blurTarget, anchorView = binding.messageHolder.threadSendMessageWrapper) { _, selectedHandleIndex ->
                 this.config.currentSIMCardIndex = selectedHandleIndex
                 sendMessage()
             }

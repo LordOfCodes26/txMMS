@@ -469,9 +469,13 @@ class MessageHolderHelper(
         val defaultSmsSubscriptionId = SmsManager.getDefaultSmsSubscriptionId()
         if (!subs.isNullOrEmpty() && subs.size > 1 && defaultSmsSubscriptionId < 0) {       // when muti sim and always check sms in system setting
             val blurTarget = activity.findViewById<BlurTarget>(R.id.mainBlurTarget)
-            SelectSIMDialog(activity as SimpleActivity, blurTarget) { simCard, _ ->
+//            SelectSIMDialog(activity as SimpleActivity, blurTarget) { simCard, _ ->
+//                onSubId(simCard.subscriptionId)
+//            }
+            SelectSIMDialog(activity as SimpleActivity, blurTarget, anchorView = binding.threadSendMessageWrapper) { simCard, _ ->
                 onSubId(simCard.subscriptionId)
             }
+
         }
         else {
             val subId = when {

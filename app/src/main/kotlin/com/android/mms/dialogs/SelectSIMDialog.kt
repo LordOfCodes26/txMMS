@@ -1,9 +1,14 @@
 package com.android.mms.dialogs
 
 import android.annotation.SuppressLint
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
+import android.view.WindowManager
+import android.widget.LinearLayout
 import androidx.core.content.res.ResourcesCompat
 import com.android.common.view.MDialog
 import com.android.mms.activities.SimpleActivity
@@ -13,7 +18,11 @@ import com.android.mms.extensions.getAvailableSIMCardLabels
 import com.android.mms.helpers.FeeInfoUtils
 import com.android.mms.models.SIMAccount
 import com.android.mms.R
+import com.android.mms.databinding.ItemSelectSimPopupRowBinding
+import com.android.mms.extensions.config
+import com.android.mms.helpers.MNC_KANGSONG
 import com.android.mms.models.SIMCard
+import com.goodwy.commons.extensions.applyColorFilter
 import com.goodwy.commons.extensions.beGone
 import com.goodwy.commons.extensions.beVisible
 import com.goodwy.commons.extensions.getProperTextColor
@@ -45,49 +54,55 @@ class SelectSIMDialog(
 
     init {
         binding.selectSimHolder.beVisible()
-        binding.selectSimRadioHolder.beGone()
         val simAccounts = activity.getAvailableSIMCardLabels().sortedBy { it.id }
         if (simAccounts.isNotEmpty()) {
+            binding.selectSimRows.removeAllViews()
             simAccounts.forEachIndexed { index, simAccount ->
-                val rowBinding = ItemSimFeeDialogBinding.inflate(LayoutInflater.from(activity), null, false).apply {
-
-                    val lineNumber = simAccount.number.trim()
-                    if (lineNumber.isNotEmpty()) {
-                        simItemName.text = simAccount.label + " (" + lineNumber + ") "
-
-                    } else {
-                        simItemName.text = simAccount.label
+                if (index > 0) {
+                    val gap = activity.resources.getDimensionPixelSize(com.goodwy.commons.R.dimen.select_sim_row_gap)
+                    val divider = View(activity).apply {
+                        layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 1).apply {
+                            topMargin = gap
+                            bottomMargin = gap
+                        }
+                        setBackgroundResource(com.goodwy.commons.R.drawable.divider_settings)
+                        importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
                     }
+                    binding.selectSimRows.addView(divider)
+                }
+                val rowBinding = ItemSelectSimPopupRowBinding.inflate(
+                    LayoutInflater.from(activity),
+                    binding.selectSimRows,
+                    false
+                ).apply {
 
-                    simItemName.setTextColor(activity.getProperTextColor())
+                    simSelectSlotId.text = simAccount.id.toString()
                     val slotId = FeeInfoUtils.getSimSlotIndexForSubscriptionId(activity, simAccount.subscriptionId)
                     ensureBackgroundThread {
                         val smsCount = slotId?.let { FeeInfoUtils.getAvailableSmsCountForSlot(activity, it) }
                         activity.runOnUiThread {
                             if (smsCount !== null) {
-                                simItemFeeInfo.text = activity.getString(R.string.remained_sms_count, smsCount)
-                                simItemFeeInfo.setTextColor(activity.getProperTextColor())
-                                simItemFeeInfo.beVisible()
+                                simSelectLabel.text = activity.getString(R.string.remained_sms_count, smsCount)
                             } else {
-                                simItemFeeInfo.beGone()
+                                simSelectLabel.text = activity.getString(R.string.select_sim_1)
                             }
                         }
                     }
-
-                    val iconRes = when (simAccount.label) {
-                        activity.getString(R.string.koryo_label) -> R.drawable.ic_koryo
-                        activity.getString(R.string.kangsong_label) -> R.drawable.ic_kangsong
-                        else -> R.drawable.ic_sim_vector
+                    val textColor = activity.getProperTextColor()
+                    val simIconColor = if (!activity.config.colorSimIcons) {
+                        textColor
+                    } else {
+                        val simMnc = simAccount.mnc
+                        if (simMnc == MNC_KANGSONG) activity.config.simIconsColors[2] else activity.config.simIconsColors[0]
                     }
-                    val drawable = ResourcesCompat.getDrawable(activity.resources, iconRes, activity.theme)
-                    simItemIcon.setImageDrawable(drawable)
+
+                    simSelectSlotIcon.applyColorFilter(simIconColor)
+
                     root.setOnClickListener {
                         selectSim(simAccount, index)
-                        dialog?.dismiss()
                     }
                 }
-                if (index == 0) binding.sim1Holder.addView(rowBinding.root)
-                else binding.sim2Holder.addView(rowBinding.root)
+                binding.selectSimRows.addView(rowBinding.root)
             }
             binding.blurView.setupWith(blurTarget)
                 ?.setBlurRadius(36f)
@@ -106,8 +121,19 @@ class SelectSIMDialog(
                 styleId = R.style.MDialogSimSelect
             ) { mDialog ->
                 dialog = mDialog
-                dialog?.window?.setDimAmount(0.1f)
-                applyDialogPosition()
+                dialog?.window?.let { window ->
+                    window.setDimAmount(0.1f)
+                    window.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+                    val w = activity.resources.getDimensionPixelSize(com.goodwy.commons.R.dimen.select_sim_dialog_width)
+                    val h = activity.resources.getDimensionPixelSize(com.goodwy.commons.R.dimen.select_sim_dialog_height)
+                    window.setLayout(w, h)
+                }
+                val anchor = anchorView
+                if (anchor != null) {
+                    anchor.post { applyDialogPosition() }
+                } else {
+                    applyDialogPosition()
+                }
             }
         }
     }
@@ -115,22 +141,40 @@ class SelectSIMDialog(
     private fun applyDialogPosition() {
         val window = dialog?.window ?: return
         val params = window.attributes ?: return
-        when (position) {
-            DialpadSimListDialogPosition.BOTTOM -> {
-                params.gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
-                params.y = verticalOffsetPx
+        val anchor = anchorView
+        if (anchor != null && anchor.isAttachedToWindow) {
+            val loc = IntArray(2)
+            anchor.getLocationOnScreen(loc)
+            val w = activity.resources.getDimensionPixelSize(com.goodwy.commons.R.dimen.select_sim_dialog_width)
+            val h = activity.resources.getDimensionPixelSize(com.goodwy.commons.R.dimen.select_sim_dialog_height)
+            val overlap = activity.resources.getDimensionPixelSize(com.goodwy.commons.R.dimen.select_sim_dialog_anchor_overlap)
+            val gapAbove = activity.resources.getDimensionPixelSize(com.goodwy.commons.R.dimen.select_sim_dialog_above_anchor_margin)
+            val screenW = activity.resources.displayMetrics.widthPixels
+            params.gravity = Gravity.TOP or Gravity.START
+            val rawX = loc[0] - w + overlap
+            params.x = rawX.coerceIn(0, maxOf(0, screenW - w))
+            params.y = (loc[1] - h - gapAbove).coerceAtLeast(0)
+            window.addFlags(WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN)
+        } else {
+            when (position) {
+                DialpadSimListDialogPosition.BOTTOM -> {
+                    params.gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
+                    params.y = verticalOffsetPx
+                }
+
+                DialpadSimListDialogPosition.CENTER -> {
+                    params.gravity = Gravity.CENTER
+                    params.x = 0
+                    params.y = 0
+                }
+
+                DialpadSimListDialogPosition.TOP -> {
+                    params.gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
+                    params.y = verticalOffsetPx
+                }
             }
-            DialpadSimListDialogPosition.CENTER -> {
-                params.gravity = Gravity.CENTER
-                params.x = 0
-                params.y = 0
-            }
-            DialpadSimListDialogPosition.TOP -> {
-                params.gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
-                params.y = verticalOffsetPx
-            }
+            window.attributes = params
         }
-        window.attributes = params
     }
 
     private fun selectSim(simAccount: SIMCard, index: Int) {
