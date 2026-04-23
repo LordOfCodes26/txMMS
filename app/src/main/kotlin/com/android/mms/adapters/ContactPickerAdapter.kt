@@ -1,9 +1,11 @@
 package com.android.mms.adapters
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.graphics.Color
 import android.os.Handler
 import android.os.Looper
+import android.util.LruCache
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -38,6 +40,9 @@ class ContactPickerAdapter(
 
     private var rows: List<ContactPickerListRow> = emptyList()
     private var contactLookup: List<Contact> = emptyList()
+    private val simpleContactsHelper = SimpleContactsHelper(context)
+    /** Letter avatars are expensive to generate; share bitmaps by display name (contact mode). */
+    private val letterAvatarBitmapCache = LruCache<String, Bitmap>(256)
     private val selectedContactIndices = mutableSetOf<Int>()
     private var listener: ContactPickerAdapterListener? = null
     private var isCallLogMode = false
@@ -48,10 +53,10 @@ class ContactPickerAdapter(
         scheduleGroupedTodayTimeRefresh()
     }
 
-    override fun getItemViewType(position: Int): Int = when (rows[position]) {
-        is ContactPickerListRow.DateSection -> VIEW_TYPE_SECTION
-        is ContactPickerListRow.ContactRow ->
-            if (isCallLogMode) VIEW_TYPE_CALL_LOG else VIEW_TYPE_CONTACT
+    override fun getItemViewType(position: Int): Int = when {
+        !isCallLogMode -> VIEW_TYPE_CONTACT
+        rows[position] is ContactPickerListRow.DateSection -> VIEW_TYPE_SECTION
+        else -> VIEW_TYPE_CALL_LOG
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
@@ -73,17 +78,17 @@ class ContactPickerAdapter(
     }
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
+        if (!isCallLogMode) {
+            (holder as ContactViewHolder).bind(position)
+            return
+        }
         when (val row = rows[position]) {
             is ContactPickerListRow.DateSection -> (holder as SectionViewHolder).bind(row)
-            is ContactPickerListRow.ContactRow -> when (holder) {
-                is ContactViewHolder -> holder.bind(row)
-                is CallLogRowViewHolder -> holder.bind(row, position)
-                else -> {}
-            }
+            is ContactPickerListRow.ContactRow -> (holder as CallLogRowViewHolder).bind(row, position)
         }
     }
 
-    override fun getItemCount(): Int = rows.size
+    override fun getItemCount(): Int = if (isCallLogMode) rows.size else contactLookup.size
 
     fun setListener(l: ContactPickerAdapterListener?) {
         listener = l
@@ -93,16 +98,10 @@ class ContactPickerAdapter(
     fun setContactModeItems(contacts: List<Contact>?, selectedIndices: Set<Int>?) {
         pauseGroupedTodayTimeRefresh()
         isCallLogMode = false
-        contactLookup = contacts ?: emptyList()
+        rows = emptyList()
+        contactLookup = if (contacts.isNullOrEmpty()) emptyList() else ArrayList(contacts)
         selectedContactIndices.clear()
         selectedContactIndices.addAll(selectedIndices ?: emptySet())
-        rows = contactLookup.indices.map { i ->
-            ContactPickerListRow.ContactRow(
-                contactIndex = i,
-                callType = Calls.INCOMING_TYPE,
-                callTimestamp = 0L,
-            )
-        }
         notifyDataSetChanged()
     }
 
@@ -168,21 +167,16 @@ class ContactPickerAdapter(
     }
 
     fun addItems(newContacts: List<Contact>, newSelectedPositions: Set<Int>?) {
-        if (newContacts.isEmpty()) return
+        if (newContacts.isEmpty() || isCallLogMode) return
         val startIndex = contactLookup.size
-        contactLookup = contactLookup + newContacts
-        val newRows = newContacts.indices.map { i ->
-            ContactPickerListRow.ContactRow(
-                contactIndex = startIndex + i,
-                callType = Calls.INCOMING_TYPE,
-                callTimestamp = 0L,
-            )
-        }
-        rows = rows + newRows
+        val merged = ArrayList<Contact>(contactLookup.size + newContacts.size)
+        merged.addAll(contactLookup)
+        merged.addAll(newContacts)
+        contactLookup = merged
         newSelectedPositions?.forEach { pos ->
             selectedContactIndices.add(startIndex + pos)
         }
-        notifyItemRangeInserted(rows.size - newRows.size, newRows.size)
+        notifyItemRangeInserted(startIndex, newContacts.size)
     }
 
     private fun sectionDayCodeForAdapterPosition(position: Int): String? {
@@ -274,8 +268,8 @@ class ContactPickerAdapter(
         private val divider: ImageView = itemView.findViewById(R.id.divider)
         private val checkBox: CheckBox = itemView.findViewById(R.id.cb_contact_select)
 
-        fun bind(row: ContactPickerListRow.ContactRow) {
-            val contact = contactLookup.getOrNull(row.contactIndex) ?: return
+        fun bind(contactIndex: Int) {
+            val contact = contactLookup.getOrNull(contactIndex) ?: return
             val hasContactName = contact.name.isNotEmpty() && contact.name != contact.phoneNumber
 
             if (hasContactName) {
@@ -291,37 +285,37 @@ class ContactPickerAdapter(
                 phoneTextView.text = ""
                 phoneTextView.visibility = View.GONE
             }
-            checkBox.isChecked = selectedContactIndices.contains(row.contactIndex)
+            checkBox.isChecked = selectedContactIndices.contains(contactIndex)
 
             val displayName = contact.name.ifEmpty { contact.phoneNumber }
             if (contact.icon != -1) {
                 contactImage.setImageResource(contact.icon)
             } else {
-                SimpleContactsHelper(context).loadContactImage(
-                    path = "",
-                    imageView = contactImage,
-                    placeholderName = displayName,
-                    placeholderImage = null,
-                )
+                var bmp = letterAvatarBitmapCache.get(displayName)
+                if (bmp == null) {
+                    bmp = simpleContactsHelper.getContactLetterIcon(displayName)
+                    letterAvatarBitmapCache.put(displayName, bmp)
+                }
+                contactImage.setImageBitmap(bmp)
             }
 
             applyRecentsDivider(divider)
 
             itemView.setOnClickListener {
-                toggleRow(row)
+                toggleRow(contactIndex)
             }
             checkBox.setOnClickListener {
                 val checked = checkBox.isChecked
-                if (checked) selectedContactIndices.add(row.contactIndex) else selectedContactIndices.remove(row.contactIndex)
-                listener?.onContactToggled(row.contactIndex, checked)
+                if (checked) selectedContactIndices.add(contactIndex) else selectedContactIndices.remove(contactIndex)
+                listener?.onContactToggled(contactIndex, checked)
             }
         }
 
-        private fun toggleRow(row: ContactPickerListRow.ContactRow) {
+        private fun toggleRow(contactIndex: Int) {
             val isChecked = !checkBox.isChecked
             checkBox.isChecked = isChecked
-            if (isChecked) selectedContactIndices.add(row.contactIndex) else selectedContactIndices.remove(row.contactIndex)
-            listener?.onContactToggled(row.contactIndex, isChecked)
+            if (isChecked) selectedContactIndices.add(contactIndex) else selectedContactIndices.remove(contactIndex)
+            listener?.onContactToggled(contactIndex, isChecked)
         }
     }
 

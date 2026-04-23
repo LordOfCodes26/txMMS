@@ -2,10 +2,11 @@ package com.android.mms.activities
 
 import android.Manifest
 import android.content.Intent
-import android.content.res.Configuration
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.os.Bundle
+import android.os.SystemClock
+import android.util.Log
 import android.net.Uri
 import android.provider.CallLog
 import android.provider.ContactsContract
@@ -22,9 +23,9 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updateLayoutParams
 import androidx.core.view.updatePadding
+import androidx.core.widget.NestedScrollView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.reddit.indicatorfastscroll.FastScrollItemIndicator
 import com.google.android.material.appbar.AppBarLayout
 import com.goodwy.commons.extensions.getProperAccentColor
 import com.goodwy.commons.extensions.getProperBackgroundColor
@@ -32,14 +33,12 @@ import com.goodwy.commons.extensions.getColoredDrawableWithColor
 import com.goodwy.commons.extensions.getProperPrimaryColor
 import com.goodwy.commons.extensions.getProperTextColor
 import com.goodwy.commons.extensions.getSurfaceColor
-import com.goodwy.commons.extensions.getContrastColor
-import com.goodwy.commons.extensions.getColorStateList
 import com.goodwy.commons.extensions.getMyContactsCursor
-import com.goodwy.commons.extensions.getTextSize
 import com.goodwy.commons.extensions.isDynamicTheme
 import com.goodwy.commons.extensions.isSystemInDarkMode
 import com.goodwy.commons.helpers.MyContactsContentProvider
-import com.goodwy.commons.models.contacts.Contact as CommonContact
+import com.goodwy.commons.helpers.ensureBackgroundThread
+import com.goodwy.commons.models.SimpleContact
 import com.goodwy.commons.views.MyRecyclerView
 import com.goodwy.commons.views.MyTextView
 import com.android.common.helper.IconItem
@@ -61,8 +60,6 @@ import com.goodwy.commons.extensions.beInvisible
 import java.util.Calendar
 import com.goodwy.commons.helpers.SimpleContactsHelper
 import com.goodwy.commons.views.MySearchMenu
-import com.reddit.indicatorfastscroll.FastScrollerThumbView
-import com.reddit.indicatorfastscroll.FastScrollerView
 import eightbitlab.com.blurview.BlurTarget
 
 class ContactPickerActivity : SimpleActivity() {
@@ -75,7 +72,20 @@ class ContactPickerActivity : SimpleActivity() {
         const val EXTRA_ALREADY_SELECTED_CONTACTS = "already_selected_contacts"
         const val EXTRA_SELECTED_DISPLAY_TEXTS = "selected_display_texts"
         const val EXTRA_SELECTED_PHONE_NUMBERS = "selected_phone_numbers"
-        private const val BATCH_SIZE = 35
+        /** Raw rows from [Contacts.CONTENT_URI] per DB fetch (one chunk per scroll / first load). */
+        private const val SYSTEM_CONTACTS_DB_BATCH = 40
+        /** Provider search row cap in contacts-tab search mode. */
+        private const val CONTACTS_SEARCH_DB_LIMIT = 20
+        /** Trigger browse pagination when this many rows or fewer remain past the last visible index. */
+        private const val BROWSE_LOAD_MORE_NEAR_END_ITEMS = 5
+        /** Coalesce rapid [onScrolled] / nested-scroll callbacks into one near-end check. */
+        private const val BROWSE_LOAD_MORE_SCROLL_DEBOUNCE_MS = 120L
+        /** Space out checks after a chunk append so layout can settle (avoids load-more storms at the bottom). */
+        private const val BROWSE_LOAD_MORE_AFTER_CHUNK_MS = 280L
+
+        /** Temporary: log scroll / load-more / chunk timings under [PERF_LOG_TAG]. Set to false to disable. */
+        private const val CONTACT_PICKER_PERF_LOG = false
+        private const val PERF_LOG_TAG = "ContactPickerPerf"
 
         fun getSelectedContacts(data: Intent?): ArrayList<Contact> {
             if (data != null && data.hasExtra(EXTRA_SELECTED_CONTACTS)) {
@@ -104,6 +114,16 @@ class ContactPickerActivity : SimpleActivity() {
     private var scrollView: View? = null
     private var blurAppBarLayout: MySearchMenu? = null
     private var rootView: View? = null
+    /** Host of the contact list; when it scrolls instead of the [RecyclerView], RV [onScrolled] does not run. */
+    private var nestScrollView: NestedScrollView? = null
+    private val browseLoadMoreFromScrollRunnable = Runnable { maybeLoadMoreBrowseContactsFromScroll() }
+    private val browseLoadMoreAfterChunkRunnable = Runnable { maybeLoadMoreBrowseContactsFromScroll() }
+
+    private fun perfLog(message: String) {
+        if (CONTACT_PICKER_PERF_LOG) {
+            Log.d(PERF_LOG_TAG, message)
+        }
+    }
     private var contactRecyclerView: MyRecyclerView? = null
     private var contactAdapter: ContactPickerAdapter? = null
     private val allContacts = ArrayList<Contact>()
@@ -128,10 +148,17 @@ class ContactPickerActivity : SimpleActivity() {
     private var contactPickerListTopInsetPx: Int = -1
     private var contactPickerFilterBarInsetListener: ViewTreeObserver.OnGlobalLayoutListener? = null
     private var contactPickerFilterBarAppBarOffsetListener: AppBarLayout.OnOffsetChangedListener? = null
-    private var contactsLetterFastscroller: FastScrollerView? = null
-    private var contactsLetterFastscrollerThumb: FastScrollerThumbView? = null
+    /** Letter rail disabled for performance on large address books; kept as plain [View] to hide in layout. */
+    private var contactsLetterFastscroller: View? = null
+    private var contactsLetterFastscrollerThumb: View? = null
     private val callLogMeta = ArrayList<CallLogEntryMeta>()
     private var mContent: ContactPickerActivity? = null
+    /** O(1) resolve from filtered row to index in [allContacts] (avoids O(n²) indexOfFirst). */
+    private val allContactKeyToIndex = HashMap<String, Int>(2048)
+    /** SQL OFFSET into [Contacts.CONTENT_URI] for the next system page (SIM/phone-storage phones only). */
+    private var systemContactsSqlOffset = 0
+    /** MyContacts provider entries; loaded once per picker session for merge on the first DB page. */
+    private val privateContactsForMerge = ArrayList<SimpleContact>()
 
     private data class CallLogEntryMeta(val type: Int, val timestamp: Long, val groupedCount: Int = 1)
 
@@ -259,6 +286,8 @@ class ContactPickerActivity : SimpleActivity() {
         contactPickerFilterBarAppBarOffsetListener = null
         contactsCursor?.takeIf { !it.isClosed }?.close()
         contactsCursor = null
+        contactRecyclerView?.removeCallbacks(browseLoadMoreFromScrollRunnable)
+        contactRecyclerView?.removeCallbacks(browseLoadMoreAfterChunkRunnable)
         super.onDestroy()
     }
 
@@ -442,7 +471,7 @@ class ContactPickerActivity : SimpleActivity() {
                 bar.setExpanded(true, true)
                 bar.binding.collapsingTitle.visibility = View.VISIBLE
                 setupTopBarNavigation()
-                contactRecyclerView?.isNestedScrollingEnabled = true
+                contactRecyclerView?.isNestedScrollingEnabled = false
                 syncContactPickerBlurGeometryAndListTopPadding()
             }
             setOnSearchTextChangedListener { s ->
@@ -454,37 +483,28 @@ class ContactPickerActivity : SimpleActivity() {
         contactRecyclerView = findViewById<MyRecyclerView>(R.id.contactRecyclerView).apply {
             layoutManager = LinearLayoutManager(this@ContactPickerActivity)
             setHasFixedSize(false)
+            // NestedScrollView is the parent; nested scrolling on the list often steals scroll so
+            // [RecyclerView.OnScrollListener.onScrolled] never runs and browse pagination never triggers.
+            isNestedScrollingEnabled = false
         }
         contactAdapter = ContactPickerAdapter(this)
         contactRecyclerView?.adapter = contactAdapter
 
         contactsLetterFastscroller = findViewById(R.id.contactsLetterFastscroller)
         contactsLetterFastscrollerThumb = findViewById(R.id.contactsLetterFastscrollerThumb)
-        val properTextColor = getProperTextColor()
-        val properAccentColor = getProperAccentColor()
-        contactsLetterFastscroller?.apply {
-            textColor = properTextColor.getColorStateList()
-            pressedTextColor = properAccentColor
-        }
-        contactsLetterFastscrollerThumb?.apply {
-            contactsLetterFastscroller?.let { setupWithFastScroller(it) }
-            fontSize = getTextSize()
-            textColor = properAccentColor.getContrastColor()
-            thumbColor = properAccentColor.getColorStateList()
-        }
+        hideContactsLetterFastScroller()
 
         contactRecyclerView?.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                 super.onScrolled(recyclerView, dx, dy)
-                val lm = recyclerView.layoutManager as? LinearLayoutManager ?: return
-                val visible = lm.childCount
-                val total = lm.itemCount
-                val first = lm.findFirstVisibleItemPosition()
-                if (!isCallLogMode && !isLoadingMore && hasMoreContacts && searchString.isEmpty()) {
-                    if (visible + first >= total - 5) loadMoreContacts()
-                }
+                scheduleBrowseLoadMoreFromScrollDebounced()
             }
         })
+
+        nestScrollView = findViewById(R.id.nest_scroll)
+        nestScrollView?.setOnScrollChangeListener { _, _, _, _, _ ->
+            scheduleBrowseLoadMoreFromScrollDebounced()
+        }
 
         contactAdapter?.setListener(object : ContactPickerAdapter.ContactPickerAdapterListener {
             override fun onContactToggled(contactIndex: Int, isSelected: Boolean) {
@@ -496,13 +516,8 @@ class ContactPickerActivity : SimpleActivity() {
                 }
                 if (contactIndex !in filteredContacts.indices) return
                 val contact = filteredContacts[contactIndex]
-                val idx = allContacts.indexOfFirst {
-                    if (contact.contactId.isEmpty()) it.phoneNumber == contact.phoneNumber
-                    else it.contactId == contact.contactId && it.phoneNumber == contact.phoneNumber
-                }
-                if (idx >= 0) {
-                    if (isSelected) selectedPositions.add(idx) else selectedPositions.remove(idx)
-                }
+                val idx = allContactKeyToIndex[contactNumberKey(contact.contactId, contact.phoneNumber)] ?: return
+                if (isSelected) selectedPositions.add(idx) else selectedPositions.remove(idx)
             }
         })
 
@@ -590,67 +605,242 @@ class ContactPickerActivity : SimpleActivity() {
         }
     }
 
-    private fun setupLetterFastscroller(contacts: List<Contact>) {
-        if (isCallLogMode) {
-            contactsLetterFastscroller?.visibility = View.GONE
-            contactsLetterFastscrollerThumb?.visibility = View.GONE
-            return
-        }
-        val hasContacts = contacts.isNotEmpty()
-        contactsLetterFastscroller?.visibility = if (hasContacts) View.VISIBLE else View.GONE
-        contactsLetterFastscrollerThumb?.visibility = if (hasContacts) View.VISIBLE else View.GONE
-        if (!hasContacts) return
-        try {
-            val allNotEmpty = contacts.filter { (it.name.ifEmpty { it.phoneNumber }).isNotEmpty() }
-            val all = allNotEmpty.map { CommonContact(id = 0, firstName = it.name.ifEmpty { it.phoneNumber }, contactId = 0).getFirstLetter() }
-            val unique: Set<String> = HashSet(all)
-            val sizeUnique = unique.size
-            if (isHighScreenSize()) {
-                if (sizeUnique > 39) contactsLetterFastscroller?.textAppearanceRes = R.style.LetterFastscrollerStyleTooTiny
-                else if (sizeUnique > 32) contactsLetterFastscroller?.textAppearanceRes = R.style.LetterFastscrollerStyleTiny
-                else contactsLetterFastscroller?.textAppearanceRes = R.style.LetterFastscrollerStyleSmall
-            } else {
-                if (sizeUnique > 49) contactsLetterFastscroller?.textAppearanceRes = R.style.LetterFastscrollerStyleTooTiny
-                else if (sizeUnique > 37) contactsLetterFastscroller?.textAppearanceRes = R.style.LetterFastscrollerStyleTiny
-                else contactsLetterFastscroller?.textAppearanceRes = R.style.LetterFastscrollerStyleSmall
-            }
-        } catch (_: Exception) { }
-        val recyclerView = contactRecyclerView ?: return
-        contactsLetterFastscroller?.setupWithRecyclerView(
-            recyclerView,
-            { position ->
-                try {
-                    val section = CommonContact(id = 0, firstName = contacts[position].name.ifEmpty { contacts[position].phoneNumber }, contactId = 0).getFirstLetter()
-                    FastScrollItemIndicator.Text(section)
-                } catch (_: Exception) {
-                    FastScrollItemIndicator.Text("")
-                }
-            },
-            useDefaultScroller = true
-        )
+    private fun hideContactsLetterFastScroller() {
+        contactsLetterFastscroller?.visibility = View.GONE
+        contactsLetterFastscrollerThumb?.visibility = View.GONE
     }
 
-    private fun isHighScreenSize(): Boolean {
-        return when (resources.configuration.screenLayout and Configuration.SCREENLAYOUT_LONG_MASK) {
-            Configuration.SCREENLAYOUT_LONG_NO -> false
-            else -> true
+    private data class ContactsDbChunk(
+        val contacts: ArrayList<Contact>,
+        /** Local indices within [contacts] for pre-selected rows. */
+        val selectedLocalIndices: HashSet<Int>,
+        val hasMoreFromDb: Boolean,
+    )
+
+    /** Same dedupe rules as [loadContacts] / NewConversationActivity merge. */
+    private fun mergePrivateContactsIntoSystemList(
+        mergedContacts: ArrayList<SimpleContact>,
+        privateContacts: List<SimpleContact>,
+    ) {
+        if (privateContacts.isEmpty()) return
+        val existingPhoneNumbers = HashSet<String>()
+        val existingContactNamesWithoutPhone = HashSet<String>()
+        mergedContacts.forEach { contact ->
+            contact.phoneNumbers.forEach { phoneNumber ->
+                existingPhoneNumbers.add(phoneNumber.normalizedNumber)
+            }
+            if (contact.name.isNotEmpty() && contact.phoneNumbers.isEmpty()) {
+                existingContactNamesWithoutPhone.add(contact.name.lowercase().trim())
+            }
+        }
+        privateContacts.forEach { privateContact ->
+            val hasMatchingPhoneNumber = privateContact.phoneNumbers.isNotEmpty() &&
+                privateContact.phoneNumbers.any { phoneNumber ->
+                    existingPhoneNumbers.contains(phoneNumber.normalizedNumber)
+                }
+            val hasMatchingName = privateContact.phoneNumbers.isEmpty() &&
+                privateContact.name.isNotEmpty() &&
+                existingContactNamesWithoutPhone.contains(privateContact.name.lowercase().trim())
+            if (!hasMatchingPhoneNumber && !hasMatchingName) {
+                mergedContacts.add(privateContact)
+                privateContact.phoneNumbers.forEach { phoneNumber ->
+                    existingPhoneNumbers.add(phoneNumber.normalizedNumber)
+                }
+                if (privateContact.name.isNotEmpty() && privateContact.phoneNumbers.isEmpty()) {
+                    existingContactNamesWithoutPhone.add(privateContact.name.lowercase().trim())
+                }
+            }
+        }
+        mergedContacts.sort()
+    }
+
+    private fun expandSimpleContactsToContactsWithSelection(
+        merged: List<SimpleContact>,
+    ): Pair<ArrayList<Contact>, HashSet<Int>> {
+        val contactList = ArrayList<Contact>()
+        val selectedLocal = HashSet<Int>()
+        var localIndex = 0
+        for (sc in merged) {
+            val contactIdStr = sc.contactId.toString()
+            val name = sc.name
+            val org = sc.company ?: ""
+            if (sc.phoneNumbers.isEmpty()) continue
+            for (pn in sc.phoneNumbers) {
+                val key = contactNumberKey(contactIdStr, pn.value)
+                contactList.add(Contact(name, contactIdStr, -1, pn.value, "", org))
+                if (alreadySelectedContactIds.contains(key)) {
+                    selectedLocal.add(localIndex)
+                }
+                localIndex++
+            }
+        }
+        return contactList to selectedLocal
+    }
+
+    /**
+     * Loads one batch from the contacts DB (and merges private entries on the first chunk only).
+     * Skips consecutive empty cursor pages in one call so the cursor offset still advances.
+     * Must run on a background thread.
+     */
+    private fun loadNextContactsChunkFromDb(isFirstPage: Boolean): ContactsDbChunk {
+        val chunkWallStart = SystemClock.elapsedRealtime()
+        val helper = SimpleContactsHelper(this@ContactPickerActivity)
+        val accum = ArrayList<SimpleContact>()
+        var hasMoreFromDb = false
+        var guard = 0
+        var dbIterations = 0
+        while (guard++ < 100) {
+            dbIterations++
+            val tPage = SystemClock.elapsedRealtime()
+            val (page, nextOffset, hasMoreRows) = helper.getSystemContactsSortedPageFromDbSync(
+                favoritesOnly = false,
+                contactCursorOffset = systemContactsSqlOffset,
+                maxCursorRows = SYSTEM_CONTACTS_DB_BATCH,
+            )
+            val pageMs = SystemClock.elapsedRealtime() - tPage
+            systemContactsSqlOffset = nextOffset
+            hasMoreFromDb = hasMoreRows
+            perfLog(
+                "loadNextChunk dbIter=$dbIterations getSystemPageMs=$pageMs simpleRows=${page.size} " +
+                    "cursorOffset=$nextOffset hasMoreRows=$hasMoreRows",
+            )
+            if (page.isNotEmpty()) {
+                accum.addAll(page)
+                break
+            }
+            if (!hasMoreRows) break
+        }
+        if (accum.isEmpty()) {
+            perfLog(
+                "loadNextChunk EMPTY accum totalMs=${SystemClock.elapsedRealtime() - chunkWallStart} " +
+                    "dbIters=$dbIterations hasMoreFromDb=$hasMoreFromDb",
+            )
+            return ContactsDbChunk(ArrayList(), HashSet(), hasMoreFromDb = hasMoreFromDb)
+        }
+        val tMerge = SystemClock.elapsedRealtime()
+        if (isFirstPage && privateContactsForMerge.isNotEmpty()) {
+            mergePrivateContactsIntoSystemList(accum, privateContactsForMerge)
+        } else {
+            accum.sort()
+        }
+        val mergeSortMs = SystemClock.elapsedRealtime() - tMerge
+        val tExpand = SystemClock.elapsedRealtime()
+        val (contacts, selectedLocal) = expandSimpleContactsToContactsWithSelection(accum)
+        val expandMs = SystemClock.elapsedRealtime() - tExpand
+        perfLog(
+            "loadNextChunk DONE isFirst=$isFirstPage totalMs=${SystemClock.elapsedRealtime() - chunkWallStart} " +
+                "simpleAccum=${accum.size} expandedContacts=${contacts.size} hasMore=$hasMoreFromDb " +
+                "mergeSortMs=$mergeSortMs expandMs=$expandMs dbIters=$dbIterations",
+        )
+        return ContactsDbChunk(contacts, selectedLocal, hasMoreFromDb)
+    }
+
+    private fun appendKeyIndicesForRange(startIndex: Int, contacts: List<Contact>) {
+        contacts.forEachIndexed { i, c ->
+            allContactKeyToIndex[contactNumberKey(c.contactId, c.phoneNumber)] = startIndex + i
         }
     }
 
     private fun searchListByQuery(s: String) {
         searchString = s
         if (s.trim().isEmpty()) {
-            filteredContacts.clear()
-            filteredContacts.addAll(allContacts)
-            updateAdapterWithFilteredContacts()
+            hasMoreContacts = false
+            isLoadingMore = false
+            startBrowseContactsLoadFromDb()
             return
         }
-        val query = s.lowercase().trim()
-        filteredContacts.clear()
-        for (contact in allContacts) {
-            if (contactMatchesQuery(contact, query)) filteredContacts.add(contact)
+        hasMoreContacts = false
+        isLoadingMore = false
+        val query = s.trim()
+        ensureBackgroundThread {
+            val helper = SimpleContactsHelper(this@ContactPickerActivity)
+            val systemMatches = helper.getAvailableContactsMatchingSearchSync(
+                favoritesOnly = false,
+                searchText = query,
+                limit = CONTACTS_SEARCH_DB_LIMIT,
+            )
+            val qLower = query.lowercase()
+            val merged = ArrayList<SimpleContact>()
+            merged.addAll(systemMatches)
+            if (merged.isEmpty() && privateContactsForMerge.isNotEmpty()) {
+                for (c in privateContactsForMerge) {
+                    val nameMatch = c.name.lowercase().contains(qLower)
+                    val phoneMatch = c.phoneNumbers.any { pn ->
+                        pn.value.lowercase().contains(qLower) || pn.normalizedNumber.contains(qLower)
+                    }
+                    if (nameMatch || phoneMatch) merged.add(c)
+                }
+            }
+            if (systemMatches.isNotEmpty() && privateContactsForMerge.isNotEmpty()) {
+                mergePrivateContactsIntoSystemList(merged, privateContactsForMerge)
+            } else {
+                merged.sort()
+            }
+            val (contactList, selectedLocal) = expandSimpleContactsToContactsWithSelection(merged)
+            val keyToIndex = HashMap<String, Int>(contactList.size * 2)
+            contactList.forEachIndexed { i, c ->
+                keyToIndex[contactNumberKey(c.contactId, c.phoneNumber)] = i
+            }
+            runOnUiThread {
+                if (isFinishing || isDestroyed) return@runOnUiThread
+                allContacts.clear()
+                allContacts.addAll(contactList)
+                allContactKeyToIndex.clear()
+                allContactKeyToIndex.putAll(keyToIndex)
+                selectedPositions.clear()
+                val globalSelected = HashSet<Int>()
+                selectedLocal.forEach { globalSelected.add(it) }
+                globalSelected.forEach { selectedPositions.add(it) }
+                filteredContacts.clear()
+                filteredContacts.addAll(contactList)
+                contactAdapter?.setContactModeItems(ArrayList(filteredContacts), buildFilteredSelectedIndicesForAdapter())
+                hideContactsLetterFastScroller()
+            }
         }
-        updateAdapterWithFilteredContacts()
+    }
+
+    /** First browse page from DB + private merge (same rules as [loadContacts]). */
+    private fun startBrowseContactsLoadFromDb() {
+        ensureBackgroundThread {
+            val bgWall = SystemClock.elapsedRealtime()
+            val tPrivate = SystemClock.elapsedRealtime()
+            val privateCursor = getMyContactsCursor(favoritesOnly = false, withPhoneNumbersOnly = true)
+            val privateList = MyContactsContentProvider.getSimpleContacts(this@ContactPickerActivity, privateCursor)
+            val privateMs = SystemClock.elapsedRealtime() - tPrivate
+            privateContactsForMerge.clear()
+            privateContactsForMerge.addAll(privateList)
+            systemContactsSqlOffset = 0
+            val chunk = loadNextContactsChunkFromDb(isFirstPage = true)
+            perfLog(
+                "startBrowse BG done privateMs=$privateMs privateCount=${privateList.size} " +
+                    "firstChunkContacts=${chunk.contacts.size} hasMore=${chunk.hasMoreFromDb} " +
+                    "bgWallMs=${SystemClock.elapsedRealtime() - bgWall}",
+            )
+            runOnUiThread {
+                val uiStart = SystemClock.elapsedRealtime()
+                if (isFinishing || isDestroyed) return@runOnUiThread
+                allContacts.clear()
+                allContacts.addAll(chunk.contacts)
+                allContactKeyToIndex.clear()
+                appendKeyIndicesForRange(0, chunk.contacts)
+                selectedPositions.clear()
+                chunk.selectedLocalIndices.forEach { selectedPositions.add(it) }
+                filteredContacts.clear()
+                filteredContacts.addAll(allContacts)
+                hasMoreContacts = chunk.hasMoreFromDb
+                isLoadingMore = false
+                contactAdapter?.setContactModeItems(
+                    ArrayList(filteredContacts),
+                    buildFilteredSelectedIndicesForAdapter(),
+                )
+                hideContactsLetterFastScroller()
+                scheduleBrowseLoadMoreAfterChunk()
+                perfLog(
+                    "startBrowse UI applied contacts=${chunk.contacts.size} uiMs=${SystemClock.elapsedRealtime() - uiStart} " +
+                        "sinceBgStartMs=${SystemClock.elapsedRealtime() - bgWall}",
+                )
+            }
+        }
     }
 
     private fun contactMatchesQuery(contact: Contact, query: String): Boolean {
@@ -702,6 +892,17 @@ class ContactPickerActivity : SimpleActivity() {
         return result
     }
 
+    /** Maps [selectedPositions] (indices in [allContacts]) to adapter row indices in [filteredContacts]. */
+    private fun buildFilteredSelectedIndicesForAdapter(): HashSet<Int> {
+        val out = HashSet<Int>()
+        for (i in filteredContacts.indices) {
+            val contact = filteredContacts[i]
+            val idx = allContactKeyToIndex[contactNumberKey(contact.contactId, contact.phoneNumber)] ?: continue
+            if (selectedPositions.contains(idx)) out.add(i)
+        }
+        return out
+    }
+
     private fun updateAdapterWithFilteredContacts() {
         if (isCallLogMode) {
             val query = searchString.lowercase().trim()
@@ -720,19 +921,16 @@ class ContactPickerActivity : SimpleActivity() {
                 if (selectedPositions.contains(e.contactIndex)) filteredSelected.add(e.contactIndex)
             }
             contactAdapter?.setCallLogModeItems(rows, allContacts, filteredSelected)
-            setupLetterFastscroller(emptyList())
+            hideContactsLetterFastScroller()
             return
         }
-        val filteredSelected = HashSet<Int>()
-        filteredContacts.forEachIndexed { i, contact ->
-            val idx = allContacts.indexOfFirst {
-                if (contact.contactId.isEmpty()) it.phoneNumber == contact.phoneNumber
-                else it.contactId == contact.contactId && it.phoneNumber == contact.phoneNumber
-            }
-            if (idx >= 0 && selectedPositions.contains(idx)) filteredSelected.add(i)
+        if (searchString.trim().isEmpty()) {
+            filteredContacts.clear()
+            filteredContacts.addAll(allContacts)
         }
-        contactAdapter?.setContactModeItems(filteredContacts, filteredSelected)
-        setupLetterFastscroller(filteredContacts)
+        val filteredSelected = buildFilteredSelectedIndicesForAdapter()
+        contactAdapter?.setContactModeItems(ArrayList(filteredContacts), filteredSelected)
+        hideContactsLetterFastScroller()
     }
 
     private fun checkContactsPermission(): Boolean {
@@ -777,6 +975,7 @@ class ContactPickerActivity : SimpleActivity() {
         callLogMeta.clear()
         filteredContacts.clear()
         selectedPositions.clear()
+        allContactKeyToIndex.clear()
         callLogPlaceholder?.visibility = View.GONE
         contactRecyclerView?.visibility = View.VISIBLE
 
@@ -810,6 +1009,7 @@ class ContactPickerActivity : SimpleActivity() {
                             contactSource = emptyList(),
                             selectedIndices = emptySet(),
                         )
+                        hideContactsLetterFastScroller()
                     }
                     return@Thread
                 }
@@ -875,7 +1075,7 @@ class ContactPickerActivity : SimpleActivity() {
                     if (list.isEmpty()) {
                         callLogPlaceholder?.visibility = View.VISIBLE
                         contactRecyclerView?.visibility = View.GONE
-                        setupLetterFastscroller(emptyList())
+                        hideContactsLetterFastScroller()
                     } else {
                         callLogPlaceholder?.visibility = View.GONE
                         contactRecyclerView?.visibility = View.VISIBLE
@@ -892,7 +1092,7 @@ class ContactPickerActivity : SimpleActivity() {
                         contactSource = emptyList(),
                         selectedIndices = emptySet(),
                     )
-                    setupLetterFastscroller(emptyList())
+                    hideContactsLetterFastScroller()
                 }
             }
         }.start()
@@ -905,6 +1105,7 @@ class ContactPickerActivity : SimpleActivity() {
         selectedPositions.clear()
         addedContactIds.clear()
         hasMoreContacts = false
+        allContactKeyToIndex.clear()
         contactsCursor?.takeIf { !it.isClosed }?.close()
         contactsCursor = null
         contactAdapter?.setContactModeItems(emptyList(), emptySet())
@@ -920,83 +1121,139 @@ class ContactPickerActivity : SimpleActivity() {
             }
         }
 
-        // Mirror NewConversationActivity contact source + merge ordering so display order stays consistent.
-        SimpleContactsHelper(this).getAvailableContacts(false) { simpleContacts ->
-            val privateCursor = getMyContactsCursor(favoritesOnly = false, withPhoneNumbersOnly = true)
-            val privateContacts = MyContactsContentProvider.getSimpleContacts(this, privateCursor)
-            val mergedContacts = ArrayList(simpleContacts)
+        // First chunk from DB (SIM/phone-storage phones); private entries merge on that first chunk.
+        if (searchString.trim().isEmpty()) {
+            startBrowseContactsLoadFromDb()
+        } else {
+            searchListByQuery(searchString)
+        }
+    }
 
-            if (privateContacts.isNotEmpty()) {
-                // Keep the same dedupe rules used in NewConversationActivity.
-                val existingPhoneNumbers = HashSet<String>()
-                val existingContactNamesWithoutPhone = HashSet<String>()
-                mergedContacts.forEach { contact ->
-                    contact.phoneNumbers.forEach { phoneNumber ->
-                        existingPhoneNumbers.add(phoneNumber.normalizedNumber)
-                    }
-                    if (contact.name.isNotEmpty() && contact.phoneNumbers.isEmpty()) {
-                        existingContactNamesWithoutPhone.add(contact.name.lowercase().trim())
-                    }
-                }
+    private fun browseLoadMoreNestScrollSlopPx(): Int =
+        (resources.displayMetrics.density * 280f).toInt().coerceAtLeast(120)
 
-                privateContacts.forEach { privateContact ->
-                    val hasMatchingPhoneNumber = privateContact.phoneNumbers.isNotEmpty() &&
-                        privateContact.phoneNumbers.any { phoneNumber ->
-                            existingPhoneNumbers.contains(phoneNumber.normalizedNumber)
-                        }
-                    val hasMatchingName = privateContact.phoneNumbers.isEmpty() &&
-                        privateContact.name.isNotEmpty() &&
-                        existingContactNamesWithoutPhone.contains(privateContact.name.lowercase().trim())
+    /**
+     * When the list lives inside a [NestedScrollView], the [RecyclerView] is often as tall as all
+     * rows so [LinearLayoutManager.findLastVisibleItemPosition] is always near [itemCount] even
+     * though the user has not scrolled the outer view — that must not trigger pagination.
+     */
+    private fun browseRvHasIndependentVerticalScroll(rv: RecyclerView): Boolean {
+        val range = rv.computeVerticalScrollRange()
+        val extent = rv.computeVerticalScrollExtent()
+        val slop = (rv.resources.displayMetrics.density * 32f).toInt().coerceAtLeast(24)
+        return range > extent + slop
+    }
 
-                    if (!hasMatchingPhoneNumber && !hasMatchingName) {
-                        mergedContacts.add(privateContact)
-                        privateContact.phoneNumbers.forEach { phoneNumber ->
-                            existingPhoneNumbers.add(phoneNumber.normalizedNumber)
-                        }
-                        if (privateContact.name.isNotEmpty() && privateContact.phoneNumbers.isEmpty()) {
-                            existingContactNamesWithoutPhone.add(privateContact.name.lowercase().trim())
-                        }
-                    }
-                }
-                mergedContacts.sort()
+    private fun scheduleBrowseLoadMoreFromScrollDebounced() {
+        val rv = contactRecyclerView ?: return
+        rv.removeCallbacks(browseLoadMoreFromScrollRunnable)
+        rv.postDelayed(browseLoadMoreFromScrollRunnable, BROWSE_LOAD_MORE_SCROLL_DEBOUNCE_MS)
+    }
+
+    /** One delayed check after data changes so we do not synchronously chain [loadMoreContacts] while still at the bottom. */
+    private fun scheduleBrowseLoadMoreAfterChunk() {
+        val rv = contactRecyclerView ?: return
+        rv.removeCallbacks(browseLoadMoreAfterChunkRunnable)
+        rv.postDelayed(browseLoadMoreAfterChunkRunnable, BROWSE_LOAD_MORE_AFTER_CHUNK_MS)
+    }
+
+    /**
+     * Browse-mode pagination: the list is inside a [NestedScrollView], so the outer view often
+     * scrolls while the [RecyclerView] reports no internal scroll — [RecyclerView.OnScrollListener]
+     * alone misses that. Also uses [LinearLayoutManager.findLastVisibleItemPosition] for a stable
+     * “near end” check when the list does scroll internally.
+     */
+    private fun maybeLoadMoreBrowseContactsFromScroll() {
+        if (isCallLogMode || searchString.isNotEmpty() || isLoadingMore || !hasMoreContacts) return
+        val rv = contactRecyclerView ?: return
+        if (rv.visibility != View.VISIBLE) return
+        val lm = rv.layoutManager as? LinearLayoutManager ?: return
+        val total = rv.adapter?.itemCount ?: return
+        if (total == 0) return
+
+        val lastVisible = lm.findLastVisibleItemPosition()
+        val nearEndRv = browseRvHasIndependentVerticalScroll(rv) &&
+            lastVisible != RecyclerView.NO_POSITION &&
+            lastVisible >= total - 1 - BROWSE_LOAD_MORE_NEAR_END_ITEMS
+
+        val nearEndNsv = nestScrollView?.let { ns ->
+            val child = ns.getChildAt(0) ?: return@let false
+            val contentHeight = child.height
+            if (contentHeight <= ns.height) return@let false
+            val distanceToBottom = contentHeight - ns.height - ns.scrollY
+            distanceToBottom <= browseLoadMoreNestScrollSlopPx()
+        } ?: false
+
+        if (nearEndRv || nearEndNsv) {
+            val distBottom = nestScrollView?.let { ns ->
+                val child = ns.getChildAt(0)
+                if (child == null || child.height <= ns.height) null
+                else child.height - ns.height - ns.scrollY
             }
-
-            val contactList = ArrayList<Contact>()
-            val selected = HashSet<Int>()
-            var index = 0
-            for (sc in mergedContacts) {
-                val contactIdStr = sc.contactId.toString()
-                val name = sc.name
-                val org = sc.company ?: ""
-                if (sc.phoneNumbers.isEmpty()) {
-                    continue
-                }
-                for (pn in sc.phoneNumbers) {
-                    val key = contactNumberKey(contactIdStr, pn.value)
-                    contactList.add(Contact(name, contactIdStr, -1, pn.value, "", org))
-                    if (alreadySelectedContactIds.contains(key)) selected.add(index)
-                    index++
-                }
-            }
-            runOnUiThread {
-                allContacts.clear()
-                allContacts.addAll(contactList)
-                selectedPositions.clear()
-                selected.forEach { selectedPositions.add(it) }
-                filteredContacts.clear()
-                if (searchString.trim().isEmpty()) {
-                    filteredContacts.addAll(contactList)
-                    contactAdapter?.setContactModeItems(contactList, selected)
-                    setupLetterFastscroller(contactList)
-                } else {
-                    searchListByQuery(searchString)
-                }
-            }
+            val rvRange = rv.computeVerticalScrollRange()
+            val rvExtent = rv.computeVerticalScrollExtent()
+            perfLog(
+                "maybeLoad TRIGGER nearEndRv=$nearEndRv nearEndNsv=$nearEndNsv lastVis=$lastVisible total=$total " +
+                    "distBottom=$distBottom slopPx=${browseLoadMoreNestScrollSlopPx()} rvRange=$rvRange rvExtent=$rvExtent",
+            )
+            loadMoreContacts()
         }
     }
 
     private fun loadMoreContacts() {
-        // No-op: contacts are loaded all at once via SimpleContactsHelper (hasMoreContacts = false)
+        if (isCallLogMode || searchString.isNotEmpty() || isLoadingMore || !hasMoreContacts) {
+            perfLog(
+                "loadMore SKIP callLog=$isCallLogMode searchNonEmpty=${searchString.isNotEmpty()} " +
+                    "loading=$isLoadingMore hasMore=$hasMoreContacts",
+            )
+            return
+        }
+        val wallStart = SystemClock.elapsedRealtime()
+        val globalStart = allContacts.size
+        perfLog("loadMore START listSize=$globalStart")
+        isLoadingMore = true
+        ensureBackgroundThread {
+            val bgStart = SystemClock.elapsedRealtime()
+            val chunk = loadNextContactsChunkFromDb(isFirstPage = false)
+            val bgMs = SystemClock.elapsedRealtime() - bgStart
+            runOnUiThread {
+                if (isFinishing || isDestroyed) {
+                    isLoadingMore = false
+                    perfLog("loadMore ABORT finishing/destroyed bgMs=$bgMs")
+                    return@runOnUiThread
+                }
+                val uiStart = SystemClock.elapsedRealtime()
+                if (chunk.contacts.isEmpty()) {
+                    hasMoreContacts = chunk.hasMoreFromDb
+                    isLoadingMore = false
+                    perfLog(
+                        "loadMore EMPTY uiMs=${SystemClock.elapsedRealtime() - uiStart} bgMs=$bgMs " +
+                            "hasMoreFromDb=${chunk.hasMoreFromDb} wallMs=${SystemClock.elapsedRealtime() - wallStart}",
+                    )
+                    if (chunk.hasMoreFromDb) {
+                        scheduleBrowseLoadMoreAfterChunk()
+                    }
+                    return@runOnUiThread
+                }
+                appendKeyIndicesForRange(globalStart, chunk.contacts)
+                chunk.selectedLocalIndices.forEach { local ->
+                    selectedPositions.add(globalStart + local)
+                }
+                allContacts.addAll(chunk.contacts)
+                filteredContacts.addAll(chunk.contacts)
+                val tAddItems = SystemClock.elapsedRealtime()
+                contactAdapter?.addItems(chunk.contacts, chunk.selectedLocalIndices)
+                val addItemsMs = SystemClock.elapsedRealtime() - tAddItems
+                hasMoreContacts = chunk.hasMoreFromDb
+                isLoadingMore = false
+                val uiMs = SystemClock.elapsedRealtime() - uiStart
+                perfLog(
+                    "loadMore DONE added=${chunk.contacts.size} hasMore=${chunk.hasMoreFromDb} bgMs=$bgMs " +
+                        "uiMs=$uiMs addItemsMs=$addItemsMs wallMs=${SystemClock.elapsedRealtime() - wallStart}",
+                )
+                scheduleBrowseLoadMoreAfterChunk()
+            }
+        }
     }
 
     private fun contactNumberKey(contactId: String, phoneNumber: String): String {
