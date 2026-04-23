@@ -123,6 +123,7 @@ import android.widget.PopupMenu
 import androidx.core.view.updatePadding
 import com.android.common.dialogs.MConfirmDialog
 import com.android.mms.helpers.MNC_KANGSONG
+import com.android.mms.helpers.resolveSimIconTint
 import com.behaviorule.arturdumchev.library.setHeight
 import com.goodwy.commons.helpers.DARK_GREY
 import eightbitlab.com.blurview.BlurTarget
@@ -1346,12 +1347,11 @@ class ThreadAdapter(
                     else -> R.drawable.ic_sim_vector
                 }
                 setImageResource(simRes)
-//                val simMnc = currentSIMCard.mnc
-//                if (simMnc == MNC_KANGSONG)
-                val simColor = if (!activity.config.colorSimIcons) textColor
-                else {
-                    if (simId in 1..4) activity.config.simIconsColors[simId] else activity.config.simIconsColors[0]
-                }
+//                val simColor = if (!activity.config.colorSimIcons) textColor
+//                else {
+//                    if (simId in 1..4) activity.config.simIconsColors[simId] else activity.config.simIconsColors[0]
+//                }
+                val simColor = activity.resolveSimIconTint(textColor, message.subscriptionId, simId)
                 applyColorFilter(simColor)
                 beVisible()
             } else {

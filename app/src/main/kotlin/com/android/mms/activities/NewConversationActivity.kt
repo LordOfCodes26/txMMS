@@ -1787,7 +1787,14 @@ class NewConversationActivity : SimpleActivity() {
 //            binding.messageHolder.threadSelectSimIcon.background.applyColorFilter(
 //                resources.getColor(com.goodwy.commons.R.color.activated_item_foreground, theme)
 //            )
-            binding.messageHolder.threadSelectSimIcon.applyColorFilter(getProperTextColor())
+//            binding.messageHolder.threadSelectSimIcon.applyColorFilter(getProperTextColor())
+            binding.messageHolder.threadSelectSimIcon.applyColorFilter(
+                resolveSimIconTint(
+                    textColor,
+                    availableSIMCards.getOrNull(currentSIMCardIndex)?.subscriptionId ?: -1,
+                    availableSIMCards.getOrNull(currentSIMCardIndex)?.id ?: 1
+                    )
+            )
             binding.messageHolder.threadSelectSimIconHolder.beVisibleIf(true)
             // added by sun ------->
             // if ask every time in system setting, not show sim icon
@@ -1813,11 +1820,7 @@ class NewConversationActivity : SimpleActivity() {
 //                        val simId = currentSIMCard.id
 //                        if (simId in 1..4) config.simIconsColors[simId] else config.simIconsColors[0]
 //                    }
-                    val simColor = if (!config.colorSimIcons) textColor
-                    else {
-                        val simMnc = currentSIMCard.mnc
-                        if (simMnc == MNC_KANGSONG) config.simIconsColors[2] else config.simIconsColors[0]
-                    }
+                    val simColor = resolveSimIconTint(textColor, currentSIMCard.subscriptionId, currentSIMCard.id)
                     trySetSystemDefaultSmsSubscriptionId(currentSIMCard.subscriptionId)
                     // <------------
                     binding.messageHolder.threadSelectSimIcon.applyColorFilter(simColor)
@@ -1846,11 +1849,11 @@ class NewConversationActivity : SimpleActivity() {
 //                        val simId = availableSIMCards[currentSIMCardIndex].id
 //                        if (simId in 1..4) config.simIconsColors[simId] else config.simIconsColors[0]
 //                    }
-                val simColor = if (!config.colorSimIcons) textColor
-                else {
-                    val simMnc = availableSIMCards[currentSIMCardIndex].mnc
-                    if (simMnc == MNC_KANGSONG) config.simIconsColors[2] else config.simIconsColors[0]
-                }
+                val simColor = resolveSimIconTint(
+                    textColor,
+                    availableSIMCards[currentSIMCardIndex].subscriptionId,
+                    availableSIMCards[currentSIMCardIndex].id
+                )
                 // <-------------
 
                 binding.messageHolder.threadSelectSimIcon.applyColorFilter(simColor)

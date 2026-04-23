@@ -21,6 +21,8 @@ import com.android.mms.R
 import com.android.mms.databinding.ItemSelectSimPopupRowBinding
 import com.android.mms.extensions.config
 import com.android.mms.helpers.MNC_KANGSONG
+import com.android.mms.helpers.getSimIconTintForSlot
+import com.android.mms.helpers.resolveSimIconTint
 import com.android.mms.models.SIMCard
 import com.goodwy.commons.extensions.applyColorFilter
 import com.goodwy.commons.extensions.beGone
@@ -89,13 +91,7 @@ class SelectSIMDialog(
                         }
                     }
                     val textColor = activity.getProperTextColor()
-                    val simIconColor = if (!activity.config.colorSimIcons) {
-                        textColor
-                    } else {
-                        val simMnc = simAccount.mnc
-                        if (simMnc == MNC_KANGSONG) activity.config.simIconsColors[2] else activity.config.simIconsColors[0]
-                    }
-
+                    val simIconColor = activity.resolveSimIconTint(textColor, simAccount.subscriptionId,simAccount.id)
                     simSelectSlotIcon.applyColorFilter(simIconColor)
 
                     root.setOnClickListener {
