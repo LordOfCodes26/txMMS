@@ -144,8 +144,10 @@ class ContactPickerActivity : SimpleActivity() {
     private var filterContactsLiner: ImageView? = null
         private var callLogPlaceholder: View? = null
     private var contactPickerFilterBar: View? = null
-    /** Filter bar height + 12dp; set once from a stable layout pass so search and normal modes match. */
+    /** Filter bar height + 12dp; recomputed when search mode toggles (filter bar top margin changes). */
     private var contactPickerListTopInsetPx: Int = -1
+    /** Top margin of [R.id.contact_picker_filter_bar_child] when the large-title app bar is expanded. */
+    private var contactPickerFilterBarExpandedTopMarginPx: Int = Int.MIN_VALUE
     private var contactPickerFilterBarInsetListener: ViewTreeObserver.OnGlobalLayoutListener? = null
     private var contactPickerFilterBarAppBarOffsetListener: AppBarLayout.OnOffsetChangedListener? = null
     /** Letter rail disabled for performance on large address books; kept as plain [View] to hide in layout. */
@@ -403,6 +405,29 @@ class ContactPickerActivity : SimpleActivity() {
         blur.invalidate()
     }
 
+    /**
+     * The filter strip uses a large [R.id.contact_picker_filter_bar_child] top margin to clear the expanded
+     * large title; in search mode the app bar is collapsed, so the margin must match [MySearchMenu] height.
+     */
+    private fun applyContactPickerFilterBarTopMarginForSearch(collapsedMenu: Boolean) {
+        val child = findViewById<View>(R.id.contact_picker_filter_bar_child) ?: return
+        val lp = child.layoutParams as? ViewGroup.MarginLayoutParams ?: return
+        if (collapsedMenu) {
+            val menu = blurAppBarLayout ?: return
+            if (contactPickerFilterBarExpandedTopMarginPx == Int.MIN_VALUE) {
+                contactPickerFilterBarExpandedTopMarginPx = lp.topMargin
+            }
+            val target = menu.getCollapsedHeightPx().takeIf { it > 0 } ?: return
+            if (lp.topMargin != target) {
+                lp.topMargin = target
+                child.layoutParams = lp
+            }
+        } else if (contactPickerFilterBarExpandedTopMarginPx != Int.MIN_VALUE) {
+            lp.topMargin = contactPickerFilterBarExpandedTopMarginPx
+            child.layoutParams = lp
+        }
+    }
+
     private fun setContactPickerTransparentAppBarBackground() {
         val menu = blurAppBarLayout ?: return
         menu.setBackgroundColor(Color.TRANSPARENT)
@@ -449,17 +474,23 @@ class ContactPickerActivity : SimpleActivity() {
             bindBlurTarget(this@ContactPickerActivity, blurTarget)
             setOnMenuItemClickListener { item ->
                 if (item.itemId == R.id.search) {
+                    val bar = blurAppBarLayout ?: return@setOnMenuItemClickListener true
+                    // Collapse the large-title region before expanding inline search (same order as MainActivity).
+                    bar.collapseAndLockCollapsing()
+                    syncContactPickerBlurForCollapsedSearchMenu()
+                    bar.binding.collapsingTitle.visibility = View.GONE
                     expandSearch()
-                    blurAppBarLayout?.binding?.collapsingTitle?.visibility = View.GONE
                     true
                 } else false
             }
             setOnSearchExpandListener {
                 val bar = blurAppBarLayout ?: return@setOnSearchExpandListener
-                resolveContactPickerListTopInsetPxIfNeeded()
-                applyContactPickerListTopPadding()
                 bar.collapseAndLockCollapsing()
                 syncContactPickerBlurForCollapsedSearchMenu()
+                applyContactPickerFilterBarTopMarginForSearch(collapsedMenu = true)
+                contactPickerListTopInsetPx = -1
+                resolveContactPickerListTopInsetPxIfNeeded()
+                applyContactPickerListTopPadding()
                 bar.binding.collapsingTitle.visibility = View.GONE
                 hideTopBarNavigation()
                 contactRecyclerView?.isNestedScrollingEnabled = false
@@ -467,6 +498,8 @@ class ContactPickerActivity : SimpleActivity() {
             }
             setOnSearchBackClickListener {
                 val bar = blurAppBarLayout ?: return@setOnSearchBackClickListener
+                applyContactPickerFilterBarTopMarginForSearch(collapsedMenu = false)
+                contactPickerListTopInsetPx = -1
                 bar.unlockCollapsing()
                 bar.setExpanded(true, true)
                 bar.binding.collapsingTitle.visibility = View.VISIBLE
