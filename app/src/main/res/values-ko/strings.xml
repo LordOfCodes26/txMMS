@@ -9,7 +9,7 @@
     <string name="keep_conversations_archived">통보문 보관하기</string>
     <string name="sender_and_message">보낸사람 및 내용</string>
     <string name="sender_only">보낸사람만</string>
-    <string name="enable_delivery_reports">수신확인 사용</string>
+    <string name="enable_delivery_reports">전송보고</string>
     <string name="use_delivery_report_summary">전송한 통보문마다 전송정형에 대하여 알려줍니다</string>
     <string name="mms_file_size_limit">MMS 그림크기 조정</string>
     <string name="send_on_enter">행바꾸기 입력시 통보문 전송</string>

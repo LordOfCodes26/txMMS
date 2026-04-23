@@ -435,7 +435,7 @@ class ManageQuickTextsActivity : SimpleActivity(), RefreshRecyclerViewListener, 
         val dialog = MRenameDialog(this)
         dialog.bindBlurTarget(binding.mainBlurTarget)
         dialog.setTitle(getString(if (text == null) R.string.add_a_quick_text else R.string.quick_text))
-        dialog.setHintText(getString(com.android.common.R.string.tx_input_name))
+        dialog.setHintText(getString(R.string.type_a_message))
         dialog.setContentText(text.orEmpty())
         dialog.setOnRenameListener { newQuickText ->
             if (text != null && newQuickText != text) {
