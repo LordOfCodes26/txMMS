@@ -9,23 +9,16 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
 import android.widget.LinearLayout
-import androidx.core.content.res.ResourcesCompat
 import com.android.common.view.MDialog
 import com.android.mms.activities.SimpleActivity
 import com.android.mms.databinding.DialogSelectSimBinding
-import com.android.mms.databinding.ItemSimFeeDialogBinding
 import com.android.mms.extensions.getAvailableSIMCardLabels
 import com.android.mms.helpers.FeeInfoUtils
-import com.android.mms.models.SIMAccount
 import com.android.mms.R
 import com.android.mms.databinding.ItemSelectSimPopupRowBinding
-import com.android.mms.extensions.config
-import com.android.mms.helpers.MNC_KANGSONG
-import com.android.mms.helpers.getSimIconTintForSlot
 import com.android.mms.helpers.resolveSimIconTint
 import com.android.mms.models.SIMCard
 import com.goodwy.commons.extensions.applyColorFilter
-import com.goodwy.commons.extensions.beGone
 import com.goodwy.commons.extensions.beVisible
 import com.goodwy.commons.extensions.getProperTextColor
 import com.goodwy.commons.extensions.setupMDialogStuff
@@ -82,9 +75,12 @@ class SelectSIMDialog(
                     val slotId = FeeInfoUtils.getSimSlotIndexForSubscriptionId(activity, simAccount.subscriptionId)
                     ensureBackgroundThread {
                         val smsCount = slotId?.let { FeeInfoUtils.getAvailableSmsCountForSlot(activity, it) }
+                        val feeCash = slotId?.let { FeeInfoUtils.getAvailableFeeCashForSlot(activity, it) }
+                        val txtSmsCount = activity.getString(R.string.remained_sms_count, smsCount)
+                        val txtCash = activity.getString(R.string.remained_cash) + feeCash
                         activity.runOnUiThread {
                             if (smsCount !== null) {
-                                simSelectLabel.text = activity.getString(R.string.remained_sms_count, smsCount)
+                                simSelectLabel.text = "$txtSmsCount, $txtCash"
                             } else {
                                 simSelectLabel.text = activity.getString(R.string.select_sim_1)
                             }

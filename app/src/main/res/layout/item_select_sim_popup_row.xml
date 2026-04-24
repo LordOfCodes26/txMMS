@@ -9,7 +9,7 @@
 
     <FrameLayout
         android:layout_width="13dp"
-        android:layout_height="16.5dp"
+        android:layout_height="16.7dp"
         android:layout_gravity="center_vertical">
 
         <androidx.appcompat.widget.AppCompatImageView
@@ -42,7 +42,7 @@
         android:gravity="center_vertical"
         android:lines="1"
         android:textColor="@color/tx_title_text"
-        android:textSize="@dimen/tx_sub_section"
+        android:textSize="@dimen/tx_content_text"
         tools:text="@string/select_sim_1" />
 
 </LinearLayout>

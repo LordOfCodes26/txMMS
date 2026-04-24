@@ -89,6 +89,41 @@ object FeeInfoUtils {
         }
     }
     // added by sun
+
+    fun getAvailableFeeCashForSlot(context: Context, slotId: Int): Float? {
+        return try {
+            val allUri = Uri.parse("content://com.android.dialer.feeinfo/fee_info")
+            val cursor = context.contentResolver.query(allUri, null, null, null, null)
+            if (cursor == null) {
+                Log.d(TAG, "getAvailableSmsCountForSlot: query returned null cursor")
+                return null
+            }
+            cursor.use {
+                val slotIdColumn = cursor.getColumnIndex("slot_id")
+                val cashColumn = cursor.getColumnIndex("cash")
+                if (slotIdColumn == -1 || cashColumn == -1) {
+                    Log.d(TAG, "getAvailableSmsCountForSlot: missing columns slot_id/sms")
+                    return null
+                }
+
+                var rowCount = 0
+                while (cursor.moveToNext()) {
+                    rowCount++
+                    val providerSlotId = cursor.getInt(slotIdColumn)
+                    val providerFeeCash = cursor.getFloat(cashColumn)
+
+                    if (providerSlotId == slotId) {
+                        return providerFeeCash
+                    }
+                }
+                null
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "getAvailableSmsCountForSlot: query failed for slotId=$slotId", e)
+            null
+        }
+    }
+
     @SuppressLint("MissingPermission")
     fun getSimSlotIndexForSubscriptionId(context: Context, subscriptionId: Int): Int? {
         val activeSIMS = context.subscriptionManagerCompat().activeSubscriptionInfoList ?: return null

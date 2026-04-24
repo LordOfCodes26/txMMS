@@ -228,5 +228,6 @@
     <string name="koryo_label">Koryo</string>
     <string name="kangsong_label">Kangsong</string>
     <string name="mirae_label">Mirae</string>
-    <string name="remained_sms_count">message: %1$d</string>
+    <string name="remained_sms_count">%1$d</string>
+    <string name="remained_cash">cash:</string>
 </resources>

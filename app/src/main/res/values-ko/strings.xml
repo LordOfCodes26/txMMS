@@ -191,5 +191,6 @@
     <string name="koryo_label">고려망</string>
     <string name="kangsong_label">강성망</string>
     <string name="mirae_label">미래망</string>
-    <string name="remained_sms_count">통보문:%1$d</string>
+    <string name="remained_sms_count">%1$d개</string>
+    <string name="remained_cash">료금:</string>
 </resources>

@@ -193,5 +193,6 @@
     <string name="koryo_label">高丽</string>
     <string name="kangsong_label">强盛</string>
     <string name="mirae_label">未来</string>
-    <string name="remained_sms_count">消息: %1$d</string>
+    <string name="remained_sms_count">%1$d</string>
+    <string name="remained_cash">现金:</string>
 </resources>
