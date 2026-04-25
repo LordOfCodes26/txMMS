@@ -181,7 +181,7 @@
     <!-- Contacts -->
     <string name="add_number">번호 추가</string>
     <string name="add_email">전자우편 추가</string>
-    <string name="add_address">주소 추가</string>
+    <string name="add_address">주소추가</string>
     <string name="add_im">IM 추가</string>
     <string name="add_event">사건 추가</string>
     <string name="add_notes">기록 추가</string>

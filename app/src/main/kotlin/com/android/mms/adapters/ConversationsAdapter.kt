@@ -1,15 +1,12 @@
 package com.android.mms.adapters
 
 import android.annotation.SuppressLint
-import android.graphics.Color
-import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.text.TextUtils
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
-import android.view.ViewGroup
 import android.widget.PopupMenu
 import com.android.common.dialogs.MConfirmDialog
 import com.goodwy.commons.dialogs.OptionListDialog
@@ -348,29 +345,29 @@ class ConversationsAdapter(
             }
             if (m.findItem(R.id.cab_ripple_private_space_add)?.isVisible == true) {
                 add(
-                    R.drawable.ic_sms_ripple_shield,
-                    activity.getString(R.string.private_space_add),
+                    R.drawable.ic_sms_ripple_shield_add,
+                    activity.getString(R.string.private_space),
                     R.id.cab_ripple_private_space_add,
                 )
             }
             if (m.findItem(R.id.cab_ripple_private_space_delete)?.isVisible == true) {
                 add(
-                    R.drawable.ic_sms_ripple_shield,
-                    activity.getString(R.string.private_space_delete),
+                    R.drawable.ic_sms_ripple_shield_delete,
+                    activity.getString(R.string.private_space),
                     R.id.cab_ripple_private_space_delete,
                 )
             }
             if (m.findItem(R.id.cab_ripple_secure_box_lock)?.isVisible == true) {
                 add(
                     com.android.common.R.drawable.ic_cmn_lock_fill,
-                    activity.getString(R.string.encrypt),
+                    activity.getString(R.string.secure_box),
                     R.id.cab_ripple_secure_box_lock,
                 )
             }
             if (m.findItem(R.id.cab_ripple_secure_box_unlock)?.isVisible == true) {
                 add(
                     com.android.common.R.drawable.ic_cmn_unlock_fill,
-                    activity.getString(R.string.decrypt),
+                    activity.getString(R.string.secure_box),
                     R.id.cab_ripple_secure_box_unlock,
                 )
             }
