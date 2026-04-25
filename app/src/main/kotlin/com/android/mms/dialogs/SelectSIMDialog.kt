@@ -9,6 +9,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
 import android.widget.LinearLayout
+import androidx.core.graphics.alpha
 import com.android.common.view.MDialog
 import com.android.mms.activities.SimpleActivity
 import com.android.mms.databinding.DialogSelectSimBinding
@@ -114,18 +115,23 @@ class SelectSIMDialog(
             ) { mDialog ->
                 dialog = mDialog
                 dialog?.window?.let { window ->
+                    window.addFlags(WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM)
+                    window.setSoftInputMode(
+                        WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE or WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING
+                    )
                     window.setDimAmount(0.1f)
                     window.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
                     val w = activity.resources.getDimensionPixelSize(com.goodwy.commons.R.dimen.select_sim_dialog_width)
                     val h = activity.resources.getDimensionPixelSize(com.goodwy.commons.R.dimen.select_sim_dialog_height)
                     window.setLayout(w, h)
                 }
-                val anchor = anchorView
-                if (anchor != null) {
-                    anchor.post { applyDialogPosition() }
-                } else {
+//                val anchor = anchorView
+//                if (anchor != null) {
+//                    anchor.post { applyDialogPosition() }
+//                } else {
+//                    applyDialogPosition()
+//                }
                     applyDialogPosition()
-                }
             }
         }
     }

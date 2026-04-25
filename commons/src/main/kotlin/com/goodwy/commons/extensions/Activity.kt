@@ -1657,11 +1657,11 @@ fun Activity.setupMDialogStuff(
 //    dialog.window?.setBackgroundDrawable(bgDrawable)
     dialog.window?.setGravity(Gravity.BOTTOM)
 
+    callback?.invoke(dialog)
     if (!isFinishing) {
         dialog.show()
     }
 
-    callback?.invoke(dialog)
     return dialog
 }
 
