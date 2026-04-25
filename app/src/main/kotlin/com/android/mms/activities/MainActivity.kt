@@ -542,7 +542,7 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
             binding.actionModeRippleToolbar.visibility = View.GONE
             return
         }
-        val (items, _) = adapter.buildConversationListRippleToolbar()
+        val (items, _, tabEnabled) = adapter.buildConversationListRippleToolbar()
         if (items.isEmpty()) {
             binding.actionModeRippleToolbar.visibility = View.GONE
             return
@@ -554,7 +554,7 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         binding.actionModeRippleToolbar.visibility = View.VISIBLE
         val hasSelection = adapter.getSelectedItems().isNotEmpty()
         for (i in 0 until items.size) {
-            binding.actionModeRippleToolbar.setRippleTabEnabledWidthAlpha(i, hasSelection)
+            binding.actionModeRippleToolbar.setRippleTabEnabledWidthAlpha(i, hasSelection && tabEnabled.getOrElse(i) { true})
         }
     }
 

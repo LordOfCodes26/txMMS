@@ -2916,15 +2916,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             adapter.dispatchRippleToolbarAction(index)
         }
         binding.actionModeRippleToolbar.visibility = View.VISIBLE
-//        if (adapter.getSelectedItems().isEmpty()){
-//            for (i in 0 until 3){
-//                binding.actionModeRippleToolbar.setEnable(i, false)
-//            }
-//        }
-        val hasSelection = adapter.getSelectedItems().isNotEmpty()
-//        for (i in 0 until items.size) {
-//            binding.actionModeRippleToolbar.setRippleTabEnabledWidthAlpha(i, hasSelection)
-//        }
+
         for (i in 0 until items.size) {
             binding.actionModeRippleToolbar.setRippleTabEnabledWidthAlpha(i,
                 adapter.isThreadRippleTabInteractionEnabled(i))

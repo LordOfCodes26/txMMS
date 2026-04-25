@@ -111,12 +111,12 @@
     <item
         android:id="@+id/cab_ripple_secure_box_lock"
         android:title="@string/encrypt"
-        android:icon="@drawable/ic_cmn_lock_fill"
+        android:icon="@drawable/ic_cmn_unlock_fill"
         app:showAsAction="ifRoom"/>
     <item
         android:id="@+id/cab_ripple_secure_box_unlock"
         android:title="@string/decrypt"
-        android:icon="@drawable/ic_cmn_unlock_fill"
+        android:icon="@drawable/ic_cmn_lock_fill"
         app:showAsAction="ifRoom"/>
 
 </menu>

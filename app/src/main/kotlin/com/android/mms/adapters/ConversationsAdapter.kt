@@ -173,13 +173,28 @@ class ConversationsAdapter(
                 findItem(R.id.cab_ripple_message_conversion)?.isVisible = true
                 findItem(R.id.cab_ripple_copy)?.isVisible = true
                 findItem(R.id.cab_ripple_delete)?.isVisible = true
-                findItem(R.id.cab_ripple_secure_box_lock)?.isVisible = isPinZeroMode
-                findItem(R.id.cab_ripple_secure_box_unlock)?.isVisible = !isPinZeroMode && !isPinPrivateSpaceMode
-                findItem(R.id.cab_ripple_address_add)?.isVisible = isSingleSelection && (selectedConversation?.shouldOfferAddNumberToContactAction() == true)
-                findItem(R.id.cab_ripple_private_space_add)?.isVisible = isPinZeroMode
-                findItem(R.id.cab_ripple_private_space_delete)?.isVisible = isPinPrivateSpaceMode
                 findItem(R.id.cab_conversation_details)?.isVisible = false
-//                    isSingleSelection && (selectedConversation?.shouldShowConversationDetailsAction() == true)
+
+                findItem(R.id.cab_ripple_secure_box_lock)?.apply {
+                    isVisible = isPinZeroMode
+                    isEnabled = isPinZeroMode
+                }
+                findItem(R.id.cab_ripple_secure_box_unlock)?.apply {
+                    isVisible = !isPinZeroMode && !isPinPrivateSpaceMode
+                    isEnabled = !isPinZeroMode && !isPinPrivateSpaceMode
+                }
+                findItem(R.id.cab_ripple_address_add)?.apply {
+                    isVisible = true
+                    isEnabled = isSingleSelection && (selectedConversation?.shouldOfferAddNumberToContactAction() == true)
+                }
+                findItem(R.id.cab_ripple_private_space_add)?.apply {
+                    isVisible = isPinZeroMode
+                    isEnabled = isPinZeroMode
+                }
+                findItem(R.id.cab_ripple_private_space_delete)?.apply {
+                    isVisible = isPinPrivateSpaceMode
+                    isEnabled = isPinPrivateSpaceMode
+                }
             }
             return
         }
@@ -302,15 +317,15 @@ class ConversationsAdapter(
     /**
      * Builds bottom toolbar items for [com.android.common.view.MRippleToolBar] in [MainActivity].
      */
-    fun buildConversationListRippleToolbar(): Pair<ArrayList<IconItem>, ArrayList<Int>> {
+    fun buildConversationListRippleToolbar(): Triple<ArrayList<IconItem>, ArrayList<Int>, ArrayList<Boolean>> {
         val items = ArrayList<IconItem>()
         val ids = ArrayList<Int>()
+        val tabEnabled = ArrayList<Boolean>()
         val popupMenu = PopupMenu(activity, recyclerView)
         activity.menuInflater.inflate(R.menu.cab_conversations, popupMenu.menu)
         configureCabConversationsMenu(popupMenu.menu, includeDialNumber = false, true)
-        val options = mutableListOf<Pair<CharSequence, () -> Unit>>()
         val m = popupMenu.menu
-        fun add(icon: Int, title: String, id: Int) {
+        fun add(icon: Int, title: String, id: Int, enabled: Boolean = true) {
             items.add(
                 IconItem().apply {
                     this.icon = icon
@@ -318,119 +333,63 @@ class ConversationsAdapter(
                 },
             )
             ids.add(id)
+            tabEnabled.add(enabled)
         }
 
-        // Single-select only; visibility comes from [configureCabConversationsMenu] (details: group or contact; add: unknown number).
-        val selectedItemSize = getSelectedItems().size
-        // val exactlyOneConversation = getSelectedItems().size == 1
-//        if (selectedItemSize >= 1){
-            add(
-                com.android.common.R.drawable.ic_cmn_delete_fill,
-                activity.getString(com.goodwy.commons.R.string.delete),
-                R.id.cab_ripple_delete,
-            )
-            if (m.findItem(R.id.cab_ripple_address_add)?.isVisible == true) {
-                add(
-                    R.drawable.ic_sms_address_add,
-                    activity.getString(com.goodwy.strings.R.string.add_address),
-                    R.id.cab_ripple_address_add,
-                )
-            }
-            if (m.findItem(R.id.cab_conversation_details)?.isVisible == true) {
-                add(
-                    com.android.common.R.drawable.ic_cmn_info_fill,
-                    activity.getString(R.string.conversation_details),
-                    R.id.cab_conversation_details,
-                )
-            }
-            if (m.findItem(R.id.cab_ripple_private_space_add)?.isVisible == true) {
+        add(
+            com.android.common.R.drawable.ic_cmn_delete_fill,
+            activity.getString(com.goodwy.commons.R.string.delete),
+            R.id.cab_ripple_delete,
+        )
+        add(
+            R.drawable.ic_sms_address_add,
+            activity.getString(com.goodwy.strings.R.string.add_address),
+            R.id.cab_ripple_address_add,
+            m.findItem(R.id.cab_ripple_address_add)?.isEnabled == true
+        )
+        when {
+            m.findItem(R.id.cab_ripple_private_space_add)?.isVisible == true ->
                 add(
                     R.drawable.ic_sms_ripple_shield_add,
                     activity.getString(R.string.private_space),
                     R.id.cab_ripple_private_space_add,
                 )
-            }
-            if (m.findItem(R.id.cab_ripple_private_space_delete)?.isVisible == true) {
+            m.findItem(R.id.cab_ripple_private_space_delete)?.isVisible == true ->
                 add(
                     R.drawable.ic_sms_ripple_shield_delete,
                     activity.getString(R.string.private_space),
                     R.id.cab_ripple_private_space_delete,
                 )
-            }
-            if (m.findItem(R.id.cab_ripple_secure_box_lock)?.isVisible == true) {
-                add(
-                    com.android.common.R.drawable.ic_cmn_lock_fill,
-                    activity.getString(R.string.secure_box),
-                    R.id.cab_ripple_secure_box_lock,
-                )
-            }
-            if (m.findItem(R.id.cab_ripple_secure_box_unlock)?.isVisible == true) {
+        }
+        when {
+            m.findItem(R.id.cab_ripple_secure_box_lock)?.isVisible == true ->
                 add(
                     com.android.common.R.drawable.ic_cmn_unlock_fill,
                     activity.getString(R.string.secure_box),
+                    R.id.cab_ripple_secure_box_lock,
+                )
+            m.findItem(R.id.cab_ripple_secure_box_unlock)?.isVisible == true ->
+                add(
+                    com.android.common.R.drawable.ic_cmn_lock_fill,
+                    activity.getString(R.string.secure_box),
                     R.id.cab_ripple_secure_box_unlock,
                 )
-            }
-//        }
+        }
 
-//        if (exactlyOneConversation && m.findItem(R.id.cab_conversation_details)?.isVisible == true) {
-//            add(
-//                com.goodwy.commons.R.drawable.ic_info_vector,
-//                activity.getString(R.string.conversation_details),
-//                R.id.cab_conversation_details,
-//            )
-//        }
-//        if (exactlyOneConversation && m.findItem(R.id.cab_add_number_to_contact)?.isVisible == true) {
-//            add(
-//                com.goodwy.commons.R.drawable.ic_add_person_vector,
-//                activity.getString(com.goodwy.commons.R.string.add_number_to_contact),
-//                R.id.cab_add_number_to_contact,
-//            )
-//        }
-//        when {
-//            m.findItem(R.id.cab_block_number)?.isVisible == true ->
-//                add(com.goodwy.commons.R.drawable.ic_block_vector, rippleToolbarBlockActionTitle(), R.id.cab_block_number)
-//            m.findItem(R.id.cab_unblock_number)?.isVisible == true ->
-//                add(R.drawable.ic_show_block, rippleToolbarBlockActionTitle(), R.id.cab_unblock_number)
-//        }
-//        if (m.findItem(R.id.cab_mark_as_read)?.isVisible == true) {
-//            add(R.drawable.ic_mark_read, activity.getString(R.string.mark_as_read), R.id.cab_mark_as_read)
-//        }
-//        if (m.findItem(R.id.cab_pin_conversation)?.isVisible == true) {
-//            add(
-//                R.drawable.ic_pin_angle_filled,
-//                activity.getString(R.string.pin_conversation),
-//                R.id.cab_pin_conversation,
-//            )
-//        }
-//        if (m.findItem(R.id.cab_unpin_conversation)?.isVisible == true) {
-//            add(
-//                R.drawable.ic_pin_angle,
-//                activity.getString(R.string.unpin_conversation),
-//                R.id.cab_unpin_conversation,
-//            )
-//        }
-//        when {
-//            m.findItem(R.id.cab_encrypt_conversations)?.isVisible == true ->
-//                add(
-//                    com.goodwy.commons.R.drawable.ic_lock_outlined_vector,
-//                    activity.getString(R.string.encrypt),
-//                    R.id.cab_encrypt_conversations,
-//                )
-//            m.findItem(R.id.cab_decrypt_conversations)?.isVisible == true ->
-//                add(
-//                    com.goodwy.commons.R.drawable.ic_lock_outlined_vector,
-//                    activity.getString(R.string.decrypt),
-//                    R.id.cab_decrypt_conversations,
-//                )
-//        }
+        if (m.findItem(R.id.cab_conversation_details)?.isVisible == true ) {
+            add(
+                com.android.common.R.drawable.ic_cmn_info_fill,
+                activity.getString(R.string.conversation_details),
+                R.id.cab_conversation_details,
+            )
+        }
 
-        return items to ids
+        return Triple(items,ids,tabEnabled)
     }
-
     fun dispatchRippleToolbarAction(index: Int) {
         if (selectedKeys.isEmpty()) return
-        val (_, actionIds) = buildConversationListRippleToolbar()
+        val (_, actionIds, tabEnabled) = buildConversationListRippleToolbar()
+        if (tabEnabled.getOrNull(index) != true) return
         val id = actionIds.getOrNull(index) ?: return
         actionItemPressed(id)
     }
