@@ -167,7 +167,8 @@ class ThreadAdapter(
     })
 
     /** Touch listener for pinch-to-zoom font size on message bubbles. Attach to wrapper, spacer, time holder and body so pinches anywhere on the bubble work. */
-    private val pinchToZoomTouchListener = View.OnTouchListener { view, event ->
+    @SuppressLint("ClickableViewAccessibility")
+    val pinchToZoomTouchListener = View.OnTouchListener { view, event ->
         if (event.pointerCount >= 2) {
             view.cancelLongPress()
             var v: View? = view

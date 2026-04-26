@@ -75,6 +75,7 @@ import com.android.mms.helpers.*
 import com.android.mms.messaging.*
 import com.android.mms.models.*
 import com.android.mms.models.ThreadItem.ThreadDateTime
+import com.goodwy.commons.views.MyRecyclerView
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
@@ -534,6 +535,10 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                 messagesList.setPadding(0, appBarHeightPx + dp(10), 0, composeHeight + composeBottomGap + navHeight)
                 barContainer.layoutParams = bottomBarLp
             }
+        }
+
+        messagesList.apply {
+            setOnTouchListener(getOrCreateThreadAdapter().pinchToZoomTouchListener)
         }
 
         barContainer.post {
@@ -2926,5 +2931,9 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
     fun refreshActionModeRippleToolbarIfNeeded() {
         if (isDestroyed || isFinishing) return
         applyActionModeRippleToolbarForThread()
+    }
+
+    fun getThreadList() : MyRecyclerView {
+        return binding.threadMessagesList
     }
 }
