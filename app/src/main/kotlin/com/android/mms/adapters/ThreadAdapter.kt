@@ -1342,8 +1342,8 @@ class ThreadAdapter(
             if (simIndex != null) {
                 val simId = simIndex + 1
                 val simRes = when (simId) {
-                    1 -> R.drawable.ic_sim_one
-                    2 -> R.drawable.ic_sim_two
+                    1 -> com.android.common.R.drawable.ic_cmn_sim1
+                    2 -> com.android.common.R.drawable.ic_cmn_sim2
                     else -> R.drawable.ic_sim_vector
                 }
                 setImageResource(simRes)

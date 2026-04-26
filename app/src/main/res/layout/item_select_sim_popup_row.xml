@@ -8,8 +8,8 @@
     android:orientation="horizontal">
 
     <FrameLayout
-        android:layout_width="13dp"
-        android:layout_height="16.7dp"
+        android:layout_width="14dp"
+        android:layout_height="17dp"
         android:layout_gravity="center_vertical">
 
         <androidx.appcompat.widget.AppCompatImageView
@@ -19,17 +19,6 @@
             android:contentDescription="@null"
             android:scaleType="fitCenter"
             app:srcCompat="@drawable/ic_sim_vector" />
-
-        <com.google.android.material.textview.MaterialTextView
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:id="@+id/simSelectSlotId"
-            android:gravity="center"
-            android:includeFontPadding="false"
-            android:lines="1"
-            android:textColor="@color/white"
-            android:textSize="@dimen/tx_tiny_text"
-            tools:text="1" />
     </FrameLayout>
 
     <com.google.android.material.textview.MaterialTextView

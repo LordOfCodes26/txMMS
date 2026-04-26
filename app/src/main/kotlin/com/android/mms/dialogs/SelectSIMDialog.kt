@@ -71,8 +71,13 @@ class SelectSIMDialog(
                     binding.selectSimRows,
                     false
                 ).apply {
-
-                    simSelectSlotId.text = simAccount.id.toString()
+                    val simId = simAccount.id
+                    val simRes = when (simId) {
+                        1 -> com.android.common.R.drawable.ic_cmn_sim1
+                        2 -> com.android.common.R.drawable.ic_cmn_sim2
+                        else -> R.drawable.ic_sim_vector
+                    }
+                    simSelectSlotIcon.setImageResource(simRes)
                     val slotId = FeeInfoUtils.getSimSlotIndexForSubscriptionId(activity, simAccount.subscriptionId)
                     ensureBackgroundThread {
                         val smsCount = slotId?.let { FeeInfoUtils.getAvailableSmsCountForSlot(activity, it) }
