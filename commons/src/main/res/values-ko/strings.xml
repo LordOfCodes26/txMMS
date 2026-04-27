@@ -620,7 +620,7 @@
     <string name="manage_blocked_numbers">차단목록</string>
     <string name="blocked_numbers">차단 번호</string>
     <string name="block_number">차단목록에 추가</string>
-    <string name="block_confirmation">\"%s\"를 차단하시겠습니까?</string>
+    <string name="block_confirmation">\%s\를 차단하시겠습니까?</string>
     <string name="set_as_default">기본 응용프로그람으로 설정</string>
     <string name="block_hidden_calls">발신번호표시제한 전화 차단</string>
     <string name="block_hidden_messages">발신번호표시제한 통보문 차단</string>

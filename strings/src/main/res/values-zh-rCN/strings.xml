@@ -163,7 +163,7 @@
     <string name="paste_g">插入</string>
     <string name="recents">最近</string>
     <string name="blocked_call">阻止呼叫</string>
-    <string name="unblock_confirmation">你確定要疏通 \"%s\" 嗎？</string>
+    <string name="unblock_confirmation">你確定要疏通 \%s\ 嗎？</string>
 
     <!-- Other -->
     <string name="contact_thumbnails_size">联系人缩略图大小</string>

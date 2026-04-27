@@ -149,7 +149,7 @@
     <string name="paste_g">삽입하다</string>
     <string name="recents">최근</string>
     <string name="blocked_call">차단된 통화</string>
-    <string name="unblock_confirmation">\"%s\" 차단을 해제하시겠습니까?</string>
+    <string name="unblock_confirmation">\%s\ 차단을 해제하시겠습니까?</string>
 
     <!-- Other -->
     <string name="contact_thumbnails_size">주소록 그림 크기</string>
