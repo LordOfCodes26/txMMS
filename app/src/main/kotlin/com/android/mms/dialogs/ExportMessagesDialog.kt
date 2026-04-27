@@ -55,7 +55,7 @@ class ExportMessagesDialog(
             exportSmsCheckbox.isChecked = !exportSmsCheckbox.isChecked
         }
         exportMmsWrapper.setOnClickListener {
-            exportSmsCheckbox.isChecked = !exportSmsCheckbox.isChecked
+            exportMmsCheckbox.isChecked = !exportMmsCheckbox.isChecked
         }
     }
 
