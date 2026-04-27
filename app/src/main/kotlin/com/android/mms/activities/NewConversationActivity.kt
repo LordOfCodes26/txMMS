@@ -116,7 +116,6 @@ class NewConversationActivity : SimpleActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
-        updateNewConversationTitle()
         updateTextColors(binding.newConversationHolder)
         initTheme()
         applyNewConversationWindowBackgroundsAndTopChrome()
@@ -127,7 +126,6 @@ class NewConversationActivity : SimpleActivity() {
         )
         setupNewConversationComposeWindowInsets()
         binding.nestScroll.post {
-            setupMySearchMenuSpringSync(binding.newConversationAppbar, binding.contactsList)
             scrollingView = binding.nestScroll
             if (config.changeColourTopBar) {
                 val useSurfaceColor = isDynamicTheme() && !isSystemInDarkMode()
@@ -145,6 +143,12 @@ class NewConversationActivity : SimpleActivity() {
         binding.newConversationAddress.getAddressBookButton().setColorFilter(com.goodwy.commons.R.color.bw_000)
 
         setupMessagingEdgeToEdge()
+
+        // [collapseAndLockCollapsing] height uses status-bar padding; that is only set after [WindowCompat] +
+        // edge-to-edge insets. Running the title/collapse before that produced a too-short app bar and overlap
+        // with the chips row until a chip add triggered [updateNewConversationTitle] again.
+        ViewCompat.requestApplyInsets(binding.root)
+        binding.newConversationAppbar.post { updateNewConversationTitle() }
 
         // READ_CONTACTS permission is not mandatory, but without it we won't be able to show any suggestions during typing
         handlePermission(PERMISSION_READ_CONTACTS) {
@@ -171,15 +175,9 @@ class NewConversationActivity : SimpleActivity() {
         }
         applyNewConversationWindowBackgroundsAndTopChrome()
         updateNewConversationTitle()
-        binding.newConversationAppbar.binding.collapsingTitle.apply {
-            setTextColor(getProperTextColor())
-            setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, getTextSize())
-        }
-//        binding.newConversationAppbar.binding.collapsingTitle.updateLayoutParams<ViewGroup.MarginLayoutParams> {
-//            marginStart = (32 * resources.displayMetrics.density).toInt()
-//        }
         binding.newConversationAppbar.requireCustomToolbar().apply {
             val textColor = getProperTextColor()
+            setTitleTextColor(textColor)
             navigationIcon = resources.getColoredDrawableWithColor(
                 this@NewConversationActivity,
                 com.android.common.R.drawable.ic_cmn_arrow_left_fill,
@@ -206,7 +204,7 @@ class NewConversationActivity : SimpleActivity() {
             }
         })
 
-        refreshNewConversationInsetsAndToolbarGeometry()
+        //  refreshNewConversationInsetsAndToolbarGeometry()
         
         setupMessageHolder()
         handlePermission(PERMISSION_READ_PHONE_STATE) {
@@ -221,7 +219,6 @@ class NewConversationActivity : SimpleActivity() {
     override fun onDestroy() {
         recipientSearchThrottleRunnable?.let { recipientSearchHandler.removeCallbacks(it) }
         recipientSearchThrottleRunnable = null
-        clearMySearchMenuSpringSync(binding.newConversationAppbar, binding.contactsList)
         super.onDestroy()
     }
 
@@ -511,7 +508,15 @@ class NewConversationActivity : SimpleActivity() {
     private fun updateNewConversationTitle() {
         val title = getNewConversationDisplayTitle()
         this.title = title
-        binding.newConversationAppbar.applyLargeTitleOnly(title)
+        binding.newConversationAppbar.apply {
+            binding.collapsingTitle.text = ""
+            requireCustomToolbar().apply {
+                this.title = title
+                setTitleTextColor(getProperTextColor())
+            }
+            setCollapsingTitleVisible(false)
+            collapseAndLockCollapsing()
+        }
     }
     @SuppressLint("MissingPermission")
     private fun initContacts() {
