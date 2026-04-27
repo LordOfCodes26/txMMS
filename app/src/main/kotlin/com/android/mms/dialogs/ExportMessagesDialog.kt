@@ -3,6 +3,7 @@ package com.android.mms.dialogs
 import android.annotation.SuppressLint
 import android.net.Uri
 import android.provider.DocumentsContract
+import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.encodeToStream
@@ -50,6 +51,12 @@ class ExportMessagesDialog(
         exportMessagesFilename.setText(
             "${activity.getString(R.string.messages)}_${getCurrentFormattedDateTime()}"
         )
+        exportSmsWrapper.setOnClickListener {
+            exportSmsCheckbox.isChecked = !exportSmsCheckbox.isChecked
+        }
+        exportMmsWrapper.setOnClickListener {
+            exportSmsCheckbox.isChecked = !exportSmsCheckbox.isChecked
+        }
     }
 
     init {
@@ -63,8 +70,8 @@ class ExportMessagesDialog(
         // Setup custom buttons inside BlurView
         val primaryColor = activity.getProperPrimaryColor()
         val buttonsContainer = binding.root.findViewById<android.widget.LinearLayout>(com.goodwy.commons.R.id.buttons_container)
-        val positiveButton = binding.root.findViewById<com.google.android.material.button.MaterialButton>(com.goodwy.commons.R.id.positive_button)
-        val negativeButton = binding.root.findViewById<com.google.android.material.button.MaterialButton>(com.goodwy.commons.R.id.negative_button)
+        val positiveButton = binding.root.findViewById<TextView>(com.android.common.R.id.btn_confirm)
+        val negativeButton = binding.root.findViewById<TextView>(com.android.common.R.id.btn_cancel)
 
         buttonsContainer?.visibility = android.view.View.VISIBLE
 
@@ -88,7 +95,6 @@ class ExportMessagesDialog(
         negativeButton?.apply {
             visibility = android.view.View.VISIBLE
             text = activity.resources.getString(com.goodwy.commons.R.string.cancel)
-            setTextColor(primaryColor)
             setOnClickListener {
                 dialog?.dismiss()
             }
