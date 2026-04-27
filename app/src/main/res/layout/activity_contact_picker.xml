@@ -114,7 +114,7 @@
 
                     <com.goodwy.commons.views.MyTextView
                         android:id="@+id/filter_call_log"
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:background="@drawable/ripple_all_corners"
                         android:clickable="true"
@@ -132,8 +132,8 @@
                         tools:ignore="MissingConstraints" />
                     <ImageView
                         android:id="@+id/filter_call_log_liner"
-                        android:layout_width="90dp"
-                        android:layout_height="1dp"
+                        android:layout_width="match_parent"
+                        android:layout_height="2dp"
                         android:background="@drawable/divider_settings"
                         app:layout_constraintBottom_toBottomOf="@+id/filter_call_log"
                         app:layout_constraintStart_toStartOf="@+id/filter_call_log"
@@ -147,12 +147,12 @@
                     android:gravity="start">
                     <com.goodwy.commons.views.MyTextView
                         android:id="@+id/filter_contacts"
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:background="@drawable/ripple_all_corners"
                         android:clickable="true"
                         android:focusable="true"
-                        android:gravity="center_vertical"
+                        android:gravity="center"
                         android:paddingStart="@dimen/normal_margin"
                         android:paddingTop="@dimen/small_margin"
                         android:paddingEnd="@dimen/normal_margin"
@@ -162,8 +162,8 @@
                         tools:ignore="MissingConstraints" />
                     <ImageView
                         android:id="@+id/filter_contacts_liner"
-                        android:layout_width="70dp"
-                        android:layout_height="1dp"
+                        android:layout_width="match_parent"
+                        android:layout_height="2dp"
                         android:background="@drawable/divider_settings"
                         app:layout_constraintBottom_toBottomOf="@+id/filter_contacts"
                         app:layout_constraintStart_toStartOf="@+id/filter_contacts"
