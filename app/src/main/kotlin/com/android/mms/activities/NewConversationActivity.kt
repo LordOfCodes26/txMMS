@@ -116,6 +116,9 @@ class NewConversationActivity : SimpleActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
+        // While app bar insets/height and the chip row are still settling, hide scroll content to avoid
+        // an overlapped first frame; [revealNewConversationScrollContentAfterAppBar] runs after the lock.
+        binding.nestScroll.beInvisible()
         updateTextColors(binding.newConversationHolder)
         initTheme()
         applyNewConversationWindowBackgroundsAndTopChrome()
@@ -138,7 +141,6 @@ class NewConversationActivity : SimpleActivity() {
         }
 
         window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE)
-        binding.newConversationAddress.requestEditTextFocus()
         binding.newConversationAddress.hint = getString(R.string.recipients_hint)
         binding.newConversationAddress.getAddressBookButton().setColorFilter(com.goodwy.commons.R.color.bw_000)
 
@@ -148,7 +150,10 @@ class NewConversationActivity : SimpleActivity() {
         // edge-to-edge insets. Running the title/collapse before that produced a too-short app bar and overlap
         // with the chips row until a chip add triggered [updateNewConversationTitle] again.
         ViewCompat.requestApplyInsets(binding.root)
-        binding.newConversationAppbar.post { updateNewConversationTitle() }
+        binding.newConversationAppbar.post {
+            updateNewConversationTitle()
+            revealNewConversationScrollContentAfterAppBar()
+        }
 
         // READ_CONTACTS permission is not mandatory, but without it we won't be able to show any suggestions during typing
         handlePermission(PERMISSION_READ_CONTACTS) {
@@ -516,6 +521,14 @@ class NewConversationActivity : SimpleActivity() {
             }
             setCollapsingTitleVisible(false)
             collapseAndLockCollapsing()
+        }
+    }
+
+    /** After [updateNewConversationTitle] locks the app bar, show the nested scroll and focus the chip field. */
+    private fun revealNewConversationScrollContentAfterAppBar() {
+        binding.nestScroll.post {
+            binding.nestScroll.beVisible()
+            binding.newConversationAddress.requestEditTextFocus()
         }
     }
     @SuppressLint("MissingPermission")
