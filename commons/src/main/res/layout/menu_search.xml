@@ -19,7 +19,7 @@
             android:layout_gravity="bottom|start"
             android:gravity="center_vertical">
 
-            <com.goodwy.commons.views.MarqueeTextView
+            <TextView
                 android:id="@+id/collapsingTitle"
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
@@ -28,10 +28,6 @@
                 android:gravity="center_vertical"
                 android:textColor="@color/tx_title_text"
                 android:includeFontPadding="false"
-                android:maxLines="1"
-                android:singleLine="true"
-                android:ellipsize="marquee"
-                android:marqueeRepeatLimit="1"
                 android:textSize="@dimen/tx_big_title" />
         </LinearLayout>
 
