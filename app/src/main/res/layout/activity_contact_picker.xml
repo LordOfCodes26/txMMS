@@ -33,53 +33,53 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent">
 
-            <RelativeLayout
-                android:layout_width="match_parent"
-                android:layout_height="match_parent">
+                    <RelativeLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent">
 
-                <com.goodwy.commons.views.MyTextView
-                    android:id="@+id/call_log_placeholder"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_alignParentTop="true"
-                    android:layout_marginTop="@dimen/activity_margin"
-                    android:alpha="0.8"
-                    android:gravity="center"
-                    android:paddingStart="@dimen/activity_margin"
-                    android:paddingTop="@dimen/activity_margin"
-                    android:paddingEnd="@dimen/activity_margin"
-                    android:text="@string/no_call_log"
-                    android:textSize="@dimen/tx_normal_text"
-                    android:textStyle="italic"
-                    android:visibility="gone" />
+                        <com.goodwy.commons.views.MyTextView
+                            android:id="@+id/call_log_placeholder"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentTop="true"
+                            android:layout_marginTop="@dimen/activity_margin"
+                            android:alpha="0.8"
+                            android:gravity="center"
+                            android:paddingStart="@dimen/activity_margin"
+                            android:paddingTop="@dimen/activity_margin"
+                            android:paddingEnd="@dimen/activity_margin"
+                            android:text="@string/no_call_log"
+                            android:textSize="@dimen/tx_normal_text"
+                            android:textStyle="italic"
+                            android:visibility="gone" />
 
-                <com.goodwy.commons.views.MyRecyclerView
-                    android:id="@+id/contactRecyclerView"
-                    android:layout_alignParentTop="true"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:clipToPadding="false"
-                    android:nestedScrollingEnabled="false" />
+                        <com.goodwy.commons.views.MyRecyclerView
+                            android:id="@+id/contactRecyclerView"
+                            android:layout_alignParentTop="true"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:clipToPadding="false"
+                            android:nestedScrollingEnabled="false" />
 
-                <com.reddit.indicatorfastscroll.FastScrollerView
-                    android:id="@+id/contactsLetterFastscroller"
-                    android:layout_width="32dp"
-                    android:layout_height="match_parent"
-                    android:layout_alignTop="@id/contactRecyclerView"
-                    android:layout_alignBottom="@id/contactRecyclerView"
-                    android:layout_alignParentEnd="true"
-                    android:paddingStart="@dimen/normal_margin"
-                    android:textAppearance="@style/LetterFastscrollerStyleSmall" />
+                        <com.reddit.indicatorfastscroll.FastScrollerView
+                            android:id="@+id/contactsLetterFastscroller"
+                            android:layout_width="32dp"
+                            android:layout_height="match_parent"
+                            android:layout_alignTop="@id/contactRecyclerView"
+                            android:layout_alignBottom="@id/contactRecyclerView"
+                            android:layout_alignParentEnd="true"
+                            android:paddingStart="@dimen/normal_margin"
+                            android:textAppearance="@style/LetterFastscrollerStyleSmall" />
 
-                <com.reddit.indicatorfastscroll.FastScrollerThumbView
-                    android:id="@+id/contactsLetterFastscrollerThumb"
-                    android:layout_width="@dimen/fab_size"
-                    android:layout_height="match_parent"
-                    android:layout_alignTop="@id/contactsLetterFastscroller"
-                    android:layout_alignBottom="@id/contactsLetterFastscroller"
-                    android:layout_marginEnd="@dimen/activity_margin"
-                    android:layout_toStartOf="@id/contactsLetterFastscroller" />
-            </RelativeLayout>
+                        <com.reddit.indicatorfastscroll.FastScrollerThumbView
+                            android:id="@+id/contactsLetterFastscrollerThumb"
+                            android:layout_width="@dimen/fab_size"
+                            android:layout_height="match_parent"
+                            android:layout_alignTop="@id/contactsLetterFastscroller"
+                            android:layout_alignBottom="@id/contactsLetterFastscroller"
+                            android:layout_marginEnd="@dimen/activity_margin"
+                            android:layout_toStartOf="@id/contactsLetterFastscroller" />
+                    </RelativeLayout>
                 </FrameLayout>
             </androidx.core.widget.NestedScrollView>
         </eightbitlab.com.blurview.BlurTarget>
