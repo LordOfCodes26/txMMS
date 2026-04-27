@@ -4,8 +4,8 @@
     <aapt:attr name="android:drawable">
         <vector
             android:name="ic_cmn_contact_add"
-            android:width="20dp"
-            android:height="20dp"
+            android:width="18.8dp"
+            android:height="17.7dp"
             android:viewportWidth="64"
             android:viewportHeight="64">
             <group android:name="group_1">
