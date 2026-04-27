@@ -36,7 +36,9 @@ import androidx.core.view.updateLayoutParams
 import androidx.core.view.updatePadding
 import androidx.appcompat.widget.SearchView
 import androidx.core.view.MenuItemCompat
+import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.appbar.AppBarLayout
 import com.android.common.view.MVSideFrame
 import com.goodwy.commons.dialogs.PermissionRequiredDialog
 import com.goodwy.commons.extensions.*
@@ -121,6 +123,15 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
     private var isStartActionMode = false
 
     /**
+     * [AppBarLayout.Behavior] / [AppBarLayout.OnOffsetChangedListener] offset before CAB
+     * (≤ 0; negative means collapsed). List scroll alone is unreliable with [androidx.core.widget.NestedScrollView].
+     */
+    private var mainMenuAppBarOffsetBeforeActionMode: Int? = null
+
+    /** Mirrors [AppBarLayout] offset (0 expanded, negative collapsed); kept in sync while the bar is on screen. */
+    private var mainMenuLastAppBarVerticalOffset: Int = 0
+
+    /**
      * Incremented on each [initMessenger] refresh. Background loads compare against this so an older,
      * slower run cannot overwrite the list after mode switches (e.g. normal → secure box).
      */
@@ -139,6 +150,9 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         // Theme.Material3.Dark windowBackground is dark; paint window + decor before inflation so edge-to-edge does not flash behind transparent bars.
         paintMainScreenWindowBeforeContentView()
         setContentView(binding.root)
+        binding.mainMenu.addOnOffsetChangedListener { _, verticalOffset ->
+            mainMenuLastAppBarVerticalOffset = verticalOffset
+        }
         initTheme()
         applyMainScreenBackgroundAndTopChrome()
         setupTwoFingerSwipeGesture()
@@ -516,6 +530,7 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         binding.mainMenu.getActionModeToolbar()
 
     override fun showActionModeToolbar() {
+        captureMainMenuAppBarOffsetBeforeActionMode()
         binding.mainMenu.showActionModeToolbar()
         binding.conversationsFab.beGone()
         binding.root.post {
@@ -530,6 +545,86 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         binding.conversationsFab.beVisible()
         applyActionModeListBottomInset(false)
         isStartActionMode = false
+        syncMainMenuExpandedWithListScrollAfterActionMode()
+    }
+
+    private fun captureMainMenuAppBarOffsetBeforeActionMode() {
+        val menu = binding.mainMenu
+        if (menu.requireCustomToolbar().isSearchExpanded) {
+            mainMenuAppBarOffsetBeforeActionMode = null
+            return
+        }
+        val fromBehavior = readAppBarLayoutBehaviorTopOffset(menu)
+        mainMenuAppBarOffsetBeforeActionMode =
+            minOf(fromBehavior, mainMenuLastAppBarVerticalOffset).coerceAtMost(0)
+    }
+
+    private fun readAppBarLayoutBehaviorTopOffset(appBar: AppBarLayout): Int {
+        val lp = appBar.layoutParams as? CoordinatorLayout.LayoutParams ?: return 0
+        val behavior = lp.behavior as? AppBarLayout.Behavior ?: return 0
+        return behavior.topAndBottomOffset
+    }
+
+    /**
+     * [com.goodwy.commons.views.MySearchMenu.showActionModeToolbar] hides the collapsing title container, so the
+     * app bar loses its scroll-linked offset and snaps to expanded when the CAB closes. Restore expansion from
+     * the saved [AppBarLayout.Behavior] offset (preferred) and list / nested scroll as fallback.
+     */
+    private fun syncMainMenuExpandedWithListScrollAfterActionMode() {
+        val menu = binding.mainMenu
+        val savedOffset = mainMenuAppBarOffsetBeforeActionMode
+        mainMenuAppBarOffsetBeforeActionMode = null
+        fun applySync() {
+            if (isFinishing || isDestroyed) return
+            if (menu.requireCustomToolbar().isSearchExpanded) {
+                // CAB toggles [MenuSearchBinding.searchBarContainer]; while search is active the bar should stay
+                // short and locked like [setupOptionsMenu] search expand — re-apply so chrome does not snap wrong.
+                menu.binding.collapsingTitle.visibility = View.GONE
+                menu.collapseAndLockCollapsing()
+                menu.setExpanded(false, false)
+                if (config.changeColourTopBar) scrollChange()
+                else {
+                    setMainMenuTransparentBackground()
+                    menu.requireCustomToolbar().updateSearchColors()
+                }
+                requestTopInsetSync()
+                return
+            }
+            val scroll = scrollOffsetForMainToolbarSync()
+            val shouldCollapse = when (savedOffset) {
+                null -> scroll > 0
+                else -> savedOffset < 0 || scroll > 0
+            }
+            menu.setExpanded(!shouldCollapse, false)
+            if (config.changeColourTopBar) scrollChange()
+            else {
+                setMainMenuTransparentBackground()
+                menu.requireCustomToolbar().updateSearchColors()
+            }
+            requestTopInsetSync()
+        }
+        menu.post { menu.post { applySync() } }
+    }
+
+    private fun scrollOffsetForMainToolbarSync(): Int {
+        val conv = binding.conversationsList.computeVerticalScrollOffset()
+        val nested = binding.conversationsNestedScroll.scrollY
+        val combined = maxOf(conv, nested)
+        if (binding.searchHolder.visibility != View.VISIBLE) return combined
+        return maxOf(combined, binding.searchResultsList.computeVerticalScrollOffset())
+    }
+
+    /** Conversation list only — when closing search the overlay can still be visible while fading. */
+    private fun conversationListScrollOffsetOnly(): Int {
+        val conv = binding.conversationsList.computeVerticalScrollOffset()
+        val nested = binding.conversationsNestedScroll.scrollY
+        return maxOf(conv, nested)
+    }
+
+    private fun applyToolbarExpandedFromConversationListScroll(animated: Boolean) {
+        val menu = binding.mainMenu
+        menu.setExpanded(conversationListScrollOffsetOnly() == 0, animated)
+        menu.binding.collapsingTitle.visibility = View.VISIBLE
     }
 
     /**
@@ -590,8 +685,7 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         if (!tb.isSearchExpanded) return
         tb.collapseSearch()
         menu.unlockCollapsing()
-        menu.setExpanded(true, true)
-        menu.binding.collapsingTitle.visibility = View.VISIBLE
+        applyToolbarExpandedFromConversationListScroll(animated = false)
         isSearchOpen = false
         fadeOutSearch()
         menu.post { requestTopInsetSync() }
@@ -614,8 +708,7 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
             }
             toolbar.setOnSearchBackClickListener {
                 menu.unlockCollapsing()
-                menu.setExpanded(true, true)
-                menu.binding.collapsingTitle.visibility = View.VISIBLE
+                applyToolbarExpandedFromConversationListScroll(animated = false)
                 fadeOutSearch()
                 isSearchOpen = false
                 menu.post { requestTopInsetSync() }
