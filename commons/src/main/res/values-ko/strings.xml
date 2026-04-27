@@ -701,11 +701,21 @@
     <string name="files_tab">화일</string>
     <string name="recent_files_tab">최근 화일</string>
     <string name="backups">여벌복사</string>
-    <string name="welcome_to_app_name">%s에 어서 오십시오!</string>
+    <string name="welcome_to_app_name">%s에 어서 오십시오.</string>
     <string name="block_unknown_calls">모르는 번호의 전화 차단</string>
     <string name="block_unknown_messages">모르는 번호 통보문 차단</string>
     <string name="add_number_to_contact">주소록에 번호 추가</string>
     <string name="unblock_contact">주소록 차단 해제</string>
+    <string name="unblock_contact_unblock_contact_successccess">차단된 주소를 성과적으로 해제 하였습니다</string>
+    <string name="unblock_contact_fail">차단된 주소를 해제하지 못하였습니다</string>
+    <string name="blocked_items">차단된 목록</string>
+    <string name="blocked_calls">전화</string>
+    <string name="blocked_messages">통보문</string>
+    <string name="blocked_contacts">주소</string>
+    <string name="no_blocked_calls">차단된 통화리력이 없습니다</string>
+    <string name="no_blocked_messages">차단된 통보문리력이 없습니다</string>
+    <string name="no_blocked_contacts">차단된 주소록이 없습니다</string>
+
     <string name="search_conversations">대화 검색</string>
     <string name="block_contact_success">차단된 주소록</string>
     <string name="block_contact_fail">차단할수 없는 주소록입니다</string>
@@ -767,8 +777,4 @@
     <string name="filename_without_txt">화일이름 (without .txt)</string>
     <string name="filename_without_json">화일이름 (without .json)</string>
     <string name="filename_without_zip">화일이름 (without .zip)</string>
-    <string name="blocked_items">차단목록</string>
-    <string name="blocked_calls">차단된 전화</string>
-    <string name="blocked_messages">차단된 통보문</string>
-    <string name="blocked_contacts">차단된 주소록</string>
 </resources>

@@ -128,8 +128,16 @@
     <string name="block_contact_success">已拦截联系人</string>
     <string name="block_contact_fail">无法拦截联系人</string>
     <string name="unblock_contact">取消拦截联系人</string>
-    <string name="unblock_contact_success">已取消拦截联系人</string>
+    <string name="unblock_contact_unblock_contact_successccess">已取消拦截联系人</string>
     <string name="unblock_contact_fail">无法取消拦截联系人</string>
+    <string name="blocked_items">已屏蔽项目</string>
+    <string name="blocked_calls">电话</string>
+    <string name="blocked_messages">SMS</string>
+    <string name="blocked_contacts">联系</string>
+    <string name="no_blocked_calls">目前还没有阻止电话。</string>
+    <string name="no_blocked_messages">目前还没有被阻止的信息。</string>
+    <string name="no_blocked_contacts">目前还没有阻止的联系人。</string>
+
     <string name="favorites">收藏</string>
     <string name="add_favorites">添加收藏</string>
     <string name="add_to_favorites">添加到收藏</string>

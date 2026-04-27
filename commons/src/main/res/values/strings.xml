@@ -146,7 +146,7 @@
     <string name="block_contact_success">Contact blocked</string>
     <string name="block_contact_fail">Contact could not be blocked</string>
     <string name="unblock_contact">Unblock contact</string>
-    <string name="unblock_contact_success">Contact unblocked</string>
+    <string name="unblock_contact_unblock_contact_successccess">Contact unblocked</string>
     <string name="unblock_contact_fail">Contact could not be unblocked</string>
     <string name="blocked_items">Blocked items</string>
     <string name="blocked_calls">Calls</string>
