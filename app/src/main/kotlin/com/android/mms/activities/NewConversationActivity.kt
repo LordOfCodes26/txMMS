@@ -23,9 +23,11 @@ import android.text.format.DateUtils
 import android.text.format.DateUtils.FORMAT_NO_YEAR
 import android.text.format.DateUtils.FORMAT_SHOW_DATE
 import android.text.format.DateUtils.FORMAT_SHOW_TIME
+import android.text.TextPaint
 import android.text.TextUtils
 import android.util.Log
 import android.view.View
+import android.widget.TextView
 import android.view.WindowManager
 import android.widget.Toast
 import androidx.annotation.RequiresPermission
@@ -111,6 +113,11 @@ class NewConversationActivity : SimpleActivity() {
         private const val MAX_RECIPIENT_SEARCH_SUGGESTIONS = 6
         /** Min interval between contact-provider searches while the user is typing (throttle). */
         private const val RECIPIENT_SEARCH_THROTTLE_MS = 250L
+        /**
+         * When [title start] + [full title width] reaches this fraction of the new-conversation app bar width,
+         * the toolbar shows a shortened first name with an ellipsis before "and N other(s)".
+         */
+        private const val NEW_CONVERSATION_TITLE_APPBAR_FILL_RATIO = 0.9f
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -496,6 +503,9 @@ class NewConversationActivity : SimpleActivity() {
             }
         }
     }
+    /** Same spacing as [R.string.thread_title_multiple_format] between first name and the "and N other(s)" suffix in split titles. */
+    private fun spacedOthersSuffix(othersPhrase: String) = " $othersPhrase"
+
     /** Toolbar / activity title from recipient chips: none → "New conversation", one → chip text, many → first + "and N other(s)". */
     private fun getNewConversationDisplayTitle(): String {
         val chips = binding.newConversationAddress.allChips.filter { it.isNotEmpty() }
@@ -511,17 +521,176 @@ class NewConversationActivity : SimpleActivity() {
     }
 
     private fun updateNewConversationTitle() {
-        val title = getNewConversationDisplayTitle()
-        this.title = title
+        val chips = binding.newConversationAddress.allChips.filter { it.isNotEmpty() }
+        val fullCombinedTitle = getNewConversationDisplayTitle()
+        this.title = fullCombinedTitle
         binding.newConversationAppbar.apply {
             binding.collapsingTitle.text = ""
             requireCustomToolbar().apply {
-                this.title = title
+                when {
+                    chips.isEmpty() -> {
+                        title = fullCombinedTitle
+                        title2 = ""
+                    }
+                    chips.size == 1 -> {
+                        title = chips[0]
+                        title2 = ""
+                    }
+                    else -> {
+                        val othersCount = chips.size - 1
+                        val othersPhrase =
+                            resources.getQuantityString(R.plurals.and_other_contacts, othersCount, othersCount)
+                        title = chips[0]
+                        title2 = spacedOthersSuffix(othersPhrase)
+                    }
+                }
                 setTitleTextColor(getProperTextColor())
             }
             setCollapsingTitleVisible(false)
             collapseAndLockCollapsing()
         }
+        adjustNewConversationToolbarTitleIfCrowded(
+            chips = chips,
+            fullCombinedTitle = fullCombinedTitle,
+        )
+    }
+
+    /**
+     * For two recipients, the toolbar shows one line ([title] only). When that line would pass about
+     * [NEW_CONVERSATION_TITLE_APPBAR_FILL_RATIO] of the app bar width, it is shortened with an ellipsis.
+     * For three or more recipients, [title] is the first name and [title2] is "and N other(s)"; only [title]
+     * is ellipsized so [title2] stays fully visible.
+     */
+    private fun adjustNewConversationToolbarTitleIfCrowded(
+        chips: List<String>,
+        fullCombinedTitle: String,
+    ) {
+        if (chips.size < 2) return
+        val appBar = binding.newConversationAppbar
+        val toolbar = appBar.requireCustomToolbar()
+        // title1 and title2 are laid out flush; no extra margin between them (see custom_toolbar).
+        val titleGapPx = 0
+        appBar.post {
+            val titleView = toolbar.findViewById<TextView>(com.goodwy.commons.R.id.titleTextView) ?: return@post
+            val appBarW = appBar.width
+            if (appBarW <= 0) return@post
+            val paint = TextPaint(titleView.paint)
+            val appBarScreenX = IntArray(2)
+            val titleScreenX = IntArray(2)
+            appBar.getLocationOnScreen(appBarScreenX)
+            titleView.getLocationOnScreen(titleScreenX)
+            val titleStart = titleScreenX[0] - appBarScreenX[0]
+            val thresholdPx = NEW_CONVERSATION_TITLE_APPBAR_FILL_RATIO * appBarW
+            if (chips.size == 2) {
+                val fullW = paint.measureText(fullCombinedTitle)
+                if (titleStart + fullW < thresholdPx) {
+                    return@post
+                }
+                val othersCount = 1
+                val othersPhrase = resources.getQuantityString(R.plurals.and_other_contacts, othersCount, othersCount)
+                val maxTextWidth = (thresholdPx - titleStart).coerceAtLeast(0f)
+                val adjusted = buildEllipsizedMultipleRecipientTitle(
+                    paint = paint,
+                    firstRecipient = chips[0],
+                    othersPhrase = othersPhrase,
+                    maxWidth = maxTextWidth,
+                )
+                toolbar.title = adjusted
+                toolbar.title2 = ""
+                this@NewConversationActivity.title = adjusted
+                return@post
+            }
+            val othersCount = chips.size - 1
+            val othersPhrase = resources.getQuantityString(R.plurals.and_other_contacts, othersCount, othersCount)
+            val title2Display = spacedOthersSuffix(othersPhrase)
+            val title2View = toolbar.findViewById<TextView>(com.goodwy.commons.R.id.title2TextView) ?: return@post
+            // Prefer laid-out width so reserved space matches what ConstraintLayout gives title2 (always visible when non-empty).
+            val title2WMeasured = if (title2View.visibility == View.VISIBLE && title2View.width > 0) {
+                title2View.width.toFloat()
+            } else {
+                title2View.measure(
+                    View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+                    View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+                )
+                maxOf(
+                    title2View.measuredWidth.toFloat(),
+                    paint.measureText(title2Display),
+                )
+            }
+            val combinedW = paint.measureText(chips[0]) + titleGapPx + title2WMeasured
+            if (titleStart + combinedW < thresholdPx) {
+                return@post
+            }
+            val maxForFirstName = (thresholdPx - titleStart - titleGapPx - title2WMeasured).coerceAtLeast(0f)
+            val shortenedFirst = buildEllipsizedFirstNameOnly(
+                paint = paint,
+                firstRecipient = chips[0],
+                maxWidth = maxForFirstName,
+            )
+            toolbar.title = shortenedFirst
+            toolbar.title2 = title2Display
+            this@NewConversationActivity.title = fullCombinedTitle
+        }
+    }
+
+    private fun buildEllipsizedFirstNameOnly(
+        paint: TextPaint,
+        firstRecipient: String,
+        maxWidth: Float,
+    ): String {
+        val ellipsis = "…"
+        if (paint.measureText(firstRecipient) <= maxWidth) {
+            return firstRecipient
+        }
+        if (firstRecipient.length == 1) {
+            val single = firstRecipient + ellipsis
+            if (paint.measureText(single) <= maxWidth) {
+                return single
+            }
+            return if (paint.measureText(ellipsis) <= maxWidth) ellipsis else firstRecipient
+        }
+        for (len in firstRecipient.length - 1 downTo 1) {
+            val prefix = firstRecipient.take(len).trimEnd()
+            if (prefix.isEmpty()) continue
+            val candidate = prefix + ellipsis
+            if (paint.measureText(candidate) <= maxWidth) {
+                return candidate
+            }
+        }
+        return if (paint.measureText(ellipsis) <= maxWidth) ellipsis else firstRecipient
+    }
+
+    private fun buildEllipsizedMultipleRecipientTitle(
+        paint: TextPaint,
+        firstRecipient: String,
+        othersPhrase: String,
+        maxWidth: Float,
+    ): String {
+        val ellipsis = "…"
+        val fullFormatted = getString(R.string.thread_title_multiple_format, firstRecipient, othersPhrase)
+        if (paint.measureText(fullFormatted) <= maxWidth) {
+            return fullFormatted
+        }
+        if (firstRecipient.length == 1) {
+            val single = getString(R.string.thread_title_multiple_format, firstRecipient + ellipsis, othersPhrase)
+            if (paint.measureText(single) <= maxWidth) {
+                return single
+            }
+        } else {
+            for (len in firstRecipient.length - 1 downTo 1) {
+                val prefix = firstRecipient.take(len).trimEnd()
+                if (prefix.isEmpty()) continue
+                val candidate = getString(R.string.thread_title_multiple_format, prefix + ellipsis, othersPhrase)
+                if (paint.measureText(candidate) <= maxWidth) {
+                    return candidate
+                }
+            }
+        }
+        val minimal = getString(R.string.thread_title_multiple_format, ellipsis, othersPhrase).trim()
+        if (paint.measureText(minimal) <= maxWidth) {
+            return minimal
+        }
+        return othersPhrase
     }
 
     /** After [updateNewConversationTitle] locks the app bar, show the nested scroll and focus the chip field. */
@@ -531,6 +700,7 @@ class NewConversationActivity : SimpleActivity() {
             binding.newConversationAddress.requestEditTextFocus()
         }
     }
+
     @SuppressLint("MissingPermission")
     private fun initContacts() {
         if (isThirdPartyIntent()) {

@@ -23,20 +23,44 @@
             android:layout_centerVertical="true"
             android:layout_marginStart="-16dp" />
 
-        <TextView
-            android:id="@+id/titleTextView"
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:id="@+id/toolbarTitleContainer"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_centerVertical="true"
-            android:layout_marginEnd="@dimen/normal_margin"
             android:layout_toEndOf="@id/navigationIconView"
-            android:ellipsize="end"
-            android:gravity="start|center_vertical"
-            android:maxLines="1"
-            android:textColor="@color/tx_title_text"
-            android:textSize="@dimen/tx_app_title"
-            tools:text="Toolbar Title" />
+            android:layout_toStartOf="@id/action_bar"
+            android:baselineAligned="false"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
 
+            <!-- Word space before "and N others" is in title2 text (see NewConversationActivity). -->
+            <TextView
+                android:id="@+id/titleTextView"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:gravity="start|center_vertical"
+                android:maxLines="1"
+                android:minWidth="0dp"
+                android:textAlignment="viewStart"
+                android:textColor="@color/tx_title_text"
+                android:textSize="@dimen/tx_app_title"
+                tools:text="Toolbar Title" />
+
+            <TextView
+                android:id="@+id/title2TextView"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ellipsize="none"
+                android:gravity="start|center_vertical"
+                android:maxLines="1"
+                android:textColor="@color/tx_title_text"
+                android:textSize="@dimen/tx_app_title"
+                android:visibility="gone"
+                tools:text=" and 2 others"
+                tools:visibility="visible" />
+        </LinearLayout>
 
         <com.android.common.view.MActionBar
             android:id="@+id/action_bar"
