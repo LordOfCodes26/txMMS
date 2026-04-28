@@ -183,30 +183,7 @@ class CustomToolbar @JvmOverloads constructor(
                 text = value
                 visibility = if (value != null && value.isNotEmpty()) View.VISIBLE else View.GONE
             }
-            syncToolbarTitleContainerVisibility()
         }
-
-    /** Optional second title segment (e.g. "and N others"); empty hides [title2TextView]. */
-    var title2: CharSequence?
-        get() = binding?.title2TextView?.text
-        set(value) {
-            binding?.title2TextView?.apply {
-                text = value
-                visibility = if (!value.isNullOrEmpty()) View.VISIBLE else View.GONE
-            }
-            syncToolbarTitleContainerVisibility()
-        }
-
-    private fun hasToolbarTitleContent(): Boolean {
-        val b = binding ?: return false
-        return b.titleTextView.text?.isNotEmpty() == true ||
-            b.title2TextView.text?.isNotEmpty() == true
-    }
-
-    private fun syncToolbarTitleContainerVisibility() {
-        binding?.toolbarTitleContainer?.visibility =
-            if (hasToolbarTitleContent()) View.VISIBLE else View.GONE
-    }
 
     val menu: Menu
         get() {
@@ -455,7 +432,7 @@ class CustomToolbar @JvmOverloads constructor(
         val searchRoot = binding.actionBarSearch.root
 
         binding.actionBar.visibility = View.GONE
-        binding.toolbarTitleContainer.visibility = View.GONE
+        binding.titleTextView.visibility = View.GONE
         updateSearchClearIconVisibility(binding.actionBarSearch.searchEditText.text?.toString().orEmpty())
         binding.actionBarSearch.searchBackButton.visibility = View.VISIBLE
 
@@ -540,17 +517,17 @@ class CustomToolbar @JvmOverloads constructor(
             searchRoot.translationX = 0f
             updateMenuDisplay()
             // Use current title so caller can restore title after collapse (e.g. dialpad-search collapse)
-            val hasTitleEarly = hasToolbarTitleContent()
-            binding.toolbarTitleContainer.visibility = if (hasTitleEarly) View.VISIBLE else View.GONE
+            val hasTitleEarly = binding.titleTextView.text?.isNotEmpty() == true
+            binding.titleTextView.visibility = if (hasTitleEarly) View.VISIBLE else View.GONE
             if (hasTitleEarly && !isSearchExpanded) binding.actionBar.visibility = View.VISIBLE
             return
         }
 
         // Fade in title and action bar as search collapses
-        val showTitle = hasToolbarTitleContent()
+        val showTitle = binding.titleTextView.text?.isNotEmpty() == true
         if (showTitle) {
-            binding.toolbarTitleContainer.visibility = View.VISIBLE
-            binding.toolbarTitleContainer.alpha = 0f
+            binding.titleTextView.visibility = View.VISIBLE
+            binding.titleTextView.alpha = 0f
         }
         updateMenuDisplay()
         binding.actionBar.alpha = 0f
@@ -572,7 +549,7 @@ class CustomToolbar @JvmOverloads constructor(
                 searchRoot.requestLayout()
                 val contentAlpha = fraction
                 binding.actionBar.alpha = contentAlpha
-                if (showTitle) binding.toolbarTitleContainer.alpha = contentAlpha
+                if (showTitle) binding.titleTextView.alpha = contentAlpha
             }
             addListener(object : AnimatorListenerAdapter() {
                 override fun onAnimationEnd(animation: android.animation.Animator) {
@@ -585,11 +562,11 @@ class CustomToolbar @JvmOverloads constructor(
                     searchRoot.alpha = 1f
                     searchRoot.translationX = 0f
                     binding.actionBar.alpha = 1f
-                    if (showTitle) binding.toolbarTitleContainer.alpha = 1f
+                    if (showTitle) binding.titleTextView.alpha = 1f
                     updateMenuDisplay()
                     // Use current title state so activity can restore title/action bar during collapse (e.g. after hiding dialpad search)
-                    val hasTitle = hasToolbarTitleContent()
-                    binding.toolbarTitleContainer.visibility =
+                    val hasTitle = binding.titleTextView.text?.isNotEmpty() == true
+                    binding.titleTextView.visibility =
                         if (hasTitle) View.VISIBLE else View.GONE
                     // When activity restored the title, keep action bar visible (updateMenuDisplay may have hidden it)
                     if (hasTitle && !isSearchExpanded) {
@@ -706,12 +683,10 @@ class CustomToolbar @JvmOverloads constructor(
 
     fun setTitleTextColor(color: Int) {
         binding?.titleTextView?.setTextColor(color)
-        binding?.title2TextView?.setTextColor(color)
     }
 
     fun setTitleTextColor(colors: ColorStateList?) {
         binding?.titleTextView?.setTextColor(colors)
-        binding?.title2TextView?.setTextColor(colors)
     }
 
     fun getActionBar() = binding?.actionBar

@@ -523,25 +523,21 @@ class NewConversationActivity : SimpleActivity() {
     private fun updateNewConversationTitle() {
         val chips = binding.newConversationAddress.allChips.filter { it.isNotEmpty() }
         val fullCombinedTitle = getNewConversationDisplayTitle()
-        this.title = fullCombinedTitle
         binding.newConversationAppbar.apply {
             binding.collapsingTitle.text = ""
             requireCustomToolbar().apply {
                 when {
                     chips.isEmpty() -> {
                         title = fullCombinedTitle
-                        title2 = ""
                     }
                     chips.size == 1 -> {
                         title = chips[0]
-                        title2 = ""
                     }
                     else -> {
                         val othersCount = chips.size - 1
                         val othersPhrase =
                             resources.getQuantityString(R.plurals.and_other_contacts, othersCount, othersCount)
-                        title = chips[0]
-                        title2 = spacedOthersSuffix(othersPhrase)
+                        title = chips[0] + spacedOthersSuffix(othersPhrase)
                     }
                 }
                 setTitleTextColor(getProperTextColor())
@@ -569,7 +565,6 @@ class NewConversationActivity : SimpleActivity() {
         val appBar = binding.newConversationAppbar
         val toolbar = appBar.requireCustomToolbar()
         // title1 and title2 are laid out flush; no extra margin between them (see custom_toolbar).
-        val titleGapPx = 0
         appBar.post {
             val titleView = toolbar.findViewById<TextView>(com.goodwy.commons.R.id.titleTextView) ?: return@post
             val appBarW = appBar.width
@@ -581,55 +576,22 @@ class NewConversationActivity : SimpleActivity() {
             titleView.getLocationOnScreen(titleScreenX)
             val titleStart = titleScreenX[0] - appBarScreenX[0]
             val thresholdPx = NEW_CONVERSATION_TITLE_APPBAR_FILL_RATIO * appBarW
-            if (chips.size == 2) {
-                val fullW = paint.measureText(fullCombinedTitle)
-                if (titleStart + fullW < thresholdPx) {
-                    return@post
-                }
-                val othersCount = 1
-                val othersPhrase = resources.getQuantityString(R.plurals.and_other_contacts, othersCount, othersCount)
-                val maxTextWidth = (thresholdPx - titleStart).coerceAtLeast(0f)
-                val adjusted = buildEllipsizedMultipleRecipientTitle(
-                    paint = paint,
-                    firstRecipient = chips[0],
-                    othersPhrase = othersPhrase,
-                    maxWidth = maxTextWidth,
-                )
-                toolbar.title = adjusted
-                toolbar.title2 = ""
-                this@NewConversationActivity.title = adjusted
+            val fullW = paint.measureText(fullCombinedTitle)
+            if (titleStart + fullW < thresholdPx) {
                 return@post
             }
+
             val othersCount = chips.size - 1
             val othersPhrase = resources.getQuantityString(R.plurals.and_other_contacts, othersCount, othersCount)
-            val title2Display = spacedOthersSuffix(othersPhrase)
-            val title2View = toolbar.findViewById<TextView>(com.goodwy.commons.R.id.title2TextView) ?: return@post
-            // Prefer laid-out width so reserved space matches what ConstraintLayout gives title2 (always visible when non-empty).
-            val title2WMeasured = if (title2View.visibility == View.VISIBLE && title2View.width > 0) {
-                title2View.width.toFloat()
-            } else {
-                title2View.measure(
-                    View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
-                    View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
-                )
-                maxOf(
-                    title2View.measuredWidth.toFloat(),
-                    paint.measureText(title2Display),
-                )
-            }
-            val combinedW = paint.measureText(chips[0]) + titleGapPx + title2WMeasured
-            if (titleStart + combinedW < thresholdPx) {
-                return@post
-            }
-            val maxForFirstName = (thresholdPx - titleStart - titleGapPx - title2WMeasured).coerceAtLeast(0f)
-            val shortenedFirst = buildEllipsizedFirstNameOnly(
+            val maxTextWidth = (thresholdPx - titleStart).coerceAtLeast(0f)
+            val adjusted = buildEllipsizedMultipleRecipientTitle(
                 paint = paint,
                 firstRecipient = chips[0],
-                maxWidth = maxForFirstName,
+                othersPhrase = othersPhrase,
+                maxWidth = maxTextWidth,
             )
-            toolbar.title = shortenedFirst
-            toolbar.title2 = title2Display
-            this@NewConversationActivity.title = fullCombinedTitle
+            toolbar.title = adjusted
+            return@post
         }
     }
 
