@@ -18,12 +18,15 @@
 
         <com.goodwy.commons.views.MyTextView
             android:id="@+id/dialog_title"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_alignParentStart="true"
             android:layout_centerVertical="true"
+            android:gravity="center_horizontal"
+            android:textColor="@color/tx_title_text"
             style="@style/DialogTitleStyle"
-            android:visibility="gone" />
+            android:text="@string/title"
+            android:visibility="visible" />
     </RelativeLayout>
 
 <ScrollView
@@ -36,6 +39,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
+        android:paddingHorizontal="@dimen/tx_dialog_padding_horizontal"
         android:paddingTop="@dimen/activity_margin">
 
         <com.google.android.material.progressindicator.LinearProgressIndicator
@@ -51,51 +55,96 @@
             app:showAnimationBehavior="inward"
             tools:visibility="visible" />
 
-        <com.goodwy.commons.views.MyAppCompatCheckbox
-            android:id="@+id/import_sms_checkbox"
+        <LinearLayout
+            android:id="@+id/import_sms_wrapper"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginHorizontal="@dimen/activity_margin"
-            android:paddingTop="@dimen/small_margin"
-            android:paddingBottom="@dimen/small_margin"
-            android:text="@string/import_sms" />
+            android:layout_marginVertical="@dimen/medium_margin">
 
-        <com.goodwy.commons.views.MyAppCompatCheckbox
-            android:id="@+id/import_mms_checkbox"
+            <TextView
+                android:id="@+id/label_import_sms_checkbox"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textColor="@color/tx_content_text"
+                android:textSize="@dimen/tx_content_text"
+                android:text="@string/import_sms" />
+
+            <com.android.common.view.MCheckBox
+                android:id="@+id/import_sms_checkbox"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:theme="@style/Theme.Common"
+                android:text=""/>
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/import_mms_wrapper"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginHorizontal="@dimen/activity_margin"
-            android:paddingTop="@dimen/small_margin"
-            android:paddingBottom="@dimen/small_margin"
-            android:text="@string/import_mms" />
+            android:layout_marginVertical="@dimen/medium_margin">
+
+            <TextView
+                android:id="@+id/label_import_mms_checkbox"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textColor="@color/tx_content_text"
+                android:textSize="@dimen/tx_content_text"
+                android:text="@string/import_mms" />
+
+            <com.android.common.view.MCheckBox
+                android:id="@+id/import_mms_checkbox"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:theme="@style/Theme.Common"
+                android:text="" />
+        </LinearLayout>
 
     </LinearLayout>
 </ScrollView>
 
+    <include
+        android:id="@+id/dialog_content_divider"
+        layout="@layout/divider" />
+
     <LinearLayout
-        android:id="@+id/buttons_container"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        style="@style/DialogButtonContainerStyle"
-        android:visibility="visible">
+        android:paddingHorizontal="@dimen/tx_dialog_padding_horizontal"
+        android:orientation="horizontal">
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/negative_button"
-            style="@style/Widget.Material3.Button.TextButton.Dialog"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/cancel"
-            android:visibility="visible" />
+        <include layout="@layout/layout_confirm_tx_blur" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/positive_button"
-            style="@style/Widget.Material3.Button.TextButton.Dialog"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="@dimen/normal_margin"
-            android:text="@string/ok"
-            android:visibility="visible" />
 
     </LinearLayout>
+
+<!--    <LinearLayout-->
+<!--        android:id="@+id/buttons_container"-->
+<!--        android:layout_width="match_parent"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        style="@style/DialogButtonContainerStyle"-->
+<!--        android:visibility="visible">-->
+
+<!--        <com.google.android.material.button.MaterialButton-->
+<!--            android:id="@+id/negative_button"-->
+<!--            style="@style/Widget.Material3.Button.TextButton.Dialog"-->
+<!--            android:layout_width="wrap_content"-->
+<!--            android:layout_height="wrap_content"-->
+<!--            android:text="@string/cancel"-->
+<!--            android:visibility="visible" />-->
+
+<!--        <com.google.android.material.button.MaterialButton-->
+<!--            android:id="@+id/positive_button"-->
+<!--            style="@style/Widget.Material3.Button.TextButton.Dialog"-->
+<!--            android:layout_width="wrap_content"-->
+<!--            android:layout_height="wrap_content"-->
+<!--            android:layout_marginStart="@dimen/normal_margin"-->
+<!--            android:text="@string/ok"-->
+<!--            android:visibility="visible" />-->
+
+<!--    </LinearLayout>-->
+
 </LinearLayout>
 </eightbitlab.com.blurview.BlurView>

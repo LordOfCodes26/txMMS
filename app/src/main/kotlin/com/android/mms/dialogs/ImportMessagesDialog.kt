@@ -1,5 +1,6 @@
 package com.android.mms.dialogs
 
+import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import com.goodwy.commons.extensions.getAlertDialogBuilder
 import com.goodwy.commons.extensions.getProperBlurOverlayColor
@@ -42,6 +43,13 @@ class ImportMessagesDialog(
             
             importSmsCheckbox.isChecked = config.importSms
             importMmsCheckbox.isChecked = config.importMms
+
+            importSmsWrapper.setOnClickListener {
+                importSmsCheckbox.isChecked = !importSmsCheckbox.isChecked
+            }
+            importMmsWrapper.setOnClickListener {
+                importMmsCheckbox.isChecked = !importMmsCheckbox.isChecked
+            }
         }
 
         binding.importProgress.setIndicatorColor(activity.getProperPrimaryColor())
@@ -56,8 +64,8 @@ class ImportMessagesDialog(
         // Setup custom buttons inside BlurView
         val primaryColor = activity.getProperPrimaryColor()
         val buttonsContainer = binding.root.findViewById<android.widget.LinearLayout>(com.goodwy.commons.R.id.buttons_container)
-        val positiveButton = binding.root.findViewById<com.google.android.material.button.MaterialButton>(com.goodwy.commons.R.id.positive_button)
-        val negativeButton = binding.root.findViewById<com.google.android.material.button.MaterialButton>(com.goodwy.commons.R.id.negative_button)
+        val positiveButton = binding.root.findViewById<TextView>(com.android.common.R.id.btn_confirm)
+        val negativeButton = binding.root.findViewById<TextView>(com.android.common.R.id.btn_cancel)
 
         buttonsContainer?.visibility = android.view.View.VISIBLE
 
@@ -104,7 +112,6 @@ class ImportMessagesDialog(
         negativeButton?.apply {
             visibility = android.view.View.VISIBLE
             text = activity.resources.getString(com.goodwy.commons.R.string.cancel)
-            setTextColor(primaryColor)
             setOnClickListener {
                 dialog?.dismiss()
             }
