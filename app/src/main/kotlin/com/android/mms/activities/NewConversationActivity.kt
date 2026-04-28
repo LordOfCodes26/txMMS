@@ -1849,7 +1849,10 @@ class NewConversationActivity : SimpleActivity() {
     @RequiresPermission(Manifest.permission.READ_PHONE_STATE)
     private fun setupSIMSelector() {
         val textColor = getProperTextColor()
-        val availableSIMs = subscriptionManagerCompat().activeSubscriptionInfoList ?: return
+        val availableSIMs = subscriptionManagerCompat().activeSubscriptionInfoList ?: run {
+            binding.messageHolder.syncEmojiButtonWithSimHolderVisibility()
+            return
+        }
         if (availableSIMs.size > 1) {
             availableSIMCards.clear()
             availableSIMs.forEachIndexed { index, subscriptionInfo ->
@@ -1976,6 +1979,7 @@ class NewConversationActivity : SimpleActivity() {
             binding.messageHolder.threadSelectSimIconHolder.beGone()
 //            binding.messageHolder.simPopupPicker.beGone()
         }
+        binding.messageHolder.syncEmojiButtonWithSimHolderVisibility()
         updateAvailableMessageCountForCurrentSim()
     }
 

@@ -9,14 +9,17 @@ import android.telephony.SmsMessage
 import android.os.Handler
 import android.os.Looper
 import android.util.TypedValue
+import android.view.Gravity
 import android.view.KeyEvent
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
+import android.widget.LinearLayout
 import android.widget.Toast
 import androidx.core.net.toUri
 import androidx.core.view.updateLayoutParams
 import java.io.File
 import androidx.core.content.res.ResourcesCompat
+import androidx.constraintlayout.widget.ConstraintLayout.LayoutParams as ClLayoutParams
 import com.android.mms.emoji.ChatPaneEmoji
 import com.android.mms.emoji.Ch350EmojiBootstrap
 import com.android.mms.emoji.RepeatListener
@@ -105,7 +108,7 @@ class MessageHolderHelper(
             threadTypeMessage.setTextSize(TypedValue.COMPLEX_UNIT_PX, activity.getTextSizeMessage())
 
             if (isSpeechToTextAvailable) {
-                threadSendMessageWrapper.setOnLongClickListener {
+                threadSendMessage.setOnLongClickListener {
                     onSpeechToText()
                     true
                 }
@@ -115,7 +118,7 @@ class MessageHolderHelper(
 //                drawable.setStroke((activity.resources.displayMetrics.density).toInt(), textColor)
 //                threadSendMessage.background = drawable
 //            }
-            threadSendMessageWrapper.isClickable = false
+            threadSendMessage.isClickable = false
             threadSendMessageCountdown.beGone()
 
             threadExpandMessage.apply {
@@ -190,6 +193,8 @@ class MessageHolderHelper(
         setupEmojiToggle()
 
         checkSendMessageAvailability()
+        binding.syncEmojiButtonWithSimHolderVisibility()
+        updateExpandIconVisibility()
     }
 
     private fun setupEmojiToggle() {
@@ -381,7 +386,7 @@ class MessageHolderHelper(
         binding.apply {
             when (mode) {
                 ComposeSendMode.SEND -> {
-                    threadSendMessageWrapper.apply {
+                    threadSendMessage.apply {
                         isEnabled = true
                         isClickable = true
                         alpha = 1f
@@ -400,7 +405,7 @@ class MessageHolderHelper(
                     }
                 }
                 ComposeSendMode.SPEECH -> {
-                    threadSendMessageWrapper.apply {
+                    threadSendMessage.apply {
                         isEnabled = true
                         isClickable = true
                         alpha = 1f
@@ -411,7 +416,7 @@ class MessageHolderHelper(
                     }
                 }
                 ComposeSendMode.DISABLED -> {
-                    threadSendMessageWrapper.apply {
+                    threadSendMessage.apply {
                         isEnabled = false
                         isClickable = false
                         alpha = 0.4f
@@ -540,7 +545,7 @@ class MessageHolderHelper(
         val defaultSmsSubscriptionId = SmsManager.getDefaultSmsSubscriptionId()
         if (!subs.isNullOrEmpty() && subs.size > 1 && defaultSmsSubscriptionId < 0) {       // when muti sim and always check sms in system setting
             val blurTarget = activity.findViewById<BlurTarget>(R.id.mainBlurTarget)
-            SelectSIMDialog(activity as SimpleActivity, blurTarget, anchorView = binding.threadSendMessageWrapper) { simCard, _ ->
+            SelectSIMDialog(activity as SimpleActivity, blurTarget, anchorView = binding.threadSendMessage) { simCard, _ ->
                 onSubId(simCard.subscriptionId)
             }
 
@@ -904,5 +909,9 @@ class MessageHolderHelper(
             SmsManager.getDefaultSmsSubscriptionId().takeIf { it >= 0 }
         }
     }
+}
+
+fun LayoutThreadSendMessageHolderBinding.syncEmojiButtonWithSimHolderVisibility(){
+    imvEmoticBtn.beVisibleIf(!threadSelectSimIconHolder.isVisible())
 }
 

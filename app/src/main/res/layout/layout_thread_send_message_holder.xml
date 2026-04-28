@@ -96,39 +96,50 @@
         tools:listitem="@layout/item_attachment_document_preview"
         tools:visibility="visible" />
 
-    <LinearLayout
+    <com.google.android.material.card.MaterialCardView
         android:id="@+id/threadAddAttachmentHolder"
-        android:layout_width="@dimen/medium_icon_size"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
         android:layout_marginStart="@dimen/tx_cardview_margin_vertical"
         android:layout_marginBottom="@dimen/medium_normal_margin"
+        app:cardBackgroundColor="@color/tx_card_bg"
+        app:cardCornerRadius="24dp"
+        app:cardElevation="3px"
+        app:contentPadding="@dimen/tiny_margin"
         app:layout_constraintBottom_toBottomOf="@id/attachment_picker_divider"
-        app:layout_constraintStart_toStartOf="parent" >
+        app:layout_constraintStart_toStartOf="parent"
+        app:strokeColor="@color/tx_popup_menu_border"
+        app:strokeWidth="@dimen/cardview_stroke">
 
-        <ImageView
-            android:id="@+id/threadExpandMessage"
-            android:layout_width="@dimen/full_icon_size"
-            android:layout_height="@dimen/full_icon_size"
-            android:layout_gravity="center_horizontal"
-            android:layout_marginBottom="@dimen/tiny_margin"
-            android:background="?selectableItemBackgroundBorderless"
-            android:contentDescription="@string/expand_message"
-            android:padding="@dimen/tiny_margin"
-            android:src="@drawable/ic_cmn_fullscreen"
-            android:visibility="gone"
-            tools:visibility="visible" />
+        <LinearLayout
+            android:id="@+id/thread_compose_attachment_inner"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center_horizontal"
+            android:orientation="vertical">
 
-        <ImageView
-            android:id="@+id/threadAddAttachment"
-            android:layout_width="@dimen/add_icon_size"
-            android:layout_height="@dimen/add_icon_size"
-            android:layout_marginBottom="@dimen/small_margin"
-            android:background="@drawable/ic_sms_add"
-            android:layout_gravity="center_horizontal"
-            android:contentDescription="@string/attachment"/>
+            <ImageView
+                android:id="@+id/threadExpandMessage"
+                android:layout_width="@dimen/full_icon_size"
+                android:layout_height="@dimen/full_icon_size"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginBottom="@dimen/tiny_margin"
+                android:contentDescription="@string/expand_message"
+                android:padding="@dimen/small_margin"
+                android:src="@drawable/ic_cmn_fullscreen"
+                android:visibility="gone"
+                tools:visibility="visible" />
 
-    </LinearLayout>
+            <ImageView
+                android:id="@+id/threadAddAttachment"
+                android:layout_width="@dimen/add_icon_size"
+                android:layout_height="@dimen/add_icon_size"
+                android:src="@drawable/ic_plus_vector"
+                android:layout_gravity="center_horizontal"
+                android:contentDescription="@string/attachment"/>
+        </LinearLayout>
+
+    </com.google.android.material.card.MaterialCardView>
 
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/threadTypeMessageWrapper"
@@ -140,7 +151,7 @@
         app:cardCornerRadius="24dp"
         app:cardElevation="3px"
         app:layout_constraintBottom_toBottomOf="@id/threadAddAttachmentHolder"
-        app:layout_constraintEnd_toStartOf="@id/imv_emotic_btn"
+        app:layout_constraintEnd_toStartOf="@id/threadSendMessageActionWrapper"
         app:layout_constraintHorizontal_weight="1"
         app:layout_constraintStart_toEndOf="@+id/threadAddAttachmentHolder"
         app:strokeColor="@color/tx_popup_menu_border"
@@ -157,60 +168,9 @@
             android:maxHeight="@dimen/input_edit_max_height"
             android:minHeight="@dimen/input_edit_height"
             android:paddingHorizontal="@dimen/normal_margin"
-            android:paddingVertical="@dimen/normal_margin" />
+            android:paddingVertical="@dimen/medium_margin" />
     </com.google.android.material.card.MaterialCardView>
 
-    <ImageView
-        android:id="@+id/imv_emotic_btn"
-        android:layout_width="@dimen/emotic_icon_size"
-        android:layout_height="@dimen/emotic_icon_size"
-        android:background="@drawable/ic_sms_emotic"
-        android:clickable="true"
-        android:contentDescription="@string/choose_emoji"
-        android:focusable="true"
-        app:layout_constraintEnd_toStartOf="@id/threadSelectSimIconHolder"
-        app:layout_constraintStart_toEndOf="@+id/threadTypeMessageWrapper"
-        app:layout_constraintBottom_toBottomOf="@id/threadTypeMessageWrapper"
-        android:layout_marginBottom="@dimen/medium_margin"/>
-
-    <LinearLayout
-        android:id="@+id/threadSelectSimIconHolder"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="@dimen/smaller_margin"
-        android:orientation="vertical"
-        android:layout_marginEnd="-6dp"
-        android:background="?selectableItemBackgroundBorderless"
-        app:layout_constraintEnd_toStartOf="@id/threadSendMessageWrapper"
-        app:layout_constraintBottom_toBottomOf="@id/threadAddAttachmentHolder"
-        android:visibility="gone"
-        tools:visibility="gone"
-        tools:ignore="RtlHardcoded">
-        <ImageView
-            android:id="@+id/threadSelectSimIcon"
-            android:layout_width="@dimen/colorpicker_items_height"
-            android:layout_height="@dimen/colorpicker_items_height"
-            android:alpha="0.9"
-            android:contentDescription="@null"
-            android:paddingHorizontal="@dimen/smaller_margin"
-            android:src="@drawable/ic_sim_vector" />
-    </LinearLayout>
-
-    <TextView
-        android:id="@+id/thread_select_sim_number"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:gravity="center"
-        android:textSize="@dimen/smaller_text_size"
-        android:textStyle="bold"
-        android:visibility="gone"
-        app:layout_constraintBottom_toBottomOf="@+id/threadSelectSimIconHolder"
-        app:layout_constraintLeft_toLeftOf="@+id/threadSelectSimIconHolder"
-        app:layout_constraintRight_toRightOf="@+id/threadSelectSimIconHolder"
-        app:layout_constraintTop_toTopOf="@+id/threadSelectSimIconHolder"
-        tools:text="1"
-        tools:textColor="@color/bw_30"
-        tools:visibility="gone" />
 
     <com.goodwy.commons.views.MyTextView
         android:id="@+id/threadAvailableMessageCount"
@@ -223,8 +183,8 @@
         android:textColor="@color/default_text_color"
         android:textSize="@dimen/tiny_text_size"
         android:visibility="gone"
-        app:layout_constraintBottom_toBottomOf="@id/threadSendMessageWrapper"
-        app:layout_constraintEnd_toEndOf="@id/threadSendMessageWrapper"
+        app:layout_constraintBottom_toBottomOf="@id/threadSendMessageActionWrapper"
+        app:layout_constraintEnd_toEndOf="@id/threadSendMessageActionWrapper"
         tools:text="0"
         tools:visibility="visible" />
 
@@ -239,43 +199,101 @@
         android:text="160/1"
         android:textSize="@dimen/small_text_size"
         android:visibility="gone"
-        app:layout_constraintBottom_toTopOf="@+id/threadSendMessageWrapper"
-        app:layout_constraintEnd_toEndOf="@+id/threadSendMessageWrapper"
-        app:layout_constraintStart_toStartOf="@+id/threadSendMessageWrapper"
+        app:layout_constraintBottom_toTopOf="@+id/threadSendMessageActionWrapper"
+        app:layout_constraintEnd_toEndOf="@+id/threadSendMessageActionWrapper"
+        app:layout_constraintStart_toStartOf="@+id/threadSendMessageActionWrapper"
         tools:ignore="HardcodedText"
         tools:visibility="visible" />
 
-    <LinearLayout
-        android:id="@+id/threadSendMessageWrapper"
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/threadSendMessageActionWrapper"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
+        android:layout_height="@dimen/input_edit_height"
+        android:layout_marginStart="@dimen/smaller_margin"
         android:layout_marginEnd="@dimen/tx_cardview_margin_vertical"
-        android:layout_marginBottom="@dimen/small_margin"
+        app:cardBackgroundColor="@color/tx_card_bg"
+        app:cardCornerRadius="24dp"
+        app:cardElevation="3px"
+        app:contentPadding="@dimen/small_margin"
         app:layout_constraintBottom_toBottomOf="@id/threadAddAttachmentHolder"
-        app:layout_constraintEnd_toEndOf="parent" >
+        app:layout_constraintEnd_toEndOf="parent"
+        app:strokeColor="@color/tx_popup_menu_border"
+        app:strokeWidth="@dimen/cardview_stroke">
 
-        <ImageView
-            android:id="@+id/threadSendMessage"
-            android:layout_width="@dimen/add_icon_size"
-            android:layout_height="@dimen/add_icon_size"
-            android:layout_gravity="center"
-            android:foregroundGravity="center"
-            android:background="@drawable/ic_sms_send"
-            android:clickable="false"
-            android:contentDescription="@string/ok"
-            android:layout_marginStart="@dimen/small_margin"/>
+        <LinearLayout
+            android:id="@+id/thread_compose_send_inner"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:background="@color/transparent"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
 
-        <douglasspgyn.com.github.circularcountdown.CircularCountdown
-            android:id="@+id/threadSendMessageCountdown"
-            android:layout_width="@dimen/medium_icon_size"
-            android:layout_height="@dimen/medium_icon_size"
-            android:visibility="gone"
-            app:countdownBackgroundColor="?attr/colorControlNormal"
-            app:countdownForegroundColor="?attr/colorPrimary"
-            app:countdownTextColor="?attr/colorPrimary"
-            app:countdownTextSize="24sp" />
-    </LinearLayout>
+            <ImageView
+                android:id="@+id/imv_emotic_btn"
+                android:layout_width="@dimen/add_icon_size"
+                android:layout_height="@dimen/add_icon_size"
+                android:src="@drawable/ic_sms_emotic"
+                android:clickable="true"
+                android:contentDescription="@string/choose_emoji"
+                android:padding="@dimen/small_margin"
+                android:visibility="visible"
+                android:focusable="true"/>
+
+            <FrameLayout
+                android:id="@+id/threadSelectSimIconHolder"
+                android:layout_width="@dimen/add_icon_size"
+                android:layout_height="@dimen/add_icon_size"
+                android:clickable="true"
+                android:focusable="true"
+                tools:visibility="gone">
+
+                <ImageView
+                    android:id="@+id/threadSelectSimIcon"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_gravity="center"
+                    android:alpha="0.9"
+                    android:contentDescription="@null"
+                    android:padding="@dimen/small_margin"
+                    android:src="@drawable/ic_sim_vector" />
+
+                <TextView
+                    android:id="@+id/thread_select_sim_number"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:textSize="@dimen/smaller_text_size"
+                    android:textStyle="bold"
+                    android:visibility="visible"
+                    tools:text="1"
+                    tools:textColor="@color/bw_30"
+                    tools:visibility="visible" />
+
+            </FrameLayout>
+
+            <ImageView
+                android:id="@+id/threadSendMessage"
+                android:layout_width="@dimen/emotic_icon_size"
+                android:layout_height="@dimen/emotic_icon_size"
+                android:layout_gravity="center"
+                android:foregroundGravity="center"
+                android:background="@drawable/ic_cmn_sms_send"
+                android:clickable="false"
+                android:contentDescription="@string/ok"
+                android:layout_marginHorizontal="@dimen/small_margin"/>
+
+            <douglasspgyn.com.github.circularcountdown.CircularCountdown
+                android:id="@+id/threadSendMessageCountdown"
+                android:layout_width="@dimen/medium_icon_size"
+                android:layout_height="@dimen/medium_icon_size"
+                android:visibility="gone"
+                app:countdownBackgroundColor="?attr/colorControlNormal"
+                app:countdownForegroundColor="?attr/colorPrimary"
+                app:countdownTextColor="?attr/colorPrimary"
+                app:countdownTextSize="24sp" />
+
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
 
     <RelativeLayout
         android:id="@+id/sim_popup_picker"

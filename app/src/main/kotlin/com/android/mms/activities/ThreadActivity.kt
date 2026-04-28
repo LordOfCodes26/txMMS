@@ -1673,7 +1673,11 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
     @SuppressLint("MissingPermission")
     private fun setupSIMSelector() {
         val textColor = getProperTextColor()
-        val availableSIMs = subscriptionManagerCompat().activeSubscriptionInfoList ?: return
+        val availableSIMs = subscriptionManagerCompat().activeSubscriptionInfoList ?: run {
+            binding.messageHolder.threadSelectSimIconHolder.beGone()
+            binding.messageHolder.syncEmojiButtonWithSimHolderVisibility()
+            return
+        }
         if (availableSIMs.size > 1) {
             binding.messageHolder.threadSelectSimIconHolder.beVisible()
             availableSIMCards.clear()
@@ -1694,8 +1698,11 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             }
 
             if (numbers.isEmpty()) {
+                binding.messageHolder.threadSelectSimIconHolder.beGone()
+                binding.messageHolder.syncEmojiButtonWithSimHolderVisibility()
                 return
             }
+
             binding.messageHolder.threadSelectSimIcon.beVisible()
             binding.messageHolder.threadSelectSimNumber.beVisible()
 
@@ -1717,7 +1724,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             // if ask every time in system setting, not show sim icon
             if (SmsManager.getDefaultSmsSubscriptionId() < 0) {
                 binding.messageHolder.threadSelectSimNumber.beGone()
-                binding.messageHolder.threadSelectSimIconHolder.beVisibleIf(false)
+                binding.messageHolder.threadSelectSimIconHolder.beGone()
             }
             // <----------
             val simLabel =
@@ -1731,11 +1738,6 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                     @SuppressLint("SetTextI18n")
                     binding.messageHolder.threadSelectSimNumber.text = currentSIMCard.id.toString()
                     // changed by sun for set color to sim type --->
-//                    val simColor = if (!config.colorSimIcons) textColor
-//                    else {
-//                        val simId = currentSIMCard.id
-//                        if (simId in 1..4) config.simIconsColors[simId] else config.simIconsColors[0]
-//                    }
                     val simColor = resolveSimIconTint(textColor, currentSIMCard.subscriptionId, currentSIMCard.id)
                     trySetSystemDefaultSmsSubscriptionId(currentSIMCard.subscriptionId)
                     // <------------
@@ -1776,9 +1778,11 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             }
         }
         else {
+            binding.messageHolder.threadSelectSimIconHolder.beGone()
             binding.messageHolder.threadSelectSimIcon.beGone()
             binding.messageHolder.threadSelectSimNumber.beGone()
         }
+        binding.messageHolder.syncEmojiButtonWithSimHolderVisibility()
         updateAvailableMessageCountForCurrentSim()
     }
 
@@ -2769,7 +2773,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             binding.messageHolder.threadTypeMessage.setText(text)
             hideExpandedMessageFragment()
             val blurTarget = this.findViewById<BlurTarget>(R.id.mainBlurTarget)
-            SelectSIMDialog(this, blurTarget, anchorView = binding.messageHolder.threadSendMessageWrapper) { _, selectedHandleIndex ->
+            SelectSIMDialog(this, blurTarget, anchorView = binding.messageHolder.threadSendMessage) { _, selectedHandleIndex ->
                 this.config.currentSIMCardIndex = selectedHandleIndex
                 sendMessage()
             }

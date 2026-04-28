@@ -12,14 +12,14 @@
                 <path
                     android:name="path_2"
                     android:pathData="M 40.98 37.412 L 58.089 37.412"
-                    android:strokeColor="@color/tx_popup_menu_border"
+                    android:strokeColor="@color/tx_title_text"
                     android:strokeWidth="4"
                     android:strokeLineCap="round"
                     android:strokeLineJoin="round"/>
                 <path
                     android:name="path_3"
                     android:pathData="M 49.534 28.857 L 49.534 45.963"
-                    android:strokeColor="@color/tx_popup_menu_border"
+                    android:strokeColor="@color/tx_title_text"
                     android:strokeWidth="4"
                     android:strokeLineCap="round"
                     android:strokeLineJoin="round"/>
@@ -28,7 +28,7 @@
                 <path
                     android:name="path"
                     android:pathData="M 29.163 7.863 C 32.099 7.881 34.911 9.065 36.977 11.152 C 39.043 13.239 40.197 16.063 40.185 19 C 40.173 21.936 38.995 24.751 36.912 26.821 C 34.829 28.89 32.008 30.051 29.071 30.045 C 26.135 30.039 23.318 28.867 21.243 26.788 C 19.169 24.71 18.003 21.89 18.003 18.954 C 18.015 16.005 19.198 13.179 21.29 11.101 C 23.381 9.022 26.214 7.857 29.163 7.863"
-                    android:strokeColor="@color/tx_popup_menu_border"
+                    android:strokeColor="@color/tx_title_text"
                     android:strokeWidth="4"
                     android:strokeLineCap="round"
                     android:strokeLineJoin="round"/>
@@ -37,7 +37,7 @@
                 <path
                     android:name="path_1"
                     android:pathData="M 52.603 56.144 L 5.911 56.144 C 5.887 54.485 6.061 52.83 6.429 51.212 C 8.856 41.787 18.663 35.063 29.229 35.063"
-                    android:strokeColor="@color/tx_popup_menu_border"
+                    android:strokeColor="@color/tx_title_text"
                     android:strokeWidth="4"
                     android:strokeLineCap="round"
                     android:strokeLineJoin="round"/>

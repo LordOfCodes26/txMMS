@@ -6,10 +6,10 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     app:cardBackgroundColor="@color/tx_card_bg"
-    app:contentPaddingLeft="@dimen/normal_margin"
-    app:contentPaddingRight="@dimen/normal_margin"
-    app:contentPaddingBottom="@dimen/medium_margin"
-    app:contentPaddingTop="@dimen/medium_margin"
+    app:contentPaddingLeft="@dimen/small_md_margin"
+    app:contentPaddingRight="@dimen/small_md_margin"
+    app:contentPaddingBottom="3.5dp"
+    app:contentPaddingTop="3.5dp"
     app:cardCornerRadius="24dp"
     app:strokeColor="@color/tx_popup_menu_border"
     app:strokeWidth="0.5dp"
@@ -88,7 +88,7 @@
     <!-- Buttons at top right - clickable=false so touches pass through to edit text below -->
     <LinearLayout
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_height="match_parent"
         android:layout_gravity="top|end"
         android:orientation="horizontal"
         android:gravity="center_vertical"
@@ -97,12 +97,13 @@
 
         <ImageView
             android:id="@+id/chips_address_book_button"
-            android:layout_width="@dimen/tx_cardview_icon_size"
-            android:layout_height="@dimen/tx_cardview_icon_size"
+            android:layout_width="@dimen/tx_common_icon_size"
+            android:layout_height="@dimen/tx_common_icon_size"
             android:background="@drawable/ic_contact_add"
             android:contentDescription="@string/search_contacts"
-            android:visibility="visible"
-            android:padding="@dimen/tiny_margin"/>
+            android:layout_marginEnd="@dimen/medium_md_margin"
+            android:padding="@dimen/tiny_margin"
+            android:visibility="visible"/>
 
         <ImageView
             android:id="@+id/chips_speech_to_text_button"
