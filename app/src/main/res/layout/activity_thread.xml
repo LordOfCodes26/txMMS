@@ -49,19 +49,19 @@
                         tools:listitem="@layout/item_message" />
 
                 </com.qtalk.recyclerviewfastscroller.RecyclerViewFastScroller>
-
-                <com.goodwy.commons.views.MyFloatingActionButton
-                    android:id="@+id/scroll_to_bottom_fab"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_margin="@dimen/activity_margin"
-                    android:src="@drawable/ic_arrow_down_vector"
-                    android:visibility="invisible"
-                    app:fabSize="mini"
-                    app:layout_constraintBottom_toBottomOf="@id/threadMessagesFastscroller"
-                    app:layout_constraintEnd_toEndOf="@id/threadMessagesFastscroller"
-                    tools:ignore="ContentDescription"
-                    tools:visibility="gone" />
+<!-- deleted by sun unnecessary -->
+<!--                <com.goodwy.commons.views.MyFloatingActionButton-->
+<!--                    android:id="@+id/scroll_to_bottom_fab"-->
+<!--                    android:layout_width="wrap_content"-->
+<!--                    android:layout_height="wrap_content"-->
+<!--                    android:layout_margin="@dimen/activity_margin"-->
+<!--                    android:src="@drawable/ic_arrow_down_vector"-->
+<!--                    android:visibility="invisible"-->
+<!--                    app:fabSize="mini"-->
+<!--                    app:layout_constraintBottom_toBottomOf="@id/threadMessagesFastscroller"-->
+<!--                    app:layout_constraintEnd_toEndOf="@id/threadMessagesFastscroller"-->
+<!--                    tools:ignore="ContentDescription"-->
+<!--                    tools:visibility="gone" />-->
 
                 <include
                     android:id="@+id/shortCodeHolder"

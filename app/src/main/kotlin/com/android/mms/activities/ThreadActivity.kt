@@ -1101,10 +1101,12 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                 tryLoadMoreMessages()
                 val layoutManager = binding.threadMessagesList.layoutManager as LinearLayoutManager
                 val lastVisibleItemPosition = layoutManager.findLastCompletelyVisibleItemPosition()
-                val isCloseToBottom =
-                    lastVisibleItemPosition >= getOrCreateThreadAdapter().itemCount - SCROLL_TO_BOTTOM_FAB_LIMIT
-                val fab = binding.scrollToBottomFab
-                if (isCloseToBottom) fab.hide() else fab.show()
+//                 deleted by sun unnecessary ---->
+//                val isCloseToBottom =
+//                    lastVisibleItemPosition >= getOrCreateThreadAdapter().itemCount - SCROLL_TO_BOTTOM_FAB_LIMIT
+//                val fab = binding.scrollToBottomFab
+//                if (isCloseToBottom) fab.hide() else fab.show()
+//                <---------
                 // Update top bar (status bar + toolbar icon) colors on scroll so they match content behind transparent bar
                 if (config.changeColourTopBar) {
                     val useSurfaceColor = isDynamicTheme() && !isSystemInDarkMode()
@@ -1428,12 +1430,14 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
 //            threadAddAttachment.applyColorFilter(textColor)
 //            threadAddAttachment.background.applyColorFilter(surfaceColor)
         }
-        
-        scrollToBottomFab.setOnClickListener {
-            scrollToBottom()
-        }
-        scrollToBottomFab.backgroundTintList = ColorStateList.valueOf(getBottomBarColor())
-        scrollToBottomFab.applyColorFilter(textColor)
+
+//        deleted by sun unnecessary ---->
+//        scrollToBottomFab.setOnClickListener {
+//            scrollToBottom()
+//        }
+//        scrollToBottomFab.backgroundTintList = ColorStateList.valueOf(getBottomBarColor())
+//        scrollToBottomFab.applyColorFilter(textColor)
+//        <--------------
 
         setupScheduleSendUi()
     }
@@ -2697,7 +2701,9 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         const val TYPE_SEND = 15
         const val TYPE_DELETE = 16
         const val MIN_DATE_TIME_DIFF_SECS = 300
+//        deleted by sun unnecessary ---->
         const val SCROLL_TO_BOTTOM_FAB_LIMIT = 20
+//        <--------
         const val PREFETCH_THRESHOLD = 15
         const val PICK_SAVE_FILE_INTENT = 1008
         const val PICK_SAVE_DIR_INTENT = 1009
@@ -2883,7 +2889,9 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         binding.topDetailsLarge.beGone()
         binding.messageHolder.root.beGone()
         binding.threadActionModeToolbar.beVisible()
-        binding.scrollToBottomFab.beGone()
+//        deleted by sun unnecessary ---->
+//        binding.scrollToBottomFab.beGone()
+//        <-----------
         binding.root.post {
             applyActionModeRippleToolbarForThread()
         }
@@ -2900,7 +2908,9 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             binding.topDetailsLarge.beGone()
             binding.topDetailsCompact.root.beVisible()
         }
-        binding.scrollToBottomFab.beVisible()
+//        deleted by sun unnecessary ---->
+//        binding.scrollToBottomFab.beVisible()
+//        <--------
         if (!isRecycleBin && !isSpecialNumber()) {
             binding.messageHolder.root.beVisible()
         }
