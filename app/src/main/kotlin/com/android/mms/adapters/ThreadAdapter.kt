@@ -1084,7 +1084,9 @@ class ThreadAdapter(
         val backgroundReceived = if (activity.config.bubbleInvertColor) surfaceColor else primaryOrSenderColor
         val selectedBubbleOption = getBubbleDrawableOption(activity.config.bubbleDrawableSet)
         // Custom bubble drawables can be light in light mode, so avoid forcing white text.
-        val contrastColorReceived = if (selectedBubbleOption != null) activity.getProperTextColor() else backgroundReceived.getContrastColor()
+//        changed by sun
+//        val contrastColorReceived = if (selectedBubbleOption != null) activity.getProperTextColor() else backgroundReceived.getContrastColor()
+        val contrastColorReceived = DARK_GREY
 
         messageBinding.apply {
             val bubbleEndMargin = resources.getDimensionPixelSize(com.goodwy.commons.R.dimen.medium_margin)
