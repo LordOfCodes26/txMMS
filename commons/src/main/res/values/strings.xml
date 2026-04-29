@@ -149,9 +149,9 @@
     <string name="unblock_contact_unblock_contact_successccess">Contact unblocked</string>
     <string name="unblock_contact_fail">Contact could not be unblocked</string>
     <string name="blocked_items">Blocked items</string>
-    <string name="blocked_calls">Calls</string>
-    <string name="blocked_messages">Messages</string>
-    <string name="blocked_contacts">Contacts</string>
+    <string name="blocked_calls">Blocked Calls</string>
+    <string name="blocked_messages">Blocked Messages</string>
+    <string name="blocked_contacts">Blocked Contacts</string>
     <string name="no_blocked_calls">No blocked calls yet.</string>
     <string name="no_blocked_messages">No blocked messages yet.</string>
     <string name="no_blocked_contacts">No blocked contacts yet.</string>

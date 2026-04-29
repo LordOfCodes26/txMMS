@@ -709,9 +709,9 @@
     <string name="unblock_contact_unblock_contact_successccess">차단된 주소를 성과적으로 해제 하였습니다</string>
     <string name="unblock_contact_fail">차단된 주소를 해제하지 못하였습니다</string>
     <string name="blocked_items">차단된 목록</string>
-    <string name="blocked_calls">전화</string>
-    <string name="blocked_messages">통보문</string>
-    <string name="blocked_contacts">주소</string>
+    <string name="blocked_calls">차단된 전화</string>
+    <string name="blocked_messages">차단된 통보문</string>
+    <string name="blocked_contacts">차단된 주소</string>
     <string name="no_blocked_calls">차단된 통화리력이 없습니다</string>
     <string name="no_blocked_messages">차단된 통보문리력이 없습니다</string>
     <string name="no_blocked_contacts">차단된 주소록이 없습니다</string>
