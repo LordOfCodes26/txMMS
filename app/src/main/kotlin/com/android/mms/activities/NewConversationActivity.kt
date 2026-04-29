@@ -534,10 +534,10 @@ class NewConversationActivity : SimpleActivity() {
                         title = chips[0]
                     }
                     else -> {
-                        val othersCount = chips.size - 1
-                        val othersPhrase =
-                            resources.getQuantityString(R.plurals.and_other_contacts, othersCount, othersCount)
-                        title = chips[0] + spacedOthersSuffix(othersPhrase)
+                        adjustNewConversationToolbarTitleIfCrowded(
+                            chips = chips,
+                            fullCombinedTitle = fullCombinedTitle,
+                        )
                     }
                 }
                 setTitleTextColor(getProperTextColor())
@@ -545,10 +545,6 @@ class NewConversationActivity : SimpleActivity() {
             setCollapsingTitleVisible(false)
             collapseAndLockCollapsing()
         }
-        adjustNewConversationToolbarTitleIfCrowded(
-            chips = chips,
-            fullCombinedTitle = fullCombinedTitle,
-        )
     }
 
     /**
