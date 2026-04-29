@@ -5,7 +5,7 @@
     android:viewportHeight="63.32">
   <path
       android:pathData="M31.672,31.66m-29.671,0a29.671,29.671 0,1 1,59.342 0a29.671,29.671 0,1 1,-59.342 0"
-      android:strokeWidth="4"
+      android:strokeWidth="3"
       android:fillColor="@color/tx_card_bg"
       android:strokeColor="@color/tx_title_text"/>
   <path

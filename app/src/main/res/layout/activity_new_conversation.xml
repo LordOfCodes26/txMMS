@@ -216,13 +216,14 @@
             android:id="@+id/message_holder_wrapper"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:gravity="bottom"
-            android:layout_gravity="bottom">
+            android:layout_gravity="bottom"
+            android:gravity="bottom">
+
             <include
                 android:id="@+id/message_holder"
                 layout="@layout/layout_thread_send_message_holder"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"/>
+                android:layout_height="wrap_content" />
 
         </RelativeLayout>
     </LinearLayout>

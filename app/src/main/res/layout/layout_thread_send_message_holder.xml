@@ -120,23 +120,25 @@
 
             <ImageView
                 android:id="@+id/threadExpandMessage"
-                android:layout_width="@dimen/full_icon_size"
-                android:layout_height="@dimen/full_icon_size"
+                android:layout_width="@dimen/add_icon_size"
+                android:layout_height="@dimen/add_icon_size"
                 android:layout_gravity="center_horizontal"
                 android:layout_marginBottom="@dimen/tiny_margin"
                 android:contentDescription="@string/expand_message"
                 android:padding="@dimen/small_margin"
                 android:src="@drawable/ic_cmn_fullscreen"
-                android:visibility="gone"
-                tools:visibility="visible" />
+                android:visibility="visible"
+                tools:visibility="gone" />
 
             <ImageView
                 android:id="@+id/threadAddAttachment"
                 android:layout_width="@dimen/add_icon_size"
                 android:layout_height="@dimen/add_icon_size"
-                android:src="@drawable/ic_plus_vector"
+                android:src="@drawable/ic_add"
                 android:layout_gravity="center_horizontal"
+                android:padding="@dimen/small_md_margin"
                 android:contentDescription="@string/attachment"/>
+
         </LinearLayout>
 
     </com.google.android.material.card.MaterialCardView>
@@ -168,6 +170,7 @@
             android:maxHeight="@dimen/input_edit_max_height"
             android:minHeight="@dimen/input_edit_height"
             android:paddingHorizontal="@dimen/normal_margin"
+            android:lineSpacingMultiplier="1.2"
             android:paddingVertical="@dimen/medium_margin" />
     </com.google.android.material.card.MaterialCardView>
 
@@ -232,7 +235,7 @@
                 android:id="@+id/imv_emotic_btn"
                 android:layout_width="@dimen/add_icon_size"
                 android:layout_height="@dimen/add_icon_size"
-                android:src="@drawable/ic_sms_emotic"
+                android:src="@drawable/ic_emotic"
                 android:clickable="true"
                 android:contentDescription="@string/choose_emoji"
                 android:padding="@dimen/small_margin"
@@ -280,6 +283,7 @@
                 android:background="@drawable/ic_cmn_sms_send"
                 android:clickable="false"
                 android:contentDescription="@string/ok"
+                android:padding="@dimen/small_margin"
                 android:layout_marginHorizontal="@dimen/small_margin"/>
 
             <douglasspgyn.com.github.circularcountdown.CircularCountdown

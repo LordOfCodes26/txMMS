@@ -6,7 +6,7 @@
   <path
       android:pathData="M9.13,25.438l8.819,-2.334L23.619,29.673 35.651,1.501 1.491,13.529 9.199,18.704l13.366,-6.434"
       android:strokeLineJoin="round"
-      android:strokeWidth="3"
+      android:strokeWidth="2.5"
       android:fillColor="#00000000"
       android:fillType="evenOdd"
       android:strokeColor="@color/tx_title_text"

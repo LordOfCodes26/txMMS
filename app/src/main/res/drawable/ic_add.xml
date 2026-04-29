@@ -9,6 +9,6 @@
       android:strokeWidth="4"
       android:fillColor="#00000000"
       android:fillType="evenOdd"
-      android:strokeColor="#393939"
+      android:strokeColor="@color/tx_title_text"
       android:strokeLineCap="round"/>
 </vector>
