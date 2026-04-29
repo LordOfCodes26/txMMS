@@ -433,22 +433,22 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
     private fun makeSystemBarsToTransparent() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         val barContainer = binding.messageHolder.root
-        val dp5 = (5 * resources.displayMetrics.density).toInt()
+        val dp5 = (15 * resources.displayMetrics.density).toInt()
 
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
             val nav = insets.getInsets(WindowInsetsCompat.Type.navigationBars())
             val navHeight = nav.bottom
             val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
-
+//
             binding.mVerticalSideFrameBottom.layoutParams =
                 binding.mVerticalSideFrameBottom.layoutParams.apply { height = navHeight + dp5 }
 
-            val rippleLp = binding.actionModeRippleToolbar.layoutParams as? ViewGroup.MarginLayoutParams
-            if (rippleLp != null) {
-                val rippleBase = resources.getDimensionPixelSize(R.dimen.ripple_bottom)
-                rippleLp.bottomMargin = rippleBase + maxOf(nav.bottom, ime.bottom)
-                binding.actionModeRippleToolbar.layoutParams = rippleLp
-            }
+//            val rippleLp = binding.actionModeRippleToolbar.layoutParams as? ViewGroup.MarginLayoutParams
+//            if (rippleLp != null) {
+//                val rippleBase = resources.getDimensionPixelSize(R.dimen.ripple_bottom)
+//                rippleLp.bottomMargin = rippleBase + maxOf(nav.bottom, ime.bottom)
+//                binding.actionModeRippleToolbar.layoutParams = rippleLp
+//            }
 
             if (barContainer != null) {
                 applyThreadMessagesListWindowInsets(

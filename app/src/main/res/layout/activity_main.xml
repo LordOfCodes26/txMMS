@@ -171,7 +171,7 @@
             <com.android.common.view.MVSideFrame
                 android:id="@+id/m_vertical_side_frame_bottom"
                 android:layout_width="match_parent"
-                android:layout_height="@dimen/tx_mv_side_top_frame_height"
+                android:layout_height="@dimen/tx_mv_side_bottom_frame_height"
                 android:layout_gravity="bottom"
                 app:isTopFrame="false"/>
 
@@ -191,14 +191,22 @@
 
     </eightbitlab.com.blurview.BlurTarget>
 
-    <com.android.common.view.MRippleToolBar
-        android:id="@+id/action_mode_ripple_toolbar"
-        android:layout_width="wrap_content"
+    <FrameLayout
+        android:id="@+id/lyt_action"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="bottom|center_horizontal"
-        android:layout_marginBottom="@dimen/ripple_bottom"
-        android:elevation="0dp"
-        android:visibility="gone" />
+        android:layout_gravity="bottom"
+        android:layout_marginLeft="15dp"
+        android:layout_marginRight="15dp"
+        android:layout_marginBottom="@dimen/ripple_bottom">
+        <com.android.common.view.MRippleToolBar
+            android:id="@+id/action_mode_ripple_toolbar"
+            android:layout_gravity="center"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:visibility="visible"/>
+    </FrameLayout>
+
 
 </FrameLayout>
 

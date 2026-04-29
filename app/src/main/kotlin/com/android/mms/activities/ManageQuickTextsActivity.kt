@@ -155,18 +155,18 @@ class ManageQuickTextsActivity : SimpleActivity(), RefreshRecyclerViewListener, 
         WindowCompat.setDecorFitsSystemWindows(window, false)
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
             val nav = insets.getInsets(WindowInsetsCompat.Type.navigationBars())
-            val navHeight = nav.bottom
-            val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
-            val dp5 = (5 * resources.displayMetrics.density).toInt()
-            binding.mVerticalSideFrameBottom.layoutParams =
-                binding.mVerticalSideFrameBottom.layoutParams.apply { height = navHeight + dp5 }
-            val bottomInset = maxOf(navHeight, ime.bottom)
-            val rippleLp = binding.actionModeRippleToolbar.layoutParams as? ViewGroup.MarginLayoutParams
-            if (rippleLp != null) {
-                val rippleBase = resources.getDimensionPixelSize(R.dimen.ripple_bottom)
-                rippleLp.bottomMargin = rippleBase + bottomInset
-                binding.actionModeRippleToolbar.layoutParams = rippleLp
-            }
+//            val navHeight = nav.bottom
+//            val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
+//            val dp5 = (5 * resources.displayMetrics.density).toInt()
+//            binding.mVerticalSideFrameBottom.layoutParams =
+//                binding.mVerticalSideFrameBottom.layoutParams.apply { height = navHeight + dp5 }
+//            val bottomInset = maxOf(navHeight, ime.bottom)
+//            val rippleLp = binding.actionModeRippleToolbar.layoutParams as? ViewGroup.MarginLayoutParams
+//            if (rippleLp != null) {
+//                val rippleBase = resources.getDimensionPixelSize(R.dimen.ripple_bottom)
+//                rippleLp.bottomMargin = rippleBase + bottomInset
+//                binding.actionModeRippleToolbar.layoutParams = rippleLp
+//            }
             syncManageQuickTextsListBottomPadding()
             insets
         }

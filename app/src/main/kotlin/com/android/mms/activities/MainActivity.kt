@@ -1276,9 +1276,9 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
             val nav = insets.getInsets(WindowInsetsCompat.Type.navigationBars())
             val navHeight = nav.bottom
             val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
-            val dp5 = (5 * resources.displayMetrics.density).toInt()
-            binding.mVerticalSideFrameBottom.layoutParams =
-                binding.mVerticalSideFrameBottom.layoutParams.apply { height = navHeight + dp5 }
+//            val dp5 = (5 * resources.displayMetrics.density).toInt()
+//            binding.mVerticalSideFrameBottom.layoutParams =
+//                binding.mVerticalSideFrameBottom.layoutParams.apply { height = navHeight + dp5 }
             val bottomOffset = (0 * resources.displayMetrics.density).toInt()
             val fabLp = binding.conversationsFab.layoutParams as? ViewGroup.MarginLayoutParams
             if (fabLp != null) {
@@ -1286,13 +1286,6 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
                 fabLp.bottomMargin = if (ime.bottom > 0) ime.bottom + bottomOffset else bottomOffset
                 fabLp.rightMargin = (32 * resources.displayMetrics.density).toInt()
                 binding.conversationsFab.layoutParams = fabLp
-            }
-            val rippleLp = binding.actionModeRippleToolbar.layoutParams as? ViewGroup.MarginLayoutParams
-            if (rippleLp != null) {
-                val rippleBase = resources.getDimensionPixelSize(R.dimen.ripple_bottom)
-                val bottomInset = maxOf(nav.bottom, ime.bottom)
-                rippleLp.bottomMargin = rippleBase + bottomInset
-                binding.actionModeRippleToolbar.layoutParams = rippleLp
             }
             setFabIconColor()
             insets

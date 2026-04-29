@@ -193,10 +193,10 @@ class SettingsActivity : SimpleActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
             val nav = insets.getInsets(WindowInsetsCompat.Type.navigationBars())
-            val navHeight = nav.bottom
-            val dp5 = (5 * resources.displayMetrics.density).toInt()
-            binding.mVerticalSideFrameBottom.layoutParams =
-                binding.mVerticalSideFrameBottom.layoutParams.apply { height = navHeight + dp5 }
+//            val navHeight = nav.bottom
+//            val dp5 = (5 * resources.displayMetrics.density).toInt()
+//            binding.mVerticalSideFrameBottom.layoutParams =
+//                binding.mVerticalSideFrameBottom.layoutParams.apply { height = navHeight + dp5 }
             insets
         }
     }
