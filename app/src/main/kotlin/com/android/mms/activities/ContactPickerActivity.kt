@@ -383,55 +383,48 @@ class ContactPickerActivity : SimpleActivity() {
     }
 
     /**
-     * Vertical distance from the [contactRecyclerView] top to the filter strip bottom, in screen space.
-     * The list lives under [R.id.blurTarget] (negative top margin) while the filter is a separate overlay, so
-     * [R.id.contact_picker_filter_bar.getHeight] is not a reliable list padding by itself; this matches
-     * [getMySearchMenuListTopInsetPx] / Main recents.
+     * List starts below [R.id.contact_picker_filter_bar] plus 12dp.
+     *
+     * Important: the list is inside a [NestedScrollView] while the filter bar is an overlay sibling.
+     * So using on-screen geometry (getLocationOnScreen) will change as the parent scrolls and can
+     * incorrectly inflate the list top padding.
      */
-    private fun getContactPickerListTopFromFilterBarGeometryPx(): Int? {
-        val bar = contactPickerFilterBar ?: return null
-        val list = contactRecyclerView ?: return null
-        if (!bar.isLaidOut || !list.isLaidOut) return null
-        if (bar.width <= 0 && bar.height <= 0) return null
-        if (list.width <= 0 && list.height <= 0) return null
-        val fLoc = IntArray(2)
-        val lLoc = IntArray(2)
-        bar.getLocationOnScreen(fLoc)
-        list.getLocationOnScreen(lLoc)
-        val barBottomY = fLoc[1] + bar.height
-        val gap = barBottomY - lLoc[1]
-        val h = resources.displayMetrics.heightPixels
-        if (gap < 0 || gap > h) return null
-        return gap
-    }
-
-    /** List starts below [R.id.contact_picker_filter_bar] plus 12dp. In search mode, padding follows screen geometry (and app bar offset via [getLocationOnScreen] on the filter). */
     private fun applyContactPickerListTopPadding() {
         val rv = contactRecyclerView ?: return
         val inSearch = blurAppBarLayout?.requireCustomToolbar()?.isSearchExpanded == true
-        if (inSearch) {
-            val fromGeom = getContactPickerListTopFromFilterBarGeometryPx()
-            if (fromGeom != null) {
-                // Small nudge so the first row clears the 1dp divider; geometry already matches overlay layout.
-                rv.updatePadding(top = (fromGeom + dp(2)).coerceAtLeast(0))
-                return
-            }
-        }
+        val bar = contactPickerFilterBar
         fun topPxForBaseInset(): Int {
             val base = contactPickerListTopInsetPx
             if (base < 0) return -1
             return (base + if (inSearch) contactPickerSearchListTopAppBarOffsetPx else 0).coerceAtLeast(0)
         }
+        // In search mode the app bar is collapsed and the filter strip child top margin changes.
+        // LinearLayout measured height includes child margins, so using the *current* filter bar height
+        // keeps the list padding in sync with that margin change (no stale cached inset).
+        if (inSearch && bar != null) {
+            val baseNow = bar.height.takeIf { it > 0 }
+                ?: if (bar.isLaidOut) bar.measuredHeight.takeIf { it > 0 } else null
+                ?: run {
+                    val widthPx = bar.width.takeIf { it > 0 } ?: resources.displayMetrics.widthPixels
+                    val widthSpec = View.MeasureSpec.makeMeasureSpec(widthPx, View.MeasureSpec.EXACTLY)
+                    val heightSpec = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+                    bar.measure(widthSpec, heightSpec)
+                    bar.measuredHeight.takeIf { it > 0 }
+                }
+            if (baseNow != null) {
+                rv.updatePadding(top = (baseNow + dp(12) + contactPickerSearchListTopAppBarOffsetPx).coerceAtLeast(0))
+                return
+            }
+        }
+
         resolveContactPickerListTopInsetPxIfNeeded()
         if (contactPickerListTopInsetPx >= 0) {
             val top = topPxForBaseInset()
             if (top >= 0) rv.updatePadding(top = top)
-            if (inSearch) rv.post { applyContactPickerListTopPadding() }
             return
         }
-        val bar = contactPickerFilterBar ?: return
+        val safeBar = bar ?: return
         if (contactPickerFilterBarInsetListener != null) {
-            if (inSearch) rv.post { applyContactPickerListTopPadding() }
             return
         }
         val listener = object : ViewTreeObserver.OnGlobalLayoutListener {
@@ -445,7 +438,7 @@ class ContactPickerActivity : SimpleActivity() {
             }
         }
         contactPickerFilterBarInsetListener = listener
-        bar.viewTreeObserver.addOnGlobalLayoutListener(listener)
+        safeBar.viewTreeObserver.addOnGlobalLayoutListener(listener)
     }
 
     /**
