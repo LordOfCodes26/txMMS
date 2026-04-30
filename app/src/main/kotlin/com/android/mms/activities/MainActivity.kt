@@ -32,6 +32,7 @@ import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.doOnLayout
 import androidx.core.view.updateLayoutParams
 import androidx.core.view.updatePadding
 import androidx.appcompat.widget.SearchView
@@ -289,9 +290,21 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
             }
         }
 
-        binding.mainMenu.post { setMainMenuHeight(null, animated = true) }
+        // While CAB is visible, [setMainMenuHeight](null) forces WRAP_CONTENT + re-measure on the AppBar and
+        // fights selection chrome — flash when exiting selection after [onResume]. Skip height animation/wrap
+        // resize until selection ends; still refresh blur geometry (matches measured CAB bar).
+        val selectionMode = (binding.conversationsList.adapter as? ConversationsAdapter)?.isActionModeActive() == true
+        binding.mainMenu.post {
+            if (!selectionMode) {
+                setMainMenuHeight(null, animated = true)
+            } else {
+                scheduleSyncMainMenuTopBlurGeometry()
+            }
+        }
 
-        refreshSideFrameBlurAndInsets()
+        if (!selectionMode) {
+            refreshSideFrameBlurAndInsets()
+        }
 
         (binding.searchResultsList.adapter as? SearchResultsAdapter)?.scheduleGroupedTodayTimeRefresh()
     }
@@ -302,6 +315,29 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
             ViewCompat.requestApplyInsets(binding.root)
             setupVerticalSideFrameBlur()
             setMainMenuTransparentBackground()
+        }
+    }
+
+    /**
+     * After AppBar height changes (search lock/unlock, CAB swap, resume), [m_vertical_side_frame_top] and
+     * [binding.blurTarget] top margin must match the measured menu — otherwise MVSideFrame shows a dark
+     * gradient strip. Uses one [doOnLayout] pass (no [setMainMenuHeight] forced relayout) to avoid flash.
+     */
+    private fun scheduleSyncMainMenuTopBlurGeometry() {
+        val menu = binding.mainMenu
+        menu.doOnLayout {
+            if (isFinishing || isDestroyed) return@doOnLayout
+            val h = menu.height.takeIf { it > 0 } ?: menu.measuredHeight.takeIf { it > 0 } ?: return@doOnLayout
+            currentMenuHeight = h
+            if (!menu.requireCustomToolbar().isSearchExpanded) {
+                fullMenuHeight = h
+            }
+            syncTopSideFrameHeight(h)
+            ViewCompat.requestApplyInsets(binding.root)
+            setupVerticalSideFrameBlur()
+            setMainMenuTransparentBackground()
+            menu.requireCustomToolbar().updateSearchColors()
+            requestTopInsetSync()
         }
     }
 
@@ -536,6 +572,7 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         binding.root.post {
             applyActionModeRippleToolbarForConversations()
             applyActionModeListBottomInset(true)
+            scheduleSyncMainMenuTopBlurGeometry()
         }
     }
 
@@ -576,34 +613,42 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         mainMenuAppBarOffsetBeforeActionMode = null
         fun applySync() {
             if (isFinishing || isDestroyed) return
-            if (menu.requireCustomToolbar().isSearchExpanded) {
-                // CAB toggles [MenuSearchBinding.searchBarContainer]; while search is active the bar should stay
-                // short and locked like [setupOptionsMenu] search expand — re-apply so chrome does not snap wrong.
-                menu.binding.collapsingTitle.visibility = View.GONE
-                menu.collapseAndLockCollapsing()
-                menu.setExpanded(false, false)
+            try {
+                if (menu.requireCustomToolbar().isSearchExpanded) {
+                    // CAB toggles [MenuSearchBinding.searchBarContainer]; while search is active the bar should stay
+                    // short and locked like [setupOptionsMenu] search expand — re-apply so chrome does not snap wrong.
+                    menu.binding.collapsingTitle.visibility = View.GONE
+                    menu.collapseAndLockCollapsing()
+                    menu.setExpanded(false, false)
+                    if (config.changeColourTopBar) scrollChange()
+                    else {
+                        setMainMenuTransparentBackground()
+                        menu.requireCustomToolbar().updateSearchColors()
+                    }
+                    return
+                }
+                val scroll = scrollOffsetForMainToolbarSync()
+                val shouldCollapse = when (savedOffset) {
+                    null -> scroll > 0
+                    else -> savedOffset < 0 || scroll > 0
+                }
+                menu.setExpanded(!shouldCollapse, false)
                 if (config.changeColourTopBar) scrollChange()
                 else {
                     setMainMenuTransparentBackground()
                     menu.requireCustomToolbar().updateSearchColors()
                 }
-                requestTopInsetSync()
-                return
+            } finally {
+                if (!isFinishing && !isDestroyed) {
+                    // Single pass: [requestTopInsetSync] runs inside [scheduleSyncMainMenuTopBlurGeometry] to avoid
+                    // double posted list padding + blur work (reduced flash).
+                    scheduleSyncMainMenuTopBlurGeometry()
+                }
             }
-            val scroll = scrollOffsetForMainToolbarSync()
-            val shouldCollapse = when (savedOffset) {
-                null -> scroll > 0
-                else -> savedOffset < 0 || scroll > 0
-            }
-            menu.setExpanded(!shouldCollapse, false)
-            if (config.changeColourTopBar) scrollChange()
-            else {
-                setMainMenuTransparentBackground()
-                menu.requireCustomToolbar().updateSearchColors()
-            }
-            requestTopInsetSync()
         }
-        menu.post { menu.post { applySync() } }
+        // Run synchronously: if we [menu.post], the full [searchBarContainer] paints one frame at default
+        // expansion before [setExpanded] — visible flash after resume + exit selection.
+        applySync()
     }
 
     private fun scrollOffsetForMainToolbarSync(): Int {
@@ -688,7 +733,7 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         applyToolbarExpandedFromConversationListScroll(animated = false)
         isSearchOpen = false
         fadeOutSearch()
-        menu.post { requestTopInsetSync() }
+        scheduleSyncMainMenuTopBlurGeometry()
     }
 
     private fun setupOptionsMenu() {
@@ -711,7 +756,7 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
                 applyToolbarExpandedFromConversationListScroll(animated = false)
                 fadeOutSearch()
                 isSearchOpen = false
-                menu.post { requestTopInsetSync() }
+                scheduleSyncMainMenuTopBlurGeometry()
             }
             toolbar.setOnSearchTextChangedListener { s ->
                 val text = s ?: ""
@@ -893,6 +938,8 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
                 }
 
                 isSearchOpen = false
+
+                scheduleSyncMainMenuTopBlurGeometry()
 
                 // Animate search bar disappearance with smooth translation (slide out to right)
                 mSearchView?.let { searchView ->
