@@ -568,7 +568,11 @@ class ContactPickerActivity : SimpleActivity() {
             }
             setOnSearchTextChangedListener { s ->
                 searchString = s ?: ""
-                searchListByQuery(searchString)
+                if (isCallLogMode) {
+                    updateAdapterWithFilteredContacts()
+                } else {
+                    searchListByQuery(searchString)
+                }
             }
         }
 
@@ -1162,7 +1166,8 @@ class ContactPickerActivity : SimpleActivity() {
                         filteredContacts.addAll(list)
                         updateAdapterWithFilteredContacts()
                     } else {
-                        searchListByQuery(searchString)
+                        // In call-log mode, filtering is done locally (no contacts DB search).
+                        updateAdapterWithFilteredContacts()
                     }
                     if (list.isEmpty()) {
                         callLogPlaceholder?.visibility = View.VISIBLE
