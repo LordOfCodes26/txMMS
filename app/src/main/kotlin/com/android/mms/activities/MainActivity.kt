@@ -2001,4 +2001,33 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
     public fun getActionModeState() : Boolean {
         return isStartActionMode
     }
+
+    /**
+     * Title used by the conversation long-press actions dialog.
+     *
+     * For group threads, match [NewConversationActivity] formatting:
+     * - 2 recipients: "First user and 1 other"
+     * - n recipients (n > 2): "First user and (n-1) others"
+     *
+     * For 1:1 threads, keep the existing title behavior.
+     */
+    fun getConversationActionsDialogTitle(conversation: Conversation): String {
+        if (!conversation.isGroupConversation) {
+            return conversation.title
+        }
+
+        val numbers = getThreadRecipientPhoneNumbers(conversation.threadId)
+        if (numbers.size <= 1) {
+            return conversation.title
+        }
+
+        val firstNumber = numbers.firstOrNull().orEmpty()
+        val firstDisplay = getNameAndPhotoFromPhoneNumber(firstNumber).name
+            .takeIf { it.isNotEmpty() }
+            ?: firstNumber
+
+        val othersCount = numbers.size - 1
+        val othersPhrase = resources.getQuantityString(R.plurals.and_other_contacts, othersCount, othersCount)
+        return getString(R.string.thread_title_multiple_format, firstDisplay, othersPhrase).trim()
+    }
 }

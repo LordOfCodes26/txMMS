@@ -278,9 +278,11 @@ class ConversationsAdapter(
 
         val blurTarget = activity.findViewById<BlurTarget>(com.android.mms.R.id.mainBlurTarget)
         try {
+            val title = (activity as? MainActivity)?.getConversationActionsDialogTitle(conversation)
+                ?: conversation.title
             OptionListDialog(
                 activity = activity,
-                title = conversation.title,
+                title = title,
                 options = options,
                 blurTarget = blurTarget,
                 cancelListener = null
