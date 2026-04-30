@@ -16,6 +16,7 @@ import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.content.res.ResourcesCompat
 import com.goodwy.commons.activities.BaseSimpleActivity
 import com.goodwy.commons.dialogs.NewAppDialog
+import com.goodwy.commons.dialogs.RadioGroupDialog
 import com.goodwy.commons.extensions.darkenColor
 import com.goodwy.commons.extensions.normalizePhoneNumber
 import com.goodwy.commons.extensions.getMimeType
@@ -25,6 +26,7 @@ import com.goodwy.commons.extensions.getProperTextColor
 import com.goodwy.commons.extensions.getSurfaceColor
 import com.goodwy.commons.extensions.hideKeyboard
 import com.goodwy.commons.extensions.isPackageInstalled
+import com.goodwy.commons.extensions.formatPhoneNumber
 import com.goodwy.commons.extensions.launchActivityIntent
 import com.goodwy.commons.extensions.launchCallIntent
 import com.goodwy.commons.extensions.launchViewContactIntent
@@ -40,7 +42,9 @@ import com.goodwy.commons.helpers.LICENSE_INDICATOR_FAST_SCROLL
 import com.goodwy.commons.helpers.LICENSE_SMS_MMS
 import com.goodwy.commons.helpers.SimpleContactsHelper
 import com.goodwy.commons.helpers.ensureBackgroundThread
+import com.goodwy.commons.interfaces.ActionModeToolbarHost
 import com.goodwy.commons.models.FAQItem
+import com.goodwy.commons.models.RadioItem
 import com.goodwy.commons.models.SimpleContact
 import com.android.mms.BuildConfig
 import com.android.mms.R
@@ -57,6 +61,11 @@ import ezvcard.property.Telephone
 import com.google.android.material.snackbar.Snackbar
 import eightbitlab.com.blurview.BlurTarget
 import java.util.Locale
+
+private fun Activity.resolveBlurTargetForContactDialogs(): BlurTarget? =
+    (this as? ActionModeToolbarHost)?.getBlurTargetView() as? BlurTarget
+        ?: findViewById(R.id.mainBlurTarget)
+        ?: findViewById(R.id.blurTarget)
 
 @SuppressLint("MissingPermission")
 fun BaseSimpleActivity.dialNumber(phoneNumber: String, callback: (() -> Unit)? = null) {
@@ -234,10 +243,49 @@ fun Activity.launchConversationDetails(threadId: Long) {
 /** Same as txDial [com.android.dialer.extensions.startAddContactIntent]: prefill new/edit contact with a phone number. */
 fun Activity.startAddContactIntent(phoneNumber: String) {
     Intent().apply {
-        action = Intent.ACTION_INSERT_OR_EDIT
-        type = "vnd.android.cursor.item/contact"
+        action = Intent.ACTION_INSERT
+        data = ContactsContract.Contacts.CONTENT_URI
         putExtra(KEY_PHONE, phoneNumber)
         launchActivityIntent(this)
+    }
+}
+
+/**
+ * Same as txDial [com.android.dialer.adapters.RecentCallsAdapter.addNumberToContact]:
+ * choose create new vs add to existing ([RadioGroupDialog]), then the contacts intent.
+ */
+fun Activity.launchAddNumberToContactFlow(rawPhoneNumber: String) {
+    if (rawPhoneNumber.isBlank()) return
+    val simple = this as? BaseSimpleActivity
+    val formatted =
+        if (simple != null && simple.config.formatPhoneNumbers) rawPhoneNumber.formatPhoneNumber() else rawPhoneNumber
+    val blurTarget = resolveBlurTargetForContactDialogs() ?: run {
+        startAddContactIntent(formatted)
+        return
+    }
+    val createNewContact = "create_new_contact"
+    val addToExistingContact = "add_to_existing_contact"
+    val items = arrayListOf(
+        RadioItem(0, getString(com.goodwy.commons.R.string.create_new_contact), createNewContact),
+        RadioItem(1, getString(com.goodwy.commons.R.string.add_to_existing_contact), addToExistingContact),
+    )
+    RadioGroupDialog(
+        activity = this,
+        items = items,
+        requireConfirmButton = true,
+        blurTarget = blurTarget,
+    ) { selected ->
+        when (selected as String) {
+            createNewContact -> startAddContactIntent(formatted)
+            addToExistingContact -> {
+                Intent().apply {
+                    action = Intent.ACTION_INSERT_OR_EDIT
+                    type = "vnd.android.cursor.item/contact"
+                    putExtra(KEY_PHONE, formatted)
+                    launchActivityIntent(this)
+                }
+            }
+        }
     }
 }
 

@@ -1973,12 +1973,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
     private fun addNumberToContact() {
         val phoneNumber =
             participants.firstOrNull()?.phoneNumbers?.firstOrNull()?.normalizedNumber ?: return
-        Intent().apply {
-            action = Intent.ACTION_INSERT_OR_EDIT
-            type = "vnd.android.cursor.item/contact"
-            putExtra(KEY_PHONE, phoneNumber)
-            launchActivityIntent(this)
-        }
+        launchAddNumberToContactFlow(phoneNumber)
     }
 
     @SuppressLint("MissingPermission")

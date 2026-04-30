@@ -125,6 +125,10 @@ class RadioGroupDialog(
                     }
                 }
             }
+            if (requireConfirmButton && selectedItemId == -1 && items.isNotEmpty()) {
+                // Default to first item so confirm is immediately available in explicit-confirm flows.
+                selectedItemId = 0
+            }
             // RadioButtons are nested under row views; setting isChecked during inflation does not
             // update RadioGroup's mCheckedId. Without this, check() on tap never unchecks the prior row.
             if (selectedItemId != -1) {
@@ -155,6 +159,12 @@ class RadioGroupDialog(
         val confirmTarget: View? = confirmButton ?: positiveButton
         val neutralButton = view.root.findViewById<com.google.android.material.button.MaterialButton>(R.id.neutral_button)
         val buttonsContainer = view.root.findViewById<android.widget.LinearLayout>(R.id.buttons_container)
+        val confirmTitle = activity.getString(R.string.ok)
+
+        when (confirmTarget) {
+            is TextView -> confirmTarget.text = confirmTitle
+            is com.google.android.material.button.MaterialButton -> confirmTarget.text = confirmTitle
+        }
 
         refreshConfirmUi = {
             if (requireConfirmButton) {

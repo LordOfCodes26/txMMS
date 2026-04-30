@@ -27,7 +27,7 @@ import com.android.mms.extensions.deleteMessage
 import com.android.mms.extensions.deleteScheduledMessage
 import com.android.mms.extensions.getContactFromAddress
 import com.android.mms.extensions.launchConversationDetails
-import com.android.mms.extensions.startAddContactIntent
+import com.android.mms.extensions.launchAddNumberToContactFlow
 import com.android.mms.extensions.startContactDetailsIntent
 import com.android.mms.extensions.markLastMessageUnread
 import com.android.mms.extensions.markThreadMessagesRead
@@ -768,7 +768,7 @@ class ConversationsAdapter(
 
     private fun addNumberToContact() {
         val conversation = getSelectedItems().firstOrNull() ?: return
-        activity.startAddContactIntent(conversation.phoneNumber)
+        activity.launchAddNumberToContactFlow(conversation.phoneNumber)
     }
 
     /**
