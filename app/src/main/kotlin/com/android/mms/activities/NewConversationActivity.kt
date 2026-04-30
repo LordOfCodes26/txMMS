@@ -534,6 +534,10 @@ class NewConversationActivity : SimpleActivity() {
                         title = chips[0]
                     }
                     else -> {
+                        // Always set a correct baseline title first. The crowding-adjust path below is
+                        // posted and may early-return if layout isn't ready yet; without a baseline the
+                        // toolbar can get stuck showing only the first recipient after draft restore.
+                        title = fullCombinedTitle
                         adjustNewConversationToolbarTitleIfCrowded(
                             chips = chips,
                             fullCombinedTitle = fullCombinedTitle,
