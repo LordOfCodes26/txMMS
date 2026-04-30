@@ -140,7 +140,7 @@ class ManageQuickTextsAdapter(
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val quickText = quickTexts[position]
-        holder.bindView(quickText, allowSingleClick = true, allowLongClick = true) { itemView, _ ->
+        holder.bindView(quickText, allowSingleClick = true, allowLongClick = false) { itemView, _ ->
             setupView(itemView, quickText, holder)
         }
         bindViewHolder(holder)
