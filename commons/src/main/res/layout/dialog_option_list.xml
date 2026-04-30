@@ -9,14 +9,15 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical">
-
-        <TextView
+        <com.goodwy.commons.views.MyTextView
             android:id="@+id/dialog_title"
-            style="@style/DialogTitleStyle"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:visibility="gone" />
+            android:gravity="center_horizontal"
+            android:textColor="@color/tx_title_text"
+            style="@style/DialogTitleStyle"
+            android:text="@string/title"
+            android:visibility="visible" />
 
         <include
             android:id="@+id/dialog_option_list_title_divider"
