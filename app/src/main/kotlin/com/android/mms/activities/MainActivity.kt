@@ -2004,6 +2004,11 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         runOnUiThread {
             binding.searchResultsList.beVisibleIf(flatResults.isNotEmpty())
             binding.searchPlaceholder.beVisibleIf(flatResults.isEmpty())
+            // Re-sync top padding whenever results become visible so the search list aligns
+            // with convList regardless of when animateTopOffsets last ran.
+            if (flatResults.isNotEmpty()) {
+                binding.searchResultsList.post { requestTopInsetSync() }
+            }
 
             val currAdapter = binding.searchResultsList.adapter
             if (currAdapter == null) {
