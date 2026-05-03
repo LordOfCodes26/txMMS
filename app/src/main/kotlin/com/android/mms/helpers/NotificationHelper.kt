@@ -8,6 +8,10 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.drawable.GradientDrawable
 import android.media.AudioAttributes
 import android.media.AudioManager
 import android.media.RingtoneManager
@@ -24,21 +28,24 @@ import com.android.mms.activities.MainActivity
 import com.android.mms.activities.ThreadActivity
 import com.android.mms.extensions.config
 import com.android.mms.extensions.getOTPFromText
+import com.android.mms.extensions.getThreadRecipientPhoneNumbers
 import com.android.mms.extensions.shortcutHelper
 import com.android.mms.messaging.isShortCodeWithLetters
 import com.android.mms.receivers.CopyNumberReceiver
 import com.android.mms.receivers.DeleteSmsReceiver
 import com.android.mms.receivers.DirectReplyReceiver
 import com.android.mms.receivers.MarkAsReadReceiver
+import com.goodwy.commons.helpers.GROUP
+import com.goodwy.commons.helpers.MonogramGenerator
 
 class NotificationHelper(private val context: Context) {
 
     private val notificationManager = context.notificationManager
     private val soundUri get() = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
-    private val user = Person.Builder()
-        .setName(context.getString(R.string.reply))
-        .setIcon(IconCompat.createWithResource(context, com.goodwy.commons.R.drawable.placeholder_contact))
-        .build()
+//    private val user = Person.Builder()
+//        .setName(context.getString(R.string.reply))
+//        .setIcon(IconCompat.createWithResource(context, com.goodwy.commons.R.drawable.placeholder_contact))
+//        .build()
 
     @SuppressLint("NewApi")
     fun showMessageNotification(
@@ -143,11 +150,23 @@ class NotificationHelper(private val context: Context) {
             null
         }
 
+        val conversationTitle = title ?: address
+        val conversationIcon = buildConversationListParityIcon(
+            threadId = threadId,
+            address = address,
+            title = conversationTitle,
+            contact = contact
+        )
+        val user = Person.Builder()
+            .setName(context.getString(R.string.reply))
+            .setIcon(IconCompat.createWithResource(context, com.goodwy.commons.R.drawable.placeholder_contact))
+            .build()
+
         val builder = NotificationCompat.Builder(context, notificationChannelId).apply {
             when (context.config.lockScreenVisibilitySetting) {
                 LOCK_SCREEN_SENDER_MESSAGE -> {
                     setLargeIcon(largeIcon)
-                    setStyle(getMessagesStyle(address, body, notificationId, sender))
+                    setStyle(getMessagesStyle(address, body, notificationId, sender, user, conversationIcon))
                 }
 
                 LOCK_SCREEN_SENDER -> {
@@ -289,12 +308,15 @@ class NotificationHelper(private val context: Context) {
         address: String,
         body: String,
         notificationId: Int,
-        name: String?
+        name: String?,
+        user: Person,
+        senderIcon: IconCompat
     ): NotificationCompat.MessagingStyle {
         val sender = if (name != null) {
             Person.Builder()
                 .setName(name)
                 .setKey(address)
+                .setIcon(senderIcon)
                 .build()
         } else {
             null
@@ -351,5 +373,100 @@ class NotificationHelper(private val context: Context) {
             .setChannelId(notificationChannelId)
 
         notificationManager.notify(notificationId, builder.build())
+    }
+
+    private fun buildConversationListParityIcon(
+        threadId: Long,
+        address: String,
+        title: String,
+        contact: SimpleContact?
+    ): IconCompat {
+
+        val isGroupConversation = context.getThreadRecipientPhoneNumbers(threadId).size > 1
+        val isUnsavedMessage = threadId <= 0 || address == title
+        val photoUri = contact?.photoUri.orEmpty()
+
+        if (isUnsavedMessage) {
+            return  createMonogramIcon(
+                seed = address,
+                initials = "",
+                drawableIndex = context.getAvatarDrawableIndexForName(address).takeIf { it >= 0 },
+                showProfileIcon = true
+            )
+        }
+
+        val avatarSeed = title.ifEmpty { address }
+        val drawableIndex = context.getAvatarDrawableIndexForName(avatarSeed).takeIf { it >= 0 }
+        val shouldUsePhoto = photoUri.isNotBlank() && !isGroupConversation && address != title
+        if (shouldUsePhoto) {
+            return IconCompat.createWithContentUri(photoUri)
+        }
+
+        if (isGroupConversation) {
+            return createMonogramIcon(
+                seed = address,
+                initials = GROUP,
+                drawableIndex = context.getAvatarDrawableIndexForName(address).takeIf { it >= 0 }
+            )
+        }
+
+        return return createMonogramIcon(
+            seed = avatarSeed,
+            initials = MonogramGenerator.generateInitials(avatarSeed),
+            drawableIndex = drawableIndex
+        )
+
+    }
+
+    private fun createMonogramIcon (
+        seed: String,
+        initials: String,
+        drawableIndex: Int?,
+        showProfileIcon: Boolean = false
+    ): IconCompat {
+        val size = context.resources.getDimension(com.goodwy.commons.R.dimen.contact_photo_big_size).toInt()
+        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+
+        val background = if (drawableIndex != null) {
+            context.createAvatarGradientDrawable(
+                drawableIndex = drawableIndex,
+                isDarkMode = context.isNightDisplay()
+            )
+        } else {
+            GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                orientation = GradientDrawable.Orientation.TOP_BOTTOM
+                colors = MonogramGenerator.generateGradientColors(seed).toIntArray()
+            }
+        }
+        background.setBounds(0,0,size, size)
+        background.draw(canvas)
+        if (showProfileIcon) {
+            val  inset = (size * 0.16f).toInt().coerceAtLeast(1)
+            val icon = context.resources.getDrawable(com.goodwy.commons.R.drawable.ic_person, context.theme).mutate()
+            icon.setTint(Color.WHITE)
+            icon.setBounds(inset, inset, size-inset, size-inset)
+            icon.draw(canvas)
+        } else {
+            val monogramChar = extractFirstMonogramCharacter(initials)
+            val textPaint = Paint().apply {
+                color = Color.WHITE
+                isAntiAlias = true
+                textAlign = Paint.Align.CENTER
+                textSize = size * 0.5f
+                style = Paint.Style.FILL
+            }
+            val xPos = size / 2f
+            val fontMetrics = textPaint.fontMetrics
+            val yPos = size / 2f - (fontMetrics.ascent + fontMetrics.descent) /2f
+            canvas.drawText(monogramChar, xPos, yPos, textPaint)
+        }
+        return IconCompat.createWithBitmap(bitmap)
+    }
+    private fun extractFirstMonogramCharacter(value: String): String {
+        val trimmed = value.trim()
+        val firstChar = trimmed.firstOrNull() ?: return  "ㄱ"
+        return if (firstChar.isLetter()) firstChar.uppercaseChar().toString() else firstChar.toString()
     }
 }
