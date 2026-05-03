@@ -103,6 +103,8 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
     private var isSearchAlwaysShow = false
     private var isSearchOpen = false
     private var searchQuery = ""
+    /** True while a search-expanded resume is in progress; blocks blur-margin updates until layout settles. */
+    private var isSearchResumeInProgress = false
 
     private var mSearchMenuItem: MenuItem? = null
     private var mSearchView: SearchView? = null
@@ -266,6 +268,9 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
 
         setFabIconColor()
 
+        val searchExpandedOnResume = binding.mainMenu.requireCustomToolbar().isSearchExpanded
+        isSearchResumeInProgress = searchExpandedOnResume
+
         if (fullMenuHeight == -1) {
             val menu = binding.mainMenu
             if (menu.height == 0) {
@@ -304,6 +309,13 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
 
         if (!selectionMode) {
             refreshSideFrameBlurAndInsets()
+            if (searchExpandedOnResume) {
+                binding.mainMenu.postDelayed({
+                    if (isFinishing || isDestroyed) return@postDelayed
+                    isSearchResumeInProgress = false
+                    requestTopInsetSync()
+                }, 150L)
+            }
         }
 
         (binding.searchResultsList.adapter as? SearchResultsAdapter)?.scheduleGroupedTodayTimeRefresh()
@@ -728,6 +740,7 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         val menu = binding.mainMenu
         val tb = menu.requireCustomToolbar()
         if (!tb.isSearchExpanded) return
+        isSearchResumeInProgress = false
         tb.collapseSearch()
         menu.unlockCollapsing()
         applyToolbarExpandedFromConversationListScroll(animated = false)
@@ -749,9 +762,11 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
                 menu.collapseAndLockCollapsing()
                 menu.binding.collapsingTitle.visibility = View.GONE
                 isSearchOpen = true
+                isSearchResumeInProgress = false
                 menu.post { requestTopInsetSync() }
             }
             toolbar.setOnSearchBackClickListener {
+                isSearchResumeInProgress = false
                 menu.unlockCollapsing()
                 applyToolbarExpandedFromConversationListScroll(animated = false)
                 fadeOutSearch()
@@ -1261,7 +1276,12 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         if (height < 0) return
         syncTopSideFrameHeightForMenu(binding.mVerticalSideFrameTop, binding.mainMenu, height)
         binding.blurTarget.invalidate()
-        syncBlurTargetTopMargin(height)
+        // Skip updating the blur target's top margin while a search-expanded resume is settling.
+        // Changing it mid-resume repositions list geometry, causing requestTopInsetSync to read a
+        // stale value instead of the stable pre-pause position.
+        if (!isSearchResumeInProgress) {
+            syncBlurTargetTopMargin(height)
+        }
         syncRecentsTopInsetWithToolbar()
     }
 
