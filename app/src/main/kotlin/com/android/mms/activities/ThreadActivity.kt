@@ -233,8 +233,10 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
 
     override fun onResume() {
         super.onResume()
-        if (config.threadTopStyle == THREAD_TOP_LARGE) binding.topDetailsCompact.root.beGone()
-        else binding.topDetailsLarge.beGone()
+        if (!isThreadMessageSelectionModeActive()) {
+            if (config.threadTopStyle == THREAD_TOP_LARGE) binding.topDetailsCompact.root.beGone()
+            else binding.topDetailsLarge.beGone()
+        }
 
         applyThreadListBackgroundColors()
         applyThreadTopBarChrome()
@@ -1679,6 +1681,11 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                 }
             }
         }
+        if (isThreadMessageSelectionModeActive()) {
+            topDetailsCompact.root.beGone()
+            topDetailsLarge.beGone()
+            threadToolbar.beGone()
+        }
     }
 
     private fun setupThreadTitle() {
@@ -2906,6 +2913,10 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             false
         }
     }
+
+    /** True while the message list is in CAB / multi-select mode ([ThreadAdapter] selection). */
+    private fun isThreadMessageSelectionModeActive(): Boolean =
+        (binding.threadMessagesList.adapter as? ThreadAdapter)?.isActionModeActive() == true
 
     override fun getActionModeToolbar(): com.goodwy.commons.views.CustomActionModeToolbar =
         binding.threadActionModeToolbar
