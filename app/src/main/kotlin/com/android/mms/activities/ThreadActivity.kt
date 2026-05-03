@@ -454,7 +454,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                 applyThreadMessagesListWindowInsets(
                     navHeight = navHeight,
                     imeBottom = ime.bottom,
-                    scrollToBottomForIme = ime.bottom > 0,
+                    scrollToBottomForIme = ime.bottom > 0 && insets.isVisible(WindowInsetsCompat.Type.ime()),
                 )
             }
             // Toolbar / popups often hide the IME without clearing EditText focus; re-sync compose bar
@@ -503,8 +503,12 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         val appBarHeightPx = resources.getDimensionPixelSize(com.android.common.R.dimen.tx_top_bar_expand_height)
         val inputBarHeight = dp(32)
         val attachmentStripKeyboardPlaceholder = config.keyboardHeight + inputBarHeight
+        val rootInsets = ViewCompat.getRootWindowInsets(binding.root)
+        val imeInsetsApplyToList =
+            imeBottom > 0 &&
+                rootInsets?.isVisible(WindowInsetsCompat.Type.ime()) == true
         val extraBottomPadding = when {
-            imeBottom > 0 -> imeBottom
+            imeInsetsApplyToList -> imeBottom
             isAttachmentPickerVisible -> attachmentStripKeyboardPlaceholder
             composeBarBottomInsetLatch != ComposeBarBottomInsetLatch.NONE -> attachmentStripKeyboardPlaceholder
             else -> 0
@@ -516,10 +520,11 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             // When IME or attachment picker is up, [binding.messageHolder] height already reflects that state
             // (bottom insets on the bar for IME; picker views inside the same root for attachments). The old
             // logic also added keyboardHeight / ime.bottom here and produced a large empty band in both modes.
-            val bottomPadding = if (extraBottomPadding > 0) {
-                composeHeight + composeBottomGap
-            } else {
-                composeHeight + composeBottomGap + navHeight
+            val composeStripHidden = barContainer.visibility != View.VISIBLE
+            val bottomPadding = when {
+                extraBottomPadding > 0 -> composeHeight + composeBottomGap
+                composeStripHidden -> composeHeight + composeBottomGap
+                else -> composeHeight + composeBottomGap + navHeight
             }
             if (extraBottomPadding > 0) {
                 messagesList.setPadding(0, appBarHeightPx, 0, bottomPadding)
@@ -532,7 +537,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                 }
             } else {
                 bottomBarLp.bottomMargin = bottomOffset
-                messagesList.setPadding(0, appBarHeightPx + dp(10), 0, composeHeight + composeBottomGap + navHeight)
+                messagesList.setPadding(0, appBarHeightPx + dp(10), 0, bottomPadding)
                 barContainer.layoutParams = bottomBarLp
             }
         }
@@ -542,13 +547,40 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         }
 
         barContainer.post {
-            val composeHeight = barContainer.height
-            if (composeHeight > 0) {
-                applyWithComposeHeight(composeHeight)
-            } else {
-                applyWithComposeHeight(dp(90))
+            val composeHeight = resolveComposeStripHeightForThreadList(barContainer)
+            applyWithComposeHeight(composeHeight)
+        }
+    }
+
+    /**
+     * When the thread compose strip is [View.GONE] (selection / CAB), padding must match the bottom overlay:
+     * [R.id.lyt_action] sits above [R.dimen/ripple_bottom] with the CAB ripple bar — not just the inner view height.
+     */
+    private fun resolveComposeStripHeightForThreadList(barContainer: View): Int {
+        if (barContainer.visibility == View.VISIBLE && barContainer.height > 0) {
+            return barContainer.height
+        }
+        if (barContainer.visibility != View.VISIBLE) {
+            return actionModeBottomOverlayClearancePx()
+        }
+        return if (barContainer.height > 0) barContainer.height else dp(90)
+    }
+
+    /** Height from list bottom to clear the floating CAB ripple container ([R.id.lyt_action]) + its bottom margin. */
+    private fun actionModeBottomOverlayClearancePx(): Int {
+        val box = binding.root.findViewById<View>(R.id.lyt_action)
+        val lp = box.layoutParams as? ViewGroup.MarginLayoutParams
+        val marginBottom = lp?.bottomMargin?.takeIf { it > 0 }
+            ?: resources.getDimensionPixelSize(R.dimen.ripple_bottom)
+        val frameHeight = when {
+            box.height > 0 -> box.height
+            box.measuredHeight > 0 -> box.measuredHeight
+            else -> {
+                val ripple = binding.actionModeRippleToolbar
+                maxOf(ripple.height, ripple.measuredHeight, dp(48))
             }
         }
+        return frameHeight + marginBottom
     }
 
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
@@ -2879,6 +2911,10 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         binding.threadActionModeToolbar
 
     override fun showActionModeToolbar() {
+        if (!isRecycleBin) {
+            hideKeyboard()
+            binding.messageHolder.threadTypeMessage.clearFocus()
+        }
         binding.threadToolbar.beGone()
         binding.topDetailsCompact.root.beGone()
         binding.topDetailsLarge.beGone()
@@ -2889,6 +2925,17 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
 //        <-----------
         binding.root.post {
             applyActionModeRippleToolbarForThread()
+            if (!isRecycleBin) {
+                ViewCompat.requestApplyInsets(binding.root)
+                syncMessageInputBarToBottomAfterFocusLoss()
+                refreshThreadMessagesListPaddingForComposeBarHeight()
+                binding.threadMessagesList.post {
+                    refreshThreadMessagesListPaddingForComposeBarHeight()
+                }
+                binding.root.findViewById<View>(R.id.lyt_action).post {
+                    refreshThreadMessagesListPaddingForComposeBarHeight()
+                }
+            }
         }
     }
 
@@ -2908,6 +2955,10 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
 //        <--------
         if (!isRecycleBin && !isSpecialNumber()) {
             binding.messageHolder.root.beVisible()
+            binding.messageHolder.root.post {
+                ViewCompat.requestApplyInsets(binding.root)
+                refreshThreadMessagesListPaddingForComposeBarHeight()
+            }
         }
     }
 
