@@ -1807,34 +1807,56 @@ fun Context.subscriptionManagerCompat(): SubscriptionManager {
 }
 
 /**
+ * If this thread has a non-empty local draft, raises [Conversation.date] to match the draft save time
+ * when newer than the merged Telephony row. Ensures the main list sorts under Today and shows
+ * relative labels such as "Now" after the user saves compose text and leaves the thread.
+ */
+fun Context.bumpConversationDateFromLocalDraft(threadId: Long) {
+    if (threadId <= 0L) return
+    try {
+        val draft = draftsDB.getDraftById(threadId) ?: return
+        if (draft.conversationListSnippet(this).isEmpty()) return
+        val conv = conversationsDB.getConversationWithThreadId(threadId) ?: return
+        val draftDateSecs = (draft.date / 1000L).toInt()
+        if (draftDateSecs > conv.date) {
+            conversationsDB.insertOrUpdate(conv.copy(date = draftDateSecs))
+        }
+    } catch (_: Exception) {
+    }
+}
+
+/**
  * Re-reads one thread from Telephony and updates Room so [snippet]/date match after draft save or delete.
  * Without this, [reloadConversationsFromLocalDatabase] can show stale draft text in the list.
  */
 fun Context.refreshConversationRowFromTelephony(threadId: Long) {
-    if (config.selectedConversationPin != 0 || threadId <= 0L) return
-    try {
-        val privateCursor =
-            getMyContactsCursor(favoritesOnly = false, withPhoneNumbersOnly = true)
-        val privateContacts =
-            MyContactsContentProvider.getSimpleContacts(this, privateCursor)
-        val one = getConversations(threadId = threadId, privateContacts = privateContacts)
-        if (one.isNotEmpty()) {
-            insertOrUpdateConversation(one.first())
-        } else {
-            // Thread dropped out of Telephony (e.g. draft-only after draft delete). Full [initMessenger]
-            // merge removes these; local refresh must drop the Room row or the ghost stays until app restart.
-            try {
-                val stillHasDraft = draftsDB.getDraftById(threadId) != null
-                val msgCount = messagesDB.getThreadMessageCount(threadId)
-                val hasScheduled = messagesDB.getScheduledThreadMessages(threadId).isNotEmpty()
-                if (!stillHasDraft && msgCount == 0 && !hasScheduled) {
-                    conversationsDB.deleteThreadId(threadId)
+    if (threadId <= 0L) return
+    if (config.selectedConversationPin == 0) {
+        try {
+            val privateCursor =
+                getMyContactsCursor(favoritesOnly = false, withPhoneNumbersOnly = true)
+            val privateContacts =
+                MyContactsContentProvider.getSimpleContacts(this, privateCursor)
+            val one = getConversations(threadId = threadId, privateContacts = privateContacts)
+            if (one.isNotEmpty()) {
+                insertOrUpdateConversation(one.first())
+            } else {
+                // Thread dropped out of Telephony (e.g. draft-only after draft delete). Full [initMessenger]
+                // merge removes these; local refresh must drop the Room row or the ghost stays until app restart.
+                try {
+                    val stillHasDraft = draftsDB.getDraftById(threadId) != null
+                    val msgCount = messagesDB.getThreadMessageCount(threadId)
+                    val hasScheduled = messagesDB.getScheduledThreadMessages(threadId).isNotEmpty()
+                    if (!stillHasDraft && msgCount == 0 && !hasScheduled) {
+                        conversationsDB.deleteThreadId(threadId)
+                    }
+                } catch (_: Exception) {
                 }
-            } catch (_: Exception) {
             }
+        } catch (_: Exception) {
         }
-    } catch (_: Exception) {
     }
+    bumpConversationDateFromLocalDraft(threadId)
 }
 
 fun Context.insertOrUpdateConversation(
