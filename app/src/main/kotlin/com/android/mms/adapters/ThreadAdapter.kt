@@ -673,7 +673,6 @@ class ThreadAdapter(
         menu.add(1, 0, 0, text).setIcon(R.drawable.ic_empty)
         menu.add(1, 1, 1, title).setIcon(icon)
         if (title == com.goodwy.commons.R.string.call) menu.add(1, 2, 2, com.goodwy.strings.R.string.message).setIcon(R.drawable.ic_comment)
-        menu.add(1, 3, 3, com.goodwy.strings.R.string.search_the_web).setIcon(R.drawable.ic_internet)
         menu.add(1, 4, 4, com.goodwy.commons.R.string.share).setIcon(com.goodwy.commons.R.drawable.ic_ios_share)
         menu.add(1, 5, 5, com.goodwy.commons.R.string.copy).setIcon(com.goodwy.commons.R.drawable.ic_copy_vector)
 
@@ -689,8 +688,6 @@ class ThreadAdapter(
                     0 -> activity.copyToClipboard(text)
 
                     2 -> activity.launchSendSMSIntent(text)
-
-                    3 -> activity.launchInternetSearch(text)
 
                     4 -> activity.shareTextIntent(text)
 
