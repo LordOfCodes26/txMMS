@@ -6,7 +6,7 @@
 
     <item
         android:id="@+id/dial_number"
-        android:icon="@drawable/ic_cmn_call"
+        android:icon="@drawable/ic_cmn_call_new_line"
         app:showAsAction="always"
         android:title="@string/dial_number" />
 
