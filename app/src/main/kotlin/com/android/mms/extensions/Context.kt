@@ -1744,11 +1744,16 @@ fun Context.updateLastConversationMessage(threadIds: Iterable<Long>) {
         "1 = 0" // always-false condition, because we don't actually want to delete any messages
     try {
         contentResolver.delete(uri, selection, null)
-        for (threadId in threadIds) {
-            val newConversation = getConversations(threadId)[0]
+    } catch (e: Exception) {
+        Log.w("updateLastConversationMsg", "recompute trigger fail ", e)
+    }
+    for (threadId in threadIds) {
+        try {
+            val newConversation = getConversations(threadId).firstOrNull() ?: continue
             insertOrUpdateConversation(newConversation)
+        } catch (e: Exception) {
+            Log.w("updateLastConversationMsg", "skip thread $threadId ", e)
         }
-    } catch (_: Exception) {
     }
 }
 

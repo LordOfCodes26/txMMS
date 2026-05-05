@@ -1633,6 +1633,7 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
                     val normalizedPhoneNumber = clonedConversation.phoneNumber.normalizePhoneNumber()
                     val phoneNumberWithoutCountryCode = getDisplayNumberWithoutCountryCode(clonedConversation.phoneNumber)
                     val titleToUse = when {
+                        clonedConversation.title.isBlank() -> phoneNumberWithoutCountryCode.ifBlank { clonedConversation.phoneNumber }
                         clonedConversation.title == clonedConversation.phoneNumber -> clonedConversation.phoneNumber
                         normalizedTitle == normalizedPhoneNumber -> phoneNumberWithoutCountryCode
                         else -> clonedConversation.title

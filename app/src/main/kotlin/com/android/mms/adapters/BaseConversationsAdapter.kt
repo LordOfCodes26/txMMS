@@ -533,7 +533,7 @@ abstract class BaseConversationsAdapter(
             // conversationChevron.beGoneIf(isInActionMode)
             val title = conversation.title
             // Hide country code prefix (e.g. +850) when displaying raw phone number not in contacts — only when title has + prefix
-            val titleForDisplay = if (title.startsWith("+") && !conversation.isGroupConversation) {
+            val resolvedTitle = if (title.startsWith("+") && !conversation.isGroupConversation) {
                 val normalizedTitle = title.normalizePhoneNumber()
                 val normalizedPhone = conversation.phoneNumber.normalizePhoneNumber()
                 if (normalizedTitle == normalizedPhone || title == conversation.phoneNumber) {
@@ -544,6 +544,9 @@ abstract class BaseConversationsAdapter(
             } else {
                 title
             }
+            val titleForDisplay = resolvedTitle.takeIf { it.isNotBlank() }
+                ?: conversation.phoneNumber.takeIf { it.isNotBlank() }
+                ?: activity.getString(com.goodwy.commons.R.string.unknown)
             conversationAddress.apply {
                 text = titleForDisplay
                 setTextSize(TypedValue.COMPLEX_UNIT_PX, fontSize )
