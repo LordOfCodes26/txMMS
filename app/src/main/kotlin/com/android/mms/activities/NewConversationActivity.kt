@@ -938,15 +938,31 @@ class NewConversationActivity : SimpleActivity() {
                     !draftEntity.attachmentsJson.isNullOrBlank() ||
                     (draftEntity.isScheduled && draftEntity.scheduledMillis > 0L)
                 )
+
+            // Resolve display names on the background thread so ContentResolver lookups
+            // (needed for SIM-only contacts) don't block the UI thread.
+            val resolvedChips = numbers.map { rawNumber ->
+                val normalized = rawNumber.normalizePhoneNumber().ifEmpty { rawNumber }
+                val contact = findContactByPhoneNumber(normalized)
+                val phoneObj = contact?.phoneNumbers?.firstOrNull { it.normalizedNumber == normalized }
+                    ?: PhoneNumber(normalized, 0, "", rawNumber)
+                val displayText = if (contact != null) {
+                    getDisplayTextForPhoneNumberWithType(phoneObj, contact)
+                } else {
+                    // SIM-only contacts may not appear in allContacts due to phone-number format
+                    // differences (local "01012345678" vs E.164 "+821012345678"). Fall back to the
+                    // system PhoneLookup URI which handles format variations and includes SIM contacts.
+                    val nameFromSystem = SimpleContactsHelper(this@NewConversationActivity)
+                        .getNameFromPhoneNumber(normalized)
+                    if (nameFromSystem != normalized) nameFromSystem else phoneObj.normalizedNumber
+                }
+                Pair(displayText, normalized)
+            }
+
             runOnUiThread {
                 if (isDestroyed || isFinishing) return@runOnUiThread
                 isUpdatingChips = true
-                numbers.forEach { rawNumber ->
-                    val normalized = rawNumber.normalizePhoneNumber().ifEmpty { rawNumber }
-                    val contact = findContactByPhoneNumber(normalized)
-                    val phoneObj = contact?.phoneNumbers?.firstOrNull { it.normalizedNumber == normalized }
-                        ?: PhoneNumber(normalized, 0, "", rawNumber)
-                    val displayText = getDisplayTextForPhoneNumberWithType(phoneObj, contact)
+                resolvedChips.forEach { (displayText, normalized) ->
                     chipDisplayToPhoneNumber[displayText] = normalized
                     binding.newConversationAddress.addChip(displayText)
                 }
