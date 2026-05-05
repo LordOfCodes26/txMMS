@@ -14,7 +14,8 @@
 
     <RelativeLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/normal_margin">
 
         <com.goodwy.commons.views.MyTextView
             android:id="@+id/dialog_title"
@@ -40,7 +41,7 @@
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:paddingHorizontal="@dimen/tx_dialog_padding_horizontal"
-        android:paddingTop="@dimen/activity_margin">
+        android:paddingTop="@dimen/normal_margin">
 
         <com.google.android.material.progressindicator.LinearProgressIndicator
             android:id="@+id/import_progress"
