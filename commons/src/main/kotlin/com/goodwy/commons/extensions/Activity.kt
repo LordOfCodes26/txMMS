@@ -293,8 +293,8 @@ fun BaseSimpleActivity.launchSystemFileManager(uri: Uri) {
         startIntentForUriAction(
             uri,
             "android.intent.action.VIEW",
-            ComponentName("com.google.android.documentsui", "com.android.documentsui.files.FilesActivity")
-        ) ||
+            ComponentName("com.tx.filemanager", "com.tx.filemanager.files.FilesActivity")
+        ) /*||
         startIntentForUriAction(
             uri,
             "android.intent.action.VIEW",
@@ -307,7 +307,7 @@ fun BaseSimpleActivity.launchSystemFileManager(uri: Uri) {
         ) ||
         startIntentForUriAction(uri, "android.intent.action.VIEW", null) ||
         startIntentForUriAction(uri, "android.provider.action.BROWSE", null) ||
-        startIntentForUriAction(uri, "android.provider.action.BROWSE_DOCUMENT_ROOT", null)
+        startIntentForUriAction(uri, "android.provider.action.BROWSE_DOCUMENT_ROOT", null)*/
     ) {
         return
     } else {
