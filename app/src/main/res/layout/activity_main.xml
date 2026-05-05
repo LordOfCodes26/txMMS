@@ -67,8 +67,8 @@
 
                             <ImageView
                                 android:id="@+id/no_conversations_placeholder"
-                                android:layout_width="wrap_content"
-                                android:layout_height="88dp"
+                                android:layout_width="86dp"
+                                android:layout_height="80dp"
                                 android:layout_centerInParent="true"
                                 android:contentDescription="@null"
                                 android:scaleType="fitCenter"
@@ -86,7 +86,7 @@
                                 android:gravity="center"
                                 android:padding="@dimen/activity_margin"
                                 android:text="@string/no_conversations_found"
-                                android:textSize="@dimen/bigger_text_size"
+                                android:textSize="@dimen/tx_sub_section"
                                 android:textColor="@color/tx_cardview_arrow_icon"
                                 android:visibility="visible"
                                 tools:visibility="visible" />
