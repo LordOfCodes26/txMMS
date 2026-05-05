@@ -223,6 +223,7 @@
             android:gravity="top|start"
             android:hint="@string/type_a_message"
             android:inputType="textCapSentences|textMultiLine"
+            android:lineSpacingMultiplier="1.3"
             android:paddingStart="@dimen/normal_margin"
             android:paddingTop="@dimen/normal_margin"
             android:paddingEnd="@dimen/normal_margin"

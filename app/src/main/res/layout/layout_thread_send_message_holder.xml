@@ -182,13 +182,13 @@
         android:elevation="@dimen/cardview_default_elevation"
         android:gravity="center"
         android:layout_marginBottom="5dp"
-        android:layout_marginEnd="6dp"
+        android:layout_marginEnd="4dp"
         android:textColor="@color/default_text_color"
         android:textSize="@dimen/tiny_text_size"
         android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="@id/threadSendMessageActionWrapper"
         app:layout_constraintEnd_toEndOf="@id/threadSendMessageActionWrapper"
-        tools:text="0"
+        tools:text="20"
         tools:visibility="visible" />
 
     <com.goodwy.commons.views.MyTextView
