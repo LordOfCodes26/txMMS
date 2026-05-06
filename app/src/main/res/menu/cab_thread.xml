@@ -51,15 +51,7 @@
             app:showAsAction="never"
             android:icon="@drawable/ic_cmn_list"/>
     </group>
-    <group
-        android:id="@+id/menu_group_cab_properties"
-        android:checkableBehavior="single">
-        <item
-            android:id="@+id/cab_properties"
-            android:icon="@drawable/ic_cmn_info"
-            android:title="@string/properties"
-            app:showAsAction="ifRoom" />
-    </group>
+
     <group
         android:id="@+id/menu_group_cab_restore"
         android:checkableBehavior="single">
@@ -96,5 +88,14 @@
             android:title="@string/copy"
             android:icon="@drawable/ic_sms_ripple_copy"
             app:showAsAction="ifRoom"/>
+    </group>
+    <group
+        android:id="@+id/menu_group_cab_properties"
+        android:checkableBehavior="single">
+        <item
+            android:id="@+id/cab_properties"
+            android:icon="@drawable/ic_cmn_info"
+            android:title="@string/properties"
+            app:showAsAction="ifRoom" />
     </group>
 </menu>

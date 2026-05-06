@@ -195,7 +195,8 @@ class ThreadAdapter(
         private val THREAD_RIPPLE_TOOLBAR_IDS = listOf(
             R.id.cab_ripple_delete,
             R.id.cab_ripple_message_conversion,
-            R.id.cab_ripple_copy
+            R.id.cab_ripple_copy,
+            R.id.cab_properties
         )
     }
 
@@ -272,6 +273,7 @@ class ThreadAdapter(
             R.id.cab_ripple_delete -> true
             R.id.cab_ripple_message_conversion -> hasAnyText
             R.id.cab_ripple_copy -> isOneItemSelected && hasText
+            R.id.cab_properties -> isOneItemSelected
             else -> false
         }
     }
@@ -308,6 +310,7 @@ class ThreadAdapter(
                 R.id.cab_ripple_copy -> R.drawable.ic_sms_ripple_copy
                 R.id.cab_ripple_message_conversion -> com.android.common.R.drawable.ic_cmn_chat_fill
                 R.id.cab_ripple_delete -> com.android.common.R.drawable.ic_cmn_delete_fill
+                R.id.cab_properties -> com.android.common.R.drawable.ic_cmn_info
                 else -> 0
             }
         }
@@ -327,6 +330,7 @@ class ThreadAdapter(
                     R.id.cab_ripple_delete -> activity.getString(com.goodwy.commons.R.string.delete)
                     R.id.cab_ripple_message_conversion -> activity.getString(R.string.message_conversion)
                     R.id.cab_ripple_copy -> activity.getString(com.goodwy.commons.R.string.copy)
+                    R.id.cab_properties -> activity.getString(com.goodwy.commons.R.string.properties)
                     else -> ""
                 }
             }
@@ -379,12 +383,12 @@ class ThreadAdapter(
             R.id.cab_select_text -> selectText()
             R.id.cab_delete -> askConfirmDelete()
             R.id.cab_restore -> askConfirmRestore()
-            R.id.cab_properties -> showMessageDetails()
 
             //ripple
             R.id.cab_ripple_delete -> askConfirmDelete()
             R.id.cab_ripple_message_conversion -> forwardMessage()
             R.id.cab_ripple_copy -> copyToClipboard()
+            R.id.cab_properties -> showMessageDetails()
         }
     }
 
