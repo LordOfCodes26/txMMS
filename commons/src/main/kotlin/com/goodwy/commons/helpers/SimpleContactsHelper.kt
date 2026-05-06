@@ -209,8 +209,13 @@ class SimpleContactsHelper(val context: Context) {
         val names = getContactNames(favoritesOnly)
         var allContacts = getContactPhoneNumbers(favoritesOnly)
         
-        // Optimize: Use HashMap for O(1) lookup instead of O(n) firstOrNull
-        val namesMap = names.associateBy { it.rawId }
+        // Prefer personal name (StructuredName row, company blank) over company-only entry
+        // (Organization row). associateBy keeps the last duplicate, so when both rows exist for the
+        // same rawId the Organization row can overwrite the person's name. groupBy + firstOrNull
+        // ensures the person's name wins when present.
+        val namesMap = names.groupBy { it.rawId }.mapValues { (_, contacts) ->
+            contacts.firstOrNull { it.company.isBlank() } ?: contacts.last()
+        }
         allContacts.forEach { contact ->
             val nameContact = namesMap[contact.rawId]
             val name = nameContact?.name ?: contact.phoneNumbers.firstOrNull()?.value
