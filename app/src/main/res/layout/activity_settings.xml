@@ -585,6 +585,34 @@
                                         android:contentDescription="@string/sms_service_center"/>
                                 </RelativeLayout>
 
+                                <View
+                                    android:layout_width="match_parent"
+                                    android:layout_height="@dimen/tx_cardview_divider_thickness"
+                                    android:layout_marginStart="@dimen/tx_cardview_padding_left"
+                                    android:layout_marginEnd="@dimen/tx_cardview_divider_margin_right"
+                                    android:background="@color/tx_cardview_divider" />
+
+                                <RelativeLayout
+                                    android:id="@+id/settingsSmsStorageLocationHolder"
+                                    style="@style/SettingsHolderStyle">
+
+                                    <com.goodwy.commons.views.MyTextView
+                                        android:id="@+id/settingsSmsStorageLocationLabel"
+                                        style="@style/SettingsTextLabelStyle"
+                                        android:layout_centerVertical="true"
+                                        android:layout_alignParentStart="true"
+                                        android:layout_toStartOf="@+id/settingsSmsStorageLocationChevron"
+                                        android:layout_marginEnd="@dimen/normal_margin"
+                                        android:text="@string/sms_storage_location"/>
+
+                                    <ImageView
+                                        android:id="@+id/settingsSmsStorageLocationChevron"
+                                        style="@style/SettingsChevronStyle"
+                                        android:layout_alignParentEnd="true"
+                                        android:layout_centerVertical="true"
+                                        android:contentDescription="@string/sms_storage_location"/>
+                                </RelativeLayout>
+
                                 <RelativeLayout
                                     android:id="@+id/settings_send_on_enter_holder"
                                     style="@style/SettingsHolderSwitchStyle">

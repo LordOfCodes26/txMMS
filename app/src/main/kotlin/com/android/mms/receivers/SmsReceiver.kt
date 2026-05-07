@@ -9,6 +9,7 @@ import android.os.Looper
 import android.os.PowerManager
 import android.provider.Settings
 import android.provider.Telephony
+import android.telephony.SmsMessage
 import android.util.Log
 import com.goodwy.commons.extensions.baseConfig
 import com.goodwy.commons.extensions.getMyContactsCursor
@@ -22,6 +23,7 @@ import com.goodwy.commons.models.PhoneNumber
 import com.goodwy.commons.models.SimpleContact
 import com.android.mms.extensions.config
 import com.android.mms.extensions.getConversations
+import com.android.mms.helpers.SMS_SAVE_LOCATION_SIM
 import com.android.mms.extensions.getNameFromAddress
 import com.android.mms.extensions.getNotificationBitmap
 import com.android.mms.extensions.getThreadId
@@ -41,6 +43,8 @@ import com.android.mms.models.Message
 class SmsReceiver : BroadcastReceiver() {
     companion object {
         private const val TAG = "SmsReceiver"
+        // Mirrors SmsManager.STATUS_ON_ICC_READ (value = 1), which was removed from the public SDK.
+        private const val STATUS_ON_ICC_READ = 1
     }
 
     @SuppressLint("UnsafeProtectedBroadcastReceiver")
@@ -89,11 +93,11 @@ class SmsReceiver : BroadcastReceiver() {
                 val simpleContactsHelper = SimpleContactsHelper(context)
                 simpleContactsHelper.exists(address) { exists ->
                     if (exists) {
-                        handleMessage(context, address, subject, body, date, read, threadId, type, subscriptionId, status)
+                        handleMessage(context, address, subject, body, date, read, threadId, type, subscriptionId, status, messages)
                     }
                 }
             } else {
-                handleMessage(context, address, subject, body, date, read, threadId, type, subscriptionId, status)
+                handleMessage(context, address, subject, body, date, read, threadId, type, subscriptionId, status, messages)
             }
         }
 
@@ -118,7 +122,8 @@ class SmsReceiver : BroadcastReceiver() {
         threadId: Long,
         type: Int,
         subscriptionId: Int,
-        status: Int
+        status: Int,
+        rawMessages: Array<SmsMessage>?,
     ) {
         if (isMessageFilteredOut(context, body)) {
             return
@@ -136,6 +141,11 @@ class SmsReceiver : BroadcastReceiver() {
 
                     // Always store the message in the system database, regardless of blocking status
                     val newMessageId = context.insertNewSMS(address, subject, body, date, read, threadId, type, subscriptionId)
+
+                    // Mirror the message to the SIM card if the user chose "SIM card" storage
+                    if (context.config.getSmsStorageLocation(subscriptionId) == SMS_SAVE_LOCATION_SIM) {
+                        copyMessagesToSim(subscriptionId, rawMessages)
+                    }
 
                     val conversation = context.getConversations(threadId).firstOrNull() ?: return@getAvailableContacts
                     try {
@@ -193,6 +203,43 @@ class SmsReceiver : BroadcastReceiver() {
                     }
                 }
             }
+        }
+    }
+
+    /**
+     * Copies each SMS PDU to the SIM/ICC card for the given subscription.
+     * Mirrors the reference SmsReceiverService.storeMessage() "save to SIM" path.
+     *
+     * SmsManager.copyMessageToIcc() was removed from the public SDK but still exists on
+     * device implementations (including MTK), so we invoke it via reflection.
+     * STATUS_ON_ICC_READ = 1, matching the reference's SmsManager.STATUS_ON_ICC_READ usage.
+     */
+    @SuppressLint("MissingPermission")
+    private fun copyMessagesToSim(subscriptionId: Int, messages: Array<SmsMessage>?) {
+        if (messages == null) return
+        try {
+            @Suppress("DEPRECATION")
+            val smsManager = if (subscriptionId != -1) {
+                android.telephony.SmsManager.getSmsManagerForSubscriptionId(subscriptionId)
+            } else {
+                android.telephony.SmsManager.getDefault()
+            }
+            val copyMethod = smsManager.javaClass.getMethod(
+                "copyMessageToIcc",
+                ByteArray::class.java,
+                ByteArray::class.java,
+                Int::class.javaPrimitiveType,
+            )
+            copyMethod.isAccessible = true
+            messages.forEach { sms ->
+                try {
+                    copyMethod.invoke(smsManager, null, sms.pdu, STATUS_ON_ICC_READ)
+                } catch (e: Exception) {
+                    Log.e(TAG, "copyMessagesToSim: failed for one PDU", e)
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "copyMessagesToSim: reflection call failed", e)
         }
     }
 

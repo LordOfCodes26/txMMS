@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/root_view"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <androidx.coordinatorlayout.widget.CoordinatorLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@android:color/transparent"
+        android:clipChildren="false"
+        android:clipToPadding="false">
+
+        <eightbitlab.com.blurview.BlurTarget
+            android:id="@+id/mainBlurTarget"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@color/tx_common_bg"
+            app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+            <androidx.core.widget.NestedScrollView
+                android:id="@+id/nest_scroll"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:paddingHorizontal="@dimen/activity_padding_left_right"
+                android:fillViewport="true"
+                android:scrollbars="none"
+                app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+                <LinearLayout
+                    android:id="@+id/storageLocationWrapper"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:paddingTop="0dp"
+                    android:paddingBottom="@dimen/filter_section_margin"
+                    android:orientation="vertical">
+
+                    <androidx.cardview.widget.CardView
+                        android:id="@+id/storageLocationCard"
+                        style="@style/SettingsSectionHolder"
+                        app:cardElevation="0dp">
+
+                        <LinearLayout
+                            android:id="@+id/storageLocationRows"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical" />
+
+                    </androidx.cardview.widget.CardView>
+
+                    <com.goodwy.commons.views.MyTextView
+                        android:id="@+id/noSimPlaceholder"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:alpha="0.8"
+                        android:gravity="center_horizontal"
+                        android:paddingTop="@dimen/activity_margin"
+                        android:text="@string/sim_card_not_available"
+                        android:textSize="@dimen/bigger_text_size"
+                        android:textStyle="italic"
+                        android:visibility="gone" />
+
+                </LinearLayout>
+            </androidx.core.widget.NestedScrollView>
+        </eightbitlab.com.blurview.BlurTarget>
+
+        <com.android.common.view.MVSideFrame
+            android:id="@+id/m_vertical_side_frame_top"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/tx_mv_side_top_frame_height"
+            android:layout_gravity="top" />
+
+        <com.goodwy.commons.views.MySearchMenu
+            android:id="@+id/sms_storage_location_appbar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@android:color/transparent" />
+
+        <com.android.common.view.MVSideFrame
+            android:id="@+id/m_vertical_side_frame_bottom"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/tx_mv_side_bottom_frame_height"
+            android:layout_gravity="bottom"
+            app:isTopFrame="false" />
+
+    </androidx.coordinatorlayout.widget.CoordinatorLayout>
+
+</FrameLayout>

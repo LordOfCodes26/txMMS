@@ -273,6 +273,7 @@ class SettingsActivity : SimpleActivity() {
         setupManageQuickTexts()
         setupSimCardMessages()
         setupSmsServiceCenter()
+        setupSmsStorageLocation()
         setupSoundOnOutGoingMessages()
         // Hide "Sound on out going messages" option
         binding.settingsSoundOnOutGoingMessagesHolder.beGone()
@@ -316,6 +317,7 @@ class SettingsActivity : SimpleActivity() {
                 settingsManageQuickTextsChevron,
                 settingsSimCardMessagesChevron,
                 settingsSmsServiceCenterChevron,
+                settingsSmsStorageLocationChevron,
                 settingsImportMessagesChevron,
                 settingsExportMessagesChevron
             ).forEach {
@@ -589,6 +591,12 @@ class SettingsActivity : SimpleActivity() {
     private fun setupSmsServiceCenter() = binding.apply {
         settingsSmsServiceCenterHolder.setOnClickListener {
             startActivity(Intent(this@SettingsActivity, SmsServiceCenterActivity::class.java))
+        }
+    }
+
+    private fun setupSmsStorageLocation() = binding.apply {
+        settingsSmsStorageLocationHolder.setOnClickListener {
+            startActivity(Intent(this@SettingsActivity, SmsStorageLocationActivity::class.java))
         }
     }
 

@@ -18,6 +18,12 @@ class Config(context: Context) : BaseConfig(context) {
 
     fun getUseSIMIdAtNumber(number: String) = prefs.getInt(USE_SIM_ID_PREFIX + number, 0)
 
+    fun getSmsStorageLocation(subscriptionId: Int): Int =
+        prefs.getInt(SMS_SAVE_LOCATION_PREFIX + subscriptionId, SMS_SAVE_LOCATION_PHONE)
+
+    fun setSmsStorageLocation(subscriptionId: Int, location: Int) =
+        prefs.edit { putInt(SMS_SAVE_LOCATION_PREFIX + subscriptionId, location) }
+
     var showCharacterCounter: Boolean
         get() = prefs.getBoolean(SHOW_CHARACTER_COUNTER, true)
         set(showCharacterCounter) = prefs.edit { putBoolean(SHOW_CHARACTER_COUNTER, showCharacterCounter) }

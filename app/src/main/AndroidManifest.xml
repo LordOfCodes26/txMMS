@@ -221,6 +221,14 @@
             android:parentActivityName=".activities.SettingsActivity" />
 
         <activity
+            android:name=".activities.SmsStorageLocationActivity"
+            android:configChanges="orientation"
+            android:exported="false"
+            android:label="@string/sms_storage_location"
+            android:theme="@style/BlurAppBarTheme"
+            android:parentActivityName=".activities.SettingsActivity" />
+
+        <activity
             android:name=".activities.VCardViewerActivity"
             android:configChanges="orientation"
             android:exported="false"
