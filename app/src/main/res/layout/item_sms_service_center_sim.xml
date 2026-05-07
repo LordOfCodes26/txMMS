@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/simServiceCenterRow"
+    style="@style/SettingsHolderStyle"
+    android:clickable="true"
+    android:focusable="true">
+
+    <FrameLayout
+        android:id="@+id/simIconFrame"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:layout_alignParentStart="true"
+        android:layout_centerVertical="true">
+
+        <ImageView
+            android:id="@+id/simIcon"
+            android:layout_width="14dp"
+            android:layout_height="17dp"
+            android:layout_gravity="center"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_sim_vector"
+            android:contentDescription="@null" />
+
+    </FrameLayout>
+
+    <ImageView
+        android:id="@+id/simServiceCenterChevron"
+        style="@style/SettingsChevronStyle"
+        android:layout_alignParentEnd="true"
+        android:layout_centerVertical="true"
+        android:contentDescription="@string/sms_service_center" />
+
+    <com.goodwy.commons.views.MyTextView
+        android:id="@+id/simSmscValue"
+        style="@style/SettingsTextValueStyle"
+        android:layout_centerVertical="true"
+        android:layout_toStartOf="@id/simServiceCenterChevron"
+        android:layout_marginEnd="@dimen/tiny_margin"
+        tools:text="+12065550100" />
+
+    <LinearLayout
+        android:id="@+id/simLabelContainer"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_toEndOf="@id/simIconFrame"
+        android:layout_toStartOf="@id/simSmscValue"
+        android:layout_marginStart="@dimen/smaller_margin"
+        android:layout_marginEnd="@dimen/normal_margin"
+        android:layout_centerVertical="true"
+        android:orientation="vertical">
+
+        <com.goodwy.commons.views.MyTextView
+            android:id="@+id/simLabel"
+            style="@style/SettingsTextLabelStyle"
+            tools:text="SIM 1" />
+
+        <com.goodwy.commons.views.MyTextView
+            android:id="@+id/simNumber"
+            style="@style/SettingsTextSummaryStyle"
+            android:visibility="gone"
+            tools:text="+82-10-1234-5678" />
+
+    </LinearLayout>
+
+</RelativeLayout>

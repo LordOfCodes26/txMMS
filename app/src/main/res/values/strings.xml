@@ -138,6 +138,8 @@
     <string name="add_a_blocked_keyword">Add a blocked keyword</string>
     <string name="quick_texts">Quick texts</string>
     <string name="manage_quick_texts">Manage quick texts</string>
+    <string name="sms_service_center">SMS service center</string>
+    <string name="invalid_smsc_number">Invalid service center number</string>
     <string name="no_quick_texts">You have no quick texts. You may add quick texts here to use them when sending messages.</string>
     <string name="add_a_quick_text">Add a quick text</string>
     <string name="quick_text">Quick text</string>

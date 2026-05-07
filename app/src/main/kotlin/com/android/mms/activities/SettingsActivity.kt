@@ -271,6 +271,7 @@ class SettingsActivity : SimpleActivity() {
 
         setupMessageBubble()
         setupManageQuickTexts()
+        setupSmsServiceCenter()
         setupSoundOnOutGoingMessages()
         // Hide "Sound on out going messages" option
         binding.settingsSoundOnOutGoingMessagesHolder.beGone()
@@ -312,6 +313,7 @@ class SettingsActivity : SimpleActivity() {
             val properTextColor = getProperTextColor()
             arrayOf(
                 settingsManageQuickTextsChevron,
+                settingsSmsServiceCenterChevron,
                 settingsImportMessagesChevron,
                 settingsExportMessagesChevron
             ).forEach {
@@ -573,6 +575,12 @@ class SettingsActivity : SimpleActivity() {
             Intent(this@SettingsActivity, ManageQuickTextsActivity::class.java).apply {
                 startActivity(this)
             }
+        }
+    }
+
+    private fun setupSmsServiceCenter() = binding.apply {
+        settingsSmsServiceCenterHolder.setOnClickListener {
+            startActivity(Intent(this@SettingsActivity, SmsServiceCenterActivity::class.java))
         }
     }
 

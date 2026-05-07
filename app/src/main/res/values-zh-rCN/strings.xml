@@ -100,6 +100,8 @@
     <string name="add_a_blocked_keyword">添加拦截关键词</string>
     <string name="quick_texts">日常用语</string>
     <string name="manage_quick_texts">日常用语编辑</string>
+    <string name="sms_service_center">短信服务中心</string>
+    <string name="invalid_smsc_number">服务中心号码无效</string>
     <string name="no_quick_texts">没有日常用语。在这里可以添加您需要的日常用语。</string>
     <string name="add_a_quick_text">添加日常用语</string>
     <string name="quick_text">日常用语</string>
