@@ -88,7 +88,7 @@ fun applyMySearchMenuListTopPadding(menu: MySearchMenu, list: View) {
     // Skip until the app bar has a real height; otherwise measuredHeight / stale
     // getLocationOnScreen after resume can apply a huge top pad (e.g. returning from another activity).
     if (!menu.isAttachedToWindow || !menu.isLaidOut || menu.height <= 0) return
-    val inset = getMySearchMenuListTopInsetPx(menu, list)
+    val inset = getMySearchMenuListTopInsetPx(menu, list) - 40
     if (inset <= 0) return
     val density = list.resources.displayMetrics.density
     val slack = (48 * density).toInt()
