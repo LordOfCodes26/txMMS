@@ -59,9 +59,11 @@ import com.android.mms.models.MessageAttachment
 import com.android.mms.models.Events
 import com.android.mms.models.SIMCard
 import com.android.mms.BuildConfig
+import com.android.mms.dialogs.SelectSIMDialog
 import com.android.mms.helpers.MessageHolderHelper
 import com.android.mms.models.Draft
 import com.android.mms.models.DraftStoredAttachment
+import eightbitlab.com.blurview.BlurTarget
 import org.greenrobot.eventbus.EventBus
 import org.joda.time.DateTime
 import java.net.URLDecoder
@@ -2090,32 +2092,38 @@ class NewConversationActivity : SimpleActivity() {
 
             if (availableSIMCards.isNotEmpty()) {
                 binding.messageHolder.threadSelectSimIconHolder.setOnClickListener {
-//                    binding.messageHolder.simPopupPicker.beVisible()
-                    currentSIMCardIndex = (currentSIMCardIndex + 1) % availableSIMCards.size
-                    val currentSIMCard = availableSIMCards[currentSIMCardIndex]
-                    @SuppressLint("SetTextI18n")
-                    binding.messageHolder.threadSelectSimNumber.text = currentSIMCard.id.toString()
-                    // changed by sun for set color to sim type --->
-//                    val simColor = if (!config.colorSimIcons) textColor
-//                    else {
-//                        val simId = currentSIMCard.id
-//                        if (simId in 1..4) config.simIconsColors[simId] else config.simIconsColors[0]
-//                    }
-                    val simColor = resolveSimIconTint(textColor, currentSIMCard.subscriptionId, currentSIMCard.id)
-                    trySetSystemDefaultSmsSubscriptionId(currentSIMCard.subscriptionId)
-                    // <------------
-                    binding.messageHolder.threadSelectSimIcon.applyColorFilter(simColor)
-                    val currentSubscriptionId = currentSIMCard.subscriptionId
-                    // Only save preference if we have phone numbers
-                    if (numbers.isNotEmpty()) {
-                        numbers.forEach {
-                            config.saveUseSIMIdAtNumber(it, currentSubscriptionId)
+
+                    val blurTarget = this.findViewById<BlurTarget>(R.id.mainBlurTarget)
+                    SelectSIMDialog(this, blurTarget, anchorView = binding.messageHolder.threadSendMessage) { _, selectedHandleIndex ->
+
+    //                    binding.messageHolder.simPopupPicker.beVisible()
+                        currentSIMCardIndex = selectedHandleIndex
+                        val currentSIMCard = availableSIMCards[currentSIMCardIndex]
+                        @SuppressLint("SetTextI18n")
+                        binding.messageHolder.threadSelectSimNumber.text = currentSIMCard.id.toString()
+                        // changed by sun for set color to sim type --->
+    //                    val simColor = if (!config.colorSimIcons) textColor
+    //                    else {
+    //                        val simId = currentSIMCard.id
+    //                        if (simId in 1..4) config.simIconsColors[simId] else config.simIconsColors[0]
+    //                    }
+                        val simColor = resolveSimIconTint(textColor, currentSIMCard.subscriptionId, currentSIMCard.id)
+                        trySetSystemDefaultSmsSubscriptionId(currentSIMCard.subscriptionId)
+                        // <------------
+                        binding.messageHolder.threadSelectSimIcon.applyColorFilter(simColor)
+                        val currentSubscriptionId = currentSIMCard.subscriptionId
+                        // Only save preference if we have phone numbers
+                        if (numbers.isNotEmpty()) {
+                            numbers.forEach {
+                                config.saveUseSIMIdAtNumber(it, currentSubscriptionId)
+                            }
                         }
+                        it.performHapticFeedback()
+                        binding.messageHolder.threadSelectSimIconHolder.contentDescription = currentSIMCard.label
+                        toast(currentSIMCard.label)
+                        updateAvailableMessageCountForCurrentSim()
+
                     }
-                    it.performHapticFeedback()
-                    binding.messageHolder.threadSelectSimIconHolder.contentDescription = currentSIMCard.label
-                    toast(currentSIMCard.label)
-                    updateAvailableMessageCountForCurrentSim()
                 }
             }
 

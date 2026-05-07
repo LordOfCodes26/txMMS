@@ -1776,24 +1776,27 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
 
             if (availableSIMCards.isNotEmpty()) {
                 binding.messageHolder.threadSelectSimIconHolder.setOnClickListener {
-                    currentSIMCardIndex = (currentSIMCardIndex + 1) % availableSIMCards.size
-                    val currentSIMCard = availableSIMCards[currentSIMCardIndex]
-                    @SuppressLint("SetTextI18n")
-                    binding.messageHolder.threadSelectSimNumber.text = currentSIMCard.id.toString()
-                    // changed by sun for set color to sim type --->
-                    val simColor = resolveSimIconTint(textColor, currentSIMCard.subscriptionId, currentSIMCard.id)
-                    trySetSystemDefaultSmsSubscriptionId(currentSIMCard.subscriptionId)
-                    // <------------
+                    val blurTarget = this.findViewById<BlurTarget>(R.id.mainBlurTarget)
+                    SelectSIMDialog(this, blurTarget, anchorView = binding.messageHolder.threadSendMessage) { _, selectedHandleIndex ->
+                        currentSIMCardIndex = selectedHandleIndex
+                        val currentSIMCard = availableSIMCards[currentSIMCardIndex]
+                        @SuppressLint("SetTextI18n")
+                        binding.messageHolder.threadSelectSimNumber.text = currentSIMCard.id.toString()
+                        // changed by sun for set color to sim type --->
+                        val simColor = resolveSimIconTint(textColor, currentSIMCard.subscriptionId, currentSIMCard.id)
+                        trySetSystemDefaultSmsSubscriptionId(currentSIMCard.subscriptionId)
+                        // <------------
 
-                    binding.messageHolder.threadSelectSimIcon.applyColorFilter(simColor)
-                    val currentSubscriptionId = currentSIMCard.subscriptionId
-                    numbers.forEach {
-                        config.saveUseSIMIdAtNumber(it, currentSubscriptionId)
+                        binding.messageHolder.threadSelectSimIcon.applyColorFilter(simColor)
+                        val currentSubscriptionId = currentSIMCard.subscriptionId
+                        numbers.forEach {
+                            config.saveUseSIMIdAtNumber(it, currentSubscriptionId)
+                        }
+                        it.performHapticFeedback()
+                        binding.messageHolder.threadSelectSimIconHolder.contentDescription = currentSIMCard.label
+                        toast(currentSIMCard.label)
+                        updateAvailableMessageCountForCurrentSim()
                     }
-                    it.performHapticFeedback()
-                    binding.messageHolder.threadSelectSimIconHolder.contentDescription = currentSIMCard.label
-                    toast(currentSIMCard.label)
-                    updateAvailableMessageCountForCurrentSim()
                 }
             }
 
