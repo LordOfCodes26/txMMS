@@ -193,4 +193,7 @@
     <string name="mirae_label">미래망</string>
     <string name="remained_sms_count">%1$d개</string>
     <string name="remained_cash">료금:</string>
+
+    <string name="sms">단문통보문</string>
+    <string name="mms">다매체통보문</string>
 </resources>

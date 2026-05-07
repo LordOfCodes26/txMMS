@@ -195,4 +195,7 @@
     <string name="mirae_label">未来</string>
     <string name="remained_sms_count">%1$d</string>
     <string name="remained_cash">现金:</string>
+
+    <string name="sms">SMS</string>
+    <string name="mms">MMS</string>
 </resources>

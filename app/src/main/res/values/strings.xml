@@ -230,4 +230,8 @@
     <string name="mirae_label">Mirae</string>
     <string name="remained_sms_count">%1$d</string>
     <string name="remained_cash">cash:</string>
+
+    <string name="sms">SMS</string>
+    <string name="mms">MMS</string>
+
 </resources>

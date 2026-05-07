@@ -1,49 +1,48 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/property_holder"
-    android:layout_width="wrap_content"
-    android:layout_height="wrap_content">
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal">
 
     <com.goodwy.commons.views.MyTextView
+        android:layout_weight="0.5"
         android:id="@+id/property_label"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentStart="true"
-        android:layout_alignParentTop="true"
-        android:layout_toStartOf="@+id/property_button"
-        android:layout_marginStart="@dimen/small_margin"
-        android:layout_marginTop="@dimen/medium_margin"
-        android:textSize="@dimen/tx_small_text"
+        android:layout_height="match_parent"
+        android:textSize="@dimen/tx_content_text"
+        android:layout_marginEnd="@dimen/small_margin"
+        android:paddingVertical="@dimen/medium_margin"
+        android:gravity="end"
         android:alpha="0.6"
         tools:text="@string/date_taken" />
 
     <com.goodwy.commons.views.MyTextView
+        android:layout_weight="1"
         android:id="@+id/property_value"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_below="@+id/property_label"
-        android:layout_alignParentStart="true"
-        android:layout_toStartOf="@+id/property_button"
+        android:layout_height="match_parent"
+        android:gravity="start"
         android:layout_marginStart="@dimen/small_margin"
-        android:layout_marginEnd="@dimen/small_margin"
-        android:textSize="@dimen/small_text_size"
-        tools:text="01.01.2021" />
+        android:paddingVertical="@dimen/medium_margin"
+        android:textSize="@dimen/tx_content_text"
+        tools:text="2021.4.5" />
 
-    <com.goodwy.commons.views.MyTextView
-        android:id="@+id/property_button"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignTop="@+id/property_label"
-        android:layout_alignBottom="@+id/property_value"
-        android:layout_alignParentEnd="true"
-        android:paddingTop="@dimen/tiny_margin"
-        android:layout_marginStart="@dimen/small_margin"
-        android:layout_marginEnd="@dimen/small_margin"
-        android:gravity="center"
-        android:textSize="@dimen/tx_small_text"
-        android:visibility="gone"
-        tools:text="01.01.2021"
-        tools:visibility="visible" />
+<!--    <com.goodwy.commons.views.MyTextView-->
+<!--        android:id="@+id/property_button"-->
+<!--        android:layout_width="wrap_content"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:layout_alignTop="@+id/property_label"-->
+<!--        android:layout_alignBottom="@+id/property_value"-->
+<!--        android:layout_alignParentEnd="true"-->
+<!--        android:paddingTop="@dimen/tiny_margin"-->
+<!--        android:layout_marginStart="@dimen/small_margin"-->
+<!--        android:layout_marginEnd="@dimen/small_margin"-->
+<!--        android:gravity="center"-->
+<!--        android:textSize="@dimen/tx_small_text"-->
+<!--        android:visibility="gone"-->
+<!--        tools:text="01.01.2021"-->
+<!--        tools:visibility="visible" />-->
 
-</RelativeLayout>
+</LinearLayout>
