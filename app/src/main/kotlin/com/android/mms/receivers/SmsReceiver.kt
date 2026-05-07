@@ -144,7 +144,8 @@ class SmsReceiver : BroadcastReceiver() {
 
                     // Mirror the message to the SIM card if the user chose "SIM card" storage
                     if (context.config.getSmsStorageLocation(subscriptionId) == SMS_SAVE_LOCATION_SIM) {
-                        copyMessagesToSim(subscriptionId, rawMessages)
+                        val scAddress = rawMessages?.firstOrNull()?.serviceCenterAddress
+                        copyMessageToSim(subscriptionId, body, address, scAddress, date)
                     }
 
                     val conversation = context.getConversations(threadId).firstOrNull() ?: return@getAvailableContacts
@@ -207,16 +208,26 @@ class SmsReceiver : BroadcastReceiver() {
     }
 
     /**
-     * Copies each SMS PDU to the SIM/ICC card for the given subscription.
-     * Mirrors the reference SmsReceiverService.storeMessage() "save to SIM" path.
+     * Copies a received SMS to the SIM/ICC card, matching the reference
+     * SmsReceiverService.storeMessage() logic exactly:
      *
-     * SmsManager.copyMessageToIcc() was removed from the public SDK but still exists on
-     * device implementations (including MTK), so we invoke it via reflection.
-     * STATUS_ON_ICC_READ = 1, matching the reference's SmsManager.STATUS_ON_ICC_READ usage.
+     *   MtkSmsManager mgr = MtkSmsManager.getSmsManagerForSubscriptionId(subId);
+     *   ArrayList<String> parts = mgr.divideMessage(body);
+     *   mgr.copyTextMessageToIccCard(scAddress, senderAddress, parts,
+     *                                STATUS_ON_ICC_READ, System.currentTimeMillis());
+     *
+     * On MTK devices, android.telephony.SmsManager.getSmsManagerForSubscriptionId()
+     * returns an MtkSmsManager instance, so the MTK-specific method is reachable via
+     * reflection on that object without needing the vendor JAR.
      */
     @SuppressLint("MissingPermission")
-    private fun copyMessagesToSim(subscriptionId: Int, messages: Array<SmsMessage>?) {
-        if (messages == null) return
+    private fun copyMessageToSim(
+        subscriptionId: Int,
+        body: String,
+        senderAddress: String,
+        scAddress: String?,
+        timestamp: Long,
+    ) {
         try {
             @Suppress("DEPRECATION")
             val smsManager = if (subscriptionId != -1) {
@@ -224,22 +235,38 @@ class SmsReceiver : BroadcastReceiver() {
             } else {
                 android.telephony.SmsManager.getDefault()
             }
+
+            // Divide the body into individual SMS parts exactly as the reference does.
+            @Suppress("UNCHECKED_CAST")
+            val parts: ArrayList<String> = try {
+                smsManager.divideMessage(body) as? ArrayList<String>
+                    ?: arrayListOf(body)
+            } catch (_: Exception) {
+                arrayListOf(body)
+            }
+
+            // Resolve the copyTextMessageToIccCard method on the device SmsManager implementation.
             val copyMethod = smsManager.javaClass.getMethod(
-                "copyMessageToIcc",
-                ByteArray::class.java,
-                ByteArray::class.java,
-                Int::class.javaPrimitiveType,
+                "copyTextMessageToIccCard",
+                String::class.java,               // scAddress
+                String::class.java,               // address (sender)
+                ArrayList::class.java,            // message parts
+                Int::class.javaPrimitiveType,     // status
+                Long::class.javaPrimitiveType,    // timestamp
             )
             copyMethod.isAccessible = true
-            messages.forEach { sms ->
-                try {
-                    copyMethod.invoke(smsManager, null, sms.pdu, STATUS_ON_ICC_READ)
-                } catch (e: Exception) {
-                    Log.e(TAG, "copyMessagesToSim: failed for one PDU", e)
-                }
-            }
+
+            val result = copyMethod.invoke(
+                smsManager,
+                scAddress ?: "",
+                senderAddress,
+                parts,
+                STATUS_ON_ICC_READ,
+                timestamp,
+            )
+            Log.d(TAG, "copyMessageToSim: result=$result subId=$subscriptionId")
         } catch (e: Exception) {
-            Log.e(TAG, "copyMessagesToSim: reflection call failed", e)
+            Log.e(TAG, "copyMessageToSim: failed", e)
         }
     }
 
