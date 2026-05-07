@@ -94,7 +94,7 @@
         android:checkableBehavior="single">
         <item
             android:id="@+id/cab_properties"
-            android:icon="@drawable/ic_cmn_info"
+            android:icon="@drawable/ic_cmn_info_fill"
             android:title="@string/properties"
             app:showAsAction="ifRoom" />
     </group>

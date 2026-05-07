@@ -310,7 +310,7 @@ class ThreadAdapter(
                 R.id.cab_ripple_copy -> R.drawable.ic_sms_ripple_copy
                 R.id.cab_ripple_message_conversion -> com.android.common.R.drawable.ic_cmn_chat_fill
                 R.id.cab_ripple_delete -> com.android.common.R.drawable.ic_cmn_delete_fill
-                R.id.cab_properties -> com.android.common.R.drawable.ic_cmn_info
+                R.id.cab_properties -> com.android.common.R.drawable.ic_cmn_info_fill
                 else -> 0
             }
         }
