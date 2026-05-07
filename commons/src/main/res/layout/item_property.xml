@@ -7,9 +7,9 @@
     android:orientation="horizontal">
 
     <com.goodwy.commons.views.MyTextView
-        android:layout_weight="0.5"
+        android:layout_weight="1"
         android:id="@+id/property_label"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:textSize="@dimen/tx_content_text"
         android:layout_marginEnd="@dimen/small_margin"
@@ -19,9 +19,9 @@
         tools:text="@string/date_taken" />
 
     <com.goodwy.commons.views.MyTextView
-        android:layout_weight="1"
+        android:layout_weight="0.5"
         android:id="@+id/property_value"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:gravity="start"
         android:layout_marginStart="@dimen/small_margin"

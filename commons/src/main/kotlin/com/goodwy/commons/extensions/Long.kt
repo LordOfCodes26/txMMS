@@ -173,7 +173,7 @@ private fun Long.formatDateOrTimeGregorian(
         }
 
         if (!hideTimeOnOtherDays) {
-            format += ", ${timeFormat}"
+            format += " ${timeFormat}"
         }
 
         DateFormat.format(format, cal).toString()

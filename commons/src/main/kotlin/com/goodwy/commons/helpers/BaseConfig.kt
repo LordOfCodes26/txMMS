@@ -498,7 +498,7 @@ open class BaseConfig(val context: Context) {
             "mm-dd-y" -> DATE_FORMAT_SEVEN
             "dd-mm-y" -> DATE_FORMAT_EIGHT
             "y.mm.dd" -> DATE_FORMAT_TEN
-            else -> DATE_FORMAT_ONE
+            else -> DATE_FORMAT_TEN
         }
     }
 
