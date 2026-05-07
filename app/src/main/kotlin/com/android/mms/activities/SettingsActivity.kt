@@ -271,6 +271,7 @@ class SettingsActivity : SimpleActivity() {
 
         setupMessageBubble()
         setupManageQuickTexts()
+        setupSimCardMessages()
         setupSmsServiceCenter()
         setupSoundOnOutGoingMessages()
         // Hide "Sound on out going messages" option
@@ -313,6 +314,7 @@ class SettingsActivity : SimpleActivity() {
             val properTextColor = getProperTextColor()
             arrayOf(
                 settingsManageQuickTextsChevron,
+                settingsSimCardMessagesChevron,
                 settingsSmsServiceCenterChevron,
                 settingsImportMessagesChevron,
                 settingsExportMessagesChevron
@@ -575,6 +577,12 @@ class SettingsActivity : SimpleActivity() {
             Intent(this@SettingsActivity, ManageQuickTextsActivity::class.java).apply {
                 startActivity(this)
             }
+        }
+    }
+
+    private fun setupSimCardMessages() = binding.apply {
+        settingsSimCardMessagesHolder.setOnClickListener {
+            startActivity(Intent(this@SettingsActivity, ManageSimMessagesActivity::class.java))
         }
     }
 

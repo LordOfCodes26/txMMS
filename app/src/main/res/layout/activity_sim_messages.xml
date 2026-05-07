@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/root_view"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <androidx.coordinatorlayout.widget.CoordinatorLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@android:color/transparent"
+        android:clipChildren="false"
+        android:clipToPadding="false">
+
+        <eightbitlab.com.blurview.BlurTarget
+            android:id="@+id/mainBlurTarget"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@color/tx_common_bg"
+            app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+
+                <com.goodwy.commons.views.MyRecyclerView
+                    android:id="@+id/simMessagesList"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:clipToPadding="false"
+                    android:overScrollMode="ifContentScrolls"
+                    android:paddingHorizontal="@dimen/activity_padding_left_right"
+                    android:scrollbars="none"
+                    app:layoutManager="com.goodwy.commons.views.MyLinearLayoutManager"
+                    app:stackFromEnd="true" />
+
+                <ProgressBar
+                    android:id="@+id/simMessagesProgress"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:visibility="gone" />
+
+                <com.goodwy.commons.views.MyTextView
+                    android:id="@+id/simMessagesEmpty"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:alpha="0.8"
+                    android:gravity="center"
+                    android:paddingHorizontal="@dimen/activity_margin"
+                    android:text="@string/sim_no_messages"
+                    android:textSize="@dimen/bigger_text_size"
+                    android:textStyle="italic"
+                    android:visibility="gone" />
+
+            </FrameLayout>
+        </eightbitlab.com.blurview.BlurTarget>
+
+        <com.android.common.view.MVSideFrame
+            android:id="@+id/m_vertical_side_frame_top"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/tx_mv_side_top_frame_height"
+            android:layout_gravity="top" />
+
+        <com.goodwy.commons.views.MySearchMenu
+            android:id="@+id/simMessagesAppbar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@android:color/transparent" />
+
+        <com.android.common.view.MVSideFrame
+            android:id="@+id/m_vertical_side_frame_bottom"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/tx_mv_side_bottom_frame_height"
+            android:layout_gravity="bottom"
+            app:isTopFrame="false" />
+
+    </androidx.coordinatorlayout.widget.CoordinatorLayout>
+
+</FrameLayout>

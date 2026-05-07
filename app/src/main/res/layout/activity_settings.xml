@@ -537,6 +537,34 @@
                                     android:background="@color/tx_cardview_divider" />
 
                                 <RelativeLayout
+                                    android:id="@+id/settingsSimCardMessagesHolder"
+                                    style="@style/SettingsHolderStyle">
+
+                                    <com.goodwy.commons.views.MyTextView
+                                        android:id="@+id/settingsSimCardMessagesLabel"
+                                        style="@style/SettingsTextLabelStyle"
+                                        android:layout_centerVertical="true"
+                                        android:layout_alignParentStart="true"
+                                        android:layout_toStartOf="@+id/settingsSimCardMessagesChevron"
+                                        android:layout_marginEnd="@dimen/normal_margin"
+                                        android:text="@string/sim_card_messages"/>
+
+                                    <ImageView
+                                        android:id="@+id/settingsSimCardMessagesChevron"
+                                        style="@style/SettingsChevronStyle"
+                                        android:layout_alignParentEnd="true"
+                                        android:layout_centerVertical="true"
+                                        android:contentDescription="@string/sim_card_messages"/>
+                                </RelativeLayout>
+
+                                <View
+                                    android:layout_width="match_parent"
+                                    android:layout_height="@dimen/tx_cardview_divider_thickness"
+                                    android:layout_marginStart="@dimen/tx_cardview_padding_left"
+                                    android:layout_marginEnd="@dimen/tx_cardview_divider_margin_right"
+                                    android:background="@color/tx_cardview_divider" />
+
+                                <RelativeLayout
                                     android:id="@+id/settingsSmsServiceCenterHolder"
                                     style="@style/SettingsHolderStyle">
 

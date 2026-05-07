@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingTop="4dp"
+    android:paddingBottom="4dp">
+
+    <!-- Received message (incoming, aligned left) -->
+    <LinearLayout
+        android:id="@+id/simMsgReceivedContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:visibility="gone"
+        tools:visibility="visible">
+
+        <com.goodwy.commons.views.MyTextView
+            android:id="@+id/simMsgAddress"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_marginBottom="2dp"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:alpha="0.7"
+            tools:text="+82-10-1234-5678" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="64dp"
+            android:background="@drawable/item_received_rounded_background"
+            android:orientation="vertical"
+            android:paddingStart="@dimen/bubble_padding_left"
+            android:paddingEnd="@dimen/bubble_padding_right"
+            android:paddingTop="@dimen/bubble_padding_top"
+            android:paddingBottom="@dimen/bubble_padding_bottom">
+
+            <com.goodwy.commons.views.MyTextView
+                android:id="@+id/simMsgBody"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="15sp"
+                android:lineSpacingMultiplier="1.1"
+                tools:text="Hello, this is a SIM message." />
+
+            <com.goodwy.commons.views.MyTextView
+                android:id="@+id/simMsgTime"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="end"
+                android:textSize="11sp"
+                android:alpha="0.6"
+                android:layout_marginTop="2dp"
+                tools:text="10:30" />
+
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Sent message (outgoing, aligned right) -->
+    <LinearLayout
+        android:id="@+id/simMsgSentContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="end"
+        android:orientation="vertical"
+        android:visibility="gone"
+        tools:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="end"
+            android:layout_marginStart="64dp"
+            android:layout_marginEnd="8dp"
+            android:background="@drawable/item_sent_rounded_background"
+            android:orientation="vertical"
+            android:paddingStart="@dimen/bubble_padding_left"
+            android:paddingEnd="@dimen/bubble_padding_right"
+            android:paddingTop="@dimen/bubble_padding_top"
+            android:paddingBottom="@dimen/bubble_padding_bottom">
+
+            <com.goodwy.commons.views.MyTextView
+                android:id="@+id/simMsgBodySent"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="15sp"
+                android:lineSpacingMultiplier="1.1"
+                tools:text="Reply message from me." />
+
+            <com.goodwy.commons.views.MyTextView
+                android:id="@+id/simMsgTimeSent"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="end"
+                android:textSize="11sp"
+                android:alpha="0.6"
+                android:layout_marginTop="2dp"
+                tools:text="10:35" />
+
+        </LinearLayout>
+    </LinearLayout>
+
+</LinearLayout>

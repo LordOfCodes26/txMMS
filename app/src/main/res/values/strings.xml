@@ -215,6 +215,12 @@
     <string name="blocked_list">Blocked list</string>
     <string name="private_space">Private space</string>
     <string name="sim_card_message">Sim card message</string>
+    <string name="sim_card_messages">SIM card messages</string>
+    <string name="sim_no_messages">No messages on SIM card</string>
+    <string name="sim_copy_to_phone">Copy to phone memory</string>
+    <string name="sim_delete_message">Delete from SIM</string>
+    <string name="sim_confirm_delete">Delete this message from the SIM card?</string>
+    <string name="sim_message_copied">Message copied to phone</string>
     <string name="private_space_add">Private space add</string>
     <string name="private_space_delete">Private space delete</string>
     <string name="dial_number_copy">Dial number copy</string>

@@ -197,6 +197,22 @@
             android:parentActivityName=".activities.SettingsActivity" />
 
         <activity
+            android:name=".activities.ManageSimMessagesActivity"
+            android:configChanges="orientation"
+            android:exported="false"
+            android:label="@string/sim_card_messages"
+            android:theme="@style/BlurAppBarTheme"
+            android:parentActivityName=".activities.SettingsActivity" />
+
+        <activity
+            android:name=".activities.SimMessagesActivity"
+            android:configChanges="orientation"
+            android:exported="false"
+            android:label="@string/sim_card_messages"
+            android:theme="@style/BlurAppBarTheme"
+            android:parentActivityName=".activities.ManageSimMessagesActivity" />
+
+        <activity
             android:name=".activities.SmsServiceCenterActivity"
             android:configChanges="orientation"
             android:exported="false"
