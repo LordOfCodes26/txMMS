@@ -221,13 +221,11 @@ class SmsReceiver : BroadcastReceiver() {
         timestamp: Long,
     ) {
         try {
-            val iccUri = android.net.Uri.parse("content://sms/icc")
-                .buildUpon()
-                .appendQueryParameter("subscription", subscriptionId.toString())
-                .build()
+            val iccUri = android.net.Uri.parse("content://sms/icc_subId/$subscriptionId")
             val values = android.content.ContentValues().apply {
                 put("address", senderAddress)
                 put("body", body)
+                put("type", Telephony.Sms.MESSAGE_TYPE_INBOX)
                 put("service_center", scAddress ?: "")
                 put("status", STATUS_ON_ICC_READ)
                 put("date", timestamp)
