@@ -200,4 +200,15 @@
 
     <string name="sms">SMS</string>
     <string name="mms">MMS</string>
+
+    <string name="sim_card_messages_manage">SIM card message manage</string>
+    <string name="sim_card_messages">SIM card messages</string>
+    <string name="sim_no_messages">No messages on SIM card</string>
+    <string name="sim_copy_to_phone">Copy to phone memory</string>
+    <string name="sim_delete_message">Delete from SIM</string>
+    <string name="sim_confirm_delete">Delete this message from the SIM card?</string>
+    <string name="sim_message_copied">Message copied to phone</string>
+    <string name="sms_storage_location">SMS storage location</string>
+    <string name="sms_storage_location_phone">Phone</string>
+    <string name="sms_storage_location_sim">SIM card</string>
 </resources>

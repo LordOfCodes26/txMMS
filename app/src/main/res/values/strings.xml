@@ -140,9 +140,7 @@
     <string name="manage_quick_texts">Manage quick texts</string>
     <string name="sms_service_center">SMS service center</string>
     <string name="invalid_smsc_number">Invalid service center number</string>
-    <string name="sms_storage_location">SMS storage location</string>
-    <string name="sms_storage_location_phone">Phone</string>
-    <string name="sms_storage_location_sim">SIM card</string>
+
     <string name="no_quick_texts">You have no quick texts. You may add quick texts here to use them when sending messages.</string>
     <string name="add_a_quick_text">Add a quick text</string>
     <string name="quick_text">Quick text</string>
@@ -218,12 +216,7 @@
     <string name="blocked_list">Blocked list</string>
     <string name="private_space">Private space</string>
     <string name="sim_card_message">Sim card message</string>
-    <string name="sim_card_messages">SIM card messages</string>
-    <string name="sim_no_messages">No messages on SIM card</string>
-    <string name="sim_copy_to_phone">Copy to phone memory</string>
-    <string name="sim_delete_message">Delete from SIM</string>
-    <string name="sim_confirm_delete">Delete this message from the SIM card?</string>
-    <string name="sim_message_copied">Message copied to phone</string>
+
     <string name="private_space_add">Private space add</string>
     <string name="private_space_delete">Private space delete</string>
     <string name="dial_number_copy">Dial number copy</string>
@@ -244,5 +237,16 @@
 
     <string name="sms">SMS</string>
     <string name="mms">MMS</string>
+
+    <string name="sim_card_messages_manage">SIM card message manage</string>
+    <string name="sim_card_messages">SIM card messages</string>
+    <string name="sim_no_messages">No messages on SIM card</string>
+    <string name="sim_copy_to_phone">Copy to phone memory</string>
+    <string name="sim_delete_message">Delete from SIM</string>
+    <string name="sim_confirm_delete">Delete this message from the SIM card?</string>
+    <string name="sim_message_copied">Message copied to phone</string>
+    <string name="sms_storage_location">SMS storage location</string>
+    <string name="sms_storage_location_phone">Phone</string>
+    <string name="sms_storage_location_sim">SIM card</string>
 
 </resources>
