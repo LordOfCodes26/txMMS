@@ -201,23 +201,23 @@ class NotificationHelper(private val context: Context) {
         )
             .setChannelId(notificationChannelId)
 
-        val number = body.getOTPFromText()
-        if (number != null) {
-            val copyNumberAndDelete = context.config.copyNumberAndDelete
-            val copyNumberIntent = Intent(context, CopyNumberReceiver::class.java).apply {
-                action = if (copyNumberAndDelete) COPY_NUMBER_AND_DELETE else COPY_NUMBER
-                putExtra(THREAD_TEXT, number)
-                putExtra(THREAD_ID, threadId)
-                if (copyNumberAndDelete) {
-                    putExtra(MESSAGE_ID, messageId)
-                }
-            }
-            val textCopyNumber = context.getString(com.goodwy.commons.R.string.copy) + " \"${number}\""
-            val copyNumber =
-                PendingIntent.getBroadcast(context, threadId.hashCode(), copyNumberIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE)
-            builder.addAction(com.goodwy.commons.R.drawable.ic_copy_vector, textCopyNumber, copyNumber)
-                .setChannelId(notificationChannelId)
-        }
+//        val number = body.getOTPFromText()
+//        if (number != null) {
+//            val copyNumberAndDelete = context.config.copyNumberAndDelete
+//            val copyNumberIntent = Intent(context, CopyNumberReceiver::class.java).apply {
+//                action = if (copyNumberAndDelete) COPY_NUMBER_AND_DELETE else COPY_NUMBER
+//                putExtra(THREAD_TEXT, number)
+//                putExtra(THREAD_ID, threadId)
+//                if (copyNumberAndDelete) {
+//                    putExtra(MESSAGE_ID, messageId)
+//                }
+//            }
+//            val textCopyNumber = context.getString(com.goodwy.commons.R.string.copy) + " \"${number}\""
+//            val copyNumber =
+//                PendingIntent.getBroadcast(context, threadId.hashCode(), copyNumberIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE)
+//            builder.addAction(com.goodwy.commons.R.drawable.ic_copy_vector, textCopyNumber, copyNumber)
+//                .setChannelId(notificationChannelId)
+//        }
 
 //        if (isNoReplySms) {
             builder.addAction(
