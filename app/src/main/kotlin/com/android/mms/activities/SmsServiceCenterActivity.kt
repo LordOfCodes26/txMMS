@@ -184,10 +184,12 @@ class SmsServiceCenterActivity : SimpleActivity() {
         binding.simServiceCenterRows.removeAllViews()
         if (simCards.isEmpty()) {
             binding.noSimPlaceholder.beVisible()
+            binding.noSimPlaceholderImg.beVisible()
             binding.simServiceCenterCard.beGone()
             return
         }
         binding.noSimPlaceholder.beGone()
+        binding.noSimPlaceholderImg.beGone()
         binding.simServiceCenterCard.beVisible()
 
         val textColor = getProperTextColor()

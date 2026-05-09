@@ -1,15 +1,19 @@
 package com.android.mms.activities
 
 import android.annotation.SuppressLint
+import android.app.ActionBar
 import android.content.ContentValues
 import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
 import android.provider.Telephony
 import android.view.View
+import android.view.ViewGroup
 import androidx.appcompat.app.AlertDialog
+import androidx.compose.ui.layout.Layout
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
+import androidx.core.view.updateLayoutParams
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.android.mms.R
 import com.android.mms.adapters.SimMessageAdapter
@@ -173,6 +177,9 @@ class SimMessagesActivity : SimpleActivity() {
         binding.simMessagesList.layoutManager = LinearLayoutManager(this).apply {
             stackFromEnd = true
         }
+        binding.simMessagesList.updateLayoutParams<ViewGroup.LayoutParams> {
+            height = resources.displayMetrics.heightPixels - 100
+        }
         binding.simMessagesList.adapter = adapter
     }
 
@@ -180,6 +187,7 @@ class SimMessagesActivity : SimpleActivity() {
     private fun loadMessages() {
         binding.simMessagesProgress.beVisible()
         binding.simMessagesEmpty.beGone()
+        binding.noSimPlaceholderImg.beGone()
         binding.simMessagesList.beGone()
 
         Thread {
@@ -192,9 +200,11 @@ class SimMessagesActivity : SimpleActivity() {
                 adapter?.notifyDataSetChanged()
                 if (messages.isEmpty()) {
                     binding.simMessagesEmpty.beVisible()
+                    binding.noSimPlaceholderImg.beVisible()
                     binding.simMessagesList.beGone()
                 } else {
                     binding.simMessagesEmpty.beGone()
+                    binding.noSimPlaceholderImg.beGone()
                     binding.simMessagesList.beVisible()
                     binding.simMessagesList.scrollToPosition(messages.size - 1)
                 }
@@ -297,6 +307,7 @@ class SimMessagesActivity : SimpleActivity() {
                         adapter?.notifyDataSetChanged()
                         if (messages.isEmpty()) {
                             binding.simMessagesEmpty.beVisible()
+                            binding.noSimPlaceholderImg.beVisible()
                             binding.simMessagesList.beGone()
                         }
                     }

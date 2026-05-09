@@ -181,10 +181,12 @@ class SmsStorageLocationActivity : SimpleActivity() {
         binding.storageLocationRows.removeAllViews()
         if (simCards.isEmpty()) {
             binding.noSimPlaceholder.beVisible()
+            binding.noSimPlaceholderImg.beVisible()
             binding.storageLocationCard.beGone()
             return
         }
         binding.noSimPlaceholder.beGone()
+        binding.noSimPlaceholderImg.beGone()
         binding.storageLocationCard.beVisible()
 
         val textColor = getProperTextColor()

@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/root_view"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
@@ -16,7 +17,6 @@
             android:id="@+id/mainBlurTarget"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="@color/tx_common_bg"
             app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
             <FrameLayout
@@ -31,8 +31,9 @@
                     android:overScrollMode="ifContentScrolls"
                     android:paddingHorizontal="@dimen/activity_padding_left_right"
                     android:scrollbars="none"
+                    app:layout_constraintBottom_toTopOf="@+id/m_vertical_side_frame_bottom"
                     app:layoutManager="com.goodwy.commons.views.MyLinearLayoutManager"
-                    app:stackFromEnd="true" />
+                    app:stackFromEnd="true"/>
 
                 <ProgressBar
                     android:id="@+id/simMessagesProgress"
@@ -41,18 +42,48 @@
                     android:layout_gravity="center"
                     android:visibility="gone" />
 
-                <com.goodwy.commons.views.MyTextView
-                    android:id="@+id/simMessagesEmpty"
+                <RelativeLayout
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center"
-                    android:alpha="0.8"
-                    android:gravity="center"
-                    android:paddingHorizontal="@dimen/activity_margin"
-                    android:text="@string/sim_no_messages"
-                    android:textSize="@dimen/bigger_text_size"
-                    android:textStyle="italic"
-                    android:visibility="gone" />
+                    android:layout_height="match_parent"
+                    android:layout_marginTop="-60dp">
+
+                    <ImageView
+                        android:id="@+id/noSimPlaceholderImg"
+                        android:layout_width="86dp"
+                        android:layout_height="80dp"
+                        android:layout_centerInParent="true"
+                        android:contentDescription="@null"
+                        android:scaleType="fitCenter"
+                        android:gravity="center"
+                        android:src="@drawable/ic_no_sms"
+                        android:visibility="visible"/>
+
+                    <com.goodwy.commons.views.MyTextView
+                        android:id="@+id/simMessagesEmpty"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_below="@+id/noSimPlaceholderImg"
+                        android:layout_centerHorizontal="true"
+                        android:gravity="center"
+                        android:padding="@dimen/activity_margin"
+                        android:text="@string/sim_no_messages"
+                        android:textSize="@dimen/tx_sub_section"
+                        android:textColor="@color/tx_cardview_arrow_icon"
+                        android:visibility="visible" />
+                </RelativeLayout>
+
+<!--                <com.goodwy.commons.views.MyTextView-->
+<!--                    android:id="@+id/simMessagesEmpty"-->
+<!--                    android:layout_width="match_parent"-->
+<!--                    android:layout_height="wrap_content"-->
+<!--                    android:layout_gravity="center"-->
+<!--                    android:alpha="0.8"-->
+<!--                    android:gravity="center"-->
+<!--                    android:paddingHorizontal="@dimen/activity_margin"-->
+<!--                    android:text="@string/sim_no_messages"-->
+<!--                    android:textSize="@dimen/bigger_text_size"-->
+<!--                    android:textStyle="italic"-->
+<!--                    android:visibility="visible" />-->
 
             </FrameLayout>
         </eightbitlab.com.blurview.BlurTarget>

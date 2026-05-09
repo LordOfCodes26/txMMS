@@ -176,10 +176,12 @@ class ManageSimMessagesActivity : SimpleActivity() {
         binding.manageSimMessagesRows.removeAllViews()
         if (simCards.isEmpty()) {
             binding.noSimPlaceholder.beVisible()
+            binding.noSimPlaceholderImg.beVisible()
             binding.manageSimMessagesCard.beGone()
             return
         }
         binding.noSimPlaceholder.beGone()
+        binding.noSimPlaceholderImg.beGone()
         binding.manageSimMessagesCard.beVisible()
 
         val textColor = getProperTextColor()
