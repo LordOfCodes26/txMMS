@@ -3,6 +3,7 @@ package com.android.mms.adapters
 import android.content.Context
 import android.text.format.DateFormat
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.android.mms.databinding.ItemSimMessageBinding
@@ -14,7 +15,7 @@ import java.util.Date
 class SimMessageAdapter(
     private val context: Context,
     private val messages: List<SimMessage>,
-    private val onLongClick: (SimMessage) -> Unit,
+    private val onLongClick: (SimMessage, View) -> Unit
 ) : RecyclerView.Adapter<SimMessageAdapter.ViewHolder>() {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -48,7 +49,7 @@ class SimMessageAdapter(
             }
 
             binding.root.setOnLongClickListener {
-                onLongClick(message)
+                onLongClick(message, itemView)
                 true
             }
         }

@@ -204,7 +204,7 @@
     <string name="sim_no_messages">SIM카드에 보관된 통보문이 없습니다.</string>
     <string name="sim_copy_to_phone">전화기에로 복사</string>
     <string name="sim_delete_message">SIM카드에 보관된 통보문삭제</string>
-    <string name="sim_confirm_delete">SIM카드에 보관된 통보문을 삭제하겠습니까?</string>
+    <string name="sim_confirm_delete">선택된 통보문을 삭제하겠습니까?</string>
     <string name="sim_message_copied">전화기에 통보문을 복사하였습니다.</string>
     <string name="sms_storage_location">단문통보문복사위치</string>
     <string name="sms_storage_location_phone">전화기</string>

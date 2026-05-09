@@ -1,20 +1,22 @@
 package com.android.mms.activities
 
 import android.annotation.SuppressLint
-import android.app.ActionBar
 import android.content.ContentValues
 import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
 import android.provider.Telephony
+import android.view.Gravity
+import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import androidx.appcompat.app.AlertDialog
-import androidx.compose.ui.layout.Layout
+import androidx.appcompat.view.menu.MenuBuilder
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.updateLayoutParams
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.android.common.dialogs.MConfirmDialog
 import com.android.mms.R
 import com.android.mms.adapters.SimMessageAdapter
 import com.android.mms.databinding.ActivitySimMessagesBinding
@@ -23,6 +25,7 @@ import com.android.mms.extensions.clearMySearchMenuSpringSync
 import com.android.mms.extensions.config
 import com.android.mms.extensions.postSyncMySearchMenuToolbarGeometry
 import com.android.mms.extensions.setupMySearchMenuSpringSync
+import com.android.mms.models.Message
 import com.android.mms.models.SimMessage
 import com.goodwy.commons.extensions.beGone
 import com.goodwy.commons.extensions.beVisible
@@ -36,6 +39,9 @@ import com.goodwy.commons.extensions.isSystemInDarkMode
 import com.goodwy.commons.extensions.showErrorToast
 import com.goodwy.commons.extensions.toast
 import com.goodwy.commons.extensions.updateTextColors
+import com.goodwy.commons.helpers.ensureBackgroundThread
+import com.goodwy.commons.views.showMPopupMenu
+import eightbitlab.com.blurview.BlurTarget
 
 class SimMessagesActivity : SimpleActivity() {
 
@@ -171,8 +177,8 @@ class SimMessagesActivity : SimpleActivity() {
     }
 
     private fun setupRecyclerView() {
-        adapter = SimMessageAdapter(this, messages) { message ->
-            showMessageOptions(message)
+        adapter = SimMessageAdapter(this, messages) { message, view ->
+            showMessageOptions(message, view)
         }
         binding.simMessagesList.layoutManager = LinearLayoutManager(this).apply {
             stackFromEnd = true
@@ -246,19 +252,41 @@ class SimMessagesActivity : SimpleActivity() {
         }
     }
 
-    private fun showMessageOptions(message: SimMessage) {
-        val options = arrayOf(
-            getString(R.string.sim_copy_to_phone),
-            getString(R.string.sim_delete_message),
-        )
-        AlertDialog.Builder(this)
-            .setItems(options) { _, which ->
-                when (which) {
+    @SuppressLint("RestrictedApi")
+    private fun showMessageOptions(message: SimMessage, view: View) {
+//        val options = arrayOf(
+//            getString(R.string.sim_copy_to_phone),
+//            getString(R.string.sim_delete_message),
+//        )
+        val menu = MenuBuilder(this)
+        menu.add(1, 0, 0, R.string.sim_copy_to_phone)
+        menu.add(1, 1, 1, R.string.sim_delete_message)
+
+        val blurTarget = this.findViewById<eightbitlab.com.blurview.BlurTarget>(com.android.mms.R.id.mainBlurTarget)
+        showMPopupMenu(
+            context = this,
+            anchor = view,
+            menu = menu,
+            gravity = Gravity.START,
+            blurTarget = blurTarget,
+            listener = MenuItem.OnMenuItemClickListener { item ->
+                when (item.itemId) {
                     0 -> copyToPhone(message)
                     1 -> confirmDelete(message)
+                    else -> {
+                    }
                 }
-            }
-            .show()
+                true
+            },
+        )
+//        AlertDialog.Builder(this)
+//            .setItems(options) { _, which ->
+//                when (which) {
+//                    0 -> copyToPhone(message)
+//                    1 -> confirmDelete(message)
+//                }
+//            }
+//            .show()
     }
 
     private fun copyToPhone(message: SimMessage) {
@@ -284,14 +312,37 @@ class SimMessagesActivity : SimpleActivity() {
     }
 
     private fun confirmDelete(message: SimMessage) {
-        AlertDialog.Builder(this)
-            .setTitle(R.string.sim_delete_message)
-            .setMessage(R.string.sim_confirm_delete)
-            .setPositiveButton(com.goodwy.commons.R.string.yes) { _, _ ->
+        showMConfirmDialog(resources.getString(R.string.sim_confirm_delete)) {
+            ensureBackgroundThread {
                 deleteFromSim(message)
             }
-            .setNegativeButton(com.goodwy.commons.R.string.no, null)
-            .show()
+        }
+//        dialog.show()
+//        AlertDialog.Builder(this)
+//            .setTitle(R.string.sim_delete_message)
+//            .setMessage(R.string.sim_confirm_delete)
+//            .setPositiveButton(com.goodwy.commons.R.string.yes) { _, _ ->
+//                deleteFromSim(message)
+//            }
+//            .setNegativeButton(com.goodwy.commons.R.string.no, null)
+//            .show()
+    }
+
+    private fun showMConfirmDialog(question: String, onConfirm: () -> Unit) {
+        val blurTarget = this.findViewById<BlurTarget>(com.android.mms.R.id.mainBlurTarget)
+            ?: throw IllegalStateException("mainBlurTarget not found")
+        val dialog = MConfirmDialog(this)
+        dialog.bindBlurTarget(blurTarget)
+        dialog.setContent(question)
+        dialog.setConfirmTitle(resources.getString(com.goodwy.commons.R.string.ok))
+        dialog.setCancelTitle(resources.getString(com.goodwy.commons.R.string.cancel))
+        dialog.setCanceledOnTouchOutside(true)
+        dialog.setOnCompleteListener { isConfirm ->
+            if (isConfirm) {
+                onConfirm()
+            }
+        }
+        dialog.show()
     }
 
     private fun deleteFromSim(message: SimMessage) {
