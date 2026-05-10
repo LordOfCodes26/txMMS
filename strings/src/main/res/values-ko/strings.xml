@@ -142,8 +142,8 @@
     <string name="incoming_call">수신 전화</string>
     <string name="outgoing_call">호출 전화</string>
     <string name="missed_call">부재중 전화</string>
-    <string name="unblock_number">차단된 번호해제 </string>
-    <string name="unblock_numbers">차단된 번호들을 해제</string>
+    <string name="unblock_number">차단된 통보문해제 </string>
+    <string name="unblock_numbers">차단된 통보문들을 해제</string>
     <string name="show_blocked_numbers">차단된 번호 현시</string>
     <string name="hide_blocked_numbers">차단된 번호 숨기기</string>
     <string name="paste_g">삽입하다</string>

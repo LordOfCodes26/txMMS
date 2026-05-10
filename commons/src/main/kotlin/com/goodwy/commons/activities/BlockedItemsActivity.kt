@@ -31,12 +31,14 @@ import com.goodwy.commons.fragments.BlockedMessagesFragment
 import com.goodwy.commons.helpers.APP_ICON_IDS
 import com.goodwy.commons.helpers.APP_LAUNCHER_NAME
 import com.goodwy.commons.interfaces.ActionModeToolbarHost
+import com.goodwy.commons.views.CustomToolbar
 import com.qmdeve.liquidglass.view.LiquidGlassTabs
 import eightbitlab.com.blurview.BlurTarget
 
 open class BlockedItemsActivity : BaseSimpleActivity(), ActionModeToolbarHost {
     private val binding by viewBinding(ActivityBlockedItemsBinding::inflate)
     private var isProgrammaticTabSelection = false
+    private var customToolbar: CustomToolbar? = null
 
     override fun getAppIconIDs() = intent.getIntegerArrayListExtra(APP_ICON_IDS) ?: ArrayList()
 
@@ -169,6 +171,7 @@ open class BlockedItemsActivity : BaseSimpleActivity(), ActionModeToolbarHost {
         binding.mainMenu.apply {
             val toolbar = requireCustomToolbar()
             toolbar.inflateMenu(R.menu.block_action_menu)
+            this@BlockedItemsActivity.customToolbar = toolbar
             toolbar.setOnMenuItemClickListener { item ->
                 onBlockToolbarMenuItemClick(item)
             }
@@ -360,6 +363,9 @@ open class BlockedItemsActivity : BaseSimpleActivity(), ActionModeToolbarHost {
     private fun updateTitleForTab(index: Int) {
         val titleId = TITLES.getOrElse(index) { R.string.blocked_items }
         binding.mainMenu.updateTitle(getString(titleId))
+        val menuRes = if (index == TAB_BLOCKED_CONTACTS) R.menu.block_action_menu else R.menu.block_action_menu_no_add
+        customToolbar?.inflateMenu(menuRes)
+        customToolbar?.menu?.findItem(R.id.settings)?.isVisible = index != TAB_BLOCKED_MESSAGES
     }
 
     private inner class BlockedItemsPagerAdapter(fragmentManager: FragmentManager) :
