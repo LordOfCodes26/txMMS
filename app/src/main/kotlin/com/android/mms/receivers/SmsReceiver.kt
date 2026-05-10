@@ -79,7 +79,7 @@ class SmsReceiver : BroadcastReceiver() {
             )
             if (shouldBlockNextFeeMessage && shouldIgnoreFeeServiceMessage) {
                 Log.d(TAG, "onReceive: dropping fee service SMS from address=$address and resetting block flag")
-                context.config.blockNextFeeServiceMessage = false
+                // context.config.blockNextFeeServiceMessage = false
                 return@ensureBackgroundThread
             }
 
