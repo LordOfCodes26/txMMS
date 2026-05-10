@@ -5,8 +5,10 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import androidx.core.view.isVisible
-import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.android.common.helper.IconItem
+import com.android.common.view.MRippleToolBar
+import com.android.mms.R
 import com.android.mms.activities.NewConversationActivity
 import com.android.mms.activities.ThreadActivity
 import com.android.mms.adapters.ConversationsAdapter
@@ -15,8 +17,6 @@ import com.android.mms.extensions.getBlockedConversations
 import com.android.mms.extensions.hasMeaningfulLocalDraft
 import com.android.mms.extensions.getThreadRecipientPhoneNumbers
 import com.android.mms.extensions.getThreadTelephonyMessageCount
-import com.goodwy.commons.extensions.getMyContactsCursor
-import com.goodwy.commons.extensions.hideKeyboard
 import com.android.mms.helpers.NEW_CONVERSATION_RESUME_DRAFT
 import com.android.mms.helpers.THREAD_ID
 import com.android.mms.helpers.THREAD_NUMBER
@@ -26,18 +26,22 @@ import com.android.mms.helpers.THREAD_TITLE
 import com.android.mms.helpers.THREAD_URI
 import com.android.mms.models.Conversation
 import com.goodwy.commons.R as CommonsR
-import com.goodwy.commons.helpers.MyContactsContentProvider
 import com.goodwy.commons.activities.BaseSimpleActivity
+import com.goodwy.commons.extensions.getMyContactsCursor
+import com.goodwy.commons.extensions.hideKeyboard
+import com.goodwy.commons.fragments.BlockedMessagesFragment
+import com.goodwy.commons.helpers.MyContactsContentProvider
 import com.goodwy.commons.helpers.ensureBackgroundThread
 import com.goodwy.commons.views.MyRecyclerView
 import com.google.gson.Gson
+import eightbitlab.com.blurview.BlurTarget
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * Conversation list for threads that include at least one blocked number; opens [ThreadActivity] with
  * [THREAD_SHOW_BLOCKED_MESSAGES] so inbox content from blocked senders is loaded.
  */
-class BlockedConversationsFragment : Fragment(CommonsR.layout.fragment_blocked_messages) {
+class BlockedConversationsFragment : BlockedMessagesFragment() {
 
     private lateinit var list: MyRecyclerView
     private lateinit var placeholder: View
@@ -57,6 +61,41 @@ class BlockedConversationsFragment : Fragment(CommonsR.layout.fragment_blocked_m
     override fun onStart() {
         super.onStart()
         loadBlockedConversations()
+    }
+
+    override fun tryStartSelectionActionMode(): Boolean {
+        val a = adapter ?: return false
+        if (a.itemCount == 0) return false
+        a.startActMode()
+        return true
+    }
+
+    override fun finishSelectionActionModeIfActive(): Boolean {
+        val a = adapter ?: return false
+        if (a.isActionModeActive()) {
+            a.finishActMode()
+            return true
+        }
+        return false
+    }
+
+    override fun bindRippleToolbarIfNeeded(ripple: MRippleToolBar, blurTarget: BlurTarget) {
+        val a = adapter
+        if (a == null || !a.isActionModeActive()) {
+            ripple.visibility = View.GONE
+            return
+        }
+        val items = ArrayList<IconItem>().apply {
+            add(IconItem().apply {
+                title = getString(CommonsR.string.unblock)
+                icon = R.drawable.ic_sms_ripple_shield_delete
+            })
+        }
+        ripple.setTabs(requireActivity() as BaseSimpleActivity, items, blurTarget)
+        ripple.setOnClickedListener { index ->
+            if (index == 0) a.actionItemPressed(R.id.cab_unblock_number)
+        }
+        ripple.visibility = View.VISIBLE
     }
 
     @SuppressLint("UnsafeIntentLaunch")

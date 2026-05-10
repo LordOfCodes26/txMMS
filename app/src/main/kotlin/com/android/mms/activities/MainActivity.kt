@@ -579,7 +579,14 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
 
     override fun showActionModeToolbar() {
         captureMainMenuAppBarOffsetBeforeActionMode()
+        // showActionModeToolbar() locks the current (expanded) height for later restoration.
+        // After that, override to collapsed height so the action-mode bar is compact and
+        // scheduleSyncMainMenuTopBlurGeometry re-aligns blurTarget + list padding to the shorter bar.
         binding.mainMenu.showActionModeToolbar()
+        val collapsedH = binding.mainMenu.getCollapsedHeightPx()
+        if (collapsedH > 0) {
+            binding.mainMenu.updateLayoutParams<ViewGroup.LayoutParams> { height = collapsedH }
+        }
         binding.conversationsFab.beGone()
         binding.root.post {
             applyActionModeRippleToolbarForConversations()

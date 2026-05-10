@@ -203,20 +203,32 @@ open class BlockedItemsActivity : BaseSimpleActivity(), ActionModeToolbarHost {
     override fun getActionModeToolbar() = binding.mainMenu.getActionModeToolbar()
 
     override fun showActionModeToolbar() {
+        // showActionModeToolbar() locks the current (expanded) height for later restoration.
+        // After that, override the height to collapsed so the action-mode bar is compact and
+        // syncTopSideFrameHeightWithToolbar() aligns the content edge with the shorter bar.
         binding.mainMenu.showActionModeToolbar()
+        val collapsedH = binding.mainMenu.getCollapsedHeightPx()
+        if (collapsedH > 0) {
+            binding.mainMenu.updateLayoutParams<ViewGroup.LayoutParams> { height = collapsedH }
+        }
         binding.blockedItemsTabBar.visibility = View.GONE
         syncActionModeRippleToolbarInsetWithTabBar()
         binding.root.post {
+            syncTopSideFrameHeightWithToolbar()
             syncMainHolderBottomPaddingForTabBar()
             refreshActionModeRippleToolbarIfNeeded()
         }
     }
 
     override fun hideActionModeToolbar() {
+        // hideActionModeToolbar() restores the saved expanded height and calls setExpanded(true).
         binding.mainMenu.hideActionModeToolbar()
         binding.actionModeRippleToolbar.visibility = View.GONE
         binding.blockedItemsTabBar.visibility = View.VISIBLE
-        binding.root.post { syncMainHolderBottomPaddingForTabBar() }
+        binding.root.post {
+            syncTopSideFrameHeightWithToolbar()
+            syncMainHolderBottomPaddingForTabBar()
+        }
     }
 
     private fun syncActionModeRippleToolbarInsetWithTabBar() {
