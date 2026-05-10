@@ -35,7 +35,10 @@ import com.android.mms.models.Attachment
 import com.android.mms.models.AttachmentSelection
 import com.android.mms.models.DraftStoredAttachment
 import com.android.mms.models.SIMCard
+import com.goodwy.commons.dialogs.RadioGroupDialog
 import com.goodwy.commons.extensions.*
+import com.goodwy.commons.helpers.*
+import com.goodwy.commons.models.RadioItem
 import douglasspgyn.com.github.circularcountdown.CircularCountdown
 import douglasspgyn.com.github.circularcountdown.listener.CircularListener
 import eightbitlab.com.blurview.BlurTarget
@@ -608,6 +611,59 @@ class MessageHolderHelper(
             return
         }
         addAttachmentWithKnownMime(uri, mimeType, activity.getFilenameFromUri(uri))
+    }
+
+    fun addContactAttachment(contactUri: Uri) {
+        val items = arrayListOf(
+            RadioItem(1, activity.getString(com.goodwy.commons.R.string.file)),
+            RadioItem(2, activity.getString(com.goodwy.commons.R.string.text))
+        )
+        val blurTarget = activity.findViewById<BlurTarget>(R.id.mainBlurTarget)
+            ?: throw IllegalStateException("mainBlurTarget not found")
+        RadioGroupDialog(activity as SimpleActivity, items, blurTarget = blurTarget) { choice ->
+            val privateCursor = activity.getMyContactsCursor(favoritesOnly = false, withPhoneNumbersOnly = true)
+            ContactsHelper(activity).getContacts(showOnlyContactsWithNumbers = false) { contacts ->
+                val contact = if (contactUri.pathSegments.last().startsWith("local_")) {
+                    val contactId = contactUri.path!!.substringAfter("local_").toInt()
+                    try {
+                        val privateContacts = MyContactsContentProvider.getContacts(activity, privateCursor)
+                        privateContacts.firstOrNull { it.id == contactId }
+                    } catch (_: Exception) {
+                        null
+                    }
+                } else {
+                    val contactId = activity.getContactUriRawId(contactUri)
+                    contacts.firstOrNull { it.id == contactId }
+                }
+
+                if (contact != null) {
+                    if (choice == 1) {
+                        val attachmentsDir = File(activity.cacheDir, "attachments").apply { mkdirs() }
+                        val outputFile = File(attachmentsDir, "${contact.contactId}.vcf")
+                        VcfExporter().exportContacts(
+                            activity = activity,
+                            outputStream = outputFile.outputStream(),
+                            contacts = arrayListOf(contact),
+                            showExportingToast = false,
+                        ) { result ->
+                            if (result == ExportResult.EXPORT_OK) {
+                                val vCardUri = activity.getMyFileUri(outputFile)
+                                activity.runOnUiThread { addAttachment(vCardUri) }
+                            } else {
+                                activity.toast(com.goodwy.commons.R.string.unknown_error_occurred)
+                            }
+                        }
+                    } else {
+                        activity.runOnUiThread {
+                            val current = binding.threadTypeMessage.value
+                            binding.threadTypeMessage.setText(current + contact.getContactToText(activity))
+                        }
+                    }
+                } else {
+                    activity.toast(com.goodwy.commons.R.string.unknown_error_occurred)
+                }
+            }
+        }
     }
 
     /**

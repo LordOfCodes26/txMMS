@@ -1634,8 +1634,7 @@ class NewConversationActivity : SimpleActivity() {
 
     
     private fun addContactAttachment(contactUri: Uri) {
-        // Contact attachment functionality can be added later if needed
-        toast(com.goodwy.commons.R.string.unknown_error_occurred)
+        messageHolderHelper?.addContactAttachment(contactUri)
     }
     
     private fun launchCapturePhotoIntent() {

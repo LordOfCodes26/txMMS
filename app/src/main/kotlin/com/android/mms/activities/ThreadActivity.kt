@@ -2139,78 +2139,8 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         }
     }
 
-    @SuppressLint("SetTextI18n")
     private fun addContactAttachment(contactUri: Uri) {
-        val items = arrayListOf(
-            RadioItem(1, getString(com.goodwy.commons.R.string.file)),
-            RadioItem(2, getString(com.goodwy.commons.R.string.text))
-        )
-
-        val blurTarget = findViewById<eightbitlab.com.blurview.BlurTarget>(R.id.mainBlurTarget)
-            ?: throw IllegalStateException("mainBlurTarget not found")
-        RadioGroupDialog(this@ThreadActivity, items, blurTarget = blurTarget) {
-            val privateCursor = getMyContactsCursor(favoritesOnly = false, withPhoneNumbersOnly = true)
-            if (it == 1) {
-                ContactsHelper(this).getContacts(showOnlyContactsWithNumbers = false) { contacts ->
-                    val contact = if (contactUri.pathSegments.last().startsWith("local_")) {
-                        val contactId = contactUri.path!!.substringAfter("local_").toInt()
-                        try {
-                            val privateContacts = MyContactsContentProvider.getContacts(this, privateCursor)
-                            privateContacts.firstOrNull { it.id == contactId }
-                        } catch (_: Exception) {
-                            null
-                        }
-                    } else {
-                        val contactId = getContactUriRawId(contactUri)
-                        contacts.firstOrNull { it.id == contactId }
-                    }
-
-                    if (contact != null) {
-                        val outputFile = File(getAttachmentsDir(), "${contact.contactId}.vcf")
-                        val outputStream = outputFile.outputStream()
-
-                        VcfExporter().exportContacts(
-                            activity = this,
-                            outputStream = outputStream,
-                            contacts = arrayListOf(contact),
-                            showExportingToast = false,
-                        ) {
-                            if (it == ExportResult.EXPORT_OK) {
-                                val vCardUri = getMyFileUri(outputFile)
-                                runOnUiThread {
-                                    addAttachment(vCardUri)
-                                }
-                            } else {
-                                toast(com.goodwy.commons.R.string.unknown_error_occurred)
-                            }
-                        }
-                    } else {
-                        toast(com.goodwy.commons.R.string.unknown_error_occurred)
-                    }
-                }
-            } else {
-                ContactsHelper(this).getContacts(showOnlyContactsWithNumbers = false) { contacts ->
-                    val contact = if (contactUri.pathSegments.last().startsWith("local_")) {
-                        val contactId = contactUri.path!!.substringAfter("local_").toInt()
-                        try {
-                            val privateContacts = MyContactsContentProvider.getContacts(this, privateCursor)
-                            privateContacts.firstOrNull { it.id == contactId }
-                        } catch (_: Exception) {
-                            null
-                        }
-                    } else {
-                        val contactId = getContactUriRawId(contactUri)
-                        contacts.firstOrNull { it.id == contactId }
-                    }
-
-                    if (contact != null) {
-                        runOnUiThread {
-                            binding.messageHolder.threadTypeMessage.setText(binding.messageHolder.threadTypeMessage.value + contact.getContactToText(this))
-                        }
-                    }
-                }
-            }
-        }
+        messageHolderHelper?.addContactAttachment(contactUri)
     }
 
     private fun addAttachment(uri: Uri) {
