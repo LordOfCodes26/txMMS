@@ -14,7 +14,7 @@
     <dimen name="medium_margin">8dp</dimen>
     <dimen name="medium_md_margin">9dp</dimen>
     <dimen name="medium_normal_margin">10dp</dimen>
-    <dimen name="setting_switch_item_vertical_margin">12dp</dimen>
+    <dimen name="setting_switch_item_vertical_margin">11dp</dimen>
     <dimen name="normal_margin">12dp</dimen>
     <dimen name="normal_activity_margin">14dp</dimen>
     <dimen name="activity_margin">16dp</dimen>
@@ -28,7 +28,7 @@
     <dimen name="section_margin">32dp</dimen>
     <dimen name="section_md_margin">36dp</dimen>
     <dimen name="filter_section_margin">48dp</dimen>
-    <dimen name="recent_cardview_horizontal_margin">52dp</dimen>
+    <dimen name="recent_cardview_horizontal_margin">44dp</dimen>
     <dimen name="label_start_margin">72dp</dimen>
     <dimen name="settings_label_start_margin">20dp</dimen>
     <dimen name="min_radio_checkbox_height">44dp</dimen>
@@ -71,7 +71,7 @@
     <dimen name="breadcrumbs_layout_height">36dp</dimen> <!--48dp -->
     <dimen name="simple_list_item_height">56dp</dimen>
 
-    <dimen name="empty_placeholder_icon_size">120dp</dimen>
+    <dimen name="empty_placeholder_icon_size">90dp</dimen>
 
     <dimen name="dragselect_hotspot_height">56dp</dimen>
     <dimen name="selection_check_size">26dp</dimen>

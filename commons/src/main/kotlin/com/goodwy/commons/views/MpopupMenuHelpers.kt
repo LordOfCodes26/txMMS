@@ -28,6 +28,7 @@ fun showMPopupMenu(
     yThreshold: Float = 0.5f,
     blurTarget: BlurTarget? = null,
     horizontalEndInsetPx: Int = MPOPUP_USE_DEFAULT_END_INSET,
+    showIcons: Boolean = false,
     listener: MenuItem.OnMenuItemClickListener?,
 ) {
     val popupDelegate = MPopup(
@@ -39,7 +40,9 @@ fun showMPopupMenu(
         xThreshold.coerceIn(0f, 1f),
         yThreshold.coerceIn(0f, 1f),
     )
-    removeAllMenuIcons(menu)
+    if (!showIcons) {
+        removeAllMenuIcons(menu)
+    }
     assignMenuToMpopup(popupDelegate, menu)
     popupDelegate.setOnMenuItemClickListener(listener)
 

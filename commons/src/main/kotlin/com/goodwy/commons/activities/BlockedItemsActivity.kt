@@ -2,16 +2,21 @@ package com.goodwy.commons.activities
 
 import android.content.ComponentName
 import android.content.Intent
+import android.graphics.Color
 import android.os.Bundle
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import androidx.annotation.StringRes
+import androidx.core.view.isVisible
+import androidx.core.view.updateLayoutParams
+import androidx.core.view.updatePadding
+import com.android.common.R as CommonR
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.FragmentPagerAdapter
-import com.android.common.R as CommonR
 import com.android.common.helper.IconItem
+import com.android.common.view.MVSideFrame
 import com.goodwy.commons.R
 import com.goodwy.commons.databinding.ActivityBlockedItemsBinding
 import com.goodwy.commons.extensions.getProperBackgroundColor
@@ -27,6 +32,7 @@ import com.goodwy.commons.helpers.APP_ICON_IDS
 import com.goodwy.commons.helpers.APP_LAUNCHER_NAME
 import com.goodwy.commons.interfaces.ActionModeToolbarHost
 import com.qmdeve.liquidglass.view.LiquidGlassTabs
+import eightbitlab.com.blurview.BlurTarget
 
 open class BlockedItemsActivity : BaseSimpleActivity(), ActionModeToolbarHost {
     private val binding by viewBinding(ActivityBlockedItemsBinding::inflate)
@@ -41,7 +47,7 @@ open class BlockedItemsActivity : BaseSimpleActivity(), ActionModeToolbarHost {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
-
+//        setupMVSideFrame()
         setupEdgeToEdge(
             padTopSystem = listOf(binding.mainMenu),
             padBottomSystem = listOf(binding.blockedItemsTabBar),
@@ -55,15 +61,107 @@ open class BlockedItemsActivity : BaseSimpleActivity(), ActionModeToolbarHost {
         setupOptionsMenu()
         updateTopMenuColors()
         setupPager()
+        binding.root.post {
+            syncVerticalSideFrameBlurState()
+            scheduleTopSideFrameHeightSyncIfNeeded()
+            syncMainHolderBottomPaddingForTabBar()
+        }
     }
 
     override fun onResume() {
         super.onResume()
         updateTopMenuColors()
+        binding.root.post {
+            syncVerticalSideFrameBlurState()
+            scheduleTopSideFrameHeightSyncIfNeeded()
+            syncMainHolderBottomPaddingForTabBar()
+        }
     }
 
     private fun updateTopMenuColors() {
-        binding.mainMenu.updateColors(getProperBackgroundColor())
+        val surfaceColor = getProperBackgroundColor()
+        binding.mainMenu.updateColors(surfaceColor)
+        binding.mainMenu.setMenuBarBackgroundColor(Color.TRANSPARENT)
+    }
+
+    /**
+     * Top strip blurs the scrolling surface ([binding.blurTarget]), same as [com.android.dialer.activities.MainActivity].
+     * Bottom strip uses [binding.mainBlurTarget]: the inner target often has too little composited content
+     * at the bottom edge (and sits under the sibling tab bar), so the outer target restores the bottom glass effect.
+     */
+    private fun setupVerticalSideFrameBlur() {
+        binding.mVerticalSideFrameTop.bindBlurTarget(binding.blurTarget)
+        binding.mVerticalSideFrameBottom.bindBlurTarget(binding.blurTarget)
+    }
+
+    private fun syncVerticalSideFrameBlurState() {
+        if (isDestroyed || isFinishing) return
+        binding.mVerticalSideFrameTop.visibility = View.VISIBLE
+        binding.mVerticalSideFrameBottom.visibility = View.VISIBLE
+        setupVerticalSideFrameBlur()
+    }
+
+    /** Align top glass strip and blur target with [binding.mainMenu] like MainActivity. */
+    private fun syncTopSideFrameHeightWithToolbar() {
+        val menuHeight = binding.mainMenu.height
+        if (menuHeight <= 0) return
+        val collapsedMenuHeight =
+            binding.mainMenu.getCollapsedHeightPx().takeIf { it > 0 } ?: menuHeight
+        binding.mVerticalSideFrameTop.updateLayoutParams<ViewGroup.LayoutParams> {
+            if (height != collapsedMenuHeight) {
+                height = collapsedMenuHeight
+            }
+        }
+        val targetTopMargin = -menuHeight
+        binding.blurTarget.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+            if (topMargin != targetTopMargin) {
+                topMargin = targetTopMargin
+            }
+        }
+        // blurTarget is shifted up for MVSideFrame blur sampling; keep scroll content below toolbar like Recents.
+        binding.mainHolder.updatePadding(
+            left = binding.mainHolder.paddingLeft,
+            top = menuHeight,
+            right = binding.mainHolder.paddingRight,
+            bottom = binding.mainHolder.paddingBottom,
+        )
+        syncMainHolderBottomPaddingForTabBar()
+    }
+
+    /**
+     * The bottom tab bar overlays the scroll area; without bottom inset the placeholder centers in the
+     * full window and sits visually low. Reserve the tab strip height so empty states center above it.
+     */
+    private fun syncMainHolderBottomPaddingForTabBar() {
+        if (isDestroyed || isFinishing) return
+        val tabBar = binding.blockedItemsTabBar
+        val tabBarInset =
+            if (tabBar.isVisible && tabBar.height > 0) {
+                val lp = tabBar.layoutParams as? ViewGroup.MarginLayoutParams
+                tabBar.height + (lp?.bottomMargin ?: 0)
+            } else {
+                0
+            }
+        binding.mainHolder.updatePadding(
+            left = binding.mainHolder.paddingLeft,
+            top = binding.mainHolder.paddingTop,
+            right = binding.mainHolder.paddingRight,
+            bottom = tabBarInset,
+        )
+    }
+
+    private fun scheduleTopSideFrameHeightSyncIfNeeded() {
+        if (binding.mainMenu.height > 0) {
+            syncTopSideFrameHeightWithToolbar()
+            return
+        }
+        binding.mainMenu.viewTreeObserver.addOnGlobalLayoutListener(object : android.view.ViewTreeObserver.OnGlobalLayoutListener {
+            override fun onGlobalLayout() {
+                if (binding.mainMenu.height <= 0) return
+                binding.mainMenu.viewTreeObserver.removeOnGlobalLayoutListener(this)
+                syncTopSideFrameHeightWithToolbar()
+            }
+        })
     }
 
     /** Same flow as the app’s `MainActivity.setupOptionsMenu` (action bar + more → overflow). */
@@ -89,20 +187,33 @@ open class BlockedItemsActivity : BaseSimpleActivity(), ActionModeToolbarHost {
             )
         }
     }
-
+    private fun setupMVSideFrame() {
+        val blurTarget = findViewById<BlurTarget>(R.id.blurTarget)
+            ?: throw IllegalStateException("mainBlurTarget not found")
+        val topSideFrame = findViewById<MVSideFrame>(R.id.m_vertical_side_frame_top)
+            ?: throw IllegalStateException("Top MVSideFrame not found")
+        val bottomSideFrame = findViewById<MVSideFrame>(R.id.m_vertical_side_frame_bottom)
+            ?: throw IllegalStateException("Bottom MVSideFrame not found")
+        topSideFrame.bindBlurTarget(blurTarget)
+        bottomSideFrame.bindBlurTarget(blurTarget)
+    }
     override fun getActionModeToolbar() = binding.mainMenu.getActionModeToolbar()
 
     override fun showActionModeToolbar() {
         binding.mainMenu.showActionModeToolbar()
         binding.blockedItemsTabBar.visibility = View.GONE
         syncActionModeRippleToolbarInsetWithTabBar()
-        binding.root.post { refreshActionModeRippleToolbarIfNeeded() }
+        binding.root.post {
+            syncMainHolderBottomPaddingForTabBar()
+            refreshActionModeRippleToolbarIfNeeded()
+        }
     }
 
     override fun hideActionModeToolbar() {
         binding.mainMenu.hideActionModeToolbar()
         binding.actionModeRippleToolbar.visibility = View.GONE
         binding.blockedItemsTabBar.visibility = View.VISIBLE
+        binding.root.post { syncMainHolderBottomPaddingForTabBar() }
     }
 
     private fun syncActionModeRippleToolbarInsetWithTabBar() {
@@ -206,12 +317,12 @@ open class BlockedItemsActivity : BaseSimpleActivity(), ActionModeToolbarHost {
         binding.blockedItemsViewPager.setCurrentItem(initialTab, false)
 
         val tabItems = ArrayList<IconItem>()
-        for (i in TAB_TITLES.indices) {
+        TAB_TITLES.zip(TAB_ICONS).forEach { (titleId, iconRes) ->
             tabItems.add(
                 IconItem().apply {
-                    icon = TAB_ICONS[i]
-                    title = getString(TAB_TITLES[i])
-                },
+                    icon = iconRes
+                    title = getString(titleId)
+                }
             )
         }
         binding.blockedItemsTabBar.setTabs(this, tabItems, binding.mainBlurTarget)
@@ -238,10 +349,16 @@ open class BlockedItemsActivity : BaseSimpleActivity(), ActionModeToolbarHost {
 
             override fun onTabReselected(position: Int) {}
         })
+
+        binding.blockedItemsTabBar.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
+            if (!isDestroyed && !isFinishing) {
+                syncMainHolderBottomPaddingForTabBar()
+            }
+        }
     }
 
     private fun updateTitleForTab(index: Int) {
-        val titleId = TAB_TITLES.getOrElse(index) { R.string.blocked_items }
+        val titleId = TITLES.getOrElse(index) { R.string.blocked_items }
         binding.mainMenu.updateTitle(getString(titleId))
     }
 
@@ -270,17 +387,21 @@ open class BlockedItemsActivity : BaseSimpleActivity(), ActionModeToolbarHost {
         const val TAB_BLOCKED_CONTACTS = 2
 
         @StringRes
-        private val TAB_TITLES = listOf(
+        private val TITLES = listOf(
             R.string.blocked_calls,
             R.string.blocked_messages,
-            R.string.blocked_contacts,
+            R.string.blocked_contacts
+        )
+        private val TAB_TITLES = listOf(
+            R.string.recents,
+            R.string.message,
+            R.string.contacts_tab
         )
 
-        // ic_cmn_* drawables live in commons/libs/common.aar (com.android.common.R)
         private val TAB_ICONS = listOf(
             CommonR.drawable.ic_cmn_clock_fill,
-            CommonR.drawable.ic_cmn_sms_send_fill,
-            CommonR.drawable.ic_cmn_circle_profile_fill,
+            CommonR.drawable.ic_cmn_sms_send_fill, // TODO: should change the icon
+            CommonR.drawable.ic_cmn_circle_profile_fill
         )
     }
 }

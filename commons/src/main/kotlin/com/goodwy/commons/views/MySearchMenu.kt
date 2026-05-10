@@ -2,16 +2,19 @@ package com.goodwy.commons.views
 
 import android.content.Context
 import android.content.res.ColorStateList
+import android.graphics.Color
+import android.graphics.Rect
 import android.util.TypedValue
 import android.util.AttributeSet
 import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
 import com.google.android.material.appbar.AppBarLayout
 import com.google.android.material.appbar.MaterialToolbar
 import com.goodwy.commons.activities.BaseSimpleActivity
-import com.goodwy.commons.R
 import com.goodwy.commons.databinding.MenuSearchBinding
 import com.goodwy.commons.extensions.baseConfig
+import androidx.core.view.ViewCompat
 import com.goodwy.commons.extensions.getProperBackgroundColor
 import com.goodwy.commons.extensions.getProperPrimaryColor
 
@@ -22,25 +25,11 @@ open class MySearchMenu(context: Context, attrs: AttributeSet) : MyAppBarLayout(
     val binding = MenuSearchBinding.inflate(LayoutInflater.from(context), this)
     private var savedScrollFlags: Int? = null
     private var savedAppBarHeight: Int? = null
+    /** Preserves measured height while action mode swaps toolbar so CoordinatorLayout does not reflow the list. */
+    private var savedLayoutHeightBeforeActionMode: Int? = null
     private val minCollapsedTitleScale = 0.8f
-
-    /**
-     * Horizontal shift applied at full collapse so the large title sits [R.dimen.tx_collapsed_title_nav_gap]
-     * past the navigation icon. Uses parent-relative geometry only — not [View.getGlobalVisibleRect], which
-     * included the title's own animated screen position and produced unstable gaps or overlap.
-     */
-    private fun collapsedTitleShiftPxForNav(): Float {
-        val navView = binding.topToolbar.getNavigationIconView() ?: return 0f
-        if (navView.visibility != View.VISIBLE || !navView.isShown) return 0f
-        val title = binding.collapsingTitle
-        val toolbar = binding.topToolbar
-        if (!navView.isLaidOut || !title.isLaidOut || !toolbar.isLaidOut) return 0f
-        val gapPx = resources.getDimensionPixelSize(R.dimen.tx_collapsed_title_nav_gap)
-        val navRightInCollapsing = toolbar.left + navView.right
-        val titleParent = title.parent as? View ?: return 0f
-        val titleLeftInCollapsing = titleParent.left + title.left
-        return (navRightInCollapsing + gapPx - titleLeftInCollapsing).toFloat().coerceAtLeast(0f)
-    }
+    private val navTitleGapDp = 40f
+    private val fallbackNavShiftDp = 10f
 
     init {
         addOnOffsetChangedListener { appBarLayout, verticalOffset ->
@@ -57,8 +46,30 @@ open class MySearchMenu(context: Context, attrs: AttributeSet) : MyAppBarLayout(
 
             val isNavigationVisible = binding.topToolbar.getNavigationIconView()?.isShown == true
             if (isNavigationVisible) {
-                val requiredShiftPx = collapsedTitleShiftPxForNav()
-                binding.collapsingTitle.translationX = requiredShiftPx * collapseFraction
+                val navGapPx = TypedValue.applyDimension(
+                    TypedValue.COMPLEX_UNIT_DIP,
+                    navTitleGapDp,
+                    resources.displayMetrics
+                )
+                val fallbackShiftPx = TypedValue.applyDimension(
+                    TypedValue.COMPLEX_UNIT_DIP,
+                    fallbackNavShiftDp,
+                    resources.displayMetrics
+                )
+
+                val navRect = Rect()
+                val titleRect = Rect()
+                val navView = binding.topToolbar.getNavigationIconView()
+                val hasRects = navView?.getGlobalVisibleRect(navRect) == true &&
+                    binding.collapsingTitle.getGlobalVisibleRect(titleRect)
+                val requiredShiftPx = if (hasRects) {
+                    // Move title so its left edge starts after nav icon + gap.
+                    (navRect.right + navGapPx - titleRect.left).coerceAtLeast(0f)
+                } else {
+                    fallbackShiftPx
+                }
+
+                binding.collapsingTitle.translationX = 100f * collapseFraction
             } else {
                 binding.collapsingTitle.translationX = 0f
             }
@@ -75,19 +86,79 @@ open class MySearchMenu(context: Context, attrs: AttributeSet) : MyAppBarLayout(
 
     fun getActionModeToolbar(): CustomActionModeToolbar = binding.actionModeToolbar
 
+    fun isActionModeToolbarVisible(): Boolean = binding.actionModeToolbar.visibility == View.VISIBLE
+
     /** Large title under the toolbar (e.g. "Recents"); hide while the inline search field is expanded. */
     fun setCollapsingTitleVisible(visible: Boolean) {
         binding.collapsingTitle.visibility = if (visible) View.VISIBLE else View.GONE
     }
 
     fun showActionModeToolbar() {
-        binding.actionModeToolbar.visibility = View.VISIBLE
-        binding.searchBarContainer.visibility = View.GONE
+        fun stableHeightPx(): Int = when {
+            height > 0 -> height
+            measuredHeight > 0 -> measuredHeight
+            else -> 0
+        }
+        fun lockHeightIfNeeded() {
+            if (savedLayoutHeightBeforeActionMode != null) return
+            val sh = stableHeightPx()
+            if (sh > 0) {
+                savedLayoutHeightBeforeActionMode = layoutParams?.height ?: ViewGroup.LayoutParams.WRAP_CONTENT
+                layoutParams = layoutParams.apply { height = sh }
+            }
+        }
+        fun applyVisibility() {
+            binding.actionModeToolbar.visibility = View.VISIBLE
+            binding.searchBarContainer.visibility = View.GONE
+            binding.searchBarContainer.requestLayout()
+            requestLayout()
+        }
+        lockHeightIfNeeded()
+        if (savedLayoutHeightBeforeActionMode == null) {
+            // After resume the app bar can be unmeasured on the first frame; lock on the next pass.
+            post {
+                lockHeightIfNeeded()
+                applyVisibility()
+            }
+            return
+        }
+        applyVisibility()
     }
 
     fun hideActionModeToolbar() {
         binding.actionModeToolbar.visibility = View.GONE
         binding.searchBarContainer.visibility = View.VISIBLE
+        savedLayoutHeightBeforeActionMode?.let { previousHeight ->
+            layoutParams = layoutParams.apply {
+                height = previousHeight
+            }
+            savedLayoutHeightBeforeActionMode = null
+        }
+        binding.searchBarContainer.requestLayout()
+        // Restore full collapsing toolbar geometry for CoordinatorLayout + list behavior.
+        setExpanded(true, false)
+        requestLayout()
+    }
+
+    /**
+     * Glass-style top chrome: app bar and collapsing container stay transparent so blur can read
+     * content behind. [background] is only for API symmetry; status bar / system UI still use it
+     * via [updateTopBarColors] in [updateColors]. Put a solid fill on the coordinator behind this
+     * view so the status-bar inset does not show the window black.
+     */
+    fun applyChromeBackground(_background: Int) {
+        setBackgroundColor(Color.TRANSPARENT)
+        binding.searchBarContainer.setBackgroundColor(Color.TRANSPARENT)
+        binding.actionModeToolbar.setBackgroundColor(Color.TRANSPARENT)
+    }
+
+    /** One place to recover app bar geometry after process resume / action mode. */
+    fun refreshChromeAfterActivityResume(expandForRecentsMode: Boolean) {
+        if (expandForRecentsMode && !isActionModeToolbarVisible()) {
+            setExpanded(true, false)
+        }
+        ViewCompat.requestApplyInsets(this)
+        requestLayout()
     }
 
     fun collapseAndLockCollapsing() {
@@ -161,11 +232,16 @@ open class MySearchMenu(context: Context, attrs: AttributeSet) : MyAppBarLayout(
     fun updateColors(background: Int = context.getProperBackgroundColor(), scrollOffset: Int = 0) {
         val primaryColor = context.getProperPrimaryColor()
 
-        setBackgroundColor(background)
-        binding.searchBarContainer.setBackgroundColor(background)
         (context as? BaseSimpleActivity)?.updateTopBarColors(this, background)
+        // [updateTopBarColors] sets a solid bar fill; restore glass transparency for this menu.
+        applyChromeBackground(background)
 
         if (context.baseConfig.topAppBarColorTitle) binding.topToolbar.setTitleTextColor(ColorStateList.valueOf(primaryColor))
+    }
+
+    /** App bar + search strip area only; does not change status bar / title colors from [updateColors]. */
+    fun setMenuBarBackgroundColor(color: Int) {
+        applyChromeBackground(color)
     }
 
     fun updateTitle(title: String) {

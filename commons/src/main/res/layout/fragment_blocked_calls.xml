@@ -12,12 +12,31 @@
         android:scrollbars="vertical"
         android:visibility="gone" />
 
-    <com.goodwy.commons.views.MyTextView
+    <LinearLayout
         android:id="@+id/blocked_calls_placeholder"
-        android:layout_width="match_parent"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
         android:gravity="center"
-        android:padding="@dimen/activity_margin"
-        android:text="@string/no_blocked_calls" />
+        android:orientation="vertical"
+        android:padding="@dimen/activity_margin">
+
+        <ImageView
+            android:layout_width="wrap_content"
+            android:layout_height="@dimen/empty_placeholder_icon_size"
+            android:layout_gravity="center"
+            android:contentDescription="@null"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_no_call" />
+
+        <com.goodwy.commons.views.MyTextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_marginTop="@dimen/medium_normal_margin"
+            android:gravity="center"
+            android:text="@string/no_blocked_calls"
+            android:textColor="@color/tx_sub_text"
+            android:textSize="@dimen/tx_dialog_content" />
+    </LinearLayout>
 </FrameLayout>

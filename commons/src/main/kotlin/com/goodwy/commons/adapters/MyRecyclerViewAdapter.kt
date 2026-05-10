@@ -267,12 +267,12 @@ abstract class MyRecyclerViewAdapter(
         val selectableItemCount = getSelectableItemCount()
         val selectedCount = min(selectedKeys.size, selectableItemCount)
         val oldTitle = actBarToolbar?.title
-        val newTitle = resources.getString(com.goodwy.commons.R.string.action_mode_selection_title, selectedCount, selectableItemCount)
+        val newTitle = resources.getString(com.goodwy.commons.R.string.action_mode_selection_title, selectedCount)
         if (oldTitle != newTitle) {
             actBarToolbar?.title = newTitle
             actMode?.invalidate()
         }
-        
+
         // Update select all button icon based on selection state
         // Note: Subclasses should override this to provide the correct menu item ID
         updateSelectAllButtonIconIfAvailable(selectableItemCount, selectedCount)

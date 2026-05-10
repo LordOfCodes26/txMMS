@@ -1,6 +1,5 @@
 package com.goodwy.commons.dialogs
 
-import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.res.Resources
 import android.view.LayoutInflater
@@ -30,7 +29,6 @@ abstract class BasePropertiesDialog(activity: Activity) {
         mPropertyView = mDialogView.propertiesHolder
     }
 
-    @SuppressLint("SetTextI18n")
     protected fun addProperty(labelId: Int, value: String?, viewId: Int = 0) {
         if (value == null) {
             return
@@ -40,7 +38,7 @@ abstract class BasePropertiesDialog(activity: Activity) {
             propertyValue.setTextColor(mActivity.getProperTextColor())
             propertyLabel.setTextColor(mActivity.getProperTextColor())
 
-            propertyLabel.text = mResources.getString(labelId) + ": "
+            propertyLabel.text = mResources.getString(labelId)
             propertyValue.text = value
             mPropertyView.findViewById<LinearLayout>(R.id.properties_holder).addView(root)
 

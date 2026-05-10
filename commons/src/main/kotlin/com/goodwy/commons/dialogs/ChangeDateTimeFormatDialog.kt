@@ -43,6 +43,7 @@ import java.util.Locale
 
 class ChangeDateTimeFormatDialog(val activity: Activity, val showShamsi: Boolean = false, val callback: () -> Unit) {
     private val view = DialogChangeDateTimeFormatBinding.inflate(activity.layoutInflater, null, false)
+    private val dateFormatAtOpen = activity.baseConfig.dateFormat
 
     init {
         view.apply {
@@ -56,7 +57,7 @@ class ChangeDateTimeFormatDialog(val activity: Activity, val showShamsi: Boolean
             val formatButton = when (activity.baseConfig.dateFormat) {
                 DATE_FORMAT_ONE -> changeDateTimeDialogRadioOne
                 DATE_FORMAT_TWO -> changeDateTimeDialogRadioTwo
-                DATE_FORMAT_THREE -> changeDateTimeDialogRadioThree
+                DATE_FORMAT_THREE, DATE_FORMAT_FIFTEEN -> changeDateTimeDialogRadioThree
                 DATE_FORMAT_FOUR -> changeDateTimeDialogRadioFour
                 DATE_FORMAT_FIVE -> changeDateTimeDialogRadioFive
                 DATE_FORMAT_SIX -> changeDateTimeDialogRadioSix
@@ -102,7 +103,8 @@ class ChangeDateTimeFormatDialog(val activity: Activity, val showShamsi: Boolean
         activity.baseConfig.dateFormat = when (view.changeDateTimeDialogRadioGroup.checkedRadioButtonId) {
             view.changeDateTimeDialogRadioOne.id -> DATE_FORMAT_ONE
             view.changeDateTimeDialogRadioTwo.id -> DATE_FORMAT_TWO
-            view.changeDateTimeDialogRadioThree.id -> DATE_FORMAT_THREE
+            view.changeDateTimeDialogRadioThree.id ->
+                if (dateFormatAtOpen == DATE_FORMAT_FIFTEEN) DATE_FORMAT_FIFTEEN else DATE_FORMAT_THREE
             view.changeDateTimeDialogRadioFour.id -> DATE_FORMAT_FOUR
             view.changeDateTimeDialogRadioFive.id -> DATE_FORMAT_FIVE
             view.changeDateTimeDialogRadioSix.id -> DATE_FORMAT_SIX
@@ -141,6 +143,7 @@ fun ChangeDateTimeFormatAlertDialog(
             Pair(DATE_FORMAT_ONE, formatDateSample(DATE_FORMAT_ONE)),
             Pair(DATE_FORMAT_TWO, formatDateSample(DATE_FORMAT_TWO)),
             Pair(DATE_FORMAT_THREE, formatDateSample(DATE_FORMAT_THREE)),
+            Pair(DATE_FORMAT_FIFTEEN, formatDateSample(DATE_FORMAT_FIFTEEN)),
             Pair(DATE_FORMAT_FOUR, formatDateSample(DATE_FORMAT_FOUR)),
             Pair(DATE_FORMAT_FIVE, formatDateSample(DATE_FORMAT_FIVE)),
             Pair(DATE_FORMAT_SIX, formatDateSample(DATE_FORMAT_SIX)),

@@ -164,6 +164,8 @@ const val WAS_INITIAL_UPGRADE_TO_PRO_SHOWN = "was_initial_upgrade_to_pro_shown"
 const val WAS_APP_ICON_CUSTOMIZATION_WARNING_SHOWN = "was_app_icon_customization_warning_shown"
 const val APP_SIDELOADING_STATUS = "app_sideloading_status"
 const val DATE_FORMAT = "date_format"
+/** One-shot migration: [DATE_FORMAT_ONE] corrected to [DATE_FORMAT_FIFTEEN] when system order is month-first. */
+const val DATE_FORMAT_ORDER_MIGRATED_V1 = "date_format_order_migrated_v1"
 const val WAS_OTG_HANDLED = "was_otg_handled_2"
 const val WAS_UPGRADED_FROM_FREE_SHOWN = "was_upgraded_from_free_shown"
 const val WAS_APP_RATED = "was_app_rated"
@@ -530,11 +532,13 @@ const val DATE_FORMAT_SIX = "MMMM d yyyy"
 const val DATE_FORMAT_SEVEN = "MM-dd-yyyy"
 const val DATE_FORMAT_EIGHT = "dd-MM-yyyy"
 const val DATE_FORMAT_NINE = "yyyyMMdd"
-const val DATE_FORMAT_TEN = "yyyy.M.d"
+const val DATE_FORMAT_TEN = "yyyy.MM.dd"
 const val DATE_FORMAT_ELEVEN = "yy-MM-dd"
 const val DATE_FORMAT_TWELVE = "yyMMdd"
 const val DATE_FORMAT_THIRTEEN = "yy.MM.dd"
 const val DATE_FORMAT_FOURTEEN = "yy/MM/dd"
+/** Month before day with dots (mirrors [DATE_FORMAT_ONE] but US-style order). */
+const val DATE_FORMAT_FIFTEEN = "MM.dd.yyyy"
 
 const val TIME_FORMAT_12 = "hh:mm a"
 const val TIME_FORMAT_24 = "HH:mm"
@@ -733,6 +737,7 @@ fun getDateFormatsWithYear() = arrayListOf(
     DATE_FORMAT_TWELVE,
     DATE_FORMAT_THIRTEEN,
     DATE_FORMAT_FOURTEEN,
+    DATE_FORMAT_FIFTEEN,
 )
 
 val normalizeRegex = "\\p{InCombiningDiacriticalMarks}+".toRegex()

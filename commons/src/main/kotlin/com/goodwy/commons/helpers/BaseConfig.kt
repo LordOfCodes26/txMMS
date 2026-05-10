@@ -480,7 +480,10 @@ open class BaseConfig(val context: Context) {
         set(appSideloadingStatus) = prefs.edit { putInt(APP_SIDELOADING_STATUS, appSideloadingStatus)}
 
     var dateFormat: String
-        get() = prefs.getString(DATE_FORMAT, getDefaultDateFormat())!!
+        get() {
+            migrateMisassignedDayMonthDateFormatIfNeeded()
+            return prefs.getString(DATE_FORMAT, getDefaultDateFormat())!!
+        }
         set(dateFormat) = prefs.edit { putString(DATE_FORMAT, dateFormat) }
 
     val isDateFormat: Flow<String> = ::dateFormat.asFlowNonNull()
@@ -498,7 +501,46 @@ open class BaseConfig(val context: Context) {
             "mm-dd-y" -> DATE_FORMAT_SEVEN
             "dd-mm-y" -> DATE_FORMAT_EIGHT
             "y.mm.dd" -> DATE_FORMAT_TEN
-            else -> DATE_FORMAT_TEN
+            else -> defaultDateFormatForSystemDateOrder()
+        }
+    }
+
+    /**
+     * When [DateFormat.getDateFormat] pattern is not one of the known normalized forms,
+     * derive day/month/year order from the system short-date pattern so we do not default
+     * to [DATE_FORMAT_ONE] (day.month) for locales that use month.day (e.g. many en_US patterns).
+     */
+    private fun defaultDateFormatForSystemDateOrder(): String {
+        val order = try {
+            DateFormat.getDateFormatOrder(context)
+        } catch (_: IllegalArgumentException) {
+            return DATE_FORMAT_ONE
+        }
+        if (order.isEmpty()) return DATE_FORMAT_ONE
+        return when (order[0]) {
+            'y' -> DATE_FORMAT_FOUR
+            'M' -> DATE_FORMAT_FIFTEEN
+            'd' -> DATE_FORMAT_ONE
+            else -> DATE_FORMAT_ONE
+        }
+    }
+
+    /**
+     * Older installs could store [DATE_FORMAT_ONE] when the system short-date order was month-first
+     * (unknown [SimpleDateFormat.toLocalizedPattern] branches fell through to day.month).
+     */
+    private fun migrateMisassignedDayMonthDateFormatIfNeeded() {
+        if (prefs.getBoolean(DATE_FORMAT_ORDER_MIGRATED_V1, false)) return
+        prefs.edit { putBoolean(DATE_FORMAT_ORDER_MIGRATED_V1, true) }
+        val stored = prefs.getString(DATE_FORMAT, null) ?: return
+        if (stored != DATE_FORMAT_ONE) return
+        val order = try {
+            DateFormat.getDateFormatOrder(context)
+        } catch (_: IllegalArgumentException) {
+            return
+        }
+        if (order.isNotEmpty() && order[0] == 'M') {
+            prefs.edit { putString(DATE_FORMAT, DATE_FORMAT_FIFTEEN) }
         }
     }
 

@@ -1,6 +1,5 @@
 package com.goodwy.commons.extensions
 
-import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.Dialog
@@ -37,7 +36,6 @@ import androidx.biometric.BiometricPrompt
 import androidx.biometric.auth.AuthPromptCallback
 import androidx.biometric.auth.AuthPromptHost
 import androidx.biometric.auth.Class2BiometricAuthPrompt
-import androidx.core.app.ActivityCompat
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.FragmentActivity
@@ -55,10 +53,38 @@ import com.goodwy.commons.views.MyTextView
 import eightbitlab.com.blurview.BlurTarget
 import eightbitlab.com.blurview.BlurView
 import java.io.*
+import java.lang.ref.WeakReference
 import java.util.Locale
 import java.util.TreeSet
 import java.util.WeakHashMap
 import androidx.core.net.toUri
+
+private val activeMDialogsByActivity = WeakHashMap<Activity, MutableList<WeakReference<MDialog>>>()
+
+private fun Activity.trackMDialog(dialog: MDialog) {
+    synchronized(activeMDialogsByActivity) {
+        val refs = activeMDialogsByActivity.getOrPut(this) { mutableListOf() }
+        refs.removeAll { ref ->
+            val trackedDialog = ref.get()
+            trackedDialog == null || trackedDialog == dialog || !trackedDialog.isShowing
+        }
+        refs.add(WeakReference(dialog))
+    }
+}
+
+fun Activity.dismissTrackedMDialogs() {
+    val dialogsToDismiss = synchronized(activeMDialogsByActivity) {
+        val refs = activeMDialogsByActivity[this].orEmpty()
+        refs.mapNotNull { it.get() }.also {
+            activeMDialogsByActivity.remove(this)
+        }
+    }
+    dialogsToDismiss.forEach { dialog ->
+        if (dialog.isShowing) {
+            runCatching { dialog.dismiss() }
+        }
+    }
+}
 
 fun Activity.appLaunched(appId: String) {
     baseConfig.internalStoragePath = getInternalStoragePath()
@@ -637,10 +663,7 @@ fun Activity.launchViewContactIntent(uri: Uri) {
     }
 }
 
-@SuppressLint("MissingPermission")
 fun BaseSimpleActivity.launchCallIntent(recipient: String, handle: PhoneAccountHandle? = null, key: String = "") {
-//    changed by sun
-//    original code -------->
     handlePermission(PERMISSION_CALL_PHONE) {
         val action = if (it) Intent.ACTION_CALL else Intent.ACTION_DIAL
         Intent(action).apply {
@@ -661,19 +684,6 @@ fun BaseSimpleActivity.launchCallIntent(recipient: String, handle: PhoneAccountH
             launchActivityIntent(this)
         }
     }
-//  <----------
-//    changed code --->
-//    val uri = Uri.fromParts("tel", recipient, null)
-//    Intent(Intent.ACTION_DIAL).apply {
-//        data = uri
-//
-//        if (handle != null) {
-//            putExtra(TelecomManager.EXTRA_PHONE_ACCOUNT_HANDLE, handle)
-//        }
-//        putExtra(IS_RIGHT_APP, key)
-//        launchActivityIntent(this)
-//    }
-//    <-------------
 }
 
 fun Activity.launchSendSMSIntent(recipient: String) {
@@ -1657,11 +1667,12 @@ fun Activity.setupMDialogStuff(
 //    dialog.window?.setBackgroundDrawable(bgDrawable)
     dialog.window?.setGravity(Gravity.BOTTOM)
 
-    callback?.invoke(dialog)
     if (!isFinishing) {
         dialog.show()
+        trackMDialog(dialog)
     }
 
+    callback?.invoke(dialog)
     return dialog
 }
 
