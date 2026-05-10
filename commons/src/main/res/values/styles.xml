@@ -413,7 +413,7 @@
     </style>
     <!-- added by sun for quick text edit -->
     <style name="OverflowEditIconStyle">
-        <item name="srcCompat">@drawable/ic_edit_btn</item>
+        <item name="srcCompat">@drawable/ic_cmn_edit</item>
         <item name="android:background">?attr/selectableItemBackgroundBorderless</item>
         <item name="android:paddingStart">@dimen/normal_margin</item>
         <item name="android:paddingTop">@dimen/normal_margin</item>

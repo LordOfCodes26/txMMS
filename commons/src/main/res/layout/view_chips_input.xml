@@ -99,7 +99,7 @@
             android:id="@+id/chips_address_book_button"
             android:layout_width="@dimen/tx_common_icon_size"
             android:layout_height="@dimen/tx_common_icon_size"
-            android:background="@drawable/ic_contact_add"
+            android:background="@drawable/ic_cmn_contact_add"
             android:contentDescription="@string/search_contacts"
             android:layout_marginEnd="@dimen/medium_md_margin"
             android:padding="@dimen/tiny_margin"
