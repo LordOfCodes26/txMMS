@@ -273,6 +273,7 @@ class SmsStorageLocationActivity : SimpleActivity() {
             currentLocation,
             R.string.sms_storage_location,
             blurTarget = blurTarget,
+            requireConfirmButton =true,
         ) { selected ->
             config.setSmsStorageLocation(sim.subscriptionId, selected as Int)
             updateRowValue(sim.subscriptionId, rowBinding)
