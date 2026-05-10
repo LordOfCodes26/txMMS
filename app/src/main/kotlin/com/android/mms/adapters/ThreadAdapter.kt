@@ -225,6 +225,8 @@ class ThreadAdapter(
 
     fun isActionModeActive(): Boolean = actModeCallback.isSelectable
 
+    fun cancelDragSelection() = recyclerView.cancelDragSelection()
+
     /** Visibility for thread CAB items (overflow was [cab_thread]; now used by [buildThreadRippleToolbar]). */
     private fun configureThreadActionMenuItems(menu: Menu) {
         val isOneItemSelected = isOneItemSelected()

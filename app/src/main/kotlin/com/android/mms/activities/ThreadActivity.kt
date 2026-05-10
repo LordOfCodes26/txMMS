@@ -2858,6 +2858,14 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         if (!isRecycleBin) {
             hideKeyboard()
             binding.messageHolder.threadTypeMessage.clearFocus()
+            // The keyboard dismissal causes the RecyclerView to expand and items to shift.
+            // Cancel any active drag selection after setDragSelectActive() has been called
+            // (which happens synchronously after this method returns in viewLongClicked), so
+            // that the layout change does not cause unintended range selection.
+            binding.threadMessagesList.post {
+                (binding.threadMessagesList.adapter as? ThreadAdapter)
+                    ?.cancelDragSelection()
+            }
         }
         binding.threadToolbar.beGone()
         binding.topDetailsCompact.root.beGone()

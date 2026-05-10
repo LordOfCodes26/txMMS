@@ -230,6 +230,13 @@ open class MyRecyclerView : RecyclerView {
         dragListener?.selectItem(initialSelection)
     }
 
+    fun cancelDragSelection() {
+        dragSelectActive = false
+        inTopHotspot = false
+        inBottomHotspot = false
+        autoScrollHandler.removeCallbacks(autoScrollRunnable)
+    }
+
     private fun getItemPosition(e: MotionEvent): Int {
         val v = findChildViewUnder(e.x, e.y) ?: return NO_POSITION
 
