@@ -106,10 +106,11 @@ class ConversationsAdapter(
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         super.onBindViewHolder(holder, position)
         val conversation = getConversationAt(position) ?: return
+        val binding = ItemConversationBinding.bind(holder.itemView)
         // Root is SwipeActionView; it consumes touch for swipe and long-press may never fire there.
         // Attach long-click to the inner content view so the actions dialog is triggered.
         holder.itemView.setOnLongClickListener(null)
-        ItemConversationBinding.bind(holder.itemView).conversationFrameSelect.apply {
+        binding.conversationFrameSelect.apply {
             isLongClickable = true
             setOnLongClickListener {
                 showConversationActionsDialog(conversation, this)
@@ -119,12 +120,12 @@ class ConversationsAdapter(
 
         //redraw underline when start | hide a action mode
         if ((activity as? MainActivity)?.getActionModeState() == true){
-            ItemConversationBinding.bind(holder.itemView).divider.apply {
+            binding.divider.apply {
                 updateMarginWithBase(0,  0, -80, 0)
             }
         }
         else {
-            ItemConversationBinding.bind(holder.itemView).divider.apply {
+            binding.divider.apply {
                 updateMarginWithBase(0,  0, 0, 0)
             }
         }

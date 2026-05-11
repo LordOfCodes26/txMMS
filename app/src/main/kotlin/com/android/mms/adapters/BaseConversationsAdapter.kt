@@ -358,11 +358,12 @@ abstract class BaseConversationsAdapter(
     override fun onBindViewHolder(holder: ViewHolder, position: Int, payloads: MutableList<Any>) {
         val payload = payloads.firstOrNull()
         if (payload is RecyclerSelectionPayload && currentList.getOrNull(position) is ConversationListItem.ConversationItem) {
-            holder.itemView.isSelected = payload.selected
+            // holder.itemView.isSelected = payload.selected
             try {
                 val binding = ItemConversationBinding.bind(holder.itemView)
-                binding.swipeView.isSelected = payload.selected
-                binding.conversationFrameSelect.isSelected = payload.selected
+                holder.itemView.isSelected = false
+                binding.swipeView.isSelected = false
+                binding.conversationFrameSelect.isSelected = false
                 val isInActionMode = actModeCallback.isSelectable
                 binding.conversationCheckbox.beVisibleIf(isInActionMode)
                 binding.conversationCheckbox.isChecked = payload.selected
@@ -518,8 +519,8 @@ abstract class BaseConversationsAdapter(
             if (!activity.config.useDividers) divider.beInvisible() else divider.beVisible()
             divider.setBackgroundColor(blackDarkTextColor)
 
-            swipeView.isSelected = isRowSelected
-            conversationFrameSelect.isSelected = isRowSelected
+            swipeView.isSelected = false
+            conversationFrameSelect.isSelected = false
             conversationCheckbox.apply {
                 beVisibleIf(isInActionMode)
                 isChecked = isRowSelected
