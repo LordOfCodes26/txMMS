@@ -53,14 +53,18 @@ import com.android.mms.extensions.syncBlurTargetTopMarginForMenu
 import com.android.mms.extensions.syncTopSideFrameHeightForMenu
 import com.android.mms.extensions.setupMySearchMenuSpringSync
 import com.android.mms.adapters.ContactPickerAdapter
+import com.android.mms.extensions.setRippleTabEnabledWidthAlpha
 import com.android.mms.models.Contact
 import com.android.mms.models.ContactPickerListRow
 import com.goodwy.commons.extensions.beGone
 import com.goodwy.commons.extensions.beInvisible
+import com.goodwy.commons.extensions.getProperBlurOverlayColor
+import com.goodwy.commons.extensions.viewBinding
 import java.util.Calendar
 import com.goodwy.commons.helpers.SimpleContactsHelper
 import com.goodwy.commons.views.MySearchMenu
 import eightbitlab.com.blurview.BlurTarget
+import eightbitlab.com.blurview.BlurView
 
 class ContactPickerActivity : SimpleActivity() {
 
@@ -506,16 +510,20 @@ class ContactPickerActivity : SimpleActivity() {
                 title = getString(com.android.common.R.string.confirm_common)
             })
         }
-        val blurTarget = findViewById<BlurTarget>(R.id.blurTarget)
-        tabBar?.setTabs(this, items, blurTarget)
 
+        val blurTarget = findViewById<BlurTarget>(R.id.blurTarget)
+
+        tabBar?.setTabs(this, items, blurTarget)
         tabBar?.setOnClickedListener { index ->
             when (index) {
                 0 -> {
                     setResult(RESULT_CANCELED)
                     finish()
                 }
-                1 -> returnSelectedContacts()
+                1 -> {
+                    if (selectedPositions.isEmpty()) return@setOnClickedListener
+                    returnSelectedContacts()
+                }
             }
         }
 
@@ -601,12 +609,13 @@ class ContactPickerActivity : SimpleActivity() {
                     if (contactIndex in allContacts.indices) {
                         if (isSelected) selectedPositions.add(contactIndex) else selectedPositions.remove(contactIndex)
                     }
-                    return
+                } else {
+                    if (contactIndex !in filteredContacts.indices) return
+                    val contact = filteredContacts[contactIndex]
+                    val idx = allContactKeyToIndex[contactNumberKey(contact.contactId, contact.phoneNumber)] ?: return
+                    if (isSelected) selectedPositions.add(idx) else selectedPositions.remove(idx)
                 }
-                if (contactIndex !in filteredContacts.indices) return
-                val contact = filteredContacts[contactIndex]
-                val idx = allContactKeyToIndex[contactNumberKey(contact.contactId, contact.phoneNumber)] ?: return
-                if (isSelected) selectedPositions.add(idx) else selectedPositions.remove(idx)
+                updateConfirmTabEnable()
             }
         })
 
@@ -650,8 +659,12 @@ class ContactPickerActivity : SimpleActivity() {
         updateFilterBar()
         resolveContactPickerListTopInsetPxIfNeeded()
         applyContactPickerListTopPadding()
+        updateConfirmTabEnable()
     }
 
+    private fun updateConfirmTabEnable() {
+        tabBar?.setRippleTabEnabledWidthAlpha(1, !selectedPositions.isEmpty())
+    }
     private fun setupTopBarNavigation() {
         blurAppBarLayout?.requireCustomToolbar()?.apply {
             val textColor = getProperTextColor()
@@ -923,6 +936,7 @@ class ContactPickerActivity : SimpleActivity() {
                     buildFilteredSelectedIndicesForAdapter(),
                 )
                 hideContactsLetterFastScroller()
+                updateConfirmTabEnable()
                 scheduleBrowseLoadMoreAfterChunk()
                 perfLog(
                     "startBrowse UI applied contacts=${chunk.contacts.size} uiMs=${SystemClock.elapsedRealtime() - uiStart} " +
@@ -1064,6 +1078,7 @@ class ContactPickerActivity : SimpleActivity() {
         callLogMeta.clear()
         filteredContacts.clear()
         selectedPositions.clear()
+        updateConfirmTabEnable()
         allContactKeyToIndex.clear()
         callLogPlaceholder?.visibility = View.GONE
         contactRecyclerView?.visibility = View.VISIBLE
@@ -1099,6 +1114,7 @@ class ContactPickerActivity : SimpleActivity() {
                             selectedIndices = emptySet(),
                         )
                         hideContactsLetterFastScroller()
+                        updateConfirmTabEnable()
                     }
                     return@Thread
                 }
@@ -1170,6 +1186,7 @@ class ContactPickerActivity : SimpleActivity() {
                         callLogPlaceholder?.visibility = View.GONE
                         contactRecyclerView?.visibility = View.VISIBLE
                     }
+                    updateConfirmTabEnable()
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
