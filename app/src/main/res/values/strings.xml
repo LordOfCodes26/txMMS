@@ -249,4 +249,6 @@
     <string name="sms_storage_location_phone">Phone</string>
     <string name="sms_storage_location_sim">SIM card</string>
 
+    <string name="unblock_sms">Unblock</string>
+
 </resources>

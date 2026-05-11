@@ -87,7 +87,7 @@ class BlockedConversationsFragment : BlockedMessagesFragment() {
         }
         val items = ArrayList<IconItem>().apply {
             add(IconItem().apply {
-                title = getString(CommonsR.string.unblock)
+                title = getString(R.string.unblock_sms)
                 icon = R.drawable.ic_sms_ripple_shield_delete
             })
         }

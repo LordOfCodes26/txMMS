@@ -201,14 +201,15 @@
     <string name="sms">SMS</string>
     <string name="mms">MMS</string>
 
-    <string name="sim_card_messages_manage">SIM card message manage</string>
-    <string name="sim_card_messages">SIM card messages</string>
-    <string name="sim_no_messages">No messages on SIM card</string>
-    <string name="sim_copy_to_phone">Copy to phone memory</string>
-    <string name="sim_delete_message">Delete from SIM</string>
-    <string name="sim_confirm_delete">Delete this message from the SIM card?</string>
-    <string name="sim_message_copied">Message copied to phone</string>
-    <string name="sms_storage_location">SMS storage location</string>
-    <string name="sms_storage_location_phone">Phone</string>
-    <string name="sms_storage_location_sim">SIM card</string>
+    <string name="sim_card_messages_manage">管理SIM卡消息</string>
+    <string name="sim_card_messages">SIM卡消息</string>
+    <string name="sim_no_messages">无SIM卡上的消息</string>
+    <string name="sim_copy_to_phone">复制到手机存储</string>
+    <string name="sim_delete_message">从SIM卡中删除</string>
+    <string name="sim_confirm_delete">确认从SIM卡上删除此消息吗？</string>
+    <string name="sim_message_copied">消息已复制到手机</string>
+    <string name="sms_storage_location">短信存储位置</string>
+    <string name="sms_storage_location_phone">手机</string>
+    <string name="sms_storage_location_sim">SIM卡</string>
+    <string name="unblock_sms">取消屏蔽</string>
 </resources>

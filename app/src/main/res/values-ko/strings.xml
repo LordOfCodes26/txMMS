@@ -206,7 +206,8 @@
     <string name="sim_delete_message">SIM카드에 보관된 통보문삭제</string>
     <string name="sim_confirm_delete">선택된 통보문을 삭제하겠습니까?</string>
     <string name="sim_message_copied">전화기에 통보문을 복사하였습니다.</string>
-    <string name="sms_storage_location">단문통보문복사위치</string>
+    <string name="sms_storage_location">단문통보문보관위치</string>
     <string name="sms_storage_location_phone">전화기</string>
     <string name="sms_storage_location_sim">SIM카드</string>
+    <string name="unblock_sms">차단해제</string>
 </resources>
