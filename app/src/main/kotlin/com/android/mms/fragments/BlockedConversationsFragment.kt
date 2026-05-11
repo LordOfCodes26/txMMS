@@ -17,6 +17,7 @@ import com.android.mms.extensions.getBlockedConversations
 import com.android.mms.extensions.hasMeaningfulLocalDraft
 import com.android.mms.extensions.getThreadRecipientPhoneNumbers
 import com.android.mms.extensions.getThreadTelephonyMessageCount
+import com.android.mms.extensions.setRippleTabEnabledWidthAlpha
 import com.android.mms.helpers.NEW_CONVERSATION_RESUME_DRAFT
 import com.android.mms.helpers.THREAD_ID
 import com.android.mms.helpers.THREAD_NUMBER
@@ -47,6 +48,8 @@ class BlockedConversationsFragment : BlockedMessagesFragment() {
     private lateinit var placeholder: View
     private var adapter: ConversationsAdapter? = null
     private val loadGeneration = AtomicInteger(0)
+
+    private var rippleActionBar: MRippleToolBar? = null
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -81,8 +84,9 @@ class BlockedConversationsFragment : BlockedMessagesFragment() {
 
     override fun bindRippleToolbarIfNeeded(ripple: MRippleToolBar, blurTarget: BlurTarget) {
         val a = adapter
+        rippleActionBar = ripple
         if (a == null || !a.isActionModeActive()) {
-            ripple.visibility = View.GONE
+            rippleActionBar?.visibility = View.GONE
             return
         }
         val items = ArrayList<IconItem>().apply {
@@ -91,12 +95,18 @@ class BlockedConversationsFragment : BlockedMessagesFragment() {
                 icon = R.drawable.ic_sms_ripple_shield_delete
             })
         }
-        ripple.setTabs(requireActivity() as BaseSimpleActivity, items, blurTarget)
-        ripple.setOnClickedListener { index ->
-            if (index == 0) a.actionItemPressed(R.id.cab_unblock_number)
+        rippleActionBar?.setTabs(requireActivity() as BaseSimpleActivity, items, blurTarget)
+        val hasSelection = a.getSelectedItems().isNotEmpty()
+        ripple.setRippleTabEnabledWidthAlpha(0, hasSelection)
+        rippleActionBar?.setOnClickedListener { index ->
+            if (index == 0) {
+                if (a.getSelectedItems().isEmpty()) return@setOnClickedListener
+                a.actionItemPressed(R.id.cab_unblock_number)
+            }
         }
-        ripple.visibility = View.VISIBLE
+        rippleActionBar?.visibility = View.VISIBLE
     }
+
 
     @SuppressLint("UnsafeIntentLaunch")
     private fun loadBlockedConversations() {

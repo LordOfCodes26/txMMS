@@ -53,6 +53,7 @@ import com.android.mms.models.Conversation
 import com.android.mms.models.ConversationListItem
 import com.android.mms.models.Message
 import com.android.common.helper.IconItem
+import com.goodwy.commons.activities.BlockedItemsActivity
 import eightbitlab.com.blurview.BlurTarget
 
 class ConversationsAdapter(
@@ -298,6 +299,7 @@ class ConversationsAdapter(
     override fun updateSelectAllButtonIconIfAvailable(selectableItemCount: Int, selectedCount: Int) {
         super.updateSelectAllButtonIconIfAvailable(selectableItemCount, selectedCount)
         (activity as? MainActivity)?.refreshActionModeRippleToolbarIfNeeded()
+        (activity as? BlockedItemsActivity)?.refreshActionModeRippleToolbarIfNeeded()
     }
 
     /** Label for block/unblock slot on the bottom ripple toolbar (txDial [RecentCallsAdapter] pattern). */
