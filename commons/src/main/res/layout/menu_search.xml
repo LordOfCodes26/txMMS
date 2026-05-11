@@ -8,7 +8,7 @@
     <com.google.android.material.appbar.CollapsingToolbarLayout
         android:id="@+id/searchBarContainer"
         android:layout_width="match_parent"
-        android:layout_height="@dimen/tx_top_bar_expand_height"
+        android:layout_height="100dp"
         android:minHeight="?attr/actionBarSize"
         app:contentScrim="@android:color/transparent"
         app:statusBarScrim="@android:color/transparent"
