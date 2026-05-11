@@ -938,7 +938,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             clearExpiredScheduledMessages(threadId, messages)
             messages.removeAll { it.isScheduled && it.millis() < System.currentTimeMillis() }
 
-            messages.sortBy { it.date }
+            messages.sortWith(compareBy({ it.date }, { it.id }))
 
             setupParticipants()
             setupAdapter()
@@ -2039,7 +2039,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             return items
         }
 
-        messages.sortBy { it.date }
+        messages.sortWith(compareBy({ it.date }, { it.id }))
 
         val subscriptionIdToSimId = HashMap<Int, String>()
         subscriptionIdToSimId[-1] = "?"

@@ -31,8 +31,8 @@ interface MessagesDao {
     @Query("SELECT * FROM messages WHERE thread_id = :threadId")
     fun getThreadMessages(threadId: Long): List<Message>
 
-    /** Latest [limit] rows by date (descending). Reverse in Kotlin for chronological order. */
-    @Query("SELECT * FROM messages WHERE thread_id = :threadId ORDER BY date DESC LIMIT :limit")
+    /** Latest [limit] rows by date (descending), with id as tiebreaker for same-second messages. Reverse in Kotlin for chronological order. */
+    @Query("SELECT * FROM messages WHERE thread_id = :threadId ORDER BY date DESC, id DESC LIMIT :limit")
     fun getRecentThreadMessages(threadId: Long, limit: Int): List<Message>
 
     @Query("SELECT messages.* FROM messages LEFT OUTER JOIN recycle_bin_messages ON messages.id = recycle_bin_messages.id WHERE recycle_bin_messages.id IS NULL AND thread_id = :threadId")
@@ -40,7 +40,7 @@ interface MessagesDao {
 
     @Query(
         "SELECT messages.* FROM messages LEFT OUTER JOIN recycle_bin_messages ON messages.id = recycle_bin_messages.id " +
-            "WHERE recycle_bin_messages.id IS NULL AND thread_id = :threadId ORDER BY date DESC LIMIT :limit",
+            "WHERE recycle_bin_messages.id IS NULL AND thread_id = :threadId ORDER BY date DESC, id DESC LIMIT :limit",
     )
     fun getRecentNonRecycledThreadMessages(threadId: Long, limit: Int): List<Message>
 
@@ -52,7 +52,7 @@ interface MessagesDao {
 
     @Query(
         "SELECT messages.* FROM messages LEFT OUTER JOIN recycle_bin_messages ON messages.id = recycle_bin_messages.id " +
-            "WHERE recycle_bin_messages.id IS NOT NULL AND thread_id = :threadId ORDER BY date DESC LIMIT :limit",
+            "WHERE recycle_bin_messages.id IS NOT NULL AND thread_id = :threadId ORDER BY date DESC, id DESC LIMIT :limit",
     )
     fun getRecentRecycleBinThreadMessages(threadId: Long, limit: Int): List<Message>
 
