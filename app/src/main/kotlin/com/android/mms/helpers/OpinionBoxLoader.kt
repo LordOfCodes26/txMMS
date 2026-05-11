@@ -1,22 +1,31 @@
 package com.tx.feedback.util
 
 import android.content.Context
+import org.json.JSONArray
+import org.json.JSONException
+import org.json.JSONObject
 import java.io.*
 import java.nio.charset.StandardCharsets
 import java.util.Locale
 
+
 /**
- * Loads opinion titles and numbers from a single file: /system/etc/opinion_box.info
- * Format: title[en]|title[ko]|title[zh]|number (one row per line)
- * <pre>
- * Call and SMS|전화 및 통보문|电话及短信|555
- * Signal and Mobile data|신호 및 자료접속|信号及数据连接|999
+ * Loads opinion titles and numbers from a single JSON file: file:/data/misc/txspace/common/opinion_box.json
+ *
+ *
+ * Expected JSON: array of objects. Each object has localized titles and a destination number:
+ * <pre>`[
+ * { "en": "...", "ko": "...", "zh": "...", "number": "555" },
  * ...
-</pre> *
- * Push with: adb push opinion_box.info /system/etc/
+ * ]
+`</pre> *
+ * `number` may be a JSON string or number. `zh-CN` is accepted as a fallback when `zh` is absent.
+ *
+ *
+ * Push with: adb push opinion_box.json file:/data/misc/txspace/common
  */
 object OpinionBoxLoader {
-    const val SYSTEM_PATH: String = "/system/etc/opinion_box.info"
+    const val SYSTEM_PATH: String = "/system/etc/opinion_box.json"
     private var cachedTitles: Array<String?>? = null
     private var cachedNumbers: Array<String?>? = null
     private var cachedLocale: String? = null
@@ -31,11 +40,6 @@ object OpinionBoxLoader {
         return cachedNumbers
     }
 
-    private const val COL_EN = 0
-    private const val COL_KO = 1
-    private const val COL_ZH = 2
-    private const val COL_NUMBER = 3
-
     private fun ensureLoaded(context: Context?) {
         val lang = Locale.getDefault().getLanguage()
         if (cachedTitles != null && lang == cachedLocale) {
@@ -43,41 +47,81 @@ object OpinionBoxLoader {
         }
         cachedLocale = lang
 
-        val rows = parseFile()
+        val rows = parseJsonFile(File(SYSTEM_PATH))
         val titles: MutableList<String?> = ArrayList<String?>()
         val numbers: MutableList<String?> = ArrayList<String?>()
 
-        val titleCol = if (lang == "ko") COL_KO else (if (lang == "zh") COL_ZH else COL_EN)
-        for (parts in rows) {
-            if (parts!!.size > COL_NUMBER) {
-                titles.add(parts[titleCol]!!.trim { it <= ' ' })
-                numbers.add(parts[COL_NUMBER]!!.trim { it <= ' ' })
+        for (o in rows) {
+            val title = titleForLocale(o, lang)
+            val number = numberFromJson(o)
+            if (!number.isEmpty()) {
+                titles.add(title)
+                numbers.add(number)
             }
         }
         cachedTitles = titles.toTypedArray<String?>()
         cachedNumbers = numbers.toTypedArray<String?>()
     }
 
-    private fun parseFile(): MutableList<Array<String?>?> {
-        val rows: MutableList<Array<String?>?> = ArrayList<Array<String?>?>()
-        val file = File(SYSTEM_PATH)
+    private fun titleForLocale(o: JSONObject, lang: String?): String {
+        if ("ko" == lang) {
+            val v = o.optString("ko", "").trim { it <= ' ' }
+            if (!v.isEmpty()) return v
+        } else if ("zh" == lang) {
+            var v = o.optString("zh", "").trim { it <= ' ' }
+            if (!v.isEmpty()) return v
+            v = o.optString("zh-CN", "").trim { it <= ' ' }
+            if (!v.isEmpty()) return v
+        }
+        val en = o.optString("en", "").trim { it <= ' ' }
+        return if (en.isEmpty()) o.optString("ko", "").trim { it <= ' ' } else en
+    }
 
+    private fun numberFromJson(o: JSONObject): String {
+        if (!o.has("number") || o.isNull("number")) {
+            return ""
+        }
+        val `val` = o.opt("number")
+        if (`val` is Number) {
+            val n = `val`.toLong()
+            return n.toString()
+        }
+        return `val`.toString().trim { it <= ' ' }
+    }
+
+    @Throws(IOException::class)
+    private fun readUtf8File(file: File): String {
+        val sb = StringBuilder()
+        BufferedReader(
+            InputStreamReader(FileInputStream(file), StandardCharsets.UTF_8)
+        ).use { reader ->
+            val buf = CharArray(4096)
+            var n: Int
+            while ((reader.read(buf).also { n = it }) != -1) {
+                sb.append(buf, 0, n)
+            }
+        }
+        return sb.toString().trim { it <= ' ' }
+    }
+
+    private fun parseJsonFile(file: File): MutableList<JSONObject> {
+        val rows: MutableList<JSONObject> = ArrayList<JSONObject>()
         try {
-            BufferedReader(
-                InputStreamReader(FileInputStream(file), StandardCharsets.UTF_8)
-            ).use { reader ->
-                var line: String?
-                while ((reader.readLine().also { line = it }) != null) {
-                    line = line!!.trim { it <= ' ' }
-                    if (line.isEmpty()) continue
-                    val parts: Array<String?> = line.split("\\|".toRegex()).toTypedArray()
-                    if (parts.size > COL_NUMBER) {
-                        rows.add(parts)
-                    }
+            val text = readUtf8File(file)
+            if (text.isEmpty()) {
+                return rows
+            }
+            val root = JSONArray(text)
+            for (i in 0..<root.length()) {
+                val item = root.optJSONObject(i)
+                if (item != null) {
+                    rows.add(item)
                 }
             }
         } catch (e: IOException) {
-            throw RuntimeException("Failed to load " + SYSTEM_PATH, e)
+            throw RuntimeException("Failed to load or parse JSON " + SYSTEM_PATH, e)
+        } catch (e: JSONException) {
+            throw RuntimeException("Failed to load or parse JSON " + SYSTEM_PATH, e)
         }
         return rows
     }
