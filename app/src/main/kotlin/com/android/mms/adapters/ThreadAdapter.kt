@@ -137,6 +137,7 @@ class ThreadAdapter(
     itemClick: (Any) -> Unit,
     val isRecycleBin: Boolean,
     val isGroupChat: Boolean,
+    val retryFailedMessage: (Message) -> Unit,
     val deleteMessages: (messages: List<Message>, toRecycleBin: Boolean, fromRecycleBin: Boolean, isPopupMenu: Boolean) -> Unit
 ) : MyRecyclerViewListAdapter<ThreadItem>(activity, recyclerView, ThreadItemDiffCallback(), itemClick) {
     private var fontSize = activity.getTextSize()
@@ -755,8 +756,6 @@ class ThreadAdapter(
                     
                     if (message.isScheduled) {
                         holder.viewClicked(message)
-                    } else if (message.type == android.provider.Telephony.Sms.MESSAGE_TYPE_FAILED) {
-                        holder.viewClicked(message)
                     } else {
                         when (context.config.actionOnMessageClickSetting) {
                             ACTION_COPY_CODE -> {
@@ -1308,9 +1307,13 @@ class ThreadAdapter(
         // Status icon for sent messages: error | sending | sent/delivered
         if (isReceived) {
             messageBinding.threadMessageStatusIcon.beGone()
+            messageBinding.threadMessageRetryIcon.beGone()
         } else {
             messageBinding.threadMessageStatusIcon.apply {
                 clearColorFilter()
+                setOnClickListener(null)
+                isClickable = false
+                isFocusable = false
                 when (message.type) {
                     android.provider.Telephony.Sms.MESSAGE_TYPE_FAILED -> {
                         setImageResource(R.drawable.ic_sms_send_fail)
@@ -1337,6 +1340,23 @@ class ThreadAdapter(
                         beVisible()
                     }
                     else -> beGone()
+                }
+            }
+            messageBinding.threadMessageRetryIcon.apply {
+                clearColorFilter()
+                setOnClickListener(null)
+                isClickable = false
+                isFocusable = false
+                if (message.type == android.provider.Telephony.Sms.MESSAGE_TYPE_FAILED) {
+                    setImageResource(com.android.common.R.drawable.ic_cmn_refresh)
+                    applyColorFilter(textColor)
+                    contentDescription = activity.getString(R.string.message_not_sent_touch_retry)
+                    setOnClickListener { retryFailedMessage(message) }
+                    isClickable = true
+                    isFocusable = true
+                    beVisible()
+                } else {
+                    beGone()
                 }
             }
         }
@@ -1366,6 +1386,7 @@ class ThreadAdapter(
             }
         }
     }
+
     @SuppressLint("SetTextI18n")
     private fun setupDateTime(view: View, dateTime: ThreadDateTime) {
         ItemThreadDateTimeBinding.bind(view).apply {

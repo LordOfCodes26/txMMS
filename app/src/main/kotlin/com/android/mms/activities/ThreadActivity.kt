@@ -1104,6 +1104,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                 itemClick = { handleItemClick(it) },
                 isRecycleBin = isRecycleBin,
                 isGroupChat = participants.size > 1,
+                retryFailedMessage = { retryFailedMessage(it) },
                 deleteMessages = { messages, toRecycleBin, fromRecycleBin, isPopupMenu ->
                     deleteMessages(messages, toRecycleBin, fromRecycleBin, isPopupMenu)
                 }
@@ -1194,11 +1195,24 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
     private fun handleItemClick(any: Any) {
         when {
             any is Message && any.isScheduled -> showScheduledMessageInfo(any)
-            any is Message && any.type == Telephony.Sms.MESSAGE_TYPE_FAILED -> {
-                binding.messageHolder.threadTypeMessage.setText(any.body)
-                messageToResend = any.id
-            }
         }
+    }
+
+    private fun retryFailedMessage(message: Message) {
+        if (message.type != Telephony.Sms.MESSAGE_TYPE_FAILED) return
+
+        val subscriptionId = message.subscriptionId.takeIf { it != -1 }
+            ?: availableSIMCards.getOrNull(currentSIMCardIndex)?.subscriptionId
+            ?: SmsManager.getDefaultSmsSubscriptionId()
+        val attachments = message.attachment?.attachments ?: emptyList()
+
+        sendNormalMessage(
+            text = message.body,
+            subscriptionId = subscriptionId,
+            attachments = attachments,
+            messageId = message.id,
+            clearCompose = false,
+        )
     }
 
     private fun deleteMessages(
@@ -1496,7 +1510,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         if (isScheduledMessage) {
             sendScheduledMessage(text, finalSubscriptionId)
         } else {
-            sendNormalMessage(text, finalSubscriptionId)
+            sendNormalMessage(text, finalSubscriptionId, attachments)
         }
     }
 
@@ -2287,26 +2301,42 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         }
     }
 
-    private fun sendNormalMessage(text: String, subscriptionId: Int) {
+    private fun sendNormalMessage(
+        text: String,
+        subscriptionId: Int,
+        attachments: List<Attachment> = messageHolderHelper?.buildMessageAttachments() ?: emptyList(),
+        messageId: Long? = messageToResend,
+        clearCompose: Boolean = true,
+    ) {
         val addresses = participants.getAddresses()
-        val attachments = messageHolderHelper?.buildMessageAttachments() ?: emptyList()
 
         try {
             refreshedSinceSent = false
-            sendMessageCompat(text, addresses, subscriptionId, attachments, messageToResend)
+            sendMessageCompat(text, addresses, subscriptionId, attachments, messageId)
             ensureBackgroundThread {
-                val messages = getMessages(
+                val latestMessages = getMessages(
                     threadId,
                     limit = maxOf(1, attachments.size),
                     includeBlockedMessages = showBlockedMessagesInThread,
                 )
+                val messagesToInsertOrUpdate = latestMessages
                     .filterNotInByKey(messages) { it.getStableId() }
-                for (message in messages) {
+                    .toMutableList()
+                messageId?.let { resentMessageId ->
+                    latestMessages.firstOrNull { it.id == resentMessageId }?.let { resentMessage ->
+                        if (messagesToInsertOrUpdate.none { it.getStableId() == resentMessage.getStableId() }) {
+                            messagesToInsertOrUpdate.add(resentMessage)
+                        }
+                    }
+                }
+                for (message in messagesToInsertOrUpdate) {
                     insertOrUpdateMessage(message)
                 }
             }
-            clearCurrentMessage()
-            deleteComposeAttachmentCacheIfUnnecessary()
+            if (clearCompose) {
+                clearCurrentMessage()
+                deleteComposeAttachmentCacheIfUnnecessary()
+            }
 
         } catch (e: Exception) {
             showErrorToast(e)

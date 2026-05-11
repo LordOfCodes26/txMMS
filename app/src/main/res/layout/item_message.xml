@@ -111,6 +111,16 @@
                     tools:text="14:30" />
 
                 <ImageView
+                    android:id="@+id/threadMessageRetryIcon"
+                    android:layout_width="@dimen/normal_margin"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="@dimen/small_margin"
+                    android:visibility="gone"
+                    android:src="@drawable/ic_check_vector"
+                    tools:ignore="ContentDescription"
+                    tools:visibility="visible" />
+
+                <ImageView
                     android:id="@+id/threadMessageSimIcon"
                     android:layout_width="@dimen/normal_activity_margin"
                     android:layout_height="wrap_content"
