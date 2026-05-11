@@ -172,6 +172,8 @@ class ContactPickerActivity : SimpleActivity() {
     private var systemContactsSqlOffset = 0
     /** MyContacts provider entries; loaded once per picker session for merge on the first DB page. */
     private val privateContactsForMerge = ArrayList<SimpleContact>()
+    /** Invalidates stale async contact browse/search results when the query or mode changes. */
+    private var contactListGeneration = 0
 
     private data class CallLogEntryMeta(val type: Int, val timestamp: Long, val groupedCount: Int = 1)
 
@@ -555,18 +557,7 @@ class ContactPickerActivity : SimpleActivity() {
                 contactRecyclerView?.isNestedScrollingEnabled = false
                 contactRecyclerView?.scrollToPosition((contactAdapter?.itemCount ?: 1) - 1)
             }
-            setOnSearchBackClickListener {
-                val bar = blurAppBarLayout ?: return@setOnSearchBackClickListener
-                applyContactPickerFilterBarTopMarginForSearch(collapsedMenu = false)
-                contactPickerSearchListTopAppBarOffsetPx = 0
-                contactPickerListTopInsetPx = -1
-                bar.unlockCollapsing()
-                bar.setExpanded(true, true)
-                bar.binding.collapsingTitle.visibility = View.VISIBLE
-                setupTopBarNavigation()
-                contactRecyclerView?.isNestedScrollingEnabled = false
-                syncContactPickerBlurGeometryAndListTopPadding()
-            }
+            setOnSearchBackClickListener { finishContactPickerSearchMode() }
             setOnSearchTextChangedListener { s ->
                 searchString = s ?: ""
                 if (isCallLogMode) {
@@ -660,6 +651,37 @@ class ContactPickerActivity : SimpleActivity() {
         resolveContactPickerListTopInsetPxIfNeeded()
         applyContactPickerListTopPadding()
         updateConfirmTabEnable()
+    }
+
+    private fun finishContactPickerSearchMode() {
+        val bar = blurAppBarLayout ?: return
+        if (searchString.isNotEmpty()) {
+            searchString = ""
+            if (isCallLogMode) {
+                updateAdapterWithFilteredContacts()
+            } else {
+                searchListByQuery("")
+            }
+        }
+        applyContactPickerFilterBarTopMarginForSearch(collapsedMenu = false)
+        contactPickerSearchListTopAppBarOffsetPx = 0
+        contactPickerListTopInsetPx = -1
+        bar.unlockCollapsing()
+        bar.setExpanded(true, true)
+        bar.binding.collapsingTitle.visibility = View.VISIBLE
+        setupTopBarNavigation()
+        contactRecyclerView?.isNestedScrollingEnabled = false
+        syncContactPickerBlurGeometryAndListTopPadding()
+    }
+
+    override fun onBackPressedCompat(): Boolean {
+        val toolbar = blurAppBarLayout?.requireCustomToolbar()
+        if (toolbar?.isSearchExpanded == true) {
+            toolbar.collapseSearch()
+            finishContactPickerSearchMode()
+            return true
+        }
+        return super.onBackPressedCompat()
     }
 
     private fun updateConfirmTabEnable() {
@@ -845,15 +867,16 @@ class ContactPickerActivity : SimpleActivity() {
 
     private fun searchListByQuery(s: String) {
         searchString = s
-        if (s.trim().isEmpty()) {
+        val query = s.trim()
+        val requestGeneration = ++contactListGeneration
+        if (query.isEmpty()) {
             hasMoreContacts = false
             isLoadingMore = false
-            startBrowseContactsLoadFromDb()
+            startBrowseContactsLoadFromDb(requestGeneration)
             return
         }
         hasMoreContacts = false
         isLoadingMore = false
-        val query = s.trim()
         ensureBackgroundThread {
             val helper = SimpleContactsHelper(this@ContactPickerActivity)
             val systemMatches = helper.getAvailableContactsMatchingSearchSync(
@@ -885,6 +908,9 @@ class ContactPickerActivity : SimpleActivity() {
             }
             runOnUiThread {
                 if (isFinishing || isDestroyed) return@runOnUiThread
+                if (requestGeneration != contactListGeneration || isCallLogMode || searchString.trim() != query) {
+                    return@runOnUiThread
+                }
                 allContacts.clear()
                 allContacts.addAll(contactList)
                 allContactKeyToIndex.clear()
@@ -902,7 +928,7 @@ class ContactPickerActivity : SimpleActivity() {
     }
 
     /** First browse page from DB + private merge (same rules as [loadContacts]). */
-    private fun startBrowseContactsLoadFromDb() {
+    private fun startBrowseContactsLoadFromDb(requestGeneration: Int = ++contactListGeneration) {
         ensureBackgroundThread {
             val bgWall = SystemClock.elapsedRealtime()
             val tPrivate = SystemClock.elapsedRealtime()
@@ -921,6 +947,9 @@ class ContactPickerActivity : SimpleActivity() {
             runOnUiThread {
                 val uiStart = SystemClock.elapsedRealtime()
                 if (isFinishing || isDestroyed) return@runOnUiThread
+                if (requestGeneration != contactListGeneration || isCallLogMode || searchString.trim().isNotEmpty()) {
+                    return@runOnUiThread
+                }
                 allContacts.clear()
                 allContacts.addAll(chunk.contacts)
                 allContactKeyToIndex.clear()
@@ -1315,6 +1344,7 @@ class ContactPickerActivity : SimpleActivity() {
             )
             return
         }
+        val requestGeneration = contactListGeneration
         val wallStart = SystemClock.elapsedRealtime()
         val globalStart = allContacts.size
         perfLog("loadMore START listSize=$globalStart")
@@ -1327,6 +1357,10 @@ class ContactPickerActivity : SimpleActivity() {
                 if (isFinishing || isDestroyed) {
                     isLoadingMore = false
                     perfLog("loadMore ABORT finishing/destroyed bgMs=$bgMs")
+                    return@runOnUiThread
+                }
+                if (requestGeneration != contactListGeneration || isCallLogMode || searchString.isNotEmpty()) {
+                    isLoadingMore = false
                     return@runOnUiThread
                 }
                 val uiStart = SystemClock.elapsedRealtime()
