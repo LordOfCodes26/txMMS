@@ -52,7 +52,7 @@ class MessageBubblePickerActivity : SimpleActivity() {
             postSyncMySearchMenuToolbarGeometry(
                 binding.root,
                 binding.bubblePickerAppbar,
-                binding.mainBlurTarget,
+                binding.blurTarget,
                 binding.mVerticalSideFrameTop,
                 binding.bubblePickerList,
             )
@@ -86,6 +86,7 @@ class MessageBubblePickerActivity : SimpleActivity() {
         applyBubblePickerWindowSurfacesAndChrome()
         updateTextColors(binding.rootView)
         setupTopBar()
+        refreshSideFrameBlurAndInsets()
     }
 
     private fun applyBubblePickerWindowSurfacesAndChrome() {
@@ -94,6 +95,7 @@ class MessageBubblePickerActivity : SimpleActivity() {
         binding.root.setBackgroundColor(backgroundColor)
         binding.rootView.setBackgroundColor(backgroundColor)
         binding.mainBlurTarget.setBackgroundColor(backgroundColor)
+        binding.blurTarget.setBackgroundColor(backgroundColor)
         binding.bubblePickerList.setBackgroundColor(backgroundColor)
         scrollingView = binding.bubblePickerList
         binding.bubblePickerAppbar.updateColors(
@@ -114,9 +116,30 @@ class MessageBubblePickerActivity : SimpleActivity() {
     }
 
     private fun initMVSideFrames() {
-        val blurTarget = findViewById<BlurTarget>(R.id.mainBlurTarget)
+        val blurTarget = findViewById<BlurTarget>(R.id.blurTarget)
         findViewById<MVSideFrame>(R.id.m_vertical_side_frame_top).bindBlurTarget(blurTarget)
         findViewById<MVSideFrame>(R.id.m_vertical_side_frame_bottom).bindBlurTarget(blurTarget)
+    }
+
+    /** Top chrome uses the shifted inner blur target; the bottom ripple bar uses the unshifted outer target. */
+    private fun refreshSideFrameBlurAndInsets() {
+        binding.root.post {
+            ViewCompat.requestApplyInsets(binding.root)
+            binding.mVerticalSideFrameTop.bindBlurTarget(binding.blurTarget)
+            binding.mVerticalSideFrameBottom.bindBlurTarget(binding.blurTarget)
+            binding.bubblePickerAppbar.requireCustomToolbar().bindBlurTarget(
+                this@MessageBubblePickerActivity,
+                binding.blurTarget,
+            )
+            postSyncMySearchMenuToolbarGeometry(
+                binding.root,
+                binding.bubblePickerAppbar,
+                binding.blurTarget,
+                binding.mVerticalSideFrameTop,
+                binding.bubblePickerList,
+            )
+            setupActionTabs()
+        }
     }
 
     private fun makeSystemBarsToTransparent() {
@@ -165,7 +188,7 @@ class MessageBubblePickerActivity : SimpleActivity() {
             )
             setNavigationOnClickListener { cancelAndFinish() }
             setNavigationContentDescription(com.goodwy.commons.R.string.back)
-            bindBlurTarget(this@MessageBubblePickerActivity, binding.mainBlurTarget)
+            bindBlurTarget(this@MessageBubblePickerActivity, binding.blurTarget)
         }
     }
 

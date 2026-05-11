@@ -8,81 +8,86 @@
     android:layout_height="match_parent"
     tools:context=".activities.ContactPickerActivity">
 
-    <androidx.coordinatorlayout.widget.CoordinatorLayout
-        android:clipChildren="false"
-        android:clipToPadding="false"
+    <eightbitlab.com.blurview.BlurTarget
+        android:id="@+id/mainBlurTarget"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="@android:color/transparent">
-        <eightbitlab.com.blurview.BlurTarget
-            android:id="@+id/blurTarget"
-            android:background="@color/tx_common_bg"
+        android:layout_height="match_parent">
+
+        <androidx.coordinatorlayout.widget.CoordinatorLayout
+            android:clipChildren="false"
+            android:clipToPadding="false"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            app:layout_behavior="@string/appbar_scrolling_view_behavior">
-
-            <androidx.core.widget.NestedScrollView
-                android:id="@+id/nest_scroll"
+            android:background="@android:color/transparent">
+            <eightbitlab.com.blurview.BlurTarget
+                android:id="@+id/blurTarget"
+                android:background="@color/tx_common_bg"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:fillViewport="true"
-                android:scrollbars="none"
                 app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
-                <FrameLayout
+                <androidx.core.widget.NestedScrollView
+                    android:id="@+id/nest_scroll"
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent">
+                    android:layout_height="match_parent"
+                    android:fillViewport="true"
+                    android:scrollbars="none"
+                    app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
-                    <RelativeLayout
+                    <FrameLayout
                         android:layout_width="match_parent"
                         android:layout_height="match_parent">
 
-                        <com.goodwy.commons.views.MyTextView
-                            android:id="@+id/call_log_placeholder"
+                        <RelativeLayout
                             android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_alignParentTop="true"
-                            android:layout_marginTop="@dimen/activity_margin"
-                            android:alpha="0.8"
-                            android:gravity="center"
-                            android:paddingStart="@dimen/activity_margin"
-                            android:paddingTop="@dimen/activity_margin"
-                            android:paddingEnd="@dimen/activity_margin"
-                            android:text="@string/no_call_log"
-                            android:textSize="@dimen/tx_normal_text"
-                            android:textStyle="italic"
-                            android:visibility="gone" />
+                            android:layout_height="match_parent">
 
-                        <com.goodwy.commons.views.MyRecyclerView
-                            android:id="@+id/contactRecyclerView"
-                            android:layout_alignParentTop="true"
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:clipToPadding="false"
-                            android:nestedScrollingEnabled="false" />
+                            <com.goodwy.commons.views.MyTextView
+                                android:id="@+id/call_log_placeholder"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_alignParentTop="true"
+                                android:layout_marginTop="@dimen/activity_margin"
+                                android:alpha="0.8"
+                                android:gravity="center"
+                                android:paddingStart="@dimen/activity_margin"
+                                android:paddingTop="@dimen/activity_margin"
+                                android:paddingEnd="@dimen/activity_margin"
+                                android:text="@string/no_call_log"
+                                android:textSize="@dimen/tx_normal_text"
+                                android:textStyle="italic"
+                                android:visibility="gone" />
 
-                        <com.reddit.indicatorfastscroll.FastScrollerView
-                            android:id="@+id/contactsLetterFastscroller"
-                            android:layout_width="32dp"
-                            android:layout_height="match_parent"
-                            android:layout_alignTop="@id/contactRecyclerView"
-                            android:layout_alignBottom="@id/contactRecyclerView"
-                            android:layout_alignParentEnd="true"
-                            android:paddingStart="@dimen/normal_margin"
-                            android:textAppearance="@style/LetterFastscrollerStyleSmall" />
+                            <com.goodwy.commons.views.MyRecyclerView
+                                android:id="@+id/contactRecyclerView"
+                                android:layout_alignParentTop="true"
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:clipToPadding="false"
+                                android:nestedScrollingEnabled="false" />
 
-                        <com.reddit.indicatorfastscroll.FastScrollerThumbView
-                            android:id="@+id/contactsLetterFastscrollerThumb"
-                            android:layout_width="@dimen/fab_size"
-                            android:layout_height="match_parent"
-                            android:layout_alignTop="@id/contactsLetterFastscroller"
-                            android:layout_alignBottom="@id/contactsLetterFastscroller"
-                            android:layout_marginEnd="@dimen/activity_margin"
-                            android:layout_toStartOf="@id/contactsLetterFastscroller" />
-                    </RelativeLayout>
-                </FrameLayout>
-            </androidx.core.widget.NestedScrollView>
-        </eightbitlab.com.blurview.BlurTarget>
+                            <com.reddit.indicatorfastscroll.FastScrollerView
+                                android:id="@+id/contactsLetterFastscroller"
+                                android:layout_width="32dp"
+                                android:layout_height="match_parent"
+                                android:layout_alignTop="@id/contactRecyclerView"
+                                android:layout_alignBottom="@id/contactRecyclerView"
+                                android:layout_alignParentEnd="true"
+                                android:paddingStart="@dimen/normal_margin"
+                                android:textAppearance="@style/LetterFastscrollerStyleSmall" />
+
+                            <com.reddit.indicatorfastscroll.FastScrollerThumbView
+                                android:id="@+id/contactsLetterFastscrollerThumb"
+                                android:layout_width="@dimen/fab_size"
+                                android:layout_height="match_parent"
+                                android:layout_alignTop="@id/contactsLetterFastscroller"
+                                android:layout_alignBottom="@id/contactsLetterFastscroller"
+                                android:layout_marginEnd="@dimen/activity_margin"
+                                android:layout_toStartOf="@id/contactsLetterFastscroller" />
+                        </RelativeLayout>
+                    </FrameLayout>
+                </androidx.core.widget.NestedScrollView>
+            </eightbitlab.com.blurview.BlurTarget>
 
         <com.android.common.view.MVSideFrame
             android:id="@+id/m_vertical_side_frame_top"
@@ -194,21 +199,22 @@
             android:layout_gravity="bottom"
             app:isTopFrame="false"/>
 
-        <FrameLayout
-            android:id="@+id/lyt_action"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_gravity="bottom"
-            android:layout_marginLeft="15dp"
-            android:layout_marginRight="15dp"
-            android:layout_marginBottom="@dimen/ripple_bottom">
-            <com.android.common.view.MRippleToolBar
-                android:id="@+id/confirm_tab"
-                android:layout_gravity="center"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:visibility="visible"/>
-        </FrameLayout>
+        </androidx.coordinatorlayout.widget.CoordinatorLayout>
+    </eightbitlab.com.blurview.BlurTarget>
 
-    </androidx.coordinatorlayout.widget.CoordinatorLayout>
+    <FrameLayout
+        android:id="@+id/lyt_action"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:layout_marginLeft="15dp"
+        android:layout_marginRight="15dp"
+        android:layout_marginBottom="@dimen/ripple_bottom">
+        <com.android.common.view.MRippleToolBar
+            android:id="@+id/confirm_tab"
+            android:layout_gravity="center"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:visibility="visible"/>
+    </FrameLayout>
 </FrameLayout>

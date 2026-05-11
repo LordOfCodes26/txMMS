@@ -248,6 +248,7 @@ class ContactPickerActivity : SimpleActivity() {
         val useSurfaceColor = isDynamicTheme() && !isSystemInDarkMode()
         val backgroundColor = if (useSurfaceColor) getSurfaceColor() else getProperBackgroundColor()
         rootView?.setBackgroundColor(backgroundColor)
+        findViewById<BlurTarget>(R.id.mainBlurTarget)?.setBackgroundColor(backgroundColor)
         findViewById<BlurTarget>(R.id.blurTarget)?.setBackgroundColor(backgroundColor)
         scrollView?.setBackgroundColor(backgroundColor)
         contactRecyclerView?.setBackgroundColor(backgroundColor)
@@ -275,14 +276,30 @@ class ContactPickerActivity : SimpleActivity() {
         }
         applyContactPickerWindowSurfaces()
         setupTopBarNavigation()
+        setupBottomActionTabs()
         scrollingView = contactRecyclerView
         blurAppBarLayout?.updateColors(
             getStartRequiredStatusBarColor(),
             scrollingView?.computeVerticalScrollOffset() ?: 0,
         )
         setContactPickerTransparentAppBarBackground()
+        refreshSideFrameBlurAndInsets()
         if (isCallLogMode) {
             contactAdapter?.scheduleGroupedTodayTimeRefresh()
+        }
+    }
+
+    /** Top chrome uses the shifted inner blur target; the bottom ripple bar uses the unshifted outer target. */
+    private fun refreshSideFrameBlurAndInsets() {
+        rootView?.post {
+            val root = rootView ?: return@post
+            val topBlurTarget = findViewById<BlurTarget>(R.id.blurTarget) ?: return@post
+            ViewCompat.requestApplyInsets(root)
+            findViewById<MVSideFrame>(R.id.m_vertical_side_frame_top)?.bindBlurTarget(topBlurTarget)
+            findViewById<MVSideFrame>(R.id.m_vertical_side_frame_bottom)?.bindBlurTarget(topBlurTarget)
+            blurAppBarLayout?.requireCustomToolbar()?.bindBlurTarget(this@ContactPickerActivity, topBlurTarget)
+            syncContactPickerBlurGeometryAndListTopPadding()
+            setupBottomActionTabs()
         }
     }
 
@@ -502,33 +519,9 @@ class ContactPickerActivity : SimpleActivity() {
         bottomBarContainer = findViewById(R.id.lyt_action)
         tabBar = findViewById(R.id.confirm_tab)
 
-        val items = ArrayList<IconItem>().apply {
-            add(IconItem().apply {
-                icon = com.android.common.R.drawable.ic_cmn_cancel_fill
-                title = getString(com.android.common.R.string.cancel_common)
-            })
-            add(IconItem().apply {
-                icon = com.android.common.R.drawable.ic_cmn_circle_check_fill
-                title = getString(com.android.common.R.string.confirm_common)
-            })
-        }
+        setupBottomActionTabs()
 
         val blurTarget = findViewById<BlurTarget>(R.id.blurTarget)
-
-        tabBar?.setTabs(this, items, blurTarget)
-        tabBar?.setOnClickedListener { index ->
-            when (index) {
-                0 -> {
-                    setResult(RESULT_CANCELED)
-                    finish()
-                }
-                1 -> {
-                    if (selectedPositions.isEmpty()) return@setOnClickedListener
-                    returnSelectedContacts()
-                }
-            }
-        }
-
         blurAppBarLayout?.requireCustomToolbar()?.apply {
             inflateMenu(R.menu.menu_contact_picker)
             bindBlurTarget(this@ContactPickerActivity, blurTarget)
@@ -650,6 +643,36 @@ class ContactPickerActivity : SimpleActivity() {
         updateFilterBar()
         resolveContactPickerListTopInsetPxIfNeeded()
         applyContactPickerListTopPadding()
+        updateConfirmTabEnable()
+    }
+
+    private fun setupBottomActionTabs() {
+        val rippleBlurTarget = findViewById<BlurTarget>(R.id.mainBlurTarget)
+            ?: findViewById<BlurTarget>(R.id.blurTarget)
+            ?: return
+        val items = ArrayList<IconItem>().apply {
+            add(IconItem().apply {
+                icon = com.android.common.R.drawable.ic_cmn_cancel_fill
+                title = getString(com.android.common.R.string.cancel_common)
+            })
+            add(IconItem().apply {
+                icon = com.android.common.R.drawable.ic_cmn_circle_check_fill
+                title = getString(com.android.common.R.string.confirm_common)
+            })
+        }
+        tabBar?.setTabs(this, items, rippleBlurTarget)
+        tabBar?.setOnClickedListener { index ->
+            when (index) {
+                0 -> {
+                    setResult(RESULT_CANCELED)
+                    finish()
+                }
+                1 -> {
+                    if (selectedPositions.isEmpty()) return@setOnClickedListener
+                    returnSelectedContacts()
+                }
+            }
+        }
         updateConfirmTabEnable()
     }
 

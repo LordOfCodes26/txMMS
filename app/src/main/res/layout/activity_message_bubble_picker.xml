@@ -5,44 +5,49 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <androidx.coordinatorlayout.widget.CoordinatorLayout
+    <eightbitlab.com.blurview.BlurTarget
+        android:id="@+id/mainBlurTarget"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="@android:color/transparent"
-        android:clipChildren="false"
-        android:clipToPadding="false">
+        android:layout_height="match_parent">
 
-        <eightbitlab.com.blurview.BlurTarget
-            android:id="@+id/mainBlurTarget"
+        <androidx.coordinatorlayout.widget.CoordinatorLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="@color/tx_common_bg"
-            app:layout_behavior="@string/appbar_scrolling_view_behavior">
+            android:background="@android:color/transparent"
+            android:clipChildren="false"
+            android:clipToPadding="false">
 
-            <androidx.core.widget.NestedScrollView
-                android:id="@+id/nest_scroll"
+            <eightbitlab.com.blurview.BlurTarget
+                android:id="@+id/blurTarget"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:fillViewport="true"
-                android:scrollbars="none"
+                android:background="@color/tx_common_bg"
                 app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
-                <FrameLayout
+                <androidx.core.widget.NestedScrollView
+                    android:id="@+id/nest_scroll"
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent">
+                    android:layout_height="match_parent"
+                    android:fillViewport="true"
+                    android:scrollbars="none"
+                    app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
-                    <com.goodwy.commons.views.MyRecyclerView
-                        android:id="@+id/bubblePickerList"
+                    <FrameLayout
                         android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:clipToPadding="false"
-                        android:nestedScrollingEnabled="true"
-                        android:paddingStart="@dimen/activity_margin"
-                        android:paddingEnd="@dimen/activity_margin"
-                        android:scrollbars="none" />
-                </FrameLayout>
-            </androidx.core.widget.NestedScrollView>
-        </eightbitlab.com.blurview.BlurTarget>
+                        android:layout_height="match_parent">
+
+                        <com.goodwy.commons.views.MyRecyclerView
+                            android:id="@+id/bubblePickerList"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:clipToPadding="false"
+                            android:nestedScrollingEnabled="true"
+                            android:paddingStart="@dimen/activity_margin"
+                            android:paddingEnd="@dimen/activity_margin"
+                            android:scrollbars="none" />
+                    </FrameLayout>
+                </androidx.core.widget.NestedScrollView>
+            </eightbitlab.com.blurview.BlurTarget>
 
         <com.android.common.view.MVSideFrame
             android:id="@+id/m_vertical_side_frame_top"
@@ -56,28 +61,30 @@
             android:layout_height="wrap_content"
             android:background="@android:color/transparent" />
 
-        <FrameLayout
-            android:id="@+id/lyt_action"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_gravity="bottom"
-            android:layout_marginLeft="15dp"
-            android:layout_marginRight="15dp"
-            android:layout_marginBottom="@dimen/activity_margin">
-
-            <com.android.common.view.MRippleToolBar
-                android:id="@+id/confirm_tab"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center_horizontal"
-                android:visibility="visible" />
-        </FrameLayout>
-
         <com.android.common.view.MVSideFrame
             android:id="@+id/m_vertical_side_frame_bottom"
             android:layout_width="match_parent"
             android:layout_height="@dimen/tx_mv_side_bottom_frame_height"
             android:layout_gravity="bottom"
             app:isTopFrame="false" />
-    </androidx.coordinatorlayout.widget.CoordinatorLayout>
+
+        </androidx.coordinatorlayout.widget.CoordinatorLayout>
+    </eightbitlab.com.blurview.BlurTarget>
+
+    <FrameLayout
+        android:id="@+id/lyt_action"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:layout_marginLeft="15dp"
+        android:layout_marginRight="15dp"
+        android:layout_marginBottom="@dimen/activity_margin">
+
+        <com.android.common.view.MRippleToolBar
+            android:id="@+id/confirm_tab"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:visibility="visible" />
+    </FrameLayout>
 </FrameLayout>
