@@ -11,31 +11,62 @@
         android:paddingBottom="@dimen/activity_margin"
         android:scrollbars="vertical"
         android:visibility="gone" />
-    <LinearLayout
+
+    <RelativeLayout
         android:id="@+id/blocked_messages_placeholder"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:gravity="center"
-        android:orientation="vertical"
-        android:padding="@dimen/activity_margin">
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginTop="-60dp">
 
         <ImageView
-            android:layout_width="wrap_content"
-            android:layout_height="@dimen/empty_placeholder_icon_size"
-            android:layout_gravity="center"
+            android:id="@+id/noSimPlaceholderImg"
+            android:layout_width="86dp"
+            android:layout_height="80dp"
+            android:layout_centerInParent="true"
             android:contentDescription="@null"
             android:scaleType="fitCenter"
-            android:src="@drawable/ic_no_call" />
+            android:gravity="center"
+            android:src="@drawable/ic_no_sms"
+            android:visibility="visible"/>
 
         <com.goodwy.commons.views.MyTextView
-            android:layout_width="match_parent"
+            android:id="@+id/simMessagesEmpty"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:layout_marginTop="@dimen/medium_normal_margin"
+            android:layout_below="@+id/noSimPlaceholderImg"
+            android:layout_centerHorizontal="true"
             android:gravity="center"
+            android:padding="@dimen/activity_margin"
             android:text="@string/no_blocked_messages"
-            android:textColor="@color/tx_sub_text"
-            android:textSize="@dimen/tx_dialog_content" />
-    </LinearLayout>
+            android:textSize="@dimen/tx_sub_section"
+            android:textColor="@color/tx_cardview_arrow_icon"
+            android:visibility="visible" />
+    </RelativeLayout>
+<!--    <LinearLayout-->
+<!--        -->
+<!--        android:layout_width="wrap_content"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:layout_gravity="center"-->
+<!--        android:gravity="center"-->
+<!--        android:orientation="vertical"-->
+<!--        android:padding="@dimen/activity_margin">-->
+
+<!--        <ImageView-->
+<!--            android:layout_width="wrap_content"-->
+<!--            android:layout_height="@dimen/empty_placeholder_icon_size"-->
+<!--            android:layout_gravity="center"-->
+<!--            android:contentDescription="@null"-->
+<!--            android:scaleType="fitCenter"-->
+<!--            android:src="@drawable/ic_no_call" />-->
+
+<!--        <com.goodwy.commons.views.MyTextView-->
+<!--            android:layout_width="match_parent"-->
+<!--            android:layout_height="wrap_content"-->
+<!--            android:layout_gravity="center"-->
+<!--            android:layout_marginTop="@dimen/medium_normal_margin"-->
+<!--            android:gravity="center"-->
+<!--            android:text="@string/no_blocked_messages"-->
+<!--            android:textColor="@color/tx_sub_text"-->
+<!--            android:textSize="@dimen/tx_dialog_content" />-->
+<!--    </LinearLayout>-->
 </FrameLayout>
