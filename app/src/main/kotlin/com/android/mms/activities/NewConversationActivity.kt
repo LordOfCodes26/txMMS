@@ -2211,7 +2211,7 @@ class NewConversationActivity : SimpleActivity() {
     override fun onPause() {
         super.onPause()
         composeBarBottomInsetLatch = ComposeBarBottomInsetLatch.NONE
-        saveNewConversationDraft()
+        saveNewConversationDraft(showDraftSavedToast = true)
     }
 
     override fun onStop() {
@@ -2240,7 +2240,7 @@ class NewConversationActivity : SimpleActivity() {
         }
     }
 
-    private fun saveNewConversationDraft() {
+    private fun saveNewConversationDraft(showDraftSavedToast: Boolean = false) {
         val chips = binding.newConversationAddress.allChips
         val messageText = binding.messageHolder.threadTypeMessage.text?.toString()?.trim() ?: ""
         val hasAttachments = messageHolderHelper?.getAttachmentSelections()?.isNotEmpty() == true
@@ -2316,6 +2316,11 @@ class NewConversationActivity : SimpleActivity() {
                         isScheduled = isScheduledMessage,
                         scheduledMillis = scheduledMillis,
                     )
+                    if (showDraftSavedToast) {
+                        runOnUiThread {
+                            showDraftSavedToastMessage()
+                        }
+                    }
                     didMutateDrafts = true
                     refreshConversationRowFromTelephony(threadId)
                 }
@@ -2328,6 +2333,10 @@ class NewConversationActivity : SimpleActivity() {
                 }
             }
         }
+    }
+
+    private fun showDraftSavedToastMessage() {
+        Toast.makeText(applicationContext, R.string.message_saved_in_draft, Toast.LENGTH_SHORT).show()
     }
 
     override fun onBackPressedCompat(): Boolean {

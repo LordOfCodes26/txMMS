@@ -22,6 +22,7 @@
     <string name="loading_messages">加载消息中…</string>
     <string name="no_reply_support">发信人不支持回复</string>
     <string name="draft">草稿</string>
+    <string name="message_saved_in_draft">消息已保存到草稿</string>
     <string name="conversation_chogo_label">[草稿]</string>
     <string name="sending">发送中…</string>
     <string name="sending_cancelled">发送取消</string>

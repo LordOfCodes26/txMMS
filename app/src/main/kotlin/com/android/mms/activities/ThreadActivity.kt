@@ -36,6 +36,7 @@ import android.view.View
 import android.view.WindowManager
 import android.os.Handler
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.annotation.StringRes
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.view.ViewCompat
@@ -314,7 +315,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         composeBarBottomInsetLatch = ComposeBarBottomInsetLatch.NONE
         // Persist first, then notify: save runs on a background thread; posting before it completes
         // leaves MainActivity's list without the new draft until the next resume.
-        saveDraftMessage(notifyConversationsAfter = true)
+        saveDraftMessage(notifyConversationsAfter = true, showDraftSavedToast = true)
         isActivityVisible = false
     }
 
@@ -676,7 +677,10 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         }
     }
 
-    private fun saveDraftMessage(notifyConversationsAfter: Boolean = false) {
+    private fun saveDraftMessage(
+        notifyConversationsAfter: Boolean = false,
+        showDraftSavedToast: Boolean = false,
+    ) {
         if (isRecycleBin) {
             if (notifyConversationsAfter) {
                 bus?.post(Events.RefreshConversations())
@@ -712,6 +716,11 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                     isScheduled = isScheduledMessage,
                     scheduledMillis = scheduledMillis,
                 )
+                if (showDraftSavedToast) {
+                    runOnUiThread {
+                        showDraftSavedToastMessage()
+                    }
+                }
                 if (notifyConversationsAfter && threadId > 0L) {
                     refreshConversationRowFromTelephony(threadId)
                 }
@@ -727,6 +736,10 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                 bus?.post(Events.RefreshConversations(localListRefreshOnly = localOnly))
             }
         }
+    }
+
+    private fun showDraftSavedToastMessage() {
+        Toast.makeText(applicationContext, R.string.message_saved_in_draft, Toast.LENGTH_SHORT).show()
     }
 
     private fun Draft.threadHasPersistedComposeContent(): Boolean =

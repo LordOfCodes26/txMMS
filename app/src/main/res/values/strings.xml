@@ -22,6 +22,7 @@
     <string name="no_reply_support">Sender doesn\'t support replies</string>
     <string name="draft">Draft</string>
     <string name="draft_scheduled_snippet">Scheduled message</string>
+    <string name="message_saved_in_draft">Message has been saved in draft</string>
     <!-- Conversation list badge for draft row (bracket style); shown next to draft threads -->
     <string name="conversation_chogo_label">[Draft]</string>
     <string name="sending">Sending…</string>

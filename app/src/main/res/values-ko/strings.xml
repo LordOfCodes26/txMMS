@@ -119,6 +119,7 @@
     <string name="loading_messages">통보문 불러오는중…</string>
     <string name="no_reply_support">보낸 사람이 회답기능을 지원하지 않습니다</string>
     <string name="draft">림시보관</string>
+    <string name="message_saved_in_draft">초고함에 보관됨</string>
     <string name="conversation_chogo_label">[초고함]</string>
     <string name="sending">전송중…</string>
     <string name="sending_cancelled">전송 취소됨</string>
