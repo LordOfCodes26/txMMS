@@ -209,7 +209,8 @@ open class MyRecyclerView : RecyclerView {
     }
 
     fun setupDragListener(dragListener: MyDragListener?) {
-        isDragSelectionEnabled = dragListener != null
+//        deleted by sun unnecessary drag click
+//        isDragSelectionEnabled = dragListener != null
         this.dragListener = dragListener
     }
 
