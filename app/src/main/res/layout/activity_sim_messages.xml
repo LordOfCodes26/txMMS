@@ -68,7 +68,7 @@
                         android:padding="@dimen/activity_margin"
                         android:text="@string/sim_no_messages"
                         android:textSize="@dimen/tx_sub_section"
-                        android:textColor="@color/tx_cardview_arrow_icon"
+                        android:textColor="@color/txt_empty_sms"
                         android:visibility="visible" />
                 </RelativeLayout>
 

@@ -250,5 +250,6 @@
     <string name="sms_storage_location_sim">SIM card</string>
 
     <string name="unblock_sms">Unblock</string>
+    <string name="no_search_conversations_found">No searched conversations have been found</string>
 
 </resources>

@@ -210,4 +210,5 @@
     <string name="sms_storage_location_phone">전화기</string>
     <string name="sms_storage_location_sim">SIM카드</string>
     <string name="unblock_sms">차단해제</string>
+    <string name="no_search_conversations_found">검색된 통보문리력이 없습니다.</string>
 </resources>

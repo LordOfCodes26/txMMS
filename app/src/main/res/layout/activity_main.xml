@@ -87,7 +87,7 @@
                                 android:padding="@dimen/activity_margin"
                                 android:text="@string/no_conversations_found"
                                 android:textSize="@dimen/tx_sub_section"
-                                android:textColor="@color/tx_cardview_arrow_icon"
+                                android:textColor="@color/txt_empty_sms"
                                 android:visibility="visible"
                                 tools:visibility="visible" />
 
@@ -103,38 +103,50 @@
                     android:alpha="0"
                     android:visibility="gone"
                     tools:visibility="visible">
+
                     <RelativeLayout
                         android:layout_width="match_parent"
                         android:layout_height="match_parent">
+
+                        <ImageView
+                            android:id="@+id/search_placeholder_img"
+                            android:layout_width="86dp"
+                            android:layout_height="80dp"
+                            android:layout_centerInParent="true"
+                            android:contentDescription="@null"
+                            android:scaleType="fitCenter"
+                            android:gravity="center"
+                            android:src="@drawable/ic_no_sms"
+                            android:visibility="visible"
+                            tools:visibility="gone" />
+
                         <com.goodwy.commons.views.MyTextView
                             android:id="@+id/search_placeholder"
-                            android:layout_width="match_parent"
+                            android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
+                            android:layout_below="@+id/search_placeholder_img"
                             android:layout_centerHorizontal="true"
-                            android:layout_marginTop="@dimen/activity_margin"
-                            android:alpha="0.8"
                             android:gravity="center"
-                            android:paddingStart="@dimen/activity_margin"
-                            android:paddingEnd="@dimen/activity_margin"
-                            android:text="@string/no_items_found"
-                            android:textSize="@dimen/bigger_text_size"
-                            android:textStyle="italic" />
+                            android:padding="@dimen/activity_margin"
+                            android:text="@string/no_search_conversations_found"
+                            android:textSize="@dimen/tx_sub_section"
+                            android:textColor="@color/txt_empty_sms"
+                            android:visibility="gone" />
 
                         <com.goodwy.commons.views.MyTextView
                             android:id="@+id/search_placeholder_2"
-                            android:layout_width="match_parent"
+                            android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_below="@+id/search_placeholder"
+                            android:layout_below="@+id/search_placeholder_img"
                             android:layout_centerHorizontal="true"
-                            android:alpha="0.8"
                             android:gravity="center"
-                            android:paddingStart="@dimen/activity_margin"
-                            android:paddingTop="@dimen/medium_margin"
-                            android:paddingEnd="@dimen/activity_margin"
-                            android:paddingBottom="@dimen/medium_margin"
+                            android:padding="@dimen/activity_margin"
                             android:text="@string/type_2_characters"
-                            android:textSize="@dimen/bigger_text_size"
-                            android:textStyle="italic" />
+                            android:textSize="@dimen/tx_sub_section"
+                            android:textColor="@color/txt_empty_sms"
+                            android:visibility="gone"
+                            tools:visibility="gone" />
+
                     </RelativeLayout>
 
                     <androidx.core.widget.NestedScrollView

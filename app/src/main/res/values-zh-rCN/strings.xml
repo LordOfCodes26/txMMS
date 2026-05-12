@@ -212,4 +212,6 @@
     <string name="sms_storage_location_phone">手机</string>
     <string name="sms_storage_location_sim">SIM卡</string>
     <string name="unblock_sms">取消屏蔽</string>
+    <string name="no_search_conversations_found">未找到搜索到的对话</string>
+
 </resources>

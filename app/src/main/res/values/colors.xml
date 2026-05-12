@@ -9,4 +9,5 @@
 
     <color name="attachment_bg">#e7e7e7</color>
     <color name="attachment_icon_bg">#ffffff</color>
+    <color name="txt_empty_sms">#B2B2B2</color>
 </resources>
