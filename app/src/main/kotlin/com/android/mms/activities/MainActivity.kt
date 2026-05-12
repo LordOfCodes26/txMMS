@@ -159,7 +159,7 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         initTheme()
         applyMainScreenBackgroundAndTopChrome()
         setupTwoFingerSwipeGesture()
-        makeSystemBarsToTransparent()
+//        makeSystemBarsToTransparent()
         val isFirstLaunch = baseConfig.appRunCount == 0
         appLaunched(BuildConfig.APPLICATION_ID)
         // Initialize default quick texts if they haven't been initialized yet

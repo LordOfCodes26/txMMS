@@ -339,6 +339,8 @@ class CustomToolbar @JvmOverloads constructor(
         applySearchFieldCompoundDrawableTint(queryView)
     }
 
+    // added by sun
+    // for when dark mode, change color to icon
     private fun applySearchFieldCompoundDrawableTint(queryView: EditText) {
         if (queryView.context.isNightDisplay()) {
             TextViewCompat.setCompoundDrawableTintList(
@@ -668,6 +670,7 @@ class CustomToolbar @JvmOverloads constructor(
 
         binding.actionBarSearch.searchBackButton.imageTintList =
             ColorStateList.valueOf(textColor)
+        // added by sun
         updateSearchClearIconVisibility(binding.actionBarSearch.searchEditText.text?.toString().orEmpty())
     }
 

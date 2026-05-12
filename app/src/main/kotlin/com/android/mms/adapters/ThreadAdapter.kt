@@ -123,6 +123,7 @@ import android.widget.PopupMenu
 import androidx.core.view.updatePadding
 import com.android.common.dialogs.MConfirmDialog
 import com.android.mms.helpers.MNC_KANGSONG
+import com.android.mms.helpers.getLocaleDateFormatPatternMonthDay
 import com.android.mms.helpers.resolveSimIconTint
 import com.behaviorule.arturdumchev.library.setHeight
 import com.goodwy.commons.helpers.DARK_GREY
@@ -1370,12 +1371,14 @@ class ThreadAdapter(
         ItemThreadDateTimeBinding.bind(view).apply {
             threadDateTime.apply {
                 // Show only MM.dd at the top of date group (time is in each bubble)
+                val lang = Locale.getDefault().getLanguage()
+
                 text = (dateTime.date * 1000L).formatDateOrTime(
                     context = context,
                     hideTimeOnOtherDays = true,
                     showCurrentYear = false,
                     hideTodaysDate = false,
-                    dateFormat = "MM.dd"
+                    dateFormat = getLocaleDateFormatPatternMonthDay()
                 )
                 setTextSize(TypedValue.COMPLEX_UNIT_PX, fontSizeMessage)
             }
