@@ -7,7 +7,7 @@ import org.json.JSONObject
 import java.io.*
 import java.nio.charset.StandardCharsets
 import java.util.Locale
-
+import com.tx.Space
 
 /**
  * Loads opinion titles and numbers from a single JSON file: file:/data/misc/txspace/common/opinion_box.json
@@ -47,7 +47,12 @@ object OpinionBoxLoader {
         }
         cachedLocale = lang
 
-        val rows = parseJsonFile(File(SYSTEM_PATH))
+        val cf = Space.getCommonDir()
+        val file = File(cf, "opinion_box.json")
+        val rows = parseJsonFile(file)
+
+//        val rows = parseJsonFile(File(SYSTEM_PATH))
+
         val titles: MutableList<String?> = ArrayList<String?>()
         val numbers: MutableList<String?> = ArrayList<String?>()
 
