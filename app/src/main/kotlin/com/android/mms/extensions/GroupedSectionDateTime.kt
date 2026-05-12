@@ -2,6 +2,9 @@ package com.android.mms.extensions
 
 import android.content.Context
 import com.android.mms.R
+import com.android.mms.helpers.getLocaleDateFormatPatternFull
+import com.android.mms.helpers.getLocaleDateFormatPatternMonthDay
+import com.android.mms.helpers.getLocaleDateFormatPatternMonthDayTime
 import com.android.mms.models.ConversationListItem
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -45,22 +48,22 @@ fun formatGroupedSectionDateTime(
                     val hours = (delta / ONE_HOUR_MS).toInt().coerceIn(1, 24)
                     context.resources.getQuantityString(R.plurals.grouped_list_hours_ago, hours, hours)
                 }
-                else -> SimpleDateFormat("HH:mm", Locale.getDefault()).format(lastMessageMillis)
+                else -> SimpleDateFormat("H:m", Locale.getDefault()).format(lastMessageMillis)
             }
         }
         ConversationListItem.SECTION_YESTERDAY -> {
-            SimpleDateFormat("HH:mm", Locale.getDefault()).format(lastMessageMillis)
+            SimpleDateFormat("H:m", Locale.getDefault()).format(lastMessageMillis)
         }
         ConversationListItem.SECTION_BEFORE -> {
             val y = msgCal.get(Calendar.YEAR)
             val curY = curCal.get(Calendar.YEAR)
             if (y == curY) {
-                SimpleDateFormat("MM.dd HH:mm", Locale.getDefault()).format(lastMessageMillis)
+                SimpleDateFormat(getLocaleDateFormatPatternMonthDay(), Locale.getDefault()).format(lastMessageMillis)
             } else {
-                SimpleDateFormat("yyyy.MM.dd", Locale.getDefault()).format(lastMessageMillis)
+                SimpleDateFormat(getLocaleDateFormatPatternFull(), Locale.getDefault()).format(lastMessageMillis)
             }
         }
-        else -> SimpleDateFormat("HH:mm", Locale.getDefault()).format(lastMessageMillis)
+        else -> SimpleDateFormat("H:m", Locale.getDefault()).format(lastMessageMillis)
     }
 }
 
