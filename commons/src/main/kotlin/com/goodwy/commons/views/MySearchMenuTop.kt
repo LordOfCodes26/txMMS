@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.res.ColorStateList
 import android.util.AttributeSet
 import android.view.LayoutInflater
+import androidx.core.content.ContextCompat
 import com.google.android.material.appbar.MaterialToolbar
 import com.goodwy.commons.R
 import com.goodwy.commons.databinding.MenuSearchTopBinding
