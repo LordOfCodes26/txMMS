@@ -180,8 +180,10 @@ class SimpleContactsHelper(val context: Context) {
                     if (contact.name.isEmpty() && displayName.isNotEmpty()) {
                         contact.name = displayName.trim()
                     }
-
-                    val phoneNumber = PhoneNumber(number, type, label, normalizedNumber, isPrimary)
+                    // edited by sun ----->     
+//                    val phoneNumber = PhoneNumber(number, type, label, normalizedNumber, isPrimary)
+                    val phoneNumber = PhoneNumber(number, type, label, normalizedNumber, isPrimary, accountName, accountType)
+                    // <----------
                     if (contact.phoneNumbers.none { it.normalizedNumber == phoneNumber.normalizedNumber }) {
                         contact.phoneNumbers.add(phoneNumber)
                     }
@@ -478,7 +480,12 @@ class SimpleContactsHelper(val context: Context) {
             val type = cursor.getIntValue(Phone.TYPE)
             val label = cursor.getStringValue(Phone.LABEL) ?: ""
             val isPrimary = cursor.getIntValue(Phone.IS_PRIMARY) != 0
-            val phoneNumber = PhoneNumber(number, type, label, normalizedNumber, isPrimary)
+            // edited by sun ----->  
+//            val phoneNumber = PhoneNumber(number, type, label, normalizedNumber, isPrimary)
+            val accountName = cursor.getStringValue(RawContacts.ACCOUNT_NAME) ?: ""
+            val accountType = cursor.getStringValue(RawContacts.ACCOUNT_TYPE) ?: ""
+            val phoneNumber = PhoneNumber(number, type, label, normalizedNumber, isPrimary, accountName, accountType)
+            // <-------------
             phones.add(phoneNumber)
         }
         return firstRawId to phones
@@ -619,7 +626,9 @@ class SimpleContactsHelper(val context: Context) {
                 contactsMap[rawId] = contact
             }
 
-            val phoneNumber = PhoneNumber(number, type, label, normalizedNumber, isPrimary)
+            // edited by sun ----->  
+            val phoneNumber = PhoneNumber(number, type, label, normalizedNumber, isPrimary, accountName, accountType)
+            // <------------
             contact.phoneNumbers.add(phoneNumber)
         }
         return contacts

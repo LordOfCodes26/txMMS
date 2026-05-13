@@ -19,15 +19,35 @@
         android:paddingStart="@dimen/tx_cardview_padding_left"
         android:paddingEnd="@dimen/tx_cardview_padding_right">
 
-        <com.goodwy.commons.views.ContactAvatarView
-            android:id="@+id/item_recents_image"
+        <FrameLayout
+            android:id="@+id/item_recents_avatar_holder"
             android:layout_width="@dimen/call_icon_size"
             android:layout_height="@dimen/call_icon_size"
             android:layout_marginEnd="@dimen/tx_cardview_icon_margin_right"
-            android:contentDescription="@null"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:layout_constraintTop_toTopOf="parent">
+
+            <com.goodwy.commons.views.ContactAvatarView
+                android:id="@+id/item_recents_image"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:contentDescription="@null" />
+
+            <ImageView
+                android:id="@+id/item_recents_avatar_sim_badge"
+                android:layout_width="@dimen/list_icon_size_xx_small"
+                android:layout_height="@dimen/list_icon_size_xx_small"
+                android:layout_gravity="bottom|end"
+                android:layout_marginEnd="@dimen/tiny_margin"
+                android:layout_marginBottom="@dimen/tiny_margin"
+                android:contentDescription="@null"
+                android:scaleType="fitCenter"
+                android:visibility="gone"
+                tools:src="@drawable/ic_sim_one" />
+
+        </FrameLayout>
+
 
         <TextView
             android:id="@+id/item_recents_name"
@@ -42,7 +62,7 @@
             android:textDirection="firstStrongLtr"
             android:textSize="@dimen/bigger_text_size"
             app:layout_constraintBottom_toTopOf="@+id/item_recents_type"
-            app:layout_constraintStart_toEndOf="@+id/item_recents_image"
+            app:layout_constraintStart_toEndOf="@+id/item_recents_avatar_holder"
             app:layout_constraintTop_toTopOf="parent"
             tools:ignore="PrivateResource"
             tools:text="John Doe" />

@@ -54,6 +54,7 @@ import com.android.mms.extensions.syncTopSideFrameHeightForMenu
 import com.android.mms.extensions.setupMySearchMenuSpringSync
 import com.android.mms.adapters.ContactPickerAdapter
 import com.android.mms.extensions.setRippleTabEnabledWidthAlpha
+import com.android.mms.helpers.ContactSimSlotHelper
 import com.android.mms.models.Contact
 import com.android.mms.models.ContactPickerListRow
 import com.goodwy.commons.extensions.beGone
@@ -814,7 +815,10 @@ class ContactPickerActivity : SimpleActivity() {
             if (sc.phoneNumbers.isEmpty()) continue
             for (pn in sc.phoneNumbers) {
                 val key = contactNumberKey(contactIdStr, pn.value)
-                contactList.add(Contact(name, contactIdStr, -1, pn.value, "", org))
+                val simSlot = ContactSimSlotHelper.slotForSimContactAccount(
+                    pn.accountName.orEmpty(),
+                    pn.accountType.orEmpty())
+                contactList.add(Contact(name, contactIdStr, -1, pn.value, "", org, simSlot))
                 if (alreadySelectedContactIds.contains(key)) {
                     selectedLocal.add(localIndex)
                 }

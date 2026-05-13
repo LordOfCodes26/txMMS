@@ -1,6 +1,7 @@
 package com.android.mms.adapters
 
 import android.content.Context
+import android.content.res.ColorStateList
 import android.graphics.Bitmap
 import android.graphics.Color
 import android.os.Handler
@@ -33,6 +34,8 @@ import com.android.mms.models.ContactPickerListRow
 import com.goodwy.commons.views.ContactAvatarView
 import com.goodwy.commons.views.MyTextView
 import android.provider.CallLog.Calls
+import com.android.mms.helpers.resolveSimIconTint
+import com.goodwy.commons.extensions.applyColorFilter
 
 class ContactPickerAdapter(
     private val context: Context,
@@ -211,6 +214,31 @@ class ContactPickerAdapter(
         }
     }
 
+    private fun applyPickerSimBadge(badge: ImageView, simSlot: Int) {
+        when (simSlot) {
+            1 -> {
+                badge.visibility = View.VISIBLE
+                badge.setImageResource(com.android.common.R.drawable.ic_cmn_sim1)
+            }
+            2 -> {
+                badge.visibility = View.VISIBLE
+                badge.setImageResource(com.android.common.R.drawable.ic_cmn_sim2)
+            }
+            else -> {
+                badge.visibility = View.GONE
+                badge.setImageDrawable(null)
+            }
+        }
+        if (badge.visibility == View.VISIBLE) {
+
+            val simIconColor = context.resolveSimIconTint(context.getProperTextColor(), -1,simSlot)
+//            badge.applyColorFilter(simIconColor)
+            badge.imageTintList = ColorStateList.valueOf(simIconColor)
+        } else {
+            badge.imageTintList = null
+        }
+    }
+
     private fun bindPickerAvatar(avatarView: ContactAvatarView, contact: Contact) {
         val act = context as? android.app.Activity ?: return
         val hasContactName = contact.name.isNotEmpty() && contact.name != contact.phoneNumber
@@ -268,6 +296,8 @@ class ContactPickerAdapter(
         private val divider: ImageView = itemView.findViewById(R.id.divider)
         private val checkBox: CheckBox = itemView.findViewById(R.id.cb_contact_select)
 
+        private val contactSimBadge: ImageView = itemView.findViewById(R.id.contactSimBadge)
+
         fun bind(contactIndex: Int) {
             val contact = contactLookup.getOrNull(contactIndex) ?: return
             val hasContactName = contact.name.isNotEmpty() && contact.name != contact.phoneNumber
@@ -299,6 +329,8 @@ class ContactPickerAdapter(
                 contactImage.setImageBitmap(bmp)
             }
 
+            applyPickerSimBadge(contactSimBadge, contact.simSlot)
+
             applyRecentsDivider(divider)
 
             itemView.setOnClickListener {
@@ -329,6 +361,8 @@ class ContactPickerAdapter(
         private val dateTimeView: TextView = itemView.findViewById(R.id.item_recents_date_time)
         private val divider: ImageView = itemView.findViewById(R.id.divider)
         private val checkBox: CheckBox = itemView.findViewById(R.id.cb_contact_select)
+
+        private val avatarSimBadge: ImageView = itemView.findViewById(R.id.item_recents_avatar_sim_badge)
 
         fun bind(row: ContactPickerListRow.ContactRow, adapterPosition: Int) {
             val contact = contactLookup.getOrNull(row.contactIndex) ?: return
@@ -388,6 +422,7 @@ class ContactPickerAdapter(
             checkBox.isChecked = selectedContactIndices.contains(row.contactIndex)
 
             bindPickerAvatar(avatarView, contact)
+            applyPickerSimBadge(avatarSimBadge, contact.simSlot)
             applyRecentsDivider(divider)
 
             itemView.setOnClickListener {

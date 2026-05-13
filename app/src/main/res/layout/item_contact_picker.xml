@@ -18,17 +18,37 @@
         android:minHeight="@dimen/recent_call_height"
         android:paddingStart="@dimen/tx_cardview_padding_left"
         android:paddingEnd="@dimen/tx_cardview_padding_right">
-
-        <ImageView
-            android:id="@+id/contactImage"
+        
+        <FrameLayout
+            android:id="@+id/contact_avatar_holder"
             android:layout_width="@dimen/call_icon_size"
             android:layout_height="@dimen/call_icon_size"
             android:layout_marginEnd="@dimen/tx_cardview_icon_margin_right"
-            android:contentDescription="@null"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            tools:src="@drawable/ic_sms_messenger" />
+            app:layout_constraintTop_toTopOf="parent">
+
+            <ImageView
+                android:id="@+id/contactImage"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:contentDescription="@null"
+                tools:src="@drawable/ic_sms_messenger" />
+
+
+            <ImageView
+                android:id="@+id/contactSimBadge"
+                android:layout_width="@dimen/list_icon_size_x_small"
+                android:layout_height="@dimen/list_icon_size_x_small"
+                android:layout_gravity="bottom|end"
+                android:layout_marginEnd="@dimen/tiny_margin"
+                android:layout_marginBottom="@dimen/tiny_margin"
+                android:contentDescription="@null"
+                android:scaleType="fitCenter"
+                android:visibility="gone"
+                tools:src="@drawable/ic_sim_one" />
+        </FrameLayout>
+
 
         <LinearLayout
             android:id="@+id/contact_picker_text_column"
@@ -41,7 +61,7 @@
             android:orientation="vertical"
             app:layout_constraintBottom_toTopOf="@+id/divider"
             app:layout_constraintEnd_toStartOf="@+id/cb_contact_select"
-            app:layout_constraintStart_toEndOf="@+id/contactImage"
+            app:layout_constraintStart_toEndOf="@+id/contact_avatar_holder"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintVertical_bias="0">
 

@@ -8,5 +8,9 @@ data class PhoneNumber(
     var type: Int,
     var label: String,
     var normalizedNumber: String,
-    var isPrimary: Boolean = false
+    var isPrimary: Boolean = false,
+    // added by sun --->
+    var accountName: String? = null,
+    var accountType: String? = null
+    // <--------
 )
