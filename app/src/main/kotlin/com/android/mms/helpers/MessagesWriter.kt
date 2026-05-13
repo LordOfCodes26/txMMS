@@ -22,9 +22,18 @@ class MessagesWriter(private val context: Context) {
     private val contentResolver = context.contentResolver
     private val modifiedThreadIds = mutableSetOf<Long>()
 
+    /** Caches address → threadId so getOrCreateThreadId is only called once per unique address. */
+    private val threadIdCache = HashMap<String, Long>()
+
+    private fun getOrCreateCachedThreadId(address: String): Long {
+        return threadIdCache.getOrPut(address) {
+            Utils.getOrCreateThreadId(context, address)
+        }
+    }
+
     fun writeSmsMessage(smsBackup: SmsBackup) {
         val contentValues = smsBackup.toContentValues()
-        val threadId = Utils.getOrCreateThreadId(context, smsBackup.address)
+        val threadId = getOrCreateCachedThreadId(smsBackup.address)
         contentValues.put(Sms.THREAD_ID, threadId)
         if (!smsExist(smsBackup)) {
             modifiedThreadIds.add(threadId)
@@ -55,12 +64,16 @@ class MessagesWriter(private val context: Context) {
         val threadId = getMmsThreadId(mmsBackup)
         if (threadId != INVALID_ID) {
             contentValues.put(Mms.THREAD_ID, threadId)
-            if (!mmsExist(mmsBackup)) {
+            val messageId = getMmsId(mmsBackup, threadId)
+            if (messageId == INVALID_ID) {
                 modifiedThreadIds.add(threadId)
                 contentResolver.insert(Mms.CONTENT_URI, contentValues)
-            }
-            val messageId = getMmsId(mmsBackup)
-            if (messageId != INVALID_ID) {
+                val insertedId = getMmsId(mmsBackup, threadId)
+                if (insertedId != INVALID_ID) {
+                    mmsBackup.parts.forEach { writeMmsPart(it, insertedId) }
+                    mmsBackup.addresses.forEach { writeMmsAddress(it, insertedId) }
+                }
+            } else {
                 mmsBackup.parts.forEach { writeMmsPart(it, messageId) }
                 mmsBackup.addresses.forEach { writeMmsAddress(it, messageId) }
             }
@@ -73,14 +86,13 @@ class MessagesWriter(private val context: Context) {
             else -> mmsBackup.addresses.firstOrNull { it.type == PduHeaders.TO }?.address
         }
         return if (!address.isNullOrEmpty()) {
-            Utils.getOrCreateThreadId(context, address)
+            getOrCreateCachedThreadId(address)
         } else {
             INVALID_ID
         }
     }
 
-    private fun getMmsId(mmsBackup: MmsBackup): Long {
-        val threadId = getMmsThreadId(mmsBackup)
+    private fun getMmsId(mmsBackup: MmsBackup, threadId: Long): Long {
         val uri = Mms.CONTENT_URI
         val projection = arrayOf(Mms._ID)
         val selection = "${Mms.DATE} = ? AND ${Mms.DATE_SENT} = ? AND ${Mms.THREAD_ID} = ? AND ${Mms.MESSAGE_BOX} = ?"
@@ -96,10 +108,6 @@ class MessagesWriter(private val context: Context) {
         }
 
         return id
-    }
-
-    private fun mmsExist(mmsBackup: MmsBackup): Boolean {
-        return getMmsId(mmsBackup) != INVALID_ID
     }
 
     @SuppressLint("NewApi")
