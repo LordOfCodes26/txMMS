@@ -18,6 +18,7 @@ import android.view.ScaleGestureDetector
 import android.widget.LinearLayout
 import android.widget.RelativeLayout
 import androidx.appcompat.view.menu.MenuBuilder
+import com.goodwy.commons.dialogs.OptionListDialog
 import com.goodwy.commons.views.showMPopupMenu
 import androidx.annotation.DrawableRes
 import androidx.appcompat.content.res.AppCompatResources
@@ -444,6 +445,12 @@ class ThreadAdapter(
                 else -> { /* ThreadError, ThreadSent, ThreadSending now shown in message bubble */ }
             }
         }
+        if (item is Message) {
+            holder.itemView.setOnLongClickListener {
+                showPopupMenu(item, it)
+                true
+            }
+        }
         bindViewHolder(holder)
     }
 
@@ -732,7 +739,7 @@ class ThreadAdapter(
                 )
                 setLineSpacing(lineSpacingExtra, 1.1f)
                 setOnLongClickListener {
-                    holder.viewLongClicked()
+                    showPopupMenu(message, this)
                     true
                 }
 
@@ -830,85 +837,57 @@ class ThreadAdapter(
     }
 
     private fun showPopupMenu(message: Message, view: View) {
-        val menu = MenuBuilder(activity)
+        if (activity.isDestroyed || activity.isFinishing) return
         val text = message.body
         val numbersList = text.getListNumbersFromText()
-        val colorRed = resources.getColor(R.color.red_call, activity.theme)
 
-        val deleteItem = menu.add(1, 1, 1, com.goodwy.commons.R.string.delete).setIcon(com.goodwy.commons.R.drawable.ic_delete_outline)
-        // Set red color for delete item title
-        val coloredText = SpannableString(deleteItem.title).apply {
-            setSpan(ForegroundColorSpan(colorRed), 0, length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-        }
-        deleteItem.title = coloredText
+        val options = mutableListOf<Pair<CharSequence, () -> Unit>>()
 
-        menu.add(1, 3, 3, com.goodwy.commons.R.string.share).setIcon(com.goodwy.commons.R.drawable.ic_ios_share)
-        menu.add(1, 4, 4, com.goodwy.commons.R.string.properties).setIcon(com.goodwy.commons.R.drawable.ic_info_vector)
-        menu.add(1, 5, 5, R.string.forward_message).setIcon(R.drawable.ic_redo_vector)
-        menu.add(1, 6, 6, android.R.string.selectTextMode).setIcon(R.drawable.ic_text_select)
-        menu.add(1, 7, 7, com.goodwy.commons.R.string.copy).setIcon(com.goodwy.commons.R.drawable.ic_copy_vector)
-        val staticItem = 8
-        if (numbersList.isNotEmpty()) {
-            numbersList.apply {
-                val size = numbersList.size
-                val range = if (size > 7) 0..7 else 0 until size
-                for (index in range) {
-                    val item = this[index]
-                    val menuName = activity.getString(com.goodwy.commons.R.string.copy) + " \"${item}\""
-                    menu.add(1, staticItem + index, staticItem + index, menuName).setIcon(com.goodwy.commons.R.drawable.ic_copy_vector)
+        options.add(activity.getString(com.goodwy.commons.R.string.delete) to { askConfirmDelete(message) })
+        // options.add(activity.getString(com.goodwy.commons.R.string.share) to { activity.shareTextIntent(text) })
+        options.add(activity.getString(com.goodwy.commons.R.string.properties) to {
+            activity.findViewById<eightbitlab.com.blurview.BlurTarget>(com.android.mms.R.id.mainBlurTarget)?.let { bt ->
+                MessageDetailsDialog(activity, message, bt)
+            }
+        })
+        options.add(activity.getString(R.string.forward_message) to {
+            val attachments = message.attachment?.attachments.orEmpty()
+            Intent(activity, NewConversationActivity::class.java).apply {
+                action = Intent.ACTION_SEND
+                putExtra(Intent.EXTRA_TEXT, message.body)
+                if (attachments.size == 1) {
+                    putExtra(Intent.EXTRA_STREAM, attachments.first().getUri())
+                } else if (attachments.size > 1) {
+                    action = Intent.ACTION_SEND_MULTIPLE
+                    putParcelableArrayListExtra(Intent.EXTRA_STREAM, ArrayList(attachments.map { it.getUri() }))
                 }
+                activity.startActivity(this)
+            }
+        })
+//        options.add(activity.getString(android.R.string.selectTextMode) to {
+//            activity.findViewById<eightbitlab.com.blurview.BlurTarget>(com.android.mms.R.id.mainBlurTarget)?.let { bt ->
+//                SelectTextDialog(activity, text, bt)
+//            }
+//        })
+        options.add(activity.getString(com.goodwy.commons.R.string.copy) to { activity.copyToClipboard(text) })
+
+        if (numbersList.isNotEmpty()) {
+            val range = if (numbersList.size > 7) 0..7 else 0 until numbersList.size
+            for (index in range) {
+                val number = numbersList[index]
+                val label = activity.getString(com.goodwy.commons.R.string.copy) + " \"$number\""
+                options.add(label to { activity.copyToClipboard(number) })
             }
         }
+
         val blurTarget = activity.findViewById<eightbitlab.com.blurview.BlurTarget>(com.android.mms.R.id.mainBlurTarget)
-        showMPopupMenu(
-            context = activity,
-            anchor = view,
-            menu = menu,
-            gravity = Gravity.END,
+        // val title = if (message.isReceivedMessage()) message.senderName else ""
+        OptionListDialog(
+            activity = activity,
+            title = "",
+            options = options,
             blurTarget = blurTarget,
-            listener = MenuItem.OnMenuItemClickListener { item ->
-                when (item.itemId) {
-                    1 -> askConfirmDelete(message)
-
-                    3 -> activity.shareTextIntent(text)
-
-                    4 -> {
-                        val bt = activity.findViewById<eightbitlab.com.blurview.BlurTarget>(com.android.mms.R.id.mainBlurTarget)
-                            ?: throw IllegalStateException("mainBlurTarget not found")
-                        MessageDetailsDialog(activity, message, bt)
-                    }
-
-                    5 -> {
-                        val attachments = message.attachment?.attachments.orEmpty()
-                        Intent(activity, NewConversationActivity::class.java).apply {
-                            action = Intent.ACTION_SEND
-                            putExtra(Intent.EXTRA_TEXT, message.body)
-
-                            if (attachments.size == 1) {
-                                putExtra(Intent.EXTRA_STREAM, attachments.first().getUri())
-                            } else if (attachments.size > 1) {
-                                action = Intent.ACTION_SEND_MULTIPLE
-                                putParcelableArrayListExtra(Intent.EXTRA_STREAM, ArrayList(attachments.map { it.getUri() }))
-                            }
-
-                            activity.startActivity(this)
-                        }
-                    }
-
-                    6 -> {
-                        val bt = activity.findViewById<eightbitlab.com.blurview.BlurTarget>(com.android.mms.R.id.mainBlurTarget)
-                            ?: throw IllegalStateException("mainBlurTarget not found")
-                        SelectTextDialog(activity, text, bt)
-                    }
-
-                    7 -> activity.copyToClipboard(text)
-
-                    else -> {
-                        if (numbersList.isNotEmpty()) activity.copyToClipboard(numbersList[item.itemId - staticItem])
-                    }
-                }
-                true
-            },
+            cancelListener = null,
         )
     }
 
@@ -1197,7 +1176,7 @@ class ThreadAdapter(
             }
         }
         imageView.root.setOnLongClickListener {
-            holder.viewLongClicked()
+            showPopupMenu(message, it)
             true
         }
     }
@@ -1218,7 +1197,7 @@ class ThreadAdapter(
                         activity.startActivity(intent)
                     }
                 },
-                onLongClick = { holder.viewLongClicked() },
+                onLongClick = { showPopupMenu(message, holder.itemView) },
                 onViewContactDetailsClick = {
                     if (actModeCallback.isSelectable) {
                         holder.viewClicked(message)
@@ -1247,7 +1226,7 @@ class ThreadAdapter(
                         activity.launchViewIntent(uri, mimetype, attachment.filename)
                     }
                 },
-                onLongClick = { holder.viewLongClicked() }
+                onLongClick = { showPopupMenu(message, holder.itemView) }
             )
         }.root
 
