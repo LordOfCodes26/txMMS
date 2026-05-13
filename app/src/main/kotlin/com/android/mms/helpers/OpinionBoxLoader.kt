@@ -47,7 +47,8 @@ object OpinionBoxLoader {
         }
         cachedLocale = lang
 
-        val cf = Space.getCommonDir()
+        var cf = Space.getCommonDir()
+        cf = File(cf, "config")
         val file = File(cf, "opinion_box.json")
         val rows = parseJsonFile(file)
 
