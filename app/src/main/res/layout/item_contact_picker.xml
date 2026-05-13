@@ -35,18 +35,6 @@
                 android:contentDescription="@null"
                 tools:src="@drawable/ic_sms_messenger" />
 
-
-            <ImageView
-                android:id="@+id/contactSimBadge"
-                android:layout_width="@dimen/list_icon_size_x_small"
-                android:layout_height="@dimen/list_icon_size_x_small"
-                android:layout_gravity="bottom|end"
-                android:layout_marginEnd="@dimen/tiny_margin"
-                android:layout_marginBottom="@dimen/tiny_margin"
-                android:contentDescription="@null"
-                android:scaleType="fitCenter"
-                android:visibility="gone"
-                tools:src="@drawable/ic_sim_one" />
         </FrameLayout>
 
 
@@ -78,19 +66,37 @@
                 tools:ignore="PrivateResource"
                 tools:text="John Doe" />
 
-            <TextView
-                android:id="@+id/tv_contact_phone"
+            <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/small_margin"
-                android:alpha="0.6"
-                android:ellipsize="end"
-                android:lines="1"
-                android:textColor="@color/tx_sub_text"
-                android:textSize="@dimen/smaller_text_size"
-                android:visibility="gone"
-                tools:text="+12345678901"
-                tools:visibility="visible" />
+                android:layout_height="match_parent"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:id="@+id/contactSimBadge"
+                    android:layout_width="@dimen/list_icon_size_xx_small"
+                    android:layout_height="@dimen/list_icon_size_xx_small"
+                    android:layout_gravity="bottom|end"
+                    android:layout_marginEnd="@dimen/tiny_margin"
+                    android:contentDescription="@null"
+                    android:scaleType="fitCenter"
+                    android:visibility="visible"
+                    tools:src="@drawable/ic_sim_one" />
+
+                <TextView
+                    android:id="@+id/tv_contact_phone"
+                    android:layout_weight="1"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/small_margin"
+                    android:alpha="0.6"
+                    android:ellipsize="end"
+                    android:lines="1"
+                    android:textColor="@color/tx_sub_text"
+                    android:textSize="@dimen/smaller_text_size"
+                    android:visibility="gone"
+                    tools:text="+12345678901"
+                    tools:visibility="visible" />
+            </LinearLayout>
         </LinearLayout>
 
         <com.android.common.view.MCycleCheckBox
