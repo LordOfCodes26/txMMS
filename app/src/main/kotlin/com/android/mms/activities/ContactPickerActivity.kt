@@ -21,13 +21,11 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.updateLayoutParams
 import androidx.core.view.updatePadding
 import androidx.core.widget.NestedScrollView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.appbar.AppBarLayout
-import com.goodwy.commons.extensions.getProperAccentColor
 import com.goodwy.commons.extensions.getProperBackgroundColor
 import com.goodwy.commons.extensions.getColoredDrawableWithColor
 import com.goodwy.commons.extensions.getProperPrimaryColor
@@ -55,17 +53,14 @@ import com.android.mms.extensions.setupMySearchMenuSpringSync
 import com.android.mms.adapters.ContactPickerAdapter
 import com.android.mms.extensions.setRippleTabEnabledWidthAlpha
 import com.android.mms.helpers.ContactSimSlotHelper
+import com.android.mms.helpers.MessageHolderHelper
 import com.android.mms.models.Contact
 import com.android.mms.models.ContactPickerListRow
-import com.goodwy.commons.extensions.beGone
-import com.goodwy.commons.extensions.beInvisible
-import com.goodwy.commons.extensions.getProperBlurOverlayColor
-import com.goodwy.commons.extensions.viewBinding
+import com.goodwy.commons.activities.BaseSimpleActivity
 import java.util.Calendar
 import com.goodwy.commons.helpers.SimpleContactsHelper
 import com.goodwy.commons.views.MySearchMenu
 import eightbitlab.com.blurview.BlurTarget
-import eightbitlab.com.blurview.BlurView
 
 class ContactPickerActivity : SimpleActivity() {
 
@@ -92,6 +87,7 @@ class ContactPickerActivity : SimpleActivity() {
         private const val CONTACT_PICKER_PERF_LOG = false
         private const val PERF_LOG_TAG = "ContactPickerPerf"
 
+
         fun getSelectedContacts(data: Intent?): ArrayList<Contact> {
             if (data != null && data.hasExtra(EXTRA_SELECTED_CONTACTS)) {
                 @Suppress("UNCHECKED_CAST")
@@ -115,6 +111,8 @@ class ContactPickerActivity : SimpleActivity() {
             return arrayListOf()
         }
     }
+    private var contactSimSlotHelper: ContactSimSlotHelper = ContactSimSlotHelper(
+        activity = this )
 
     private var scrollView: View? = null
     private var blurAppBarLayout: MySearchMenu? = null
@@ -815,10 +813,15 @@ class ContactPickerActivity : SimpleActivity() {
             if (sc.phoneNumbers.isEmpty()) continue
             for (pn in sc.phoneNumbers) {
                 val key = contactNumberKey(contactIdStr, pn.value)
-                val simSlot = ContactSimSlotHelper.slotForSimContactAccount(
+//                val simSlot = ContactSimSlotHelper.slotForSimContactAccount(
+                val simSlot = contactSimSlotHelper?.resolveSlotForSimContactAccount(
                     pn.accountName.orEmpty(),
-                    pn.accountType.orEmpty())
-                contactList.add(Contact(name, contactIdStr, -1, pn.value, "", org, simSlot))
+                    pn.accountType.orEmpty()
+                )
+                if (simSlot != null){
+                    contactList.add(Contact(name, contactIdStr, -1, pn.value, "", org, simSlot))
+                    android.util.Log.i("SUN_DEBUG", "name = " + name + ", simSlot = " + simSlot + ", pn.value = " + pn.value)
+                }
                 if (alreadySelectedContactIds.contains(key)) {
                     selectedLocal.add(localIndex)
                 }

@@ -34,17 +34,7 @@
                 android:layout_height="match_parent"
                 android:contentDescription="@null" />
 
-            <ImageView
-                android:id="@+id/item_recents_avatar_sim_badge"
-                android:layout_width="@dimen/list_icon_size_xx_small"
-                android:layout_height="@dimen/list_icon_size_xx_small"
-                android:layout_gravity="bottom|end"
-                android:layout_marginEnd="@dimen/tiny_margin"
-                android:layout_marginBottom="@dimen/tiny_margin"
-                android:contentDescription="@null"
-                android:scaleType="fitCenter"
-                android:visibility="gone"
-                tools:src="@drawable/ic_sim_one" />
+
 
         </FrameLayout>
 
@@ -93,6 +83,24 @@
             app:layout_constraintTop_toBottomOf="@id/item_recents_name"
             app:layout_constraintStart_toStartOf="@+id/item_recents_name" />
 
+        <ImageView
+            android:id="@+id/item_recents_avatar_sim_badge"
+            android:layout_width="@dimen/list_icon_size_xx_small"
+            android:layout_height="@dimen/list_icon_size_xx_small"
+            android:layout_gravity="bottom|end"
+            android:layout_marginEnd="@dimen/tiny_margin"
+            android:layout_marginBottom="@dimen/tiny_margin"
+            android:contentDescription="@null"
+            android:scaleType="fitCenter"
+            android:visibility="visible"
+            app:layout_constraintBottom_toBottomOf="@+id/item_recents_type"
+            app:layout_constraintEnd_toStartOf="@+id/item_recents_date_time"
+            app:layout_constraintHorizontal_bias="0.0"
+            app:layout_constraintStart_toEndOf="@+id/item_recents_type"
+            app:layout_constraintTop_toTopOf="@+id/item_recents_type"
+            app:layout_constraintVertical_bias="0.0"
+            tools:src="@drawable/ic_sim_one" />
+
         <RelativeLayout
             android:id="@+id/sim_wrapper"
             android:layout_width="@dimen/list_icon_size_xx_small"
@@ -135,14 +143,13 @@
             android:id="@+id/item_recents_number"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="@dimen/small_margin"
             android:alpha="0.7"
             android:ellipsize="end"
             android:lines="1"
             android:textSize="@dimen/smaller_text_size"
             app:layout_constraintBottom_toBottomOf="@+id/item_recents_type"
             app:layout_constraintEnd_toStartOf="@+id/item_recents_date_time"
-            app:layout_constraintStart_toEndOf="@+id/sim_wrapper"
+            app:layout_constraintStart_toEndOf="@+id/item_recents_avatar_sim_badge"
             app:layout_constraintTop_toTopOf="@+id/item_recents_type"
             tools:text="+12345678901" />
 

@@ -9,7 +9,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
 import android.widget.LinearLayout
-import androidx.core.graphics.alpha
 import com.android.common.view.MDialog
 import com.android.mms.activities.SimpleActivity
 import com.android.mms.databinding.DialogSelectSimBinding
@@ -93,7 +92,11 @@ class SelectSIMDialog(
                         }
                     }
                     val textColor = activity.getProperTextColor()
-                    val simIconColor = activity.resolveSimIconTint(textColor, simAccount.subscriptionId,simAccount.id)
+                    val simIconColor = activity.resolveSimIconTint(
+                        textColor,
+                        simAccount.subscriptionId,
+                        simAccount.id
+                    )
                     simSelectSlotIcon.applyColorFilter(simIconColor)
 
                     root.setOnClickListener {

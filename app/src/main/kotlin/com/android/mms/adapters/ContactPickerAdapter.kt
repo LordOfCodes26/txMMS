@@ -1,5 +1,6 @@
 package com.android.mms.adapters
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.res.ColorStateList
 import android.graphics.Bitmap
@@ -35,7 +36,7 @@ import com.goodwy.commons.views.ContactAvatarView
 import com.goodwy.commons.views.MyTextView
 import android.provider.CallLog.Calls
 import com.android.mms.helpers.resolveSimIconTint
-import com.goodwy.commons.extensions.applyColorFilter
+import com.android.mms.helpers.subscriptionIdForOneBasedSimSlot
 
 class ContactPickerAdapter(
     private val context: Context,
@@ -230,9 +231,9 @@ class ContactPickerAdapter(
             }
         }
         if (badge.visibility == View.VISIBLE) {
-
-            val simIconColor = context.resolveSimIconTint(context.getProperTextColor(), -1,simSlot)
 //            badge.applyColorFilter(simIconColor)
+            val subId = context.subscriptionIdForOneBasedSimSlot(simSlot)
+            val simIconColor = context.resolveSimIconTint(context.getProperTextColor(), subId, simSlot)
             badge.imageTintList = ColorStateList.valueOf(simIconColor)
         } else {
             badge.imageTintList = null

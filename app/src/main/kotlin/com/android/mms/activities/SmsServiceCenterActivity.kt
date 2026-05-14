@@ -230,7 +230,11 @@ class SmsServiceCenterActivity : SimpleActivity() {
             else -> R.drawable.ic_sim_vector
         }
         rowBinding.simIcon.setImageResource(simIconRes)
-        rowBinding.simIcon.applyColorFilter(resolveSimIconTint(textColor, sim.subscriptionId, sim.id))
+        rowBinding.simIcon.applyColorFilter(resolveSimIconTint(
+            textColor,
+            sim.subscriptionId,
+            sim.id
+        ))
 
         // Label
         rowBinding.simLabel.text = sim.label
