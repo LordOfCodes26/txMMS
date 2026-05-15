@@ -466,6 +466,7 @@ fun Context.getUnreadCountsByThread(): Map<Long, Int> {
 
 fun Context.getConversations(
     threadId: Long? = null,
+    threadIds: Set<Long>? = null,
     privateContacts: ArrayList<SimpleContact> = ArrayList(),
     threadsWithBlockedNumbersOnly: Boolean = false,
 ): ArrayList<Conversation> {
@@ -501,6 +502,9 @@ fun Context.getConversations(
     if (threadId != null) {
         selection += " AND ${Threads._ID} = ?"
         selectionArgs += threadId.toString()
+    } else if (!threadIds.isNullOrEmpty()) {
+        // Bulk filter: avoids N separate getConversations calls (each would reload contacts etc.)
+        selection += " AND ${Threads._ID} IN (${threadIds.joinToString(",")})"
     }
 
     val sortOrder = "${Threads.DATE} DESC"
@@ -622,7 +626,7 @@ fun Context.getConversations(
             && archiveAvailable
         ) {
             config.isArchiveAvailable = false
-            return getConversations(threadId, privateContacts, threadsWithBlockedNumbersOnly)
+            return getConversations(threadId = threadId, privateContacts = privateContacts, threadsWithBlockedNumbersOnly = threadsWithBlockedNumbersOnly)
         } else {
             showErrorToast(sqliteException)
         }
@@ -1747,12 +1751,24 @@ fun Context.updateLastConversationMessage(threadIds: Iterable<Long>) {
     } catch (e: Exception) {
         Log.w("updateLastConversationMsg", "recompute trigger fail ", e)
     }
-    for (threadId in threadIds) {
-        try {
-            val newConversation = getConversations(threadId).firstOrNull() ?: continue
-            insertOrUpdateConversation(newConversation)
-        } catch (e: Exception) {
-            Log.w("updateLastConversationMsg", "skip thread $threadId ", e)
+    val threadIdSet = threadIds.toHashSet()
+    if (threadIdSet.isEmpty()) return
+    try {
+        // One getConversations call with an IN(...) clause loads contacts, blocked numbers,
+        // and unread counts exactly ONCE instead of once per thread.
+        getConversations(threadIds = threadIdSet).forEach { conversation ->
+            try {
+                insertOrUpdateConversation(conversation)
+            } catch (e: Exception) {
+                Log.w("updateLastConversationMsg", "skip thread ${conversation.threadId}", e)
+            }
+        }
+    } catch (e: Exception) {
+        Log.w("updateLastConversationMsg", "batch refresh failed, retrying individually", e)
+        for (threadId in threadIdSet) {
+            try {
+                getConversations(threadId).firstOrNull()?.let { insertOrUpdateConversation(it) }
+            } catch (_: Exception) {}
         }
     }
 }
