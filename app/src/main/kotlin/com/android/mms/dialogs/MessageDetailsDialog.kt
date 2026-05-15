@@ -26,10 +26,10 @@ class MessageDetailsDialog(val activity: BaseSimpleActivity, val message: Messag
         val decorView = activity.window.decorView
         val windowBackground = decorView.background
 
-            mDialogView.blurView.setOverlayColor(activity.getProperBlurOverlayColor())
-            mDialogView.blurView.setupWith(blurTarget)
+        mDialogView.blurView.setOverlayColor(activity.getProperBlurOverlayColor())
+        mDialogView.blurView.setupWith(blurTarget)
             ?.setFrameClearDrawable(windowBackground)
-            ?.setBlurRadius(16f)
+            ?.setBlurRadius(5f)
             ?.setBlurAutoUpdate(true)
 
         val titleBinding = DialogTitleBinding.inflate(mInflater, mDialogView.root,false)
@@ -41,7 +41,7 @@ class MessageDetailsDialog(val activity: BaseSimpleActivity, val message: Messag
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT,
 
-            )
+                )
         }
         mDialogView.propertiesHolder.addView(titleBinding.root, 0)
         addProperty(R.string.message_type, if (message.isMMS) activity.getString(R.string.mms) else activity.getString(R.string.sms))
@@ -109,7 +109,8 @@ class MessageDetailsDialog(val activity: BaseSimpleActivity, val message: Messag
             hideTimeOnOtherDays = false,
             showCurrentYear = true,
             hideTodaysDate = false,
-            timeFormat = activity.getTimeFormatWithSeconds()
+            dateFormat = "yyyy.M.d",
+            timeFormat = "H:m:s"
         )
     }
 
