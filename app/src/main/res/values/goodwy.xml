@@ -10,5 +10,5 @@
     <string name="sent">Sent</string>
     <string name="failed">Failed</string>
     <string name="pending">Pending</string>
-    <string name="message_type">Message type</string>
+    <string name="message_type">type : </string>
 </resources>

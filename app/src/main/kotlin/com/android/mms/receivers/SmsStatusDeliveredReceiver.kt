@@ -93,6 +93,10 @@ class SmsStatusDeliveredReceiver : SendStatusReceiver() {
                     context.messagesDB.updateStatus(messageId, status)
                 }
                 refreshMessages()
+
+                if (status == Sms.STATUS_COMPLETE) {
+                    context.messagesDB.updateDeliveryReportDate(messageId, (System.currentTimeMillis() / 1000).toInt())
+                }
                 
                 // Play delivery report sound if enabled and message is delivered
                 if (status == Sms.STATUS_COMPLETE && context.config.enableDeliveryReports) {

@@ -93,11 +93,11 @@ class SmsReceiver : BroadcastReceiver() {
                 val simpleContactsHelper = SimpleContactsHelper(context)
                 simpleContactsHelper.exists(address) { exists ->
                     if (exists) {
-                        handleMessage(context, address, subject, body, date, read, threadId, type, subscriptionId, status, messages)
+                        handleMessage(context, address, subject, body, date, 0, read, threadId, type, subscriptionId, status, messages)
                     }
                 }
             } else {
-                handleMessage(context, address, subject, body, date, read, threadId, type, subscriptionId, status, messages)
+                handleMessage(context, address, subject, body, date, 0, read, threadId, type, subscriptionId, status, messages)
             }
         }
 
@@ -118,6 +118,7 @@ class SmsReceiver : BroadcastReceiver() {
         subject: String,
         body: String,
         date: Long,
+        dateSent: Long,
         read: Int,
         threadId: Long,
         type: Int,
@@ -182,6 +183,7 @@ class SmsReceiver : BroadcastReceiver() {
                             status,
                             participants,
                             messageDate,
+                            0,
                             false,
                             threadId,
                             false,

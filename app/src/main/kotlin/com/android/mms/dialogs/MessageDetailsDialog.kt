@@ -55,6 +55,9 @@ class MessageDetailsDialog(val activity: BaseSimpleActivity, val message: Messag
             addProperty(R.string.message_details_sim, message.getSIM(availableSIMs))
         }
         addProperty(message.getSentOrReceivedAtLabel(), message.getSentOrReceivedAt())
+        if (!message.isReceivedMessage() && message.status == Sms.STATUS_COMPLETE) {
+            addProperty(message.getSentOrReceivedReportAtLabel(), message.getSentOrReceivedReportAt())
+        }
 
         activity.setupMDialogStuff(
             view = mDialogView.root,
@@ -103,6 +106,11 @@ class MessageDetailsDialog(val activity: BaseSimpleActivity, val message: Messag
         }
     }
 
+    private fun Message.getSentOrReceivedReportAtLabel(): Int {
+        return  R.string.message_details_report_at
+
+    }
+
     private fun Message.getSentOrReceivedAt(): String {
         return (date * 1000L).formatDateOrTime(
             context = activity,
@@ -112,6 +120,20 @@ class MessageDetailsDialog(val activity: BaseSimpleActivity, val message: Messag
             dateFormat = "yyyy.M.d",
             timeFormat = "H:m:s"
         )
+    }
+
+    private fun Message.getSentOrReceivedReportAt(): String {
+        if (dateSent != 0) {
+            return (dateSent * 1000L).formatDateOrTime(
+                context = activity,
+                hideTimeOnOtherDays = false,
+                showCurrentYear = true,
+                hideTodaysDate = false,
+                dateFormat = "yyyy.M.d",
+                timeFormat = "H:m:s"
+            )
+        }
+        return getStatus()
     }
 
     private fun Message.getStatus(): String {

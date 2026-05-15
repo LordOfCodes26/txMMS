@@ -2636,6 +2636,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             status = STATUS_NONE,
             participants = participants,
             date = (scheduledDateTime.millis / 1000).toInt(),
+            dateSent = 0,
             read = false,
             threadId = threadId,
             isMMS = isMmsMessage(text),

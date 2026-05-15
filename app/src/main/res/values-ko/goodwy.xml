@@ -10,5 +10,5 @@
     <string name="sent">전송됨</string>
     <string name="failed">실패한</string>
     <string name="pending">보류중</string>
-    <string name="message_type">통보문 류형</string>
+    <string name="message_type">류형 : </string>
 </resources>

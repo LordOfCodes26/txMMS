@@ -90,6 +90,9 @@ interface MessagesDao {
     @Query("UPDATE messages SET status = :status WHERE id = :id")
     fun updateStatus(id: Long, status: Int): Int
 
+    @Query("UPDATE messages SET date_sent = :dateSent WHERE id = :id")
+    fun updateDeliveryReportDate(id: Long, dateSent: Int): Int
+
     @Transaction
     fun delete(id: Long) {
         deleteFromMessages(id)

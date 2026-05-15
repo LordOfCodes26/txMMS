@@ -189,6 +189,7 @@ fun Context.getMessages(
         Sms.TYPE,
         Sms.ADDRESS,
         Sms.DATE,
+        Sms.DATE_SENT,
         Sms.READ,
         Sms.THREAD_ID,
         Sms.SUBSCRIPTION_ID,
@@ -228,6 +229,7 @@ fun Context.getMessages(
         val senderName = namePhoto.name
         val photoUri = namePhoto.photoUri ?: ""
         val date = (cursor.getLongValue(Sms.DATE) / 1000).toInt()
+        val dateSent = (cursor.getLongValue(Sms.DATE_SENT) / 1000).toInt()
         val read = cursor.getIntValue(Sms.READ) == 1
         val thread = cursor.getLongValue(Sms.THREAD_ID)
         val subscriptionId = cursor.getIntValueOr(
@@ -289,6 +291,7 @@ fun Context.getMessages(
                 status = status,
                 participants = ArrayList(participants),
                 date = date,
+                dateSent = dateSent,
                 read = read,
                 threadId = thread,
                 isMMS = isMMS,
@@ -362,6 +365,7 @@ fun Context.getMMS(
         val mmsId = cursor.getLongValue(Mms._ID)
         val type = cursor.getIntValue(Mms.MESSAGE_BOX)
         val date = cursor.getLongValue(Mms.DATE).toInt()
+        val dateSent = cursor.getLongValue(Mms.DATE_SENT).toInt()
         val read = cursor.getIntValue(Mms.READ) == 1
         val threadId = cursor.getLongValue(Mms.THREAD_ID)
         val subscriptionId = cursor.getIntValue(Mms.SUBSCRIPTION_ID)
@@ -396,6 +400,7 @@ fun Context.getMMS(
                 status = status,
                 participants = participants,
                 date = date,
+                dateSent = dateSent,
                 read = read,
                 threadId = threadId,
                 isMMS = isMMS,
