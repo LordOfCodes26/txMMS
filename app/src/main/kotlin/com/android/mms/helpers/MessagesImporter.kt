@@ -92,6 +92,16 @@ class MessagesImporter(private val activity: SimpleActivity) {
     fun restoreMessages(messagesBackup: List<MessagesBackup>, callback: (ImportResult) -> Unit) {
         ensureBackgroundThread {
             try {
+                // Pre-resolve all unique thread IDs in parallel before the sequential write loop.
+                // This collapses 50 sequential ~250ms IPC calls into ~4 concurrent batches.
+                val smsAddresses = messagesBackup.mapNotNullTo(HashSet()) { msg ->
+                    if (msg.backupType == BackupType.SMS && config.importSms) (msg as SmsBackup).address
+                    else null
+                }
+                if (smsAddresses.isNotEmpty()) {
+                    messageWriter.preResolveThreadIds(smsAddresses)
+                }
+
                 messagesBackup.forEach { message ->
                     try {
                         if (message.backupType == BackupType.SMS && config.importSms) {
@@ -107,6 +117,8 @@ class MessagesImporter(private val activity: SimpleActivity) {
                     }
                 }
 
+                messageWriter.flushPendingInserts()
+                messageWriter.syncLastMessagesToRoom()
                 messageWriter.fixConversationDates()
                 refreshConversations()
             } catch (e: Exception) {
@@ -162,6 +174,9 @@ class MessagesImporter(private val activity: SimpleActivity) {
                         messagesFailed++
                     }
                 }
+                messageWriter.flushPendingInserts()
+                messageWriter.syncLastMessagesToRoom()
+                messageWriter.fixConversationDates()
                 refreshConversations()
             }
             when {
