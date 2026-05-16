@@ -681,8 +681,8 @@
     <string name="five">오</string>
     <string name="six">육</string>
     <string name="value">값</string>
-    <string name="create_new_contact">새 주소록 생성</string>
-    <string name="add_to_existing_contact">기존 주소록에 추가</string>
+    <string name="create_new_contact">새주소추가</string>
+    <string name="add_to_existing_contact">현존주소에 추가</string>
     <string name="record_video">동영상 록화</string>
     <string name="export_blocked_numbers">차단 번호 내보내기</string>
     <string name="add_a_blocked_number">차단목록에 추가</string>
