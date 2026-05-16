@@ -216,5 +216,6 @@
     <string name="sms_storage_location_sim">SIM卡</string>
     <string name="unblock_sms">取消屏蔽</string>
     <string name="no_search_conversations_found">未找到搜索到的对话</string>
-
+    <string name="sms_txt_copy">复制短信</string>
+    <string name="sms_thread_delete">删除短信线程</string>
 </resources>

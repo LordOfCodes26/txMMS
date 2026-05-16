@@ -124,7 +124,7 @@
     <string name="sending">전송중…</string>
     <string name="sending_cancelled">전송 취소됨</string>
     <string name="pin_conversation">우에 고정</string>
-    <string name="forward_message">전달</string>
+    <string name="forward_message">통보문전환</string>
     <string name="compress_error">사진을 선택한 크기로 압축할수 없습니다</string>
     <string name="duplicate_item_warning">중복된 항목이 제외되였습니다</string>
     <plurals name="and_other_contacts">
@@ -151,7 +151,7 @@
     <string name="must_pick_time_in_the_future">미래의 시간을 선택해야 합니다</string>
     <string name="update_message">통보문수정</string>
     <string name="send_now">지금 전송</string>
-    <string name="message_details">통보문세부정보</string>
+    <string name="message_details">상세정보</string>
     <string name="message_details_sender">보낸사람 : </string>
     <string name="message_details_receiver">받는사람 : </string>
     <string name="message_details_sent_at">전송시간 : </string>
@@ -214,4 +214,6 @@
     <string name="sms_storage_location_sim">SIM카드</string>
     <string name="unblock_sms">차단해제</string>
     <string name="no_search_conversations_found">검색된 통보문리력이 없습니다.</string>
+    <string name="sms_txt_copy">본문복사</string>
+    <string name="sms_thread_delete">통보문삭제</string>
 </resources>

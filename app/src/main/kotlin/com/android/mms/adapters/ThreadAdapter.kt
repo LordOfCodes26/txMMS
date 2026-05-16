@@ -842,14 +842,9 @@ class ThreadAdapter(
         val numbersList = text.getListNumbersFromText()
 
         val options = mutableListOf<Pair<CharSequence, () -> Unit>>()
-
-        options.add(activity.getString(com.goodwy.commons.R.string.delete) to { askConfirmDelete(message) })
-        // options.add(activity.getString(com.goodwy.commons.R.string.share) to { activity.shareTextIntent(text) })
-        options.add(activity.getString(com.goodwy.commons.R.string.properties) to {
-            activity.findViewById<eightbitlab.com.blurview.BlurTarget>(com.android.mms.R.id.mainBlurTarget)?.let { bt ->
-                MessageDetailsDialog(activity, message, bt)
-            }
-        })
+        // 본문복사
+        options.add(activity.getString(R.string.sms_txt_copy) to { activity.copyToClipboard(text) })
+        // 통보문 전환
         options.add(activity.getString(R.string.forward_message) to {
             val attachments = message.attachment?.attachments.orEmpty()
             Intent(activity, NewConversationActivity::class.java).apply {
@@ -864,12 +859,20 @@ class ThreadAdapter(
                 activity.startActivity(this)
             }
         })
+        // 통보문 삭제
+        options.add(activity.getString(R.string.sms_thread_delete) to { askConfirmDelete(message) })
+        // options.add(activity.getString(com.goodwy.commons.R.string.share) to { activity.shareTextIntent(text) })
+        // 상세정보
+        options.add(activity.getString(R.string.message_details) to {
+            activity.findViewById<eightbitlab.com.blurview.BlurTarget>(com.android.mms.R.id.mainBlurTarget)?.let { bt ->
+                MessageDetailsDialog(activity, message, bt)
+            }
+        })
 //        options.add(activity.getString(android.R.string.selectTextMode) to {
 //            activity.findViewById<eightbitlab.com.blurview.BlurTarget>(com.android.mms.R.id.mainBlurTarget)?.let { bt ->
 //                SelectTextDialog(activity, text, bt)
 //            }
 //        })
-        options.add(activity.getString(com.goodwy.commons.R.string.copy) to { activity.copyToClipboard(text) })
 
         if (numbersList.isNotEmpty()) {
             val range = if (numbersList.size > 7) 0..7 else 0 until numbersList.size
