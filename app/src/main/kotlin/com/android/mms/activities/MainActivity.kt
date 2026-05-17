@@ -1987,7 +1987,8 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
                 recipient = TextUtils.join(", ", participantNames)
             }
 
-            val phoneNumber = message.participants.firstOrNull()!!.phoneNumbers.firstOrNull()!!.normalizedNumber
+            val phoneNumber = message.getSender()?.phoneNumbers?.firstOrNull()?.normalizedNumber
+                ?: message.senderPhoneNumber.takeIf { it.isNotEmpty() }
             val dateMillis = message.date * 1000L
             val isCompany =
                 if (message.participants.size == 1) message.participants.first().isABusinessContact() else false
