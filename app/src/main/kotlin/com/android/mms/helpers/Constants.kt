@@ -71,6 +71,8 @@ const val CUSTOM_NOTIFICATIONS = "custom_notifications"
 const val IS_LAUNCHED_FROM_SHORTCUT = "is_launched_from_shortcut"
 const val KEEP_CONVERSATIONS_ARCHIVED = "keep_conversations_archived"
 const val SELECTED_CONVERSATION_PIN = "selected_conversation_pin"
+/** Provider PIN for conversations in private space ([SecureMainActivity] cipher 1). */
+const val PRIVATE_SPACE_CONVERSATION_PIN = 1
 //Goodwy
 const val SIM_TO_REPLY = "sim_to_reply"
 const val SHOW_SIM_SELECTION_DIALOG = "show_sim_selection_dialog"

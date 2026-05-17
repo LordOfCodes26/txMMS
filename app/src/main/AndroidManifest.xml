@@ -64,6 +64,13 @@
             android:exported="true" />
 
         <activity
+            android:name=".activities.SecureMainActivity"
+            android:configChanges="orientation"
+            android:exported="false"
+            android:theme="@style/BlurAppBarTheme"
+            android:parentActivityName=".activities.MainActivity" />
+
+        <activity
             android:name=".activities.RecycleBinConversationsActivity"
             android:configChanges="orientation"
             android:exported="true"

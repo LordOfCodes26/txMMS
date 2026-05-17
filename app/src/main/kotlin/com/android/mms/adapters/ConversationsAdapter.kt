@@ -40,6 +40,7 @@ import com.android.mms.extensions.updateConversationPins
 import com.android.mms.extensions.updateScheduledMessagesThreadId
 import com.android.mms.extensions.getNameAndPhotoFromPhoneNumber
 import com.android.mms.extensions.getThreadRecipientPhoneNumbers
+import com.android.mms.helpers.PRIVATE_SPACE_CONVERSATION_PIN
 import com.android.mms.helpers.SWIPE_ACTION_ARCHIVE
 import com.android.mms.helpers.SWIPE_ACTION_BLOCK
 import com.android.mms.helpers.SWIPE_ACTION_CALL
@@ -171,7 +172,7 @@ class ConversationsAdapter(
         if (isRipple){
             menu.apply {
                 val isPinZeroMode = activity.config.selectedConversationPin == 0
-                val isPinPrivateSpaceMode = activity.config.selectedConversationPin == 1
+                val isPinPrivateSpaceMode = activity.config.selectedConversationPin == PRIVATE_SPACE_CONVERSATION_PIN
                 findItem(R.id.cab_ripple_message_conversion)?.isVisible = true
                 findItem(R.id.cab_ripple_copy)?.isVisible = true
                 findItem(R.id.cab_ripple_delete)?.isVisible = true
@@ -221,11 +222,12 @@ class ConversationsAdapter(
 //            findItem(R.id.cab_mark_as_unread)?.isVisible = selectedItems.any { it.read }
             findItem(R.id.cab_archive)?.isVisible = archiveAvailable
             val isPinZeroMode = activity.config.selectedConversationPin == 0
+            val isPinPrivateSpaceMode = activity.config.selectedConversationPin == PRIVATE_SPACE_CONVERSATION_PIN
             findItem(R.id.cab_encrypt_conversations)?.isVisible = isPinZeroMode
-            findItem(R.id.cab_decrypt_conversations)?.isVisible = !isPinZeroMode
+            findItem(R.id.cab_decrypt_conversations)?.isVisible = !isPinZeroMode && !isPinPrivateSpaceMode
             checkPinBtnVisibility(this)
-            findItem(R.id.cab_secure_space_add)?.isVisible = true
-            findItem(R.id.cab_secure_space_delete)?.isVisible = false
+            findItem(R.id.cab_secure_space_add)?.isVisible = isPinZeroMode
+            findItem(R.id.cab_secure_space_delete)?.isVisible = isPinPrivateSpaceMode
 
             findItem(R.id.cab_ripple_message_conversion)?.isVisible = false
             findItem(R.id.cab_ripple_copy)?.isVisible = false
@@ -470,6 +472,8 @@ class ConversationsAdapter(
             R.id.cab_unpin_conversation -> pinConversation(false)
             R.id.cab_encrypt_conversations -> encryptConversations()
             R.id.cab_decrypt_conversations -> decryptConversations()
+            R.id.cab_secure_space_add -> addToPrivateSpace()
+            R.id.cab_secure_space_delete -> removeFromPrivateSpace()
             R.id.cab_history_delete -> askConfirmDelete()
 
             //when ripple
@@ -477,8 +481,8 @@ class ConversationsAdapter(
             R.id.cab_ripple_address_add -> addNumberToContact()
             R.id.cab_ripple_secure_box_lock -> encryptConversations()
             R.id.cab_ripple_secure_box_unlock -> decryptConversations()
-            R.id.cab_ripple_private_space_add -> {}
-            R.id.cab_ripple_private_space_delete -> {}
+            R.id.cab_ripple_private_space_add -> addToPrivateSpace()
+            R.id.cab_ripple_private_space_delete -> removeFromPrivateSpace()
 
         }
     }
@@ -491,6 +495,24 @@ class ConversationsAdapter(
     }
 
     private fun decryptConversations() {
+        val threadIds = getSelectedItems().map { it.threadId }.distinct().toLongArray()
+        if (threadIds.isEmpty()) return
+        ensureBackgroundThread {
+            activity.updateConversationPins(threadIds, 0)
+            refreshConversationsAndFinishActMode()
+        }
+    }
+
+    private fun addToPrivateSpace() {
+        val threadIds = getSelectedItems().map { it.threadId }.distinct().toLongArray()
+        if (threadIds.isEmpty()) return
+        ensureBackgroundThread {
+            activity.updateConversationPins(threadIds, PRIVATE_SPACE_CONVERSATION_PIN)
+            refreshConversationsAndFinishActMode()
+        }
+    }
+
+    private fun removeFromPrivateSpace() {
         val threadIds = getSelectedItems().map { it.threadId }.distinct().toLongArray()
         if (threadIds.isEmpty()) return
         ensureBackgroundThread {

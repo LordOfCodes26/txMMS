@@ -76,7 +76,7 @@ import java.util.*
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.text.toFloat
 
-class MainActivity : SimpleActivity(), ActionModeToolbarHost {
+open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
     companion object {
         private const val TAG = "MessagesMainActivity"
         private const val SECRET_BOX_PACKAGE = "chonha.get.secret.number"
@@ -117,7 +117,7 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
 
     var unreadCountHash = HashMap<Long, Int>(128)
 
-    private val binding by viewBinding(ActivityMainBinding::inflate)
+    protected val binding by viewBinding(ActivityMainBinding::inflate)
 
     private var menuHeightAnimator: android.animation.ValueAnimator? = null
     private var currentMenuHeight: Int = -1
@@ -874,7 +874,11 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
                     startActivity(this)
                 }
             }
-            R.id.private_space -> {}
+            R.id.private_space -> {
+                hideKeyboard()
+                binding.mainMenu.closeSearch()
+                launchPrivateSpace()
+            }
 //            R.id.sim_card_message -> {}
             R.id.settings -> launchSettings()
 //            R.id.about -> launchAbout()
@@ -996,21 +1000,8 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         })
     }
 
-    private fun refreshMenuItemsAndTitle() {
-        val isSecureMode = config.selectedConversationPin > 0
-        binding.mainMenu.requireCustomToolbar().menu.apply {
-//            findItem(R.id.unlock_protected_contacts)?.title = if (isSecureMode) {
-//                getString(R.string.close_secure_box)
-//            } else {
-//                getString(R.string.secure_box)
-//            }
-//            findItem(R.id.show_blocked_numbers)?.isVisible = !isSecureMode
-        }
-
-        binding.mainMenu.applyLargeTitleOnly(
-            if (isSecureMode) getString(R.string.secure_box)
-            else getString(R.string.messages)
-        )
+    protected open fun refreshMenuItemsAndTitle() {
+        binding.mainMenu.applyLargeTitleOnly(getString(R.string.messages))
         binding.mainMenu.requireCustomToolbar().invalidateMenu()
     }
 
@@ -1070,10 +1061,23 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         }
     }
 
-    private fun closeSecureBox() {
+    protected open fun closeSecureBox() {
         setConversationPinScope(0)
         initMessenger()
         refreshMenuItemsAndTitle()
+    }
+
+    protected open fun handleTwoFingerSwipeDown() {
+        launchPrivateSpace()
+    }
+
+    protected fun launchPrivateSpace() {
+        isLaunchingInternalConversationActivity = true
+        startActivity(
+            Intent(this, SecureMainActivity::class.java).apply {
+                putExtra(SecureMainActivity.EXTRA_CIPHER_NUMBER, 1)
+            },
+        )
     }
 
     private fun setupTwoFingerSwipeGesture() {
@@ -1089,7 +1093,7 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
                     avgDistance: Float
                 ) {
                     if (avgDeltaY > MIN_SWIPE_DISTANCE) {
-                        launchSecretBoxForUnlock()
+                        handleTwoFingerSwipeDown()
                     }
                 }
             }
@@ -1101,7 +1105,7 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         return super.dispatchTouchEvent(ev)
     }
 
-    private fun launchSecretBoxForUnlock() {
+    protected fun launchSecretBoxForUnlock() {
         try {
             isLaunchingSecretBox = true
             startSecretBoxForUnlock.launch(Intent(SECRET_BOX_PACKAGE))
