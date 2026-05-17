@@ -283,7 +283,16 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             binding.mVerticalSideFrameTop.bindBlurTarget(binding.mainBlurTarget)
             binding.mVerticalSideFrameBottom.bindBlurTarget(binding.mainBlurTarget)
             syncThreadTopBlurStripGeometry()
+            refreshActionModeToolbarBlur()
         }
+    }
+
+    /** Selection-mode back / select-all pills — same [mainBlurTarget] as [threadToolbar]. */
+    private fun refreshActionModeToolbarBlur() {
+        val adapter = binding.threadMessagesList.adapter as? ThreadAdapter ?: return
+        if (!adapter.isActionModeActive()) return
+        binding.mainBlurTarget.invalidate()
+        binding.threadActionModeToolbar.bindBlurTarget(this, binding.mainBlurTarget)
     }
 
     /**
@@ -302,6 +311,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             }
             syncBlurTargetTopMarginForMenu(binding.mainBlurTarget, h)
             binding.mainBlurTarget.invalidate()
+            refreshActionModeToolbarBlur()
         }
     }
 
@@ -863,6 +873,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             }
         )
         binding.threadToolbar.bindBlurTarget(this, binding.mainBlurTarget)
+        binding.threadActionModeToolbar.bindBlurTarget(this, binding.mainBlurTarget)
     }
 
     private fun handleThreadMenuClick(menuItem: android.view.MenuItem): Boolean {
@@ -2921,6 +2932,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
 //        <-----------
         binding.root.post {
             applyActionModeRippleToolbarForThread()
+            refreshActionModeToolbarBlur()
             if (!isRecycleBin) {
                 ViewCompat.requestApplyInsets(binding.root)
                 syncMessageInputBarToBottomAfterFocusLoss()

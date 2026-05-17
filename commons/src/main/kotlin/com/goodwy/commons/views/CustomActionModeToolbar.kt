@@ -2,6 +2,7 @@ package com.goodwy.commons.views
 
 import android.app.Activity
 import android.content.Context
+import androidx.annotation.ColorInt
 import android.content.res.ColorStateList
 import android.graphics.drawable.Drawable
 import android.util.AttributeSet
@@ -18,6 +19,7 @@ import com.android.common.view.MPopup
 import java.lang.reflect.Method
 import com.goodwy.commons.R
 import com.goodwy.commons.databinding.CustomActionModeToolbarBinding
+import com.android.common.view.MActionBar
 import com.goodwy.commons.extensions.applyColorFilter
 import com.goodwy.commons.extensions.getContrastColor
 import com.goodwy.commons.extensions.getProperTextColor
@@ -107,6 +109,10 @@ class CustomActionModeToolbar @JvmOverloads constructor(
     private var navigationIconDrawable: Drawable? = null
 
     private fun navigationActionBarView(): View? = binding?.root?.findViewById(R.id.navigationIconView)
+
+    private fun navigationMActionBar(): MActionBar? = binding?.navigationIconView as? MActionBar
+
+    private fun actionMActionBar(): MActionBar? = binding?.actionbar as? MActionBar
 
     private fun navigationActionBarMenu(): Menu? {
         val actionBar = navigationActionBarView() ?: return null
@@ -304,6 +310,30 @@ class CustomActionModeToolbar @JvmOverloads constructor(
 
     /** Returns the action bar (menu) view, or null if not available. */
     fun getActionBar(): View? = menuActionBarView()
+
+    /**
+     * Binds [BlurTarget] on both navigation (back) and action [MActionBar] pills — same contract as
+     * [CustomToolbar.bindBlurTarget].
+     */
+    fun bindBlurTarget(activity: Activity, blurTarget: BlurTarget) {
+        navigationMActionBar()?.bindBlurTarget(activity, blurTarget)
+        actionMActionBar()?.bindBlurTarget(activity, blurTarget)
+    }
+
+    /**
+     * Binds blur target with optional overlay tint (`0` keeps each bar's current resolved overlay).
+     */
+    fun bindBlurTarget(activity: Activity, blurTarget: BlurTarget, @ColorInt overlayColor: Int) {
+        val nav = navigationMActionBar()
+        val action = actionMActionBar()
+        if (overlayColor != 0) {
+            nav?.bindBlurTarget(activity, blurTarget, overlayColor)
+            action?.bindBlurTarget(activity, blurTarget, overlayColor)
+        } else {
+            nav?.bindBlurTarget(activity, blurTarget)
+            action?.bindBlurTarget(activity, blurTarget)
+        }
+    }
 
     /**
      * Sets the click listener for the navigation icon (handled via MActionBar menu item).

@@ -116,6 +116,10 @@ class ManageQuickTextsActivity : SimpleActivity(), RefreshRecyclerViewListener, 
                 this@ManageQuickTextsActivity,
                 binding.mainBlurTarget,
             )
+            binding.quickTextsAppbar.getActionModeToolbar().bindBlurTarget(
+                this@ManageQuickTextsActivity,
+                binding.mainBlurTarget,
+            )
             postSyncMySearchMenuToolbarGeometry(
                 binding.root,
                 binding.quickTextsAppbar,
@@ -123,7 +127,17 @@ class ManageQuickTextsActivity : SimpleActivity(), RefreshRecyclerViewListener, 
                 binding.mVerticalSideFrameTop,
                 binding.manageQuickTextsList,
             )
+            refreshActionModeToolbarBlur()
         }
+    }
+
+    /** Selection-mode back / select-all pills — same [mainBlurTarget] as the quick-texts toolbar. */
+    private fun refreshActionModeToolbarBlur() {
+        val adapter = binding.manageQuickTextsList.adapter as? ManageQuickTextsAdapter ?: return
+        if (!adapter.isActionModeActive()) return
+        binding.mainBlurTarget.invalidate()
+        binding.quickTextsAppbar.getActionModeToolbar()
+            .bindBlurTarget(this, binding.mainBlurTarget)
     }
 
     private fun applyQuickTextsWindowSurfacesAndChrome() {
@@ -199,6 +213,7 @@ class ManageQuickTextsActivity : SimpleActivity(), RefreshRecyclerViewListener, 
         binding.quickTextsAppbar.showActionModeToolbar()
         binding.root.post {
             applyActionModeRippleToolbarForQuickTexts()
+            refreshActionModeToolbarBlur()
             binding.root.post { syncManageQuickTextsListBottomPadding() }
         }
     }
@@ -302,6 +317,10 @@ class ManageQuickTextsActivity : SimpleActivity(), RefreshRecyclerViewListener, 
             }
             invalidateMenu()
         }
+        binding.quickTextsAppbar.getActionModeToolbar().bindBlurTarget(
+            this,
+            binding.mainBlurTarget,
+        )
     }
 
     private val createDocument =

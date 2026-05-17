@@ -338,6 +338,15 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
             .bindBlurTarget(this, binding.blurTarget, getProperBlurOverlayColor())
     }
 
+    /** Selection-mode back / select-all pills use the same inner [blurTarget] as [refreshMainToolbarBlur]. */
+    private fun refreshActionModeToolbarBlur() {
+        val adapter = binding.conversationsList.adapter as? ConversationsAdapter ?: return
+        if (!adapter.isActionModeActive()) return
+        binding.blurTarget.invalidate()
+        binding.mainMenu.getActionModeToolbar()
+            .bindBlurTarget(this, binding.blurTarget, getProperBlurOverlayColor())
+    }
+
     /**
      * After AppBar height changes (search lock/unlock, CAB swap, resume), [m_vertical_side_frame_top] and
      * [binding.blurTarget] top margin must match the measured menu — otherwise MVSideFrame shows a dark
@@ -355,6 +364,7 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
             syncTopSideFrameHeight(h)
             ViewCompat.requestApplyInsets(binding.root)
             refreshMainToolbarBlur()
+            refreshActionModeToolbarBlur()
             setupVerticalSideFrameBlur()
             setMainMenuTransparentBackground()
             menu.requireCustomToolbar().updateSearchColors()
@@ -601,6 +611,7 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
             applyActionModeRippleToolbarForConversations()
             applyActionModeListBottomInset(true)
             scheduleSyncMainMenuTopBlurGeometry()
+            refreshActionModeToolbarBlur()
         }
     }
 
@@ -807,6 +818,8 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
                 handleToolbarMenuItemClick(menuItem)
             }
             toolbar.bindBlurTarget(this@MainActivity, blurTarget, getProperBlurOverlayColor())
+            menu.getActionModeToolbar()
+                .bindBlurTarget(this@MainActivity, blurTarget, getProperBlurOverlayColor())
             toolbar.setPopupForMoreItem(
                 R.id.more,
                 R.menu.menu_main,
