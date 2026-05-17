@@ -159,9 +159,11 @@ class NewConversationActivity : SimpleActivity() {
         // edge-to-edge insets. Running the title/collapse before that produced a too-short app bar and overlap
         // with the chips row until a chip add triggered [updateNewConversationTitle] again.
         ViewCompat.requestApplyInsets(binding.root)
+        setupNewConversationTopBar()
         binding.newConversationAppbar.post {
             updateNewConversationTitle()
             revealNewConversationScrollContentAfterAppBar()
+            refreshNewConversationInsetsAndToolbarGeometry()
         }
 
         // READ_CONTACTS permission is not mandatory, but without it we won't be able to show any suggestions during typing
@@ -189,20 +191,7 @@ class NewConversationActivity : SimpleActivity() {
         }
         applyNewConversationWindowBackgroundsAndTopChrome()
         updateNewConversationTitle()
-        binding.newConversationAppbar.requireCustomToolbar().apply {
-            val textColor = getProperTextColor()
-            setTitleTextColor(textColor)
-            navigationIcon = resources.getColoredDrawableWithColor(
-                this@NewConversationActivity,
-                com.android.common.R.drawable.ic_cmn_arrow_left_fill,
-                textColor
-            )
-            setNavigationContentDescription(com.goodwy.commons.R.string.back)
-            setNavigationOnClickListener {
-                hideKeyboard()
-                finish()
-            }
-        }
+        setupNewConversationTopBar()
 //        binding.newConversationHolder.setBackgroundColor(backgroundColor)
 //        binding.newConversationAddress.setBackgroundColor(backgroundColor)
 //        binding.suggestionsOverlay.setBackgroundColor(backgroundColor)
@@ -218,7 +207,7 @@ class NewConversationActivity : SimpleActivity() {
             }
         })
 
-        //  refreshNewConversationInsetsAndToolbarGeometry()
+        refreshNewConversationInsetsAndToolbarGeometry()
         
         setupMessageHolder()
         handlePermission(PERMISSION_READ_PHONE_STATE) {
@@ -239,6 +228,23 @@ class NewConversationActivity : SimpleActivity() {
     private fun initTheme() {
         window.navigationBarColor = Color.TRANSPARENT
         window.statusBarColor = Color.TRANSPARENT
+    }
+
+    private fun setupNewConversationTopBar() {
+        binding.newConversationAppbar.requireCustomToolbar().apply {
+            val textColor = getProperTextColor()
+            setTitleTextColor(textColor)
+            navigationIcon = resources.getColoredDrawableWithColor(
+                this@NewConversationActivity,
+                com.android.common.R.drawable.ic_cmn_arrow_left_fill,
+                textColor,
+            )
+            setNavigationContentDescription(com.goodwy.commons.R.string.back)
+            setNavigationOnClickListener {
+                hideKeyboard()
+                finish()
+            }
+        }
     }
 
     private fun applyNewConversationWindowBackgroundsAndTopChrome() {

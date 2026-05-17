@@ -350,6 +350,10 @@ class SettingsActivity : SimpleActivity() {
             ViewCompat.requestApplyInsets(binding.root)
             binding.mVerticalSideFrameTop.bindBlurTarget(binding.mainBlurTarget)
             binding.mVerticalSideFrameBottom.bindBlurTarget(binding.mainBlurTarget)
+            binding.settingsMenu.requireCustomToolbar().bindBlurTarget(
+                this@SettingsActivity,
+                binding.mainBlurTarget,
+            )
             postSyncMySearchMenuToolbarGeometry(
                 binding.root,
                 binding.settingsMenu,
