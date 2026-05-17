@@ -134,6 +134,16 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
     /** Mirrors [AppBarLayout] offset (0 expanded, negative collapsed); kept in sync while the bar is on screen. */
     private var mainMenuLastAppBarVerticalOffset: Int = 0
 
+    /** Coalesces [syncRecentsTopInsetWithToolbar] while the app bar offset animates (e.g. scroll down after search). */
+    private val syncListTopInsetFromAppBarRunnable = Runnable {
+        if (isFinishing || isDestroyed) return@Runnable
+        val menu = binding.mainMenu
+        if (menu.requireCustomToolbar().isSearchExpanded) return@Runnable
+        if ((binding.conversationsList.adapter as? ConversationsAdapter)?.isActionModeActive() == true) return@Runnable
+        if (isSearchResumeInProgress) return@Runnable
+        syncRecentsTopInsetWithToolbar()
+    }
+
     /**
      * Incremented on each [initMessenger] refresh. Background loads compare against this so an older,
      * slower run cannot overwrite the list after mode switches (e.g. normal → secure box).
@@ -153,8 +163,10 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         // Theme.Material3.Dark windowBackground is dark; paint window + decor before inflation so edge-to-edge does not flash behind transparent bars.
         paintMainScreenWindowBeforeContentView()
         setContentView(binding.root)
-        binding.mainMenu.addOnOffsetChangedListener { _, verticalOffset ->
+        binding.mainMenu.addOnOffsetChangedListener { appBar, verticalOffset ->
             mainMenuLastAppBarVerticalOffset = verticalOffset
+            appBar.removeCallbacks(syncListTopInsetFromAppBarRunnable)
+            appBar.post(syncListTopInsetFromAppBarRunnable)
         }
         initTheme()
         setupTwoFingerSwipeGesture()
@@ -391,6 +403,7 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
     }
 
     override fun onDestroy() {
+        binding.mainMenu.removeCallbacks(syncListTopInsetFromAppBarRunnable)
         super.onDestroy()
         clearMainMenuSpringSync()
         config.needRestart = false
@@ -426,6 +439,22 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
 
     private fun mainMenuListTopInsetSlackPx(): Int =
         (48 * resources.displayMetrics.density).toInt()
+
+    /**
+     * List top inset implied by [mainMenuLastAppBarVerticalOffset] (expanded = tall inset, collapsed = short).
+     * Used with screen geometry so padding still grows when the user scrolls the large title back after search.
+     */
+    private fun mainMenuListTopInsetForCollapsePx(): Int {
+        val menu = binding.mainMenu
+        val collapsed = menu.getCollapsedHeightPx().coerceAtLeast(0)
+        val visibleH = menu.height.takeIf { it > 0 } ?: collapsed
+        val totalRange = menu.totalScrollRange
+        if (totalRange <= 0) return visibleH
+        val collapseFraction = (
+            kotlin.math.abs(mainMenuLastAppBarVerticalOffset).toFloat() / totalRange.toFloat()
+            ).coerceIn(0f, 1f)
+        return collapsed + ((visibleH - collapsed) * (1f - collapseFraction)).toInt()
+    }
 
     /**
      * Upper bound for list top padding / trusted screen geometry. Rejects stale half-screen insets after
@@ -494,7 +523,8 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         if (toolbar.isSearchExpanded) {
             return maxOf(base, minSearchListTop)
         }
-        return base
+        // After search the list can keep a short inset while the user scrolls the title open; tie padding to offset.
+        return maxOf(base, mainMenuListTopInsetForCollapsePx())
     }
 
     fun getRecentsListTopInsetPx(): Int = listTopInsetPx(binding.conversationsList)
@@ -737,8 +767,27 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
 
     private fun applyToolbarExpandedFromConversationListScroll(animated: Boolean) {
         val menu = binding.mainMenu
-        menu.setExpanded(conversationListScrollOffsetOnly() == 0, animated)
+        val scroll = conversationListScrollOffsetOnly()
+        val shouldExpand = scroll == 0 && mainMenuLastAppBarVerticalOffset >= 0
+        menu.setExpanded(shouldExpand, animated)
         menu.binding.collapsingTitle.visibility = View.VISIBLE
+    }
+
+    private fun exitMainMenuSearchMode() {
+        val menu = binding.mainMenu
+        val toolbar = menu.requireCustomToolbar()
+        val wasInSearch = toolbar.isSearchExpanded || isSearchOpen
+        if (!wasInSearch) return
+        isSearchResumeInProgress = false
+        if (toolbar.isSearchExpanded) {
+            toolbar.collapseSearch()
+        }
+        menu.unlockCollapsing()
+        applyToolbarExpandedFromConversationListScroll(animated = false)
+        isSearchOpen = false
+        fadeOutSearch()
+        scheduleSyncMainMenuTopBlurGeometry()
+        menu.post { requestTopInsetSync() }
     }
 
     /**
@@ -794,16 +843,7 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
     override fun getBlurTargetView() = binding.mainBlurTarget
 
     private fun endMainMenuSearchMode() {
-        val menu = binding.mainMenu
-        val tb = menu.requireCustomToolbar()
-        if (!tb.isSearchExpanded) return
-        isSearchResumeInProgress = false
-        tb.collapseSearch()
-        menu.unlockCollapsing()
-        applyToolbarExpandedFromConversationListScroll(animated = false)
-        isSearchOpen = false
-        fadeOutSearch()
-        scheduleSyncMainMenuTopBlurGeometry()
+        exitMainMenuSearchMode()
     }
 
     private fun setupOptionsMenu() {
@@ -823,12 +863,7 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
                 menu.post { requestTopInsetSync() }
             }
             toolbar.setOnSearchBackClickListener {
-                isSearchResumeInProgress = false
-                menu.unlockCollapsing()
-                applyToolbarExpandedFromConversationListScroll(animated = false)
-                fadeOutSearch()
-                isSearchOpen = false
-                scheduleSyncMainMenuTopBlurGeometry()
+                exitMainMenuSearchMode()
             }
             toolbar.setOnSearchTextChangedListener { s ->
                 val text = s ?: ""
