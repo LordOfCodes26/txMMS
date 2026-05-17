@@ -424,6 +424,31 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
             ?: 0
     }
 
+    private fun mainMenuListTopInsetSlackPx(): Int =
+        (48 * resources.displayMetrics.density).toInt()
+
+    /**
+     * Upper bound for list top padding / trusted screen geometry. Rejects stale half-screen insets after
+     * resume while still allowing the large-title expanded chrome (scales with [mainMenuLastAppBarVerticalOffset]).
+     */
+    private fun maxTrustedListTopInsetPx(): Int {
+        val menu = binding.mainMenu
+        val slack = mainMenuListTopInsetSlackPx()
+        val minSearchListTop = resources.getDimensionPixelSize(R.dimen.nest_bouncy_content_padding_top)
+        if (menu.requireCustomToolbar().isSearchExpanded) {
+            return maxOf(menu.height + slack, minSearchListTop + slack)
+        }
+        val collapsed = menu.getCollapsedHeightPx().coerceAtLeast(0)
+        val visibleH = menu.height.takeIf { it > 0 } ?: collapsed
+        val totalRange = menu.totalScrollRange
+        if (totalRange <= 0) return visibleH + slack
+        val collapseFraction = (
+            kotlin.math.abs(mainMenuLastAppBarVerticalOffset).toFloat() / totalRange.toFloat()
+            ).coerceIn(0f, 1f)
+        val allowed = collapsed + ((visibleH - collapsed) * (1f - collapseFraction)).toInt()
+        return allowed + slack
+    }
+
     /**
      * Top padding for [R.id.conversations_list]: distance from the list’s top edge to the bottom of
      * [R.id.main_menu] on screen. Using [View.getHeight] alone double-counts with CoordinatorLayout /
@@ -444,9 +469,11 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
     private fun listTopInsetPx(list: View): Int {
         val menu = binding.mainMenu
         val toolbar = menu.requireCustomToolbar()
-        var base = getMainMenuVisibleHeight()
         val minSearchListTop = resources.getDimensionPixelSize(R.dimen.nest_bouncy_content_padding_top)
-        val slack = (48 * resources.displayMetrics.density).toInt()
+        // Default to collapsed toolbar — not full expanded [getMainMenuVisibleHeight] — so a missed geometry
+        // read after resume does not leave a large empty band under the title.
+        var base = menu.getCollapsedHeightPx().coerceAtLeast(0)
+        val maxTrustInset = maxTrustedListTopInsetPx()
         if (
             list.visibility == View.VISIBLE &&
             menu.visibility == View.VISIBLE &&
@@ -459,13 +486,6 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
             menu.getLocationOnScreen(mLoc)
             list.getLocationOnScreen(lLoc)
             val inset = (mLoc[1] + menu.height) - lLoc[1]
-            // Normal mode: trust ~one collapsed toolbar. Search: locked bar height is shorter than the
-            // visible search chrome, so allow geometry up to minSearch row + slack (still rejects stale half-screen).
-            val maxTrustInset = if (toolbar.isSearchExpanded) {
-                maxOf(menu.height + slack, minSearchListTop + slack)
-            } else {
-                menu.height + slack
-            }
             if (inset > 0 && inset <= maxTrustInset) {
                 base = inset
             }
@@ -501,14 +521,20 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         if (rawInset <= 0) return 0
         val menu = binding.mainMenu
         if (!menu.isLaidOut || menu.height <= 0) return 0
-        val slack = (48 * resources.displayMetrics.density).toInt()
-        val minSearchListTop = resources.getDimensionPixelSize(R.dimen.nest_bouncy_content_padding_top)
-        val cap = if (menu.requireCustomToolbar().isSearchExpanded) {
-            maxOf(menu.height + slack, minSearchListTop + slack)
+        return minOf(rawInset, maxTrustedListTopInsetPx())
+    }
+
+    /** Padding to apply now, or -1 when the app bar is not measured yet (caller should post and retry). */
+    private fun resolveRecentsListTopPaddingPx(rawInset: Int): Int {
+        val menu = binding.mainMenu
+        if (!menu.isAttachedToWindow || !menu.isLaidOut || menu.height <= 0) return -1
+        val capped = capRecentsListTopPaddingPx(rawInset)
+        if (capped > 0) return capped
+        return if (menu.requireCustomToolbar().isSearchExpanded) {
+            resources.getDimensionPixelSize(R.dimen.nest_bouncy_content_padding_top)
         } else {
-            menu.height + slack
+            menu.getCollapsedHeightPx().coerceAtLeast(0)
         }
-        return minOf(rawInset, cap)
     }
 
     /** Re-apply when the app bar finishes layout (e.g. after unlockCollapsing); based on txDial MainActivityRecents (no dialpad in Messages). */
@@ -523,19 +549,23 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
             return
         }
         val rawInset = listTopInsetPx(recentsList)
-        val topPad = capRecentsListTopPaddingPx(rawInset)
-        if (topPad > 0) {
-            recentsList.updatePadding(top = topPad)
-            logRecentsListTopPadding("applyFinal(immediate topPad=$topPad raw=$rawInset)", recentsList)
+        val topPad = resolveRecentsListTopPaddingPx(rawInset)
+        if (topPad >= 0) {
+            val maxAllowed = maxTrustedListTopInsetPx()
+            val clamped = minOf(topPad, maxAllowed).coerceAtLeast(0)
+            recentsList.updatePadding(top = clamped)
+            logRecentsListTopPadding("applyFinal(immediate topPad=$clamped raw=$rawInset)", recentsList)
             return
         }
         menu.post {
             if (isFinishing || isDestroyed) return@post
             val retryInset = listTopInsetPx(recentsList)
-            val retryTop = capRecentsListTopPaddingPx(retryInset)
-            if (retryTop > 0) {
-                recentsList.updatePadding(top = retryTop)
-                logRecentsListTopPadding("applyFinal(posted topPad=$retryTop raw=$retryInset)", recentsList)
+            val retryTop = resolveRecentsListTopPaddingPx(retryInset)
+            if (retryTop >= 0) {
+                val maxAllowed = maxTrustedListTopInsetPx()
+                val clamped = minOf(retryTop, maxAllowed).coerceAtLeast(0)
+                recentsList.updatePadding(top = clamped)
+                logRecentsListTopPadding("applyFinal(posted topPad=$clamped raw=$retryInset)", recentsList)
             } else {
                 logRecentsListTopPadding("applyFinal(posted inset still 0)", recentsList)
             }
@@ -1314,8 +1344,8 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         // stale value instead of the stable pre-pause position.
         if (!isSearchResumeInProgress) {
             syncBlurTargetTopMargin(height)
+            syncRecentsTopInsetWithToolbar()
         }
-        syncRecentsTopInsetWithToolbar()
         binding.mainMenu.post { refreshMainToolbarBlur() }
     }
 
