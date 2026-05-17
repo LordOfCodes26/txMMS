@@ -157,7 +157,6 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
             mainMenuLastAppBarVerticalOffset = verticalOffset
         }
         initTheme()
-        applyMainScreenBackgroundAndTopChrome()
         setupTwoFingerSwipeGesture()
 //        makeSystemBarsToTransparent()
         val isFirstLaunch = baseConfig.appRunCount == 0
@@ -169,6 +168,7 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
             config.initializeDefaultQuickTexts()
         }
         setupOptionsMenu()
+        applyMainScreenBackgroundAndTopChrome()
         refreshMenuItemsAndTitle()
         setupEdgeToEdge()
         checkWhatsNewDialog()
@@ -325,9 +325,17 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
     private fun refreshSideFrameBlurAndInsets() {
         binding.root.post {
             ViewCompat.requestApplyInsets(binding.root)
+            refreshMainToolbarBlur()
             setupVerticalSideFrameBlur()
             setMainMenuTransparentBackground()
         }
+    }
+
+    /** Toolbar glass on inner [blurTarget] (txDial); re-bind after [syncBlurTargetTopMargin]. */
+    private fun refreshMainToolbarBlur() {
+        binding.blurTarget.invalidate()
+        binding.mainMenu.requireCustomToolbar()
+            .bindBlurTarget(this, binding.blurTarget, getProperBlurOverlayColor())
     }
 
     /**
@@ -346,6 +354,7 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
             }
             syncTopSideFrameHeight(h)
             ViewCompat.requestApplyInsets(binding.root)
+            refreshMainToolbarBlur()
             setupVerticalSideFrameBlur()
             setMainMenuTransparentBackground()
             menu.requireCustomToolbar().updateSearchColors()
@@ -797,7 +806,7 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
             toolbar.setOnMenuItemClickListener { menuItem ->
                 handleToolbarMenuItemClick(menuItem)
             }
-            toolbar.getActionBar()?.bindBlurTarget(this@MainActivity, blurTarget)
+            toolbar.bindBlurTarget(this@MainActivity, blurTarget, getProperBlurOverlayColor())
             toolbar.setPopupForMoreItem(
                 R.id.more,
                 R.menu.menu_main,
@@ -1290,6 +1299,7 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
             syncBlurTargetTopMargin(height)
         }
         syncRecentsTopInsetWithToolbar()
+        binding.mainMenu.post { refreshMainToolbarBlur() }
     }
 
     private fun syncBlurTargetTopMargin(menuHeight: Int) {
@@ -1418,6 +1428,7 @@ class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         window.decorView.setBackgroundColor(backgroundColor)
         binding.root.setBackgroundColor(backgroundColor)
         binding.mainBlurTarget.setBackgroundColor(backgroundColor)
+        findViewById<CoordinatorLayout>(R.id.main_coordinator)?.setBackgroundColor(backgroundColor)
         binding.searchHolder.setBackgroundColor(backgroundColor)
         binding.conversationsNestedScroll.setBackgroundColor(backgroundColor)
         binding.conversationsList.setBackgroundColor(backgroundColor)
