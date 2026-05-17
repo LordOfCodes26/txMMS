@@ -124,11 +124,16 @@ class SmsServiceCenterActivity : SimpleActivity() {
         binding.smsServiceCenterAppbar.binding.searchBarContainer.setBackgroundColor(Color.TRANSPARENT)
     }
 
+    /** BlurView + MVSideFrame can stop updating after another activity was shown; re-apply insets and re-bind. */
     private fun refreshSideFrameBlurAndInsets() {
         binding.root.post {
             ViewCompat.requestApplyInsets(binding.root)
             binding.mVerticalSideFrameTop.bindBlurTarget(binding.mainBlurTarget)
             binding.mVerticalSideFrameBottom.bindBlurTarget(binding.mainBlurTarget)
+            binding.smsServiceCenterAppbar.requireCustomToolbar().bindBlurTarget(
+                this@SmsServiceCenterActivity,
+                binding.mainBlurTarget,
+            )
             postSyncMySearchMenuToolbarGeometry(
                 binding.root,
                 binding.smsServiceCenterAppbar,

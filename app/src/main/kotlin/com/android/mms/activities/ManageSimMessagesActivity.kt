@@ -116,11 +116,16 @@ class ManageSimMessagesActivity : SimpleActivity() {
         binding.manageSimMessagesAppbar.binding.searchBarContainer.setBackgroundColor(Color.TRANSPARENT)
     }
 
+    /** BlurView + MVSideFrame can stop updating after another activity was shown; re-apply insets and re-bind. */
     private fun refreshSideFrameBlurAndInsets() {
         binding.root.post {
             ViewCompat.requestApplyInsets(binding.root)
             binding.mVerticalSideFrameTop.bindBlurTarget(binding.mainBlurTarget)
             binding.mVerticalSideFrameBottom.bindBlurTarget(binding.mainBlurTarget)
+            binding.manageSimMessagesAppbar.requireCustomToolbar().bindBlurTarget(
+                this@ManageSimMessagesActivity,
+                binding.mainBlurTarget,
+            )
             postSyncMySearchMenuToolbarGeometry(
                 binding.root,
                 binding.manageSimMessagesAppbar,
