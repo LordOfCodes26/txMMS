@@ -1119,6 +1119,7 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         startActivity(
             Intent(this, SecureMainActivity::class.java).apply {
                 putExtra(SecureMainActivity.EXTRA_CIPHER_NUMBER, 1)
+                putExtra(SecureMainActivity.EXTRA_LAUNCHED_FROM_MAIN_ACTIVITY, true)
             },
         )
     }

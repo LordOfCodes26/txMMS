@@ -1,5 +1,6 @@
 package com.android.mms.activities
 
+import android.content.Intent
 import android.os.Bundle
 import com.android.mms.R
 import com.android.mms.extensions.applyLargeTitleOnly
@@ -15,10 +16,15 @@ class SecureMainActivity : MainActivity() {
 
     companion object {
         const val EXTRA_CIPHER_NUMBER = "cipher_number"
+        /** Set when [MainActivity.launchPrivateSpace] starts this screen; allows [finish] to reveal Main without restarting it. */
+        const val EXTRA_LAUNCHED_FROM_MAIN_ACTIVITY = "launched_from_main_activity"
         private const val DEFAULT_CIPHER_NUMBER = 1
     }
 
+    private var launchedFromMainActivity = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
+        launchedFromMainActivity = intent.getBooleanExtra(EXTRA_LAUNCHED_FROM_MAIN_ACTIVITY, false)
         val cipherNumber = intent.getIntExtra(EXTRA_CIPHER_NUMBER, DEFAULT_CIPHER_NUMBER).coerceAtLeast(1)
         if (!setConversationPinScope(cipherNumber)) {
             super.onCreate(savedInstanceState)
@@ -43,8 +49,32 @@ class SecureMainActivity : MainActivity() {
         binding.mainMenu.requireCustomToolbar().invalidateMenu()
     }
 
+    override fun onResume() {
+        super.onResume()
+        if (isFinishing) return
+    }
+
     override fun closeSecureBox() {
+        openMainInNormalMode()
+    }
+
+    /**
+     * Leave PIN scope and return to the normal list.
+     * When opened from [MainActivity] and it is still in the task, [finish] reveals it without
+     * [Intent.FLAG_ACTIVITY_CLEAR_TOP] (avoids recreating Main and reloading conversations).
+     */
+    private fun openMainInNormalMode() {
+        if (isFinishing) return
         setConversationPinScope(0)
+        if (launchedFromMainActivity && !isTaskRoot) {
+            finish()
+            return
+        }
+        startActivity(
+            Intent(this, MainActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            },
+        )
         finish()
     }
 
