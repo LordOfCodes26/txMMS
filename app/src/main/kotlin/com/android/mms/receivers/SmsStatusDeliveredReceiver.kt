@@ -100,7 +100,7 @@ class SmsStatusDeliveredReceiver : SendStatusReceiver() {
                 
                 // Play delivery report sound if enabled and message is delivered
                 if (status == Sms.STATUS_COMPLETE && context.config.enableDeliveryReports) {
-                    val soundUriString = context.config.deliveryReportSound
+                    val soundUriString = context.config.getEffectiveDeliveryReportSoundUri()
                     if (soundUriString != null) {
                         try {
                             val soundUri = Uri.parse(soundUriString)

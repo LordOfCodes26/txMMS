@@ -1,7 +1,10 @@
 package com.android.mms.helpers
 
 import android.content.Context
+import android.media.RingtoneManager
+import com.goodwy.commons.extensions.getDefaultAlarmSound
 import com.goodwy.commons.helpers.BaseConfig
+import com.goodwy.commons.helpers.SILENT
 import com.android.mms.extensions.getDefaultKeyboardHeight
 import com.android.mms.models.Conversation
 import com.android.mms.R
@@ -63,6 +66,14 @@ class Config(context: Context) : BaseConfig(context) {
                 remove(NOTIFICATION_SOUND)
             }
         }
+
+    /** URI string to play for delivery reports, or null if silent / unavailable. */
+    fun getEffectiveDeliveryReportSoundUri(): String? {
+        val sound = deliveryReportSound
+            ?: notificationSound
+            ?: context.getDefaultAlarmSound(RingtoneManager.TYPE_NOTIFICATION).uri
+        return sound.takeUnless { it.isEmpty() || it == SILENT }
+    }
 
     var sendLongMessageMMS: Boolean
         get() = prefs.getBoolean(SEND_LONG_MESSAGE_MMS, false)
