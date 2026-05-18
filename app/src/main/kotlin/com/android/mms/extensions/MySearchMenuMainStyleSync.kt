@@ -47,31 +47,11 @@ fun syncTopSideFrameHeightForMenu(
     }
 }
 
-private fun mySearchMenuListTopInsetSlackPx(list: View): Int =
-    (48 * list.resources.displayMetrics.density).toInt()
-
-/** Same cap logic as [com.android.mms.activities.MainActivity.maxTrustedListTopInsetPx]. */
-fun maxTrustedMySearchMenuListTopInsetPx(menu: MySearchMenu, appBarVerticalOffset: Int = 0): Int {
-    val slack = mySearchMenuListTopInsetSlackPx(menu)
-    val minSearchListTop = menu.resources.getDimensionPixelSize(R.dimen.nest_bouncy_content_padding_top)
-    if (menu.requireCustomToolbar().isSearchExpanded) {
-        return max(menu.height + slack, minSearchListTop + slack)
-    }
-    val collapsed = menu.getCollapsedHeightPx().coerceAtLeast(0)
-    val visibleH = menu.height.takeIf { it > 0 } ?: collapsed
-    val totalRange = menu.totalScrollRange
-    if (totalRange <= 0) return visibleH + slack
-    val collapseFraction = (
-        kotlin.math.abs(appBarVerticalOffset).toFloat() / totalRange.toFloat()
-        ).coerceIn(0f, 1f)
-    val allowed = collapsed + ((visibleH - collapsed) * (1f - collapseFraction)).toInt()
-    return allowed + slack
-}
-
 /** Same geometry as [com.android.mms.activities.MainActivity.getRecentsListTopInsetPx]. */
-fun getMySearchMenuListTopInsetPx(menu: MySearchMenu, list: View, appBarVerticalOffset: Int = 0): Int {
-    var base = menu.getCollapsedHeightPx().coerceAtLeast(0)
-    val maxTrustInset = maxTrustedMySearchMenuListTopInsetPx(menu, appBarVerticalOffset)
+fun getMySearchMenuListTopInsetPx(menu: MySearchMenu, list: View): Int {
+    var base = menu.height.takeIf { it > 0 }
+        ?: menu.measuredHeight.takeIf { it > 0 }
+        ?: 0
     if (
         list.visibility == View.VISIBLE &&
         menu.visibility == View.VISIBLE &&
@@ -84,6 +64,15 @@ fun getMySearchMenuListTopInsetPx(menu: MySearchMenu, list: View, appBarVertical
         menu.getLocationOnScreen(mLoc)
         list.getLocationOnScreen(lLoc)
         val inset = (mLoc[1] + menu.height) - lLoc[1]
+        val slack = (48 * list.resources.displayMetrics.density).toInt()
+        val minSearchListTop = list.resources.getDimensionPixelSize(R.dimen.nest_bouncy_content_padding_top)
+        // Normal: ~one collapsed toolbar. Search: locked bar is shorter than visible search chrome;
+        // allow geometry up to minSearch + slack (still rejects stale half-screen from resume).
+        val maxTrustInset = if (menu.requireCustomToolbar().isSearchExpanded) {
+            max(menu.height + slack, minSearchListTop + slack)
+        } else {
+            menu.height + slack
+        }
         if (inset > 0 && inset <= maxTrustInset) {
             base = inset
         }
@@ -95,19 +84,21 @@ fun getMySearchMenuListTopInsetPx(menu: MySearchMenu, list: View, appBarVertical
     return base
 }
 
-fun applyMySearchMenuListTopPadding(menu: MySearchMenu, list: View, appBarVerticalOffset: Int = 0) {
+fun applyMySearchMenuListTopPadding(menu: MySearchMenu, list: View) {
     // Skip until the app bar has a real height; otherwise measuredHeight / stale
     // getLocationOnScreen after resume can apply a huge top pad (e.g. returning from another activity).
     if (!menu.isAttachedToWindow || !menu.isLaidOut || menu.height <= 0) return
-    val inset = getMySearchMenuListTopInsetPx(menu, list, appBarVerticalOffset) - 40
-    val cap = maxTrustedMySearchMenuListTopInsetPx(menu, appBarVerticalOffset)
-    val topPad = when {
-        inset > 0 -> min(inset, cap)
-        menu.requireCustomToolbar().isSearchExpanded ->
-            list.resources.getDimensionPixelSize(R.dimen.nest_bouncy_content_padding_top)
-        else -> menu.getCollapsedHeightPx().coerceAtLeast(0)
+    val inset = getMySearchMenuListTopInsetPx(menu, list) - 40
+    if (inset <= 0) return
+    val density = list.resources.displayMetrics.density
+    val slack = (48 * density).toInt()
+    val minSearchListTop = list.resources.getDimensionPixelSize(R.dimen.nest_bouncy_content_padding_top)
+    val cap = if (menu.requireCustomToolbar().isSearchExpanded) {
+        max(menu.height + slack, minSearchListTop + slack)
+    } else {
+        menu.height + slack
     }
-    list.updatePadding(top = min(topPad, cap).coerceAtLeast(0))
+    list.updatePadding(top = min(inset, cap))
 }
 
 /**
