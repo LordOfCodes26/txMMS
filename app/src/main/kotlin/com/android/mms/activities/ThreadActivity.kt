@@ -325,7 +325,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         composeBarBottomInsetLatch = ComposeBarBottomInsetLatch.NONE
         // Persist first, then notify: save runs on a background thread; posting before it completes
         // leaves MainActivity's list without the new draft until the next resume.
-        saveDraftMessage(notifyConversationsAfter = true, showDraftSavedToast = true)
+        saveDraftMessage(notifyConversationsAfter = true, showDraftSavedToast = isFinishing)
         isActivityVisible = false
     }
 

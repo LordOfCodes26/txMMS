@@ -2218,7 +2218,7 @@ class NewConversationActivity : SimpleActivity() {
     override fun onPause() {
         super.onPause()
         composeBarBottomInsetLatch = ComposeBarBottomInsetLatch.NONE
-        saveNewConversationDraft(showDraftSavedToast = true)
+        saveNewConversationDraft(showDraftSavedToast = isFinishing)
     }
 
     override fun onStop() {
