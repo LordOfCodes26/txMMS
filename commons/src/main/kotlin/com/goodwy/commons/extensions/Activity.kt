@@ -1627,6 +1627,7 @@ fun Activity.setupMDialogStuff(
     styleId : Int = 0,
     cancelOnTouchOutside: Boolean = true,
     cancelListener: (() -> Unit)? = null,
+    beforeShow: ((dialog: MDialog) -> Unit)? = null,
     callback: ((dialog: MDialog) -> Unit)? = null
 
 ): MDialog? {
@@ -1666,6 +1667,7 @@ fun Activity.setupMDialogStuff(
 //    }
 //    dialog.window?.setBackgroundDrawable(bgDrawable)
     dialog.window?.setGravity(Gravity.BOTTOM)
+    beforeShow?.invoke(dialog)
 
     if (!isFinishing) {
         dialog.show()

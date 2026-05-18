@@ -884,14 +884,22 @@ class ThreadAdapter(
         }
 
         val blurTarget = activity.findViewById<eightbitlab.com.blurview.BlurTarget>(com.android.mms.R.id.mainBlurTarget)
-        // val title = if (message.isReceivedMessage()) message.senderName else ""
-        OptionListDialog(
-            activity = activity,
-            title = "",
-            options = options,
-            blurTarget = blurTarget,
-            cancelListener = null,
-        )
+        val threadActivity = activity as? ThreadActivity
+        if (threadActivity != null) {
+            threadActivity.showMessageOptionsDialog(
+                title = "",
+                options = options,
+                blurTarget = blurTarget,
+            )
+        } else {
+            OptionListDialog(
+                activity = activity,
+                title = "",
+                options = options,
+                blurTarget = blurTarget,
+                cancelListener = null,
+            )
+        }
     }
 
     private fun showPopupMenuCopyNumbers(numbersList: List<String>, view: View) {

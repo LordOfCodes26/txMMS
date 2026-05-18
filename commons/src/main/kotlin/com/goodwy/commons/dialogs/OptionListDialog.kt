@@ -26,13 +26,15 @@ import eightbitlab.com.blurview.BlurTarget
  * @param options List of (label, action) pairs
  * @param blurTarget Optional blur target for the dialog background
  * @param cancelListener Called when the dialog is dismissed without selecting an option
+ * @param onDialogPrepared Optional hook to configure the dialog window before it is shown
  */
 class OptionListDialog(
     private val activity: Activity,
     title: CharSequence,
     private val options: List<Pair<CharSequence, () -> Unit>>,
     blurTarget: BlurTarget? = null,
-    cancelListener: (() -> Unit)? = null
+    cancelListener: (() -> Unit)? = null,
+    onDialogPrepared: ((MDialog) -> Unit)? = null,
 ) {
     private var dialog: MDialog? = null
 
@@ -73,10 +75,12 @@ class OptionListDialog(
                 blurTarget = blurTarget,
                 titleText = "",
                 cancelOnTouchOutside = true,
-                cancelListener = { cancelListener?.invoke() }
-            ) { mDialog ->
-                dialog = mDialog
-            }
+                cancelListener = { cancelListener?.invoke() },
+                beforeShow = { mDialog ->
+                    dialog = mDialog
+                    onDialogPrepared?.invoke(mDialog)
+                },
+            )
         }
     }
 }

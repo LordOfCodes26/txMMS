@@ -52,6 +52,8 @@ import androidx.recyclerview.widget.RecyclerView
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.android.common.dialogs.MConfirmDialog
+import com.android.common.view.MDialog
+import com.goodwy.commons.dialogs.OptionListDialog
 import com.goodwy.commons.dialogs.PermissionRequiredDialog
 import com.goodwy.commons.dialogs.RadioGroupDialog
 import com.goodwy.commons.dialogs.RadioGroupIconDialog
@@ -665,6 +667,50 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         composeBarBottomInsetLatch = ComposeBarBottomInsetLatch.NONE
         applyComposeBarImePaddingFromInsets()
         refreshThreadMessagesListPaddingForComposeBarHeight()
+    }
+
+    private fun isThreadKeyboardVisible(): Boolean {
+        val rootInsets = ViewCompat.getRootWindowInsets(binding.root)
+            ?: ViewCompat.getRootWindowInsets(window.decorView)
+            ?: return false
+        return rootInsets.isVisible(WindowInsetsCompat.Type.ime()) &&
+            rootInsets.getInsets(WindowInsetsCompat.Type.ime()).bottom > 0
+    }
+
+    /**
+     * Long-press message options while the IME is open: show the sheet without dismissing the keyboard.
+     */
+    fun showMessageOptionsDialog(
+        title: CharSequence,
+        options: List<Pair<CharSequence, () -> Unit>>,
+        blurTarget: BlurTarget?,
+    ) {
+        if (isDestroyed || isFinishing || options.isEmpty()) return
+
+        val keyboardVisibleAtShow = isThreadKeyboardVisible()
+        OptionListDialog(
+            activity = this,
+            title = title,
+            options = options,
+            blurTarget = blurTarget,
+            cancelListener = null,
+            onDialogPrepared = { dialog ->
+                if (keyboardVisibleAtShow) {
+                    keepKeyboardVisibleForOverlayDialog(dialog)
+                }
+            },
+        )
+    }
+
+    private fun keepKeyboardVisibleForOverlayDialog(dialog: MDialog) {
+        dialog.window?.let { window ->
+            window.addFlags(WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM)
+            window.setSoftInputMode(
+                WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE or
+                    WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING
+            )
+            window.setWindowAnimations(0)
+        }
     }
 
     /**
