@@ -6,8 +6,12 @@ import android.content.Context
 import android.content.Intent
 import android.media.RingtoneManager
 import android.net.Uri
+import android.os.Handler
+import android.os.Looper
 import android.provider.Telephony.Sms
+import com.goodwy.commons.extensions.toast
 import com.goodwy.commons.helpers.ensureBackgroundThread
+import com.android.mms.R
 import com.android.mms.extensions.config
 import com.android.mms.extensions.messagesDB
 import com.android.mms.extensions.messagingUtils
@@ -96,8 +100,9 @@ class SmsStatusDeliveredReceiver : SendStatusReceiver() {
 
                 if (status == Sms.STATUS_COMPLETE) {
                     context.messagesDB.updateDeliveryReportDate(messageId, (System.currentTimeMillis() / 1000).toInt())
+                    maybeShowDeliveredToast(context, intent)
                 }
-                
+
                 // Play delivery report sound if enabled and message is delivered
                 if (status == Sms.STATUS_COMPLETE && context.config.enableDeliveryReports) {
                     val soundUriString = context.config.getEffectiveDeliveryReportSoundUri()
@@ -112,6 +117,13 @@ class SmsStatusDeliveredReceiver : SendStatusReceiver() {
                     }
                 }
             }
+        }
+    }
+
+    private fun maybeShowDeliveredToast(context: Context, intent: Intent) {
+        if (!intent.getBooleanExtra(SendStatusReceiver.EXTRA_SHOW_DELIVERED_TOAST, false)) return
+        Handler(Looper.getMainLooper()).post {
+            context.toast(R.string.delivered)
         }
     }
 }

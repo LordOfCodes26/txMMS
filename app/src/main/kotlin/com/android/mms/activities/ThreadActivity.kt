@@ -2323,7 +2323,14 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
 
         try {
             refreshedSinceSent = false
-            sendMessageCompat(text, addresses, subscriptionId, attachments, messageId)
+            sendMessageCompat(
+                text = text,
+                addresses = addresses,
+                subId = subscriptionId,
+                attachments = attachments,
+                messageId = messageId,
+                showDeliveredToastOnSuccess = addresses.size == 1,
+            )
             ensureBackgroundThread {
                 val latestMessages = getMessages(
                     threadId,

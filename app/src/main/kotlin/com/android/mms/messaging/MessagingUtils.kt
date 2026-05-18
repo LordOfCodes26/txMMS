@@ -90,7 +90,8 @@ class MessagingUtils(val context: Context) {
         addresses: Set<String>,
         subId: Int,
         requireDeliveryReport: Boolean,
-        messageId: Long? = null
+        messageId: Long? = null,
+        showDeliveredToastOnSuccess: Boolean = false,
     ) {
         for (address in addresses) {
             val threadId = context.getThreadId(address)
@@ -102,7 +103,8 @@ class MessagingUtils(val context: Context) {
             try {
                 context.smsSender.sendMessage(
                     subId = subId, destination = address, body = text, serviceCenter = null,
-                    requireDeliveryReport = requireDeliveryReport, messageUri = messageUri
+                    requireDeliveryReport = requireDeliveryReport, messageUri = messageUri,
+                    showDeliveredToastOnSuccess = showDeliveredToastOnSuccess,
                 )
             } catch (e: Exception) {
                 updateSmsMessageSendingStatus(messageUri, Sms.Outbox.MESSAGE_TYPE_FAILED)
@@ -163,7 +165,7 @@ class MessagingUtils(val context: Context) {
         addresses: List<String>,
         attachment: Attachment?,
         settings: Settings,
-        messageId: Long? = null
+        messageId: Long? = null,
     ) {
         val transaction = Transaction(context, settings)
         val message = Message(text, addresses.toTypedArray())

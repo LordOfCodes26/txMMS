@@ -41,7 +41,8 @@ fun Context.sendMessageCompat(
     addresses: List<String>,
     subId: Int?,
     attachments: List<Attachment>,
-    messageId: Long? = null
+    messageId: Long? = null,
+    showDeliveredToastOnSuccess: Boolean = false,
 ) {
     val settings = getSendMessageSettings()
     if (subId != null) {
@@ -73,8 +74,9 @@ fun Context.sendMessageCompat(
                 text = text,
                 addresses = addresses.toSet(),
                 subId = settings.subscriptionId,
-                requireDeliveryReport = settings.deliveryReports,
-                messageId = messageId
+                requireDeliveryReport = settings.deliveryReports || showDeliveredToastOnSuccess,
+                messageId = messageId,
+                showDeliveredToastOnSuccess = showDeliveredToastOnSuccess,
             )
         } catch (e: SmsException) {
             when (e.errorCode) {

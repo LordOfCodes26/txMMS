@@ -21,7 +21,8 @@ class SmsSender(val app: Application) {
     // This should be called from a RequestWriter queue thread
     fun sendMessage(
         subId: Int, destination: String, body: String, serviceCenter: String?,
-        requireDeliveryReport: Boolean, messageUri: Uri
+        requireDeliveryReport: Boolean, messageUri: Uri,
+        showDeliveredToastOnSuccess: Boolean = false,
     ) {
         var dest = destination
         if (body.isEmpty()) {
@@ -43,7 +44,7 @@ class SmsSender(val app: Application) {
         }
         // Actually send the sms
         sendInternal(
-            subId, dest, messages, serviceCenter, requireDeliveryReport, messageUri
+            subId, dest, messages, serviceCenter, requireDeliveryReport, messageUri, showDeliveredToastOnSuccess
         )
     }
 
@@ -51,7 +52,8 @@ class SmsSender(val app: Application) {
     private fun sendInternal(
         subId: Int, dest: String,
         messages: ArrayList<String>, serviceCenter: String?,
-        requireDeliveryReport: Boolean, messageUri: Uri
+        requireDeliveryReport: Boolean, messageUri: Uri,
+        showDeliveredToastOnSuccess: Boolean,
     ) {
         val smsManager = getSmsManager(subId)
         val messageCount = messages.size
@@ -71,7 +73,7 @@ class SmsSender(val app: Application) {
                     PendingIntent.getBroadcast(
                         app,
                         partId,
-                        getDeliveredStatusIntent(messageUri, subId),
+                        getDeliveredStatusIntent(messageUri, subId, showDeliveredToastOnSuccess),
                         flags
                     )
                 )
@@ -86,7 +88,7 @@ class SmsSender(val app: Application) {
                         requestUri = messageUri,
                         subId = subId,
                         partId = partId,
-                        partsCount = messageCount
+                        partsCount = messageCount,
                     ),
                     flags
                 )
@@ -114,7 +116,12 @@ class SmsSender(val app: Application) {
         }
     }
 
-    private fun getSendStatusIntent(requestUri: Uri, subId: Int, partId: Int, partsCount: Int): Intent {
+    private fun getSendStatusIntent(
+        requestUri: Uri,
+        subId: Int,
+        partId: Int,
+        partsCount: Int,
+    ): Intent {
         val intent = Intent(SendStatusReceiver.SMS_SENT_ACTION, requestUri, app, SmsStatusSentReceiver::class.java)
         intent.putExtra(SendStatusReceiver.EXTRA_SUB_ID, subId)
         intent.putExtra(SendStatusReceiver.EXTRA_PART_ID, partId)
@@ -122,9 +129,12 @@ class SmsSender(val app: Application) {
         return intent
     }
 
-    private fun getDeliveredStatusIntent(requestUri: Uri, subId: Int): Intent {
+    private fun getDeliveredStatusIntent(requestUri: Uri, subId: Int, showDeliveredToastOnSuccess: Boolean): Intent {
         val intent = Intent(SendStatusReceiver.SMS_DELIVERED_ACTION, requestUri, app, SmsStatusDeliveredReceiver::class.java)
         intent.putExtra(SendStatusReceiver.EXTRA_SUB_ID, subId)
+        if (showDeliveredToastOnSuccess) {
+            intent.putExtra(SendStatusReceiver.EXTRA_SHOW_DELIVERED_TOAST, true)
+        }
         return intent
     }
 

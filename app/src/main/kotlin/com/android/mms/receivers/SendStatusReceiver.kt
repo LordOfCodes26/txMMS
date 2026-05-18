@@ -29,6 +29,7 @@ abstract class SendStatusReceiver : BroadcastReceiver() {
         const val EXTRA_SUB_ID = "subId"
         const val EXTRA_PART_ID = "partId"
         const val EXTRA_PARTS_COUNT = "partsCount"
+        const val EXTRA_SHOW_DELIVERED_TOAST = "showDeliveredToast"
 
         const val NO_ERROR_CODE = -1
     }

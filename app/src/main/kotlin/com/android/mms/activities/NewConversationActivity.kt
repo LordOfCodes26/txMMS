@@ -1605,7 +1605,8 @@ class NewConversationActivity : SimpleActivity() {
                 addresses = allNumbers,
                 subId = finalSubscriptionId,
                 attachments = attachments,
-                messageId = null
+                messageId = null,
+                showDeliveredToastOnSuccess = allNumbers.size == 1,
             )
             
             // Play sound if enabled
