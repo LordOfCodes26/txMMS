@@ -647,7 +647,7 @@ class SettingsActivity : SimpleActivity() {
 
             val blurTarget = findViewById<BlurTarget>(R.id.mainBlurTarget)
                 ?: throw IllegalStateException("mainBlurTarget not found")
-            RadioGroupDialog(this@SettingsActivity, items, config.messageSendDelay, R.string.message_send_delay, blurTarget = blurTarget) {
+            RadioGroupDialog(this@SettingsActivity, items, config.messageSendDelay, R.string.message_send_delay, requireConfirmButton = true, blurTarget = blurTarget) {
                 config.messageSendDelay = it as Int
                 settingsMessageSendDelay.text = getMessageSendDelayText()
             }
