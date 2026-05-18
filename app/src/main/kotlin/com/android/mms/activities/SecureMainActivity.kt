@@ -46,6 +46,9 @@ class SecureMainActivity : MainActivity() {
             else -> getString(R.string.private_space)
         }
         binding.mainMenu.applyLargeTitleOnly(title)
+        binding.mainMenu.requireCustomToolbar().menu.apply {
+            findItem(R.id.private_space)?.isVisible = false
+        }
         binding.mainMenu.requireCustomToolbar().invalidateMenu()
     }
 

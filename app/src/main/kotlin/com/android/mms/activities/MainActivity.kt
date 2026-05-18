@@ -243,6 +243,12 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
             return
         }
 
+        // While MainActivity is paused under SecureMainActivity, RefreshConversations can apply an
+        // empty PIN-scoped list (pin > 0). Reload when returning to normal mode (pin 0).
+        if (config.selectedConversationPin != lastMessengerAppliedPin && lastMessengerAppliedPin >= 0) {
+            initMessenger()
+        }
+
         applyMainScreenBackgroundAndTopChrome()
 
         refreshMenuItemsAndTitle()
