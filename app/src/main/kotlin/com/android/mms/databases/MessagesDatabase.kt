@@ -29,7 +29,7 @@ import com.android.mms.models.RecycleBinMessage
         RecycleBinMessage::class,
         Draft::class
     ],
-    version = 12
+    version = 13
 )
 @TypeConverters(Converters::class)
 abstract class MessagesDatabase : RoomDatabase() {
@@ -68,6 +68,7 @@ abstract class MessagesDatabase : RoomDatabase() {
                             .addMigrations(MIGRATION_9_10)
                             .addMigrations(MIGRATION_10_11)
                             .addMigrations(MIGRATION_11_12)
+                            .addMigrations(MIGRATION_12_13)
                             .build()
                     }
                 }
@@ -183,6 +184,12 @@ abstract class MessagesDatabase : RoomDatabase() {
                     execSQL("ALTER TABLE drafts ADD COLUMN is_scheduled INTEGER NOT NULL DEFAULT 0")
                     execSQL("ALTER TABLE drafts ADD COLUMN scheduled_millis INTEGER NOT NULL DEFAULT 0")
                 }
+            }
+        }
+
+        private val MIGRATION_12_13 = object : Migration(12, 13) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE messages ADD COLUMN date_sent INTEGER NOT NULL DEFAULT 0")
             }
         }
     }
