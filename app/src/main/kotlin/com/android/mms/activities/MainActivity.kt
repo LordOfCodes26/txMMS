@@ -422,6 +422,9 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
             endMainMenuSearchMode()
             return true
         }
+        if (finishConversationSelectionIfActive()) {
+            return true
+        }
         if (
             config.selectedConversationPin > 0 &&
             !isLaunchingSecretBox &&
@@ -432,6 +435,14 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         }
         appLockManager.lock()
         return false
+    }
+
+    /** System back (e.g. 3-button nav) while the conversation list is in selection mode — same as CAB back. */
+    private fun finishConversationSelectionIfActive(): Boolean {
+        val adapter = binding.conversationsList.adapter as? ConversationsAdapter ?: return false
+        if (!adapter.isActionModeActive()) return false
+        adapter.finishActMode()
+        return true
     }
 
     fun getMainMenuVisibleHeight(): Int {

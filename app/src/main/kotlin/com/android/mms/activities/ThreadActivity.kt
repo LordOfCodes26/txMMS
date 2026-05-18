@@ -2901,12 +2901,21 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
     
     override fun onBackPressedCompat(): Boolean {
         if (messageHolderHelper?.dismissEmojiPicker() == true) return true
+        if (finishThreadMessageSelectionIfActive()) return true
         return if (expandedMessageFragment != null) {
             hideExpandedMessageFragment()
             true
         } else {
             false
         }
+    }
+
+    /** System back (e.g. 3-button nav) while the message list is in selection mode — same as CAB back. */
+    private fun finishThreadMessageSelectionIfActive(): Boolean {
+        val adapter = binding.threadMessagesList.adapter as? ThreadAdapter ?: return false
+        if (!adapter.isActionModeActive()) return false
+        adapter.finishActMode()
+        return true
     }
 
     /** True while the message list is in CAB / multi-select mode ([ThreadAdapter] selection). */
