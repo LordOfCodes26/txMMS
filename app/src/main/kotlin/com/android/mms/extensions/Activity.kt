@@ -6,11 +6,7 @@ import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.graphics.Color
 import android.net.Uri
-import android.os.Build
 import android.provider.ContactsContract
-import android.telecom.PhoneAccount
-import android.telecom.PhoneAccountHandle
-import android.telecom.TelecomManager
 import android.view.View
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.content.res.ResourcesCompat
@@ -44,19 +40,16 @@ import com.goodwy.commons.helpers.SimpleContactsHelper
 import com.goodwy.commons.helpers.ensureBackgroundThread
 import com.goodwy.commons.interfaces.ActionModeToolbarHost
 import com.goodwy.commons.models.FAQItem
-import com.goodwy.commons.models.RadioItem
 import com.goodwy.commons.models.SimpleContact
 import com.android.mms.BuildConfig
 import com.android.mms.R
 import com.android.mms.activities.ConversationDetailsActivity
 import com.android.mms.activities.SimpleActivity
 import com.android.mms.activities.VCardViewerActivity
-import com.android.mms.dialogs.SelectSIMDialog
 import com.android.mms.helpers.EXTRA_VCARD_URI
 import com.android.mms.helpers.THREAD_ID
 import com.android.mms.helpers.parseVCardFromUri
-import com.goodwy.commons.extensions.telecomManager
-import com.goodwy.commons.helpers.PERMISSION_READ_PHONE_STATE
+import com.goodwy.commons.dialogs.OptionListDialog
 import ezvcard.property.Telephone
 import com.google.android.material.snackbar.Snackbar
 import eightbitlab.com.blurview.BlurTarget
@@ -263,30 +256,52 @@ fun Activity.launchAddNumberToContactFlow(rawPhoneNumber: String) {
         startAddContactIntent(formatted)
         return
     }
-    val createNewContact = "create_new_contact"
-    val addToExistingContact = "add_to_existing_contact"
-    val items = arrayListOf(
-        RadioItem(0, getString(com.goodwy.commons.R.string.create_new_contact), createNewContact),
-        RadioItem(1, getString(com.goodwy.commons.R.string.add_to_existing_contact), addToExistingContact),
-    )
-    RadioGroupDialog(
-        activity = this,
-        items = items,
-        requireConfirmButton = true,
-        blurTarget = blurTarget,
-    ) { selected ->
-        when (selected as String) {
-            createNewContact -> startAddContactIntent(formatted)
-            addToExistingContact -> {
-                Intent().apply {
-                    action = Intent.ACTION_INSERT_OR_EDIT
-                    type = "vnd.android.cursor.item/contact"
-                    putExtra(KEY_PHONE, formatted)
-                    launchActivityIntent(this)
-                }
-            }
+    // changed by sun ----->
+//    val createNewContact = "create_new_contact"
+//    val addToExistingContact = "add_to_existing_contact"
+//    val items = arrayListOf(
+//        RadioItem(0, getString(com.goodwy.commons.R.string.create_new_contact), createNewContact),
+//        RadioItem(1, getString(com.goodwy.commons.R.string.add_to_existing_contact), addToExistingContact),
+//    )
+//    RadioGroupDialog(
+//        activity = this,
+//        items = items,
+//        requireConfirmButton = true,
+//        blurTarget = blurTarget,
+//    ) { selected ->
+//        when (selected as String) {
+//            createNewContact -> startAddContactIntent(formatted)
+//            addToExistingContact -> {
+//                Intent().apply {
+//                    action = Intent.ACTION_INSERT_OR_EDIT
+//                    type = "vnd.android.cursor.item/contact"
+//                    putExtra(KEY_PHONE, formatted)
+//                    launchActivityIntent(this)
+//                }
+//            }
+//        }
+//    }
+    val options = mutableListOf<Pair<CharSequence, () -> Unit>>()
+
+    options.add(this.getString(com.goodwy.commons.R.string.create_new_contact) to { startAddContactIntent(formatted) })
+
+    // 통보문 삭제
+    options.add(this.getString(com.goodwy.commons.R.string.add_to_existing_contact) to {
+        Intent().apply {
+            action = Intent.ACTION_INSERT_OR_EDIT
+            type = "vnd.android.cursor.item/contact"
+            putExtra(KEY_PHONE, formatted)
+            launchActivityIntent(this)
         }
-    }
+    })
+    OptionListDialog(
+        activity = this,
+        title = "",
+        options = options,
+        blurTarget = blurTarget,
+        cancelListener = null,
+    )
+    // <---------
 }
 
 //Goodwy
