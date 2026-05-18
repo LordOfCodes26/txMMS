@@ -11,7 +11,8 @@ data class Contact(
     var address: String = "",
     var organizationName: String = "",
     /** 0= none 1 or 2 = SIM slot badge on picker avatar */
-    var simSlot: Int = 0
+    var simSlot: Int = 0,
+    var photoUri: String = "",
 ) : Parcelable {
 
     constructor(parcel: Parcel) : this(
@@ -21,7 +22,8 @@ data class Contact(
         parcel.readString() ?: "",
         parcel.readString() ?: "",
         parcel.readString() ?: "",
-        parcel.readInt()
+        parcel.readInt(),
+        parcel.readString() ?: "",
     )
 
     override fun writeToParcel(dest: Parcel, flags: Int) {
@@ -32,6 +34,7 @@ data class Contact(
         dest.writeString(address)
         dest.writeString(organizationName)
         dest.writeInt(simSlot)
+        dest.writeString(photoUri)
     }
 
     override fun describeContents(): Int = 0

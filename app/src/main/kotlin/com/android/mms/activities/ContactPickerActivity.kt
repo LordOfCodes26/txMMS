@@ -52,6 +52,7 @@ import com.android.mms.extensions.syncTopSideFrameHeightForMenu
 import com.android.mms.extensions.setupMySearchMenuSpringSync
 import com.android.mms.adapters.ContactPickerAdapter
 import com.android.mms.extensions.setRippleTabEnabledWidthAlpha
+import com.android.mms.extensions.getNameAndPhotoFromPhoneNumber
 import com.android.mms.helpers.ContactSimSlotHelper
 import com.android.mms.helpers.MessageHolderHelper
 import com.android.mms.models.Contact
@@ -814,14 +815,20 @@ class ContactPickerActivity : SimpleActivity() {
             for (pn in sc.phoneNumbers) {
                 val key = contactNumberKey(contactIdStr, pn.value)
 //                val simSlot = ContactSimSlotHelper.slotForSimContactAccount(
-                val simSlot = contactSimSlotHelper?.resolveSlotForSimContactAccount(
+                val simSlot = contactSimSlotHelper.resolveSlotForSimContactAccount(
                     pn.accountName.orEmpty(),
-                    pn.accountType.orEmpty()
+                    pn.accountType.orEmpty(),
+                ) ?: 0
+                contactList.add(
+                    Contact(
+                        name = name,
+                        contactId = contactIdStr,
+                        phoneNumber = pn.value,
+                        organizationName = org,
+                        simSlot = simSlot,
+                        photoUri = sc.photoUri,
+                    ),
                 )
-                if (simSlot != null){
-                    contactList.add(Contact(name, contactIdStr, -1, pn.value, "", org, simSlot))
-                    android.util.Log.i("SUN_DEBUG", "name = " + name + ", simSlot = " + simSlot + ", pn.value = " + pn.value)
-                }
                 if (alreadySelectedContactIds.contains(key)) {
                     selectedLocal.add(localIndex)
                 }
@@ -1212,7 +1219,15 @@ class ContactPickerActivity : SimpleActivity() {
                         }
                     }
                     val groupedCount = countByNormalized[raw.normalized] ?: 1
-                    list.add(Contact(name = name, contactId = "", phoneNumber = raw.number))
+                    val photoUri = getNameAndPhotoFromPhoneNumber(raw.number).photoUri.orEmpty()
+                    list.add(
+                        Contact(
+                            name = name,
+                            contactId = "",
+                            phoneNumber = raw.number,
+                            photoUri = photoUri,
+                        ),
+                    )
                     meta.add(CallLogEntryMeta(type = raw.type, timestamp = raw.dateMillis, groupedCount = groupedCount))
                 }
 

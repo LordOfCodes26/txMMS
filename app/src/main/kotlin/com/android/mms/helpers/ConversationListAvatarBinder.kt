@@ -1,8 +1,10 @@
 package com.android.mms.helpers
 
+import com.android.mms.models.Contact
 import com.android.mms.models.Conversation
 import com.goodwy.commons.activities.BaseSimpleActivity
 import com.goodwy.commons.extensions.getAvatarDrawableIndexForName
+import com.goodwy.commons.extensions.getProperPrimaryColor
 import com.goodwy.commons.helpers.AvatarSource
 import com.goodwy.commons.helpers.GROUP
 import com.goodwy.commons.helpers.MonogramGenerator
@@ -71,5 +73,64 @@ fun ContactAvatarView.bindConversationListAvatar(
         phoneNumber = conversation.phoneNumber,
         photoUri = conversation.photoUri,
         isGroupConversation = conversation.isGroupConversation,
+    )
+}
+
+/**
+ * Binds [avatarView] with the same photo / monogram rules as the main conversation list
+ * ([bindConversationListAvatar]) for [ContactPickerActivity] rows.
+ */
+fun ContactAvatarView.bindContactPickerAvatar(
+    activity: BaseSimpleActivity,
+    contact: Contact,
+    previewMode: Boolean = true,
+) {
+    if (contact.icon != -1) {
+        bind(
+            AvatarSource.Drawable(
+                drawableResId = contact.icon,
+                tintColor = android.graphics.Color.WHITE,
+                backgroundColor = activity.getProperPrimaryColor(),
+                backgroundDrawableIndex = null,
+            ),
+            previewMode = previewMode,
+        )
+        return
+    }
+
+    val title = contact.name
+    val phoneNumber = contact.phoneNumber
+    val hasContactName = title.isNotEmpty() && title != phoneNumber
+    if (!hasContactName) {
+        bind(
+            AvatarSource.Monogram(
+                initials = "",
+                gradientColors = MonogramGenerator.generateGradientColors(phoneNumber),
+                drawableIndex = activity.getAvatarDrawableIndexForName(phoneNumber).takeIf { it >= 0 },
+                showProfileIcon = true,
+            ),
+            previewMode = previewMode,
+        )
+        return
+    }
+
+    val avatarSeed = title.ifEmpty { phoneNumber }
+    val drawableIndex = activity.getAvatarDrawableIndexForName(avatarSeed).takeIf { it >= 0 }
+    val shouldUsePhoto = !activity.isDestroyed &&
+        !activity.isFinishing &&
+        contact.photoUri.isNotBlank() &&
+        phoneNumber != title
+
+    bind(
+        if (shouldUsePhoto) {
+            AvatarSource.Photo(contact.photoUri)
+        } else {
+            AvatarSource.Monogram(
+                initials = MonogramGenerator.generateInitials(avatarSeed),
+                gradientColors = MonogramGenerator.generateGradientColors(avatarSeed),
+                drawableIndex = drawableIndex,
+            )
+        },
+        previewMode = previewMode,
     )
 }

@@ -28,12 +28,11 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent">
 
-            <ImageView
+            <com.goodwy.commons.views.ContactAvatarView
                 android:id="@+id/contactImage"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:contentDescription="@null"
-                tools:src="@drawable/ic_sms_messenger" />
+                android:contentDescription="@null" />
 
         </FrameLayout>
 

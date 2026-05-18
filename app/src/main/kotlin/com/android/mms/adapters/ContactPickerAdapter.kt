@@ -3,11 +3,8 @@ package com.android.mms.adapters
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.res.ColorStateList
-import android.graphics.Bitmap
-import android.graphics.Color
 import android.os.Handler
 import android.os.Looper
-import android.util.LruCache
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -16,20 +13,18 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
-import com.bumptech.glide.Glide
+import com.goodwy.commons.activities.BaseSimpleActivity
 import com.goodwy.commons.extensions.adjustAlpha
+import com.goodwy.commons.extensions.beVisibleIf
 import com.android.mms.extensions.formatGroupedSectionDateTime
 import com.android.mms.extensions.nextGroupedTodayLabelRefreshDelayMillis
 import com.android.mms.extensions.normalizeGroupedListRelativeTextForKorean
-import com.goodwy.commons.extensions.getAvatarDrawableIndexForName
 import com.goodwy.commons.extensions.getColoredDrawableWithColor
 import com.goodwy.commons.extensions.getProperAccentColor
-import com.goodwy.commons.extensions.getProperPrimaryColor
 import com.goodwy.commons.extensions.getProperTextColor
-import com.goodwy.commons.helpers.AvatarSource
-import com.goodwy.commons.helpers.MonogramGenerator
-import com.goodwy.commons.helpers.SimpleContactsHelper
 import com.android.mms.R
+import com.android.mms.extensions.config
+import com.android.mms.helpers.bindContactPickerAvatar
 import com.android.mms.models.Contact
 import com.android.mms.models.ContactPickerListRow
 import com.goodwy.commons.views.ContactAvatarView
@@ -44,9 +39,7 @@ class ContactPickerAdapter(
 
     private var rows: List<ContactPickerListRow> = emptyList()
     private var contactLookup: List<Contact> = emptyList()
-    private val simpleContactsHelper = SimpleContactsHelper(context)
-    /** Letter avatars are expensive to generate; share bitmaps by display name (contact mode). */
-    private val letterAvatarBitmapCache = LruCache<String, Bitmap>(256)
+    private val showContactThumbnails = context.config.showContactThumbnails
     private val selectedContactIndices = mutableSetOf<Int>()
     private var listener: ContactPickerAdapterListener? = null
     private var isCallLogMode = false
@@ -241,46 +234,8 @@ class ContactPickerAdapter(
     }
 
     private fun bindPickerAvatar(avatarView: ContactAvatarView, contact: Contact) {
-        val act = context as? android.app.Activity ?: return
-        val hasContactName = contact.name.isNotEmpty() && contact.name != contact.phoneNumber
-        if (contact.icon != -1) {
-            avatarView.bind(
-                AvatarSource.Drawable(
-                    drawableResId = contact.icon,
-                    tintColor = Color.WHITE,
-                    backgroundColor = act.getProperPrimaryColor(),
-                    backgroundDrawableIndex = null,
-                ),
-                previewMode = true,
-            )
-            return
-        }
-        // Call log / dialer recents: unknown numbers use profile icon on gradient, not a digit letter (matches txDial RecentCallsAdapter).
-        if (!hasContactName) {
-            avatarView.bind(
-                AvatarSource.Monogram(
-                    initials = "",
-                    gradientColors = MonogramGenerator.generateGradientColors(contact.phoneNumber),
-                    drawableIndex = context.getAvatarDrawableIndexForName(contact.phoneNumber).takeIf { it >= 0 },
-                    showProfileIcon = true,
-                ),
-                previewMode = true,
-            )
-            return
-        }
-        val displayName = contact.name
-        val seed = displayName.ifBlank { contact.phoneNumber }
-        val initials = MonogramGenerator.generateInitials(displayName.ifEmpty { contact.phoneNumber })
-        val gradientColors = MonogramGenerator.generateGradientColors(seed)
-        val drawableIndex = context.getAvatarDrawableIndexForName(seed).takeIf { it >= 0 }
-        avatarView.bind(
-            AvatarSource.Monogram(
-                initials = initials,
-                gradientColors = gradientColors,
-                drawableIndex = drawableIndex,
-            ),
-            previewMode = true,
-        )
+        val act = context as? BaseSimpleActivity ?: return
+        avatarView.bindContactPickerAvatar(act, contact)
     }
 
     private fun applyRecentsDivider(divider: ImageView) {
@@ -291,9 +246,9 @@ class ContactPickerAdapter(
 
     /** Contacts tab row: [R.layout.item_contact_picker]. */
     private inner class ContactViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        private val nameTextView: TextView = itemView.findViewById(R.id.tv_contact_name)
+        private         val nameTextView: TextView = itemView.findViewById(R.id.tv_contact_name)
         private val phoneTextView: TextView = itemView.findViewById(R.id.tv_contact_phone)
-        val contactImage: ImageView = itemView.findViewById(R.id.contactImage)
+        private val contactImage: ContactAvatarView = itemView.findViewById(R.id.contactImage)
         private val divider: ImageView = itemView.findViewById(R.id.divider)
         private val checkBox: CheckBox = itemView.findViewById(R.id.cb_contact_select)
 
@@ -318,16 +273,9 @@ class ContactPickerAdapter(
             }
             checkBox.isChecked = selectedContactIndices.contains(contactIndex)
 
-            val displayName = contact.name.ifEmpty { contact.phoneNumber }
-            if (contact.icon != -1) {
-                contactImage.setImageResource(contact.icon)
-            } else {
-                var bmp = letterAvatarBitmapCache.get(displayName)
-                if (bmp == null) {
-                    bmp = simpleContactsHelper.getContactLetterIcon(displayName)
-                    letterAvatarBitmapCache.put(displayName, bmp)
-                }
-                contactImage.setImageBitmap(bmp)
+            contactImage.beVisibleIf(showContactThumbnails)
+            if (showContactThumbnails) {
+                bindPickerAvatar(contactImage, contact)
             }
 
             applyPickerSimBadge(contactSimBadge, contact.simSlot)
@@ -422,7 +370,10 @@ class ContactPickerAdapter(
 
             checkBox.isChecked = selectedContactIndices.contains(row.contactIndex)
 
-            bindPickerAvatar(avatarView, contact)
+            avatarView.beVisibleIf(showContactThumbnails)
+            if (showContactThumbnails) {
+                bindPickerAvatar(avatarView, contact)
+            }
             applyPickerSimBadge(avatarSimBadge, contact.simSlot)
             applyRecentsDivider(divider)
 
@@ -436,18 +387,6 @@ class ContactPickerAdapter(
                 val checked = checkBox.isChecked
                 if (checked) selectedContactIndices.add(row.contactIndex) else selectedContactIndices.remove(row.contactIndex)
                 listener?.onContactToggled(row.contactIndex, checked)
-            }
-        }
-    }
-
-    override fun onViewRecycled(holder: RecyclerView.ViewHolder) {
-        super.onViewRecycled(holder)
-        if (holder is ContactViewHolder) {
-            if (context is android.app.Activity) {
-                val a = context as android.app.Activity
-                if (!a.isDestroyed && !a.isFinishing) {
-                    Glide.with(context).clear(holder.contactImage)
-                }
             }
         }
     }
