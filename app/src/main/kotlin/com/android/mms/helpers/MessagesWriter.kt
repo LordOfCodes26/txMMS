@@ -297,6 +297,7 @@ class MessagesWriter(private val context: Context) {
                             status = cursor.getInt(cursor.getColumnIndexOrThrow(Sms.STATUS)),
                             participants = ArrayList(),
                             date = (cursor.getLong(cursor.getColumnIndexOrThrow(Sms.DATE)) / 1000).toInt(),
+                            dateSent = (cursor.getLong(cursor.getColumnIndexOrThrow(Sms.DATE_SENT)) / 1000).toInt(),
                             read = cursor.getInt(cursor.getColumnIndexOrThrow(Sms.READ)) == 1,
                             threadId = threadId,
                             isMMS = false,
