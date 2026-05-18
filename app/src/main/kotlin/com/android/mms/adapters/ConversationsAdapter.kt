@@ -495,29 +495,72 @@ class ConversationsAdapter(
     }
 
     private fun decryptConversations() {
-        val threadIds = getSelectedItems().map { it.threadId }.distinct().toLongArray()
-        if (threadIds.isEmpty()) return
-        ensureBackgroundThread {
-            activity.updateConversationPins(threadIds, 0)
-            refreshConversationsAndFinishActMode()
-        }
+        moveConversationsToPinScope(pin = 0)
     }
 
     private fun addToPrivateSpace() {
-        val threadIds = getSelectedItems().map { it.threadId }.distinct().toLongArray()
-        if (threadIds.isEmpty()) return
-        ensureBackgroundThread {
-            activity.updateConversationPins(threadIds, PRIVATE_SPACE_CONVERSATION_PIN)
-            refreshConversationsAndFinishActMode()
-        }
+        moveConversationsToPinScope(pin = PRIVATE_SPACE_CONVERSATION_PIN)
     }
 
     private fun removeFromPrivateSpace() {
-        val threadIds = getSelectedItems().map { it.threadId }.distinct().toLongArray()
-        if (threadIds.isEmpty()) return
+        moveConversationsToPinScope(pin = 0)
+    }
+
+    /**
+     * Updates thread PIN in the provider on a background thread. Removes rows from the visible list
+     * immediately (same pattern as block number / archive) instead of waiting for [refreshConversations].
+     */
+    private fun moveConversationsToPinScope(pin: Int) {
+        val selectedItems = getSelectedItems()
+        if (selectedItems.isEmpty()) return
+        val threadIds = selectedItems.map { it.threadId }.distinct().toLongArray()
+        removeConversationsFromListOptimistically(selectedItems, finishActionMode = true)
         ensureBackgroundThread {
-            activity.updateConversationPins(threadIds, 0)
-            refreshConversationsAndFinishActMode()
+            activity.updateConversationPins(threadIds, pin)
+        }
+    }
+
+    /**
+     * Used after secure-box unlock when thread ids are known but selection may already be cleared.
+     */
+    fun removeConversationsForThreadIds(threadIds: LongArray, finishActionMode: Boolean = true) {
+        if (threadIds.isEmpty()) return
+        val idSet = threadIds.toSet()
+        val fromSelection = getSelectedItems().filter { it.threadId in idSet }
+        val conversations = fromSelection.ifEmpty {
+            currentList
+                .filterIsInstance<ConversationListItem.ConversationItem>()
+                .map { it.conversation }
+                .filter { it.threadId in idSet }
+        }
+        removeConversationsFromListOptimistically(conversations, finishActionMode)
+    }
+
+    private fun removeConversationsFromListOptimistically(
+        removedConversations: List<Conversation>,
+        finishActionMode: Boolean,
+    ) {
+        if (removedConversations.isEmpty()) return
+        val toRemoveSet = removedConversations.toSet()
+        val newList = try {
+            removeEmptyDateSections(
+                currentList.toMutableList().apply {
+                    removeAll { it is ConversationListItem.ConversationItem && (it as ConversationListItem.ConversationItem).conversation in toRemoveSet }
+                },
+            )
+        } catch (_: Exception) {
+            removeEmptyDateSections(currentList.toMutableList())
+        }
+
+        activity.runOnUiThread {
+            submitList(newList)
+            selectedKeys.clear()
+            if (finishActionMode) {
+                finishActMode()
+            }
+            if (hasNoConversationRows(newList)) {
+                refreshConversations()
+            }
         }
     }
 

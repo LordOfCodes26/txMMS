@@ -1122,14 +1122,13 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         val pendingThreadIds = pendingThreadIdsToEncrypt
         pendingThreadIdsToEncrypt = null
         if (pendingThreadIds != null) {
+            runOnUiThread {
+                getOrCreateConversationsAdapter().removeConversationsForThreadIds(pendingThreadIds)
+                isStartActionMode = false
+                notifyDatasetChanged()
+            }
             ensureBackgroundThread {
                 updateConversationPins(pendingThreadIds, cipher)
-                runOnUiThread {
-                    getOrCreateConversationsAdapter().finishActMode()
-                    com.android.mms.helpers.refreshConversations()
-                    isStartActionMode = false
-                    notifyDatasetChanged()
-                }
             }
         } else {
             Handler(Looper.getMainLooper()).post {
