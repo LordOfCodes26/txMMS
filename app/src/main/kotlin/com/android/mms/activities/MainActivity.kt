@@ -337,18 +337,18 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
     private fun refreshSideFrameBlurAndInsets() {
         binding.root.post {
             ViewCompat.requestApplyInsets(binding.root)
-            refreshMainToolbarBlur()
+//            refreshMainToolbarBlur()
             setupVerticalSideFrameBlur()
             setMainMenuTransparentBackground()
         }
     }
 
     /** Toolbar glass on inner [blurTarget] (txDial); re-bind after [syncBlurTargetTopMargin]. */
-    private fun refreshMainToolbarBlur() {
-        binding.blurTarget.invalidate()
-        binding.mainMenu.requireCustomToolbar()
-            .bindBlurTarget(this, binding.blurTarget, getProperBlurOverlayColor())
-    }
+//    private fun refreshMainToolbarBlur() {
+//        binding.blurTarget.invalidate()
+//        binding.mainMenu.requireCustomToolbar()
+//            .bindBlurTarget(this, binding.blurTarget, getProperBlurOverlayColor())
+//    }
 
     /** Selection-mode back / select-all pills use the same inner [blurTarget] as [refreshMainToolbarBlur]. */
     private fun refreshActionModeToolbarBlur() {
@@ -356,7 +356,7 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         if (!adapter.isActionModeActive()) return
         binding.blurTarget.invalidate()
         binding.mainMenu.getActionModeToolbar()
-            .bindBlurTarget(this, binding.blurTarget, getProperBlurOverlayColor())
+            .bindBlurTarget(this, binding.blurTarget)
     }
 
     /**
@@ -375,7 +375,7 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
             }
             syncTopSideFrameHeight(h)
             ViewCompat.requestApplyInsets(binding.root)
-            refreshMainToolbarBlur()
+//            refreshMainToolbarBlur()
             refreshActionModeToolbarBlur()
             setupVerticalSideFrameBlur()
             setMainMenuTransparentBackground()
@@ -882,9 +882,9 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
             toolbar.setOnMenuItemClickListener { menuItem ->
                 handleToolbarMenuItemClick(menuItem)
             }
-            toolbar.bindBlurTarget(this@MainActivity, blurTarget, getProperBlurOverlayColor())
+            toolbar.bindBlurTarget(this@MainActivity, blurTarget)
             menu.getActionModeToolbar()
-                .bindBlurTarget(this@MainActivity, blurTarget, getProperBlurOverlayColor())
+                .bindBlurTarget(this@MainActivity, blurTarget)
             toolbar.setPopupForMoreItem(
                 R.id.more,
                 R.menu.menu_main,
@@ -1382,7 +1382,7 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
             syncBlurTargetTopMargin(height)
             syncRecentsTopInsetWithToolbar()
         }
-        binding.mainMenu.post { refreshMainToolbarBlur() }
+//        binding.mainMenu.post { refreshMainToolbarBlur() }
     }
 
     private fun syncBlurTargetTopMargin(menuHeight: Int) {
@@ -1511,7 +1511,7 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         window.decorView.setBackgroundColor(backgroundColor)
         binding.root.setBackgroundColor(backgroundColor)
         binding.mainBlurTarget.setBackgroundColor(backgroundColor)
-        findViewById<CoordinatorLayout>(R.id.main_coordinator)?.setBackgroundColor(backgroundColor)
+//        findViewById<CoordinatorLayout>(R.id.main_coordinator)?.setBackgroundColor(backgroundColor)
         binding.searchHolder.setBackgroundColor(backgroundColor)
         binding.conversationsNestedScroll.setBackgroundColor(backgroundColor)
         binding.conversationsList.setBackgroundColor(backgroundColor)
