@@ -244,6 +244,8 @@ class NewConversationActivity : SimpleActivity() {
                 hideKeyboard()
                 finish()
             }
+            // Top chrome blurs the scroll region behind the toolbar (same inner target as ContactPicker).
+            bindBlurTarget(this@NewConversationActivity, binding.conversationScrollBlur)
         }
     }
 
@@ -262,22 +264,12 @@ class NewConversationActivity : SimpleActivity() {
         binding.newConversationAppbar.binding.searchBarContainer.setBackgroundColor(Color.TRANSPARENT)
     }
 
-    /** Same idea as [SettingsActivity.refreshSideFrameBlurAndInsets]: blur + toolbar geometry after resume. */
+    /** Re-bind back-button blur after resume or when the coordinator is shown again (BlurView can detach). */
     private fun refreshNewConversationInsetsAndToolbarGeometry() {
         binding.root.post {
             ViewCompat.requestApplyInsets(binding.root)
-            binding.newConversationAppbar.requireCustomToolbar().bindBlurTarget(
-                this@NewConversationActivity,
-                binding.conversationScrollBlur,
-            )
+            setupNewConversationTopBar()
             binding.conversationScrollBlur.invalidate()
-            postSyncMySearchMenuToolbarGeometry(
-                binding.root,
-                binding.newConversationAppbar,
-                binding.conversationScrollBlur,
-                topSideFrame = null,
-                binding.newConversationHolder,
-            )
         }
     }
 
@@ -2018,6 +2010,7 @@ class NewConversationActivity : SimpleActivity() {
             findViewById<View>(R.id.new_conversation_coordinator)?.beVisible()
             findViewById<View>(R.id.message_holder_wrapper)?.beVisible()
             expandedMessageFragment = null
+            refreshNewConversationInsetsAndToolbarGeometry()
         }
     }
 
