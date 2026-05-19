@@ -134,16 +134,6 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
     /** Mirrors [AppBarLayout] offset (0 expanded, negative collapsed); kept in sync while the bar is on screen. */
     private var mainMenuLastAppBarVerticalOffset: Int = 0
 
-    /** Coalesces [syncRecentsTopInsetWithToolbar] while the app bar offset animates (e.g. scroll down after search). */
-    private val syncListTopInsetFromAppBarRunnable = Runnable {
-        if (isFinishing || isDestroyed) return@Runnable
-        val menu = binding.mainMenu
-        if (menu.requireCustomToolbar().isSearchExpanded) return@Runnable
-        if ((binding.conversationsList.adapter as? ConversationsAdapter)?.isActionModeActive() == true) return@Runnable
-        if (isSearchResumeInProgress) return@Runnable
-        syncRecentsTopInsetWithToolbar()
-    }
-
     /**
      * Incremented on each [initMessenger] refresh. Background loads compare against this so an older,
      * slower run cannot overwrite the list after mode switches (e.g. normal → secure box).
@@ -163,10 +153,9 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         // Theme.Material3.Dark windowBackground is dark; paint window + decor before inflation so edge-to-edge does not flash behind transparent bars.
         paintMainScreenWindowBeforeContentView()
         setContentView(binding.root)
-        binding.mainMenu.addOnOffsetChangedListener { appBar, verticalOffset ->
+        binding.mainMenu.addOnOffsetChangedListener { _, verticalOffset ->
             mainMenuLastAppBarVerticalOffset = verticalOffset
-            appBar.removeCallbacks(syncListTopInsetFromAppBarRunnable)
-            appBar.post(syncListTopInsetFromAppBarRunnable)
+            applyLiveRecentsTopPaddingFromAppBarOffset()
         }
         initTheme()
         setupTwoFingerSwipeGesture()
@@ -222,6 +211,7 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         binding.conversationsNestedScroll.post {
             setMainMenuHeight(null, animated = false)
             setupMainMenuSpringSync()
+            applyLiveRecentsTopPaddingFromAppBarOffset()
             if (config.changeColourTopBar) scrollChange()
         }
     }
@@ -409,7 +399,6 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
     }
 
     override fun onDestroy() {
-        binding.mainMenu.removeCallbacks(syncListTopInsetFromAppBarRunnable)
         super.onDestroy()
         clearMainMenuSpringSync()
         config.needRestart = false
@@ -458,8 +447,17 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         (48 * resources.displayMetrics.density).toInt()
 
     /**
+     * Bottom edge of the app bar as drawn on screen (0 expanded, negative [mainMenuLastAppBarVerticalOffset] when collapsed).
+     * [View.getHeight] on [AppBarLayout] stays at the expanded height while collapsing, so geometry must add offset.
+     */
+    private fun mainMenuVisibleBottomOnScreenPx(menuTopOnScreen: Int): Int {
+        val menu = binding.mainMenu
+        return menuTopOnScreen + menu.height + mainMenuLastAppBarVerticalOffset.coerceAtMost(0)
+    }
+
+    /**
      * List top inset implied by [mainMenuLastAppBarVerticalOffset] (expanded = tall inset, collapsed = short).
-     * Used with screen geometry so padding still grows when the user scrolls the large title back after search.
+     * Fallback when screen geometry is not yet trustworthy (e.g. right after resume).
      */
     private fun mainMenuListTopInsetForCollapsePx(): Int {
         val menu = binding.mainMenu
@@ -470,7 +468,24 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         val collapseFraction = (
             kotlin.math.abs(mainMenuLastAppBarVerticalOffset).toFloat() / totalRange.toFloat()
             ).coerceIn(0f, 1f)
-        return collapsed + ((visibleH - collapsed) * (1f - collapseFraction)).toInt()
+        return kotlin.math.round(collapsed + (visibleH - collapsed) * (1f - collapseFraction)).toInt()
+    }
+
+    /**
+     * While the app bar scrolls, drive list [paddingTop] only from [mainMenuLastAppBarVerticalOffset] so it
+     * moves in lockstep with CoordinatorLayout (screen geometry can disagree by a frame and flash).
+     */
+    private fun applyLiveRecentsTopPaddingFromAppBarOffset() {
+        if (isFinishing || isDestroyed) return
+        val menu = binding.mainMenu
+        if (menu.requireCustomToolbar().isSearchExpanded) return
+        if ((binding.conversationsList.adapter as? ConversationsAdapter)?.isActionModeActive() == true) return
+        if (isSearchResumeInProgress) return
+        val topPad = mainMenuListTopInsetForCollapsePx().coerceAtLeast(0)
+        val conv = binding.conversationsList
+        if (conv.paddingTop != topPad) {
+            conv.updatePadding(top = topPad)
+        }
     }
 
     /**
@@ -516,10 +531,9 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         val menu = binding.mainMenu
         val toolbar = menu.requireCustomToolbar()
         val minSearchListTop = resources.getDimensionPixelSize(R.dimen.nest_bouncy_content_padding_top)
-        // Default to collapsed toolbar — not full expanded [getMainMenuVisibleHeight] — so a missed geometry
-        // read after resume does not leave a large empty band under the title.
-        var base = menu.getCollapsedHeightPx().coerceAtLeast(0)
+        val collapseInset = mainMenuListTopInsetForCollapsePx()
         val maxTrustInset = maxTrustedListTopInsetPx()
+        var inset = collapseInset
         if (
             list.visibility == View.VISIBLE &&
             menu.visibility == View.VISIBLE &&
@@ -531,17 +545,16 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
             val lLoc = IntArray(2)
             menu.getLocationOnScreen(mLoc)
             list.getLocationOnScreen(lLoc)
-            val inset = (mLoc[1] + menu.height) - lLoc[1]
-            if (inset > 0 && inset <= maxTrustInset) {
-                base = inset
+            val geometryInset = mainMenuVisibleBottomOnScreenPx(mLoc[1]) - lLoc[1]
+            if (geometryInset > 0 && geometryInset <= maxTrustInset) {
+                inset = geometryInset
             }
         }
         // Locked AppBar height can be smaller than the visible search row; ensure we never under-pad.
         if (toolbar.isSearchExpanded) {
-            return maxOf(base, minSearchListTop)
+            return maxOf(inset, minSearchListTop)
         }
-        // After search the list can keep a short inset while the user scrolls the title open; tie padding to offset.
-        return maxOf(base, mainMenuListTopInsetForCollapsePx())
+        return inset
     }
 
     fun getRecentsListTopInsetPx(): Int = listTopInsetPx(binding.conversationsList)
@@ -584,6 +597,16 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         }
     }
 
+    /** Normal list: offset curve only. Search: screen geometry (locked short app bar). */
+    private fun recentsListTopInsetForLayoutSync(recentsList: MyRecyclerView): Int {
+        val menu = binding.mainMenu
+        return if (menu.requireCustomToolbar().isSearchExpanded) {
+            listTopInsetPx(recentsList)
+        } else {
+            mainMenuListTopInsetForCollapsePx()
+        }
+    }
+
     /** Re-apply when the app bar finishes layout (e.g. after unlockCollapsing); based on txDial MainActivityRecents (no dialpad in Messages). */
     private fun applyFinalRecentsListTopPadding(recentsList: MyRecyclerView) {
         val menu = binding.mainMenu
@@ -595,7 +618,7 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
             }
             return
         }
-        val rawInset = listTopInsetPx(recentsList)
+        val rawInset = recentsListTopInsetForLayoutSync(recentsList)
         val topPad = resolveRecentsListTopPaddingPx(rawInset)
         if (topPad >= 0) {
             val maxAllowed = maxTrustedListTopInsetPx()
@@ -606,7 +629,7 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         }
         menu.post {
             if (isFinishing || isDestroyed) return@post
-            val retryInset = listTopInsetPx(recentsList)
+            val retryInset = recentsListTopInsetForLayoutSync(recentsList)
             val retryTop = resolveRecentsListTopPaddingPx(retryInset)
             if (retryTop >= 0) {
                 val maxAllowed = maxTrustedListTopInsetPx()
