@@ -1305,7 +1305,7 @@ class ThreadAdapter(
                     }
                     android.provider.Telephony.Sms.MESSAGE_TYPE_SENT -> {
                         val isDelivered = message.status == android.provider.Telephony.Sms.STATUS_COMPLETE
-                        setImageResource(if (isDelivered) R.drawable.ic_sms_delivered else com.goodwy.commons.R.drawable.ic_check_vector)
+                        setImageResource(if (isDelivered) R.drawable.ic_sms_delivered else com.goodwy.commons.R.drawable.ic_check)
                         applyColorFilter(textColor)
                         contentDescription = activity.getString(if (isDelivered) R.string.delivered else R.string.sent)
                         beVisible()
@@ -1372,15 +1372,15 @@ class ThreadAdapter(
                     hideTodaysDate = false,
                     dateFormat = getLocaleDateFormatPatternMonthDay()
                 )
-                setTextSize(TypedValue.COMPLEX_UNIT_PX, fontSizeMessage)
+//                setTextSize(TypedValue.COMPLEX_UNIT_PX, fontSizeMessage)
             }
-            threadDateTime.setTextColor(secondTextColor)
-            threadDateTime.alpha = 0.6f
+//            threadDateTime.setTextColor(secondTextColor)
+//            threadDateTime.alpha = 0.6f
 
             // SIM info is now shown in each message bubble; hide from date header
             threadSimIcon.beGone()
             threadSimNumber.beGone()
-            threadSimNumber.alpha = 0.6f
+//            threadSimNumber.alpha = 0.6f
         }
     }
 
