@@ -956,7 +956,7 @@ class SettingsActivity : SimpleActivity() {
 
             val blurTarget = findViewById<BlurTarget>(R.id.mainBlurTarget)
                 ?: throw IllegalStateException("mainBlurTarget not found")
-            RadioGroupDialog(this@SettingsActivity, items, config.lockScreenVisibilitySetting, R.string.lock_screen_visibility, blurTarget = blurTarget) {
+            RadioGroupDialog(this@SettingsActivity, items, config.lockScreenVisibilitySetting, R.string.lock_screen_visibility, requireConfirmButton = true, blurTarget = blurTarget) {
                 config.lockScreenVisibilitySetting = it as Int
                 settingsLockScreenVisibility.text = getLockScreenVisibilityText()
             }
