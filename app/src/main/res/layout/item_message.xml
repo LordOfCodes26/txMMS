@@ -7,7 +7,6 @@
     android:layout_height="wrap_content"
     android:layout_marginTop="@dimen/small_margin"
     android:layout_marginBottom="@dimen/medium_normal_margin"
-    android:foreground="@drawable/selector"
     android:paddingStart="@dimen/activity_margin"
     android:paddingEnd="@dimen/activity_margin">
 
@@ -18,6 +17,7 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
+        android:foreground="@drawable/selector"
         app:layout_constraintWidth_percent="0.8">
 
         <ImageView
