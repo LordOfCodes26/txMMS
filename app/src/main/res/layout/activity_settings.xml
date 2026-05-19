@@ -511,6 +511,14 @@
                                     android:layout_marginEnd="@dimen/normal_margin"
                                     android:text="@string/sms_service_center"/>
 
+                                <com.goodwy.commons.views.MyTextView
+                                    android:id="@+id/settingsSmsServiceCenterValue"
+                                    style="@style/SettingsTextValueStyle"
+                                    android:layout_alignParentEnd="true"
+                                    android:layout_marginEnd="@dimen/small_margin"
+                                    android:visibility="gone"
+                                    tools:text="@string/sms" />
+
                                 <ImageView
                                     android:id="@+id/settingsSmsServiceCenterChevron"
                                     style="@style/SettingsChevronStyle"
@@ -538,6 +546,14 @@
                                     android:layout_toStartOf="@+id/settingsSmsStorageLocationChevron"
                                     android:layout_marginEnd="@dimen/normal_margin"
                                     android:text="@string/sms_storage_location"/>
+
+                                <com.goodwy.commons.views.MyTextView
+                                    android:id="@+id/settingsSmsStorageLocationValue"
+                                    style="@style/SettingsTextValueStyle"
+                                    android:layout_alignParentEnd="true"
+                                    android:layout_marginEnd="@dimen/small_margin"
+                                    android:visibility="gone"
+                                    tools:text="@string/sms_storage_location_phone" />
 
                                 <ImageView
                                     android:id="@+id/settingsSmsStorageLocationChevron"

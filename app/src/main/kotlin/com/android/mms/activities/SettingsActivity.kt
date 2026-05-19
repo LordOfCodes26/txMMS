@@ -1,5 +1,6 @@
 package com.android.mms.activities
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.graphics.Color
@@ -10,13 +11,18 @@ import android.media.AudioManager
 import android.media.RingtoneManager
 import android.os.Bundle
 import android.provider.Settings
+import android.telephony.SmsManager
+import android.text.InputType
 import android.view.Menu
 import android.view.View
+import android.widget.EditText
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresPermission
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowCompat
 import androidx.appcompat.content.res.AppCompatResources
+import com.android.common.dialogs.MRenameDialog
 import com.goodwy.commons.dialogs.*
 import com.goodwy.commons.extensions.*
 import com.goodwy.commons.helpers.*
@@ -27,6 +33,9 @@ import com.android.mms.dialogs.ExportMessagesDialog
 import com.android.mms.extensions.*
 import com.android.mms.helpers.*
 import com.android.common.view.MVSideFrame
+import com.android.mms.databinding.ItemSmsServiceCenterSimBinding
+import com.android.mms.databinding.ItemSmsStorageLocationSimBinding
+import com.android.mms.models.SIMCard
 import eightbitlab.com.blurview.BlurTarget
 
 class SettingsActivity : SimpleActivity() {
@@ -271,9 +280,12 @@ class SettingsActivity : SimpleActivity() {
 
         setupMessageBubble()
         setupManageQuickTexts()
+
+        initSIMCardManage()
         setupSimCardMessages()
         setupSmsServiceCenter()
         setupSmsStorageLocation()
+
         setupSoundOnOutGoingMessages()
         // Hide "Sound on out going messages" option
         binding.settingsSoundOnOutGoingMessagesHolder.beGone()
@@ -342,6 +354,136 @@ class SettingsActivity : SimpleActivity() {
 
         refreshSettingsTopBarColors()
         refreshSideFrameBlurAndInsets()
+    }
+    // for edit sms service center --------->
+    @SuppressLint("MissingPermission")
+    private fun editSmsForSim(sim: SIMCard) {
+        Thread {
+            val current = readSmscAddress(sim.subscriptionId)
+            runOnUiThread {
+                if (isDestroyed || isFinishing) return@runOnUiThread
+                val dialog = MRenameDialog(this@SettingsActivity)
+                dialog.bindBlurTarget(binding.mainBlurTarget)
+                dialog.setTitle(getString(R.string.sms_service_center))
+                dialog.setContentText(current)
+                dialog.setEditEnabled(true)
+                dialog.setOnRenameListener { newAddress ->
+                    if (!isValidSmscAddress(newAddress)) {
+                        toast(R.string.invalid_smsc_number)
+                        return@setOnRenameListener
+                    }
+                    Thread {
+                        try {
+                            writeSmscAddress(sim.subscriptionId, newAddress)
+                            runOnUiThread {
+                                if (!isDestroyed && !isFinishing) {
+                                    binding.settingsSmsServiceCenterValue.text = newAddress
+                                }
+                            }
+                        } catch (e: Exception) {
+                            runOnUiThread { showErrorToast(e) }
+                        }
+                    }.start()
+                }
+                dialog.show()
+                dialog.window?.decorView?.findViewById<EditText>(com.android.common.R.id.input_text)
+                    ?.let { et ->
+                        et.inputType = InputType.TYPE_CLASS_PHONE
+                        et.post { showKeyboard(et) }
+                    }
+            }
+        }.start()
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun readSmscAddress(subscriptionId: Int): String = try {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            SmsManager.getSmsManagerForSubscriptionId(subscriptionId).getSmscAddress() ?: ""
+        } else ""
+    } catch (e: Exception) { "" }
+
+    @SuppressLint("MissingPermission")
+    private fun writeSmscAddress(subscriptionId: Int, address: String) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            SmsManager.getSmsManagerForSubscriptionId(subscriptionId).setSmscAddress(address)
+        }
+    }
+
+    private fun isValidSmscAddress(address: String): Boolean {
+        if (address.isEmpty()) return true
+        return if (address.startsWith("+")) address.drop(1).all { it.isDigit() }
+        else address.all { it.isDigit() }
+    }
+    // <-------------
+
+    // for sms storage ----------->
+
+    private fun updateRowValue(subscriptionId: Int) {
+        val location = config.getSmsStorageLocation(subscriptionId)
+        binding.settingsSmsStorageLocationValue.text = getLocationLabel(location)
+    }
+
+    private fun getLocationLabel(location: Int): String = when (location) {
+        SMS_SAVE_LOCATION_SIM -> getString(R.string.sms_storage_location_sim)
+        else -> getString(R.string.sms_storage_location_phone)
+    }
+
+    private fun showLocationPickerDialog(sim: SIMCard) {
+        val items = arrayListOf(
+            RadioItem(SMS_SAVE_LOCATION_PHONE, getString(R.string.sms_storage_location_phone)),
+            RadioItem(SMS_SAVE_LOCATION_SIM, getString(R.string.sms_storage_location_sim)),
+        )
+        val currentLocation = config.getSmsStorageLocation(sim.subscriptionId)
+        val blurTarget = findViewById<BlurTarget>(R.id.mainBlurTarget)
+            ?: throw IllegalStateException("mainBlurTarget not found")
+        RadioGroupDialog(
+            this,
+            items,
+            currentLocation,
+            R.string.sms_storage_location,
+            blurTarget = blurTarget,
+            requireConfirmButton =true,
+        ) { selected ->
+            config.setSmsStorageLocation(sim.subscriptionId, selected as Int)
+            updateRowValue(sim.subscriptionId)
+        }
+    }
+
+    // <------------------
+
+    @RequiresPermission(Manifest.permission.READ_PHONE_STATE)
+    private fun isSIMCardInserted() {
+        if (getSIMCard().isEmpty()) {
+            binding.settingsSimCardMessagesHolder.alpha = 0.6F
+            binding.settingsSmsServiceCenterHolder.alpha = 0.6F
+            binding.settingsSmsStorageLocationHolder.alpha = 0.6F
+        } else {
+            binding.settingsSimCardMessagesHolder.alpha = 1.0F
+            binding.settingsSmsServiceCenterHolder.alpha = 1.0F
+            binding.settingsSmsStorageLocationHolder.alpha = 1.0F
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun getSIMCard(): List<SIMCard> {
+        val availableSIMs = subscriptionManagerCompat().activeSubscriptionInfoList
+            ?: return emptyList()
+        return availableSIMs.mapIndexed { index, subscriptionInfo ->
+            var label = subscriptionInfo.displayName?.toString()
+                ?: getString(com.goodwy.commons.R.string.contact_list_sim_slot, index + 1)
+            when (subscriptionInfo.mnc) {
+                5 -> label = getString(R.string.koryo_label)
+                6 -> label = getString(R.string.kangsong_label)
+                3 -> label = getString(R.string.mirae_label)
+            }
+            SIMCard(
+                id = index + 1,
+                subscriptionId = subscriptionInfo.subscriptionId,
+                label = label,
+                mnc = subscriptionInfo.mnc,
+                number = subscriptionInfo.number?.trim().orEmpty(),
+            )
+        }
     }
 
     /** BlurView + MVSideFrame can stop updating after another activity was shown; re-apply insets and re-bind. */
@@ -586,20 +728,62 @@ class SettingsActivity : SimpleActivity() {
         }
     }
 
-    private fun setupSimCardMessages() = binding.apply {
-        settingsSimCardMessagesHolder.setOnClickListener {
-            startActivity(Intent(this@SettingsActivity, ManageSimMessagesActivity::class.java))
+    private fun initSIMCardManage() = binding.apply {
+        if (getSIMCard().count() == 1){
+            binding.settingsSmsServiceCenterValue.visibility = View.VISIBLE
+            binding.settingsSmsStorageLocationValue.visibility = View.VISIBLE
+            binding.settingsSmsServiceCenterChevron.visibility = View.GONE
+            binding.settingsSmsStorageLocationChevron.visibility = View.GONE
+            updateRowValue(getSIMCard()[0].subscriptionId)
+            binding.settingsSmsServiceCenterValue.text = readSmscAddress(getSIMCard()[0].subscriptionId)
+        }
+        else {
+            binding.settingsSmsServiceCenterValue.visibility = View.GONE
+            binding.settingsSmsStorageLocationValue.visibility = View.GONE
+            binding.settingsSmsServiceCenterChevron.visibility = View.VISIBLE
+            binding.settingsSmsStorageLocationChevron.visibility = View.VISIBLE
         }
     }
 
+    @SuppressLint("MissingPermission")
+    private fun setupSimCardMessages() = binding.apply {
+        isSIMCardInserted()
+        settingsSimCardMessagesHolder.setOnClickListener {
+            if (getSIMCard().isEmpty()) return@setOnClickListener
+            else if (getSIMCard().count() == 1) {
+                Intent(this@SettingsActivity, SimMessagesActivity::class.java).apply {
+                    putExtra(SimMessagesActivity.EXTRA_SUBSCRIPTION_ID, getSIMCard()[0].subscriptionId)
+                    putExtra(SimMessagesActivity.EXTRA_SIM_LABEL, getSIMCard()[0].label)
+                    startActivity(this)
+                }
+            } else {
+                startActivity(Intent(this@SettingsActivity, ManageSimMessagesActivity::class.java))
+            }
+        }
+    }
+    @SuppressLint("MissingPermission")
     private fun setupSmsServiceCenter() = binding.apply {
+        isSIMCardInserted()
         settingsSmsServiceCenterHolder.setOnClickListener {
+            if (getSIMCard().isEmpty()) return@setOnClickListener
+            else if (getSIMCard().count() == 1){
+                editSmsForSim(getSIMCard()[0])
+                binding.settingsSmsServiceCenterValue.visibility = View.VISIBLE
+                binding.settingsSmsServiceCenterChevron.visibility = View.GONE
+            } else
             startActivity(Intent(this@SettingsActivity, SmsServiceCenterActivity::class.java))
         }
     }
-
+    @SuppressLint("MissingPermission")
     private fun setupSmsStorageLocation() = binding.apply {
+        isSIMCardInserted()
         settingsSmsStorageLocationHolder.setOnClickListener {
+            if (getSIMCard().isEmpty()) return@setOnClickListener
+            else if (getSIMCard().count() == 1){
+                showLocationPickerDialog(getSIMCard()[0])
+                binding.settingsSmsStorageLocationValue.visibility = View.VISIBLE
+                binding.settingsSmsStorageLocationChevron.visibility = View.GONE
+            } else
             startActivity(Intent(this@SettingsActivity, SmsStorageLocationActivity::class.java))
         }
     }
