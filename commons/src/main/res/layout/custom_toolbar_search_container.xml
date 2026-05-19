@@ -37,6 +37,7 @@
         android:textSize="@dimen/tx_content_text"
         android:drawableStart="@drawable/ic_cmn_search"
         android:drawableEnd="@drawable/ic_cmn_circle_close_fill"
+        android:textColorHighlight="@color/tx_text_selection_highlight"
         android:drawablePadding="@dimen/smaller_margin"
         tools:text="Search text" />
 

@@ -171,6 +171,7 @@
             android:minHeight="@dimen/input_edit_height"
             android:paddingHorizontal="@dimen/normal_margin"
             android:lineSpacingMultiplier="1.2"
+            android:textColorHighlight="@color/tx_text_selection_highlight"
             android:paddingVertical="@dimen/medium_margin" />
     </com.google.android.material.card.MaterialCardView>
 

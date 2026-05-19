@@ -838,8 +838,9 @@ open class BaseConfig(val context: Context) {
         }
         set(simIconsColors) = prefs.edit { putString(SIM_ICON_COLORS, simIconsColors.joinToString(separator = "\n")) }
 
+    // changed by sun R.color.default_primary_color -> com.android.common.R.color.tx_text_selection_handle
     var textCursorColor: Int
-        get() = prefs.getInt(TEXT_CURSOR_COLOR, ContextCompat.getColor(context, R.color.default_primary_color))
+        get() = prefs.getInt(TEXT_CURSOR_COLOR, ContextCompat.getColor(context, com.android.common.R.color.tx_text_selection_handle))
         set(textCursorColor) = prefs.edit { putInt(TEXT_CURSOR_COLOR, textCursorColor) }
 
     var linesCount: Int

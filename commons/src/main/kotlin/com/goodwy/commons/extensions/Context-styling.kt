@@ -345,15 +345,16 @@ fun Context.getDialogBackgroundColor(): Int {
         else -> baseConfig.backgroundColor
     }
 }
-
+// changed by sun R.color.default_primary_color -> com.android.common.R.color.tx_text_selection_handle
 fun Context.getProperTextCursorColor() = when {
-    isDynamicTheme() -> resources.getColor(R.color.default_primary_color, theme)
+    isDynamicTheme() -> resources.getColor(com.android.common.R.color.tx_text_selection_handle, theme)
     else -> baseConfig.textCursorColor
 }
 
 /** Cursor color for dedicated search fields (toolbar search, pill search, SearchView [search_src_text]). */
+// changed by sun tx_main_blue -> tx_text_selection_handle
 fun Context.getSearchFieldCursorColor(): Int =
-    resources.getColor(com.android.common.R.color.tx_main_blue, theme)
+    resources.getColor(com.android.common.R.color.tx_text_selection_handle, theme)
 
 /**
  * Gets the avatar color for a contact name using the same logic as avatar generation.

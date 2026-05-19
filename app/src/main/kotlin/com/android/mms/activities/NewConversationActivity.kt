@@ -686,7 +686,7 @@ class NewConversationActivity : SimpleActivity() {
         val properTextColor = getProperTextColor()
         val properAccentColor = getProperAccentColor()
         
-        binding.newConversationAddress.setColors(properTextColor, properAccentColor, surfaceColor)
+        binding.newConversationAddress.setColors(properTextColor, properAccentColor, getProperTextCursorColor())
 //        binding.newConversationAddress.getEditText().setBackgroundResource(com.goodwy.commons.R.drawable.search_bg)
 //        binding.newConversationAddress.getEditText().backgroundTintList = ColorStateList.valueOf(surfaceColor)
 
