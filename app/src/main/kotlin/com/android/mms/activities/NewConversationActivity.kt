@@ -128,7 +128,7 @@ class NewConversationActivity : SimpleActivity() {
         // While app bar insets/height and the chip row are still settling, hide scroll content to avoid
         // an overlapped first frame; [revealNewConversationScrollContentAfterAppBar] runs after the lock.
         binding.nestScroll.beInvisible()
-        updateTextColors(binding.newConversationHolder)
+        updateTextColors(binding.conversationWrapper)
         initTheme()
         applyNewConversationWindowBackgroundsAndTopChrome()
         WindowCompat.setDecorFitsSystemWindows(window, false)
