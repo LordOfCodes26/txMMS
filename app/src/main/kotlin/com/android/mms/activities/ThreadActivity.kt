@@ -154,6 +154,12 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
     private var composeBarBottomInsetLatch = ComposeBarBottomInsetLatch.NONE
     private var composeBarBottomInsetLatchPx = 0
     private var wasKeyboardVisible = false
+    /**
+     * True while the message list is already laid out for an open IME (or equivalent bottom inset).
+     * Used so [applyThreadMessagesListWindowInsets] only scrolls to the latest message when the
+     * keyboard opens, not on every inset pass (e.g. returning from another app with IME still up).
+     */
+    private var wasImeInsetsAppliedToMessageList = false
     private var isSpeechToTextAvailable = false
     private var expandedMessageFragment: com.android.mms.fragments.ExpandedMessageFragment? = null
     private var messageHolderHelper: MessageHolderHelper? = null
@@ -325,6 +331,12 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
     override fun onPause() {
         super.onPause()
         composeBarBottomInsetLatch = ComposeBarBottomInsetLatch.NONE
+        // Snapshot before isActivityVisible=false. IME insets often report hidden while leaving the app;
+        // focus on the compose field is a more reliable signal that the keyboard should still be up on return.
+        wasImeInsetsAppliedToMessageList = binding.messageHolder.threadTypeMessage.hasFocus() ||
+            isThreadKeyboardVisible() ||
+            isAttachmentPickerVisible ||
+            wasImeInsetsAppliedToMessageList
         // Persist first, then notify: save runs on a background thread; posting before it completes
         // leaves MainActivity's list without the new draft until the next resume.
         saveDraftMessage(notifyConversationsAfter = true, showDraftSavedToast = isFinishing)
@@ -465,12 +477,14 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
 //                binding.actionModeRippleToolbar.layoutParams = rippleLp
 //            }
 
-            if (barContainer != null) {
+            if (barContainer != null && isActivityVisible) {
+                val imeVisible = ime.bottom > 0 && insets.isVisible(WindowInsetsCompat.Type.ime())
                 applyThreadMessagesListWindowInsets(
                     navHeight = navHeight,
                     imeBottom = ime.bottom,
-                    scrollToBottomForIme = ime.bottom > 0 && insets.isVisible(WindowInsetsCompat.Type.ime()),
+                    scrollToBottomForIme = imeVisible && !wasImeInsetsAppliedToMessageList,
                 )
+                updateWasImeInsetsAppliedToMessageList(imeVisible)
             }
             // Toolbar / popups often hide the IME without clearing EditText focus; re-sync compose bar
             // padding from root insets so it cannot stay stuck between keyboard and nav bar.
@@ -541,19 +555,24 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                 composeStripHidden -> composeHeight + composeBottomGap
                 else -> composeHeight + composeBottomGap + navHeight
             }
-            if (extraBottomPadding > 0) {
-                messagesList.setPadding(0, appBarHeightPx, 0, bottomPadding)
-                // Only pin to bottom when IME just opened (same as legacy behavior). Do not auto-scroll on
-                // compose-bar relayouts: findLastCompletelyVisibleItemPosition() is often NO_POSITION (-1),
-                // which compared against (lastIndex - SCROLL_TO_BOTTOM_FAB_LIMIT) wrongly looked "near bottom"
-                // and prevented scrolling up to read older messages.
-                if (scrollToBottomForIme) {
-                    messagesList.scrollToPosition((messagesList.adapter?.itemCount ?: 1) - 1)
+            messagesList.suppressLayout(true)
+            try {
+                if (extraBottomPadding > 0) {
+                    messagesList.setPadding(0, appBarHeightPx, 0, bottomPadding)
+                    // Only pin to bottom when IME just opened (same as legacy behavior). Do not auto-scroll on
+                    // compose-bar relayouts: findLastCompletelyVisibleItemPosition() is often NO_POSITION (-1),
+                    // which compared against (lastIndex - SCROLL_TO_BOTTOM_FAB_LIMIT) wrongly looked "near bottom"
+                    // and prevented scrolling up to read older messages.
+                    if (scrollToBottomForIme) {
+                        messagesList.scrollToPosition((messagesList.adapter?.itemCount ?: 1) - 1)
+                    }
+                } else {
+                    bottomBarLp.bottomMargin = bottomOffset
+                    messagesList.setPadding(0, appBarHeightPx + dp(10), 0, bottomPadding)
+                    barContainer.layoutParams = bottomBarLp
                 }
-            } else {
-                bottomBarLp.bottomMargin = bottomOffset
-                messagesList.setPadding(0, appBarHeightPx + dp(10), 0, bottomPadding)
-                barContainer.layoutParams = bottomBarLp
+            } finally {
+                messagesList.suppressLayout(false)
             }
         }
 
@@ -675,6 +694,12 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             ?: return false
         return rootInsets.isVisible(WindowInsetsCompat.Type.ime()) &&
             rootInsets.getInsets(WindowInsetsCompat.Type.ime()).bottom > 0
+    }
+
+    private fun updateWasImeInsetsAppliedToMessageList(imeVisible: Boolean) {
+        if (imeVisible || isAttachmentPickerVisible || composeBarBottomInsetLatch != ComposeBarBottomInsetLatch.NONE) {
+            wasImeInsetsAppliedToMessageList = true
+        }
     }
 
     /**
@@ -2758,6 +2783,9 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                 }
                 wasKeyboardVisible = true
             } else {
+                if (wasKeyboardVisible && !binding.messageHolder.threadTypeMessage.hasFocus()) {
+                    wasImeInsetsAppliedToMessageList = false
+                }
                 wasKeyboardVisible = false
                 if (isAttachmentPickerVisible &&
                     composeBarBottomInsetLatch != ComposeBarBottomInsetLatch.ATTACHMENT_PICKER_TO_KEYBOARD
