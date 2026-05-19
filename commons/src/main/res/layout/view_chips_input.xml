@@ -5,7 +5,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    app:cardBackgroundColor="@color/tx_card_bg"
+    app:cardBackgroundColor="@color/tx_cardview_bg"
     app:contentPaddingLeft="@dimen/small_md_margin"
     app:contentPaddingRight="@dimen/small_md_margin"
     app:contentPaddingBottom="3.5dp"

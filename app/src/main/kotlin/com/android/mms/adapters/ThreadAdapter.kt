@@ -1253,10 +1253,8 @@ class ThreadAdapter(
         val timeStr = (message.date * 1000L).formatTime(activity)
         messageBinding.threadMessageTime.apply {
             text = timeStr
-            setTextColor(textColor)
             setTextSize(TypedValue.COMPLEX_UNIT_PX, fontSizeSmall)
         }
-        messageBinding.threadMessageTime.alpha = 0.6f
         val holder = messageBinding.threadMessageTimeSimHolder
         val isReceived = message.isReceivedMessage()
         // Received: bottom-left, order HH:mm, SIM icon. Sent: bottom-right, order status, SIM, HH:mm
@@ -1301,20 +1299,17 @@ class ThreadAdapter(
                     }
                     android.provider.Telephony.Sms.MESSAGE_TYPE_OUTBOX -> {
                         setImageResource(R.drawable.ic_circle_progress)
-                        applyColorFilter(textColor)
                         contentDescription = activity.getString(R.string.sending)
                         beVisible()
                     }
                     android.provider.Telephony.Sms.MESSAGE_TYPE_QUEUED -> {
                         setImageResource(R.drawable.ic_delay_clock)
-                        applyColorFilter(textColor)
                         contentDescription = activity.getString(R.string.sending)
                         beVisible()
                     }
                     android.provider.Telephony.Sms.MESSAGE_TYPE_SENT -> {
                         val isDelivered = message.status == android.provider.Telephony.Sms.STATUS_COMPLETE
                         setImageResource(if (isDelivered) R.drawable.ic_sent_check else R.drawable.ic_send_check)
-                        applyColorFilter(textColor)
                         contentDescription = activity.getString(if (isDelivered) R.string.delivered else R.string.sent)
                         beVisible()
                     }
@@ -1328,7 +1323,6 @@ class ThreadAdapter(
                 isFocusable = false
                 if (message.type == android.provider.Telephony.Sms.MESSAGE_TYPE_FAILED) {
                     setImageResource(R.drawable.ic_resend_sms)
-                    applyColorFilter(textColor)
                     contentDescription = activity.getString(R.string.message_not_sent_touch_retry)
                     setOnClickListener { retryFailedMessage(message) }
                     isClickable = true
