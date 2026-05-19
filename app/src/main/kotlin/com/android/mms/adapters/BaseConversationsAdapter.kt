@@ -321,8 +321,8 @@ abstract class BaseConversationsAdapter(
         when (val item = currentList[position]) {
             is ConversationListItem.DateHeader -> {
                 ItemConversationDateHeaderBinding.bind(holder.itemView).dateTextView.apply {
-                    alpha = 0.6f
-                    setTextColor(blackDarkTextColor)
+//                    alpha = 0.6f
+//                    setTextColor(blackDarkTextColor)
                     text = when (item.dayCode) {
                         ConversationListItem.SECTION_TODAY -> activity.getString(R.string.today)
                         ConversationListItem.SECTION_YESTERDAY -> activity.getString(R.string.yesterday)

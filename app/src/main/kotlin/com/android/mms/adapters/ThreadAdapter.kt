@@ -1300,20 +1300,20 @@ class ThreadAdapter(
                         beVisible()
                     }
                     android.provider.Telephony.Sms.MESSAGE_TYPE_OUTBOX -> {
-                        setImageResource(R.drawable.ic_sms_progress)
+                        setImageResource(R.drawable.ic_circle_progress)
                         applyColorFilter(textColor)
                         contentDescription = activity.getString(R.string.sending)
                         beVisible()
                     }
                     android.provider.Telephony.Sms.MESSAGE_TYPE_QUEUED -> {
-                        setImageResource(com.android.common.R.drawable.ic_cmn_alarm)
+                        setImageResource(R.drawable.ic_delay_clock)
                         applyColorFilter(textColor)
                         contentDescription = activity.getString(R.string.sending)
                         beVisible()
                     }
                     android.provider.Telephony.Sms.MESSAGE_TYPE_SENT -> {
                         val isDelivered = message.status == android.provider.Telephony.Sms.STATUS_COMPLETE
-                        setImageResource(if (isDelivered) R.drawable.ic_sms_delivered else com.goodwy.commons.R.drawable.ic_check)
+                        setImageResource(if (isDelivered) R.drawable.ic_sent_check else R.drawable.ic_send_check)
                         applyColorFilter(textColor)
                         contentDescription = activity.getString(if (isDelivered) R.string.delivered else R.string.sent)
                         beVisible()
@@ -1327,7 +1327,7 @@ class ThreadAdapter(
                 isClickable = false
                 isFocusable = false
                 if (message.type == android.provider.Telephony.Sms.MESSAGE_TYPE_FAILED) {
-                    setImageResource(com.android.common.R.drawable.ic_cmn_refresh)
+                    setImageResource(R.drawable.ic_resend_sms)
                     applyColorFilter(textColor)
                     contentDescription = activity.getString(R.string.message_not_sent_touch_retry)
                     setOnClickListener { retryFailedMessage(message) }

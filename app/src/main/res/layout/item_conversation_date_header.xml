@@ -7,4 +7,5 @@
     android:layout_marginHorizontal="@dimen/larger_margin"
     android:layout_marginVertical="@dimen/tiny_margin"
     android:textSize="@dimen/tx_sub_section"
+    android:textColor="@color/tx_gray"
     tools:text="Today" />
