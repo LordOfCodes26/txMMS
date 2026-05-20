@@ -154,7 +154,7 @@
 
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/threadTypeMessageWrapper"
-        android:layout_width="0dp"
+        android:layout_width="236.8dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="@dimen/small_margin"
         android:layout_marginEnd="@dimen/smaller_margin"
@@ -220,10 +220,10 @@
 
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/threadSendMessageActionWrapper"
-        android:layout_width="wrap_content"
+        android:layout_width="75.4dp"
         android:layout_height="@dimen/input_edit_height"
-        android:layout_marginStart="@dimen/smaller_margin"
-        android:layout_marginEnd="@dimen/tx_cardview_margin_vertical"
+        android:layout_marginEnd="8dp"
+        android:layout_marginTop="@dimen/tiny_margin"
         app:cardBackgroundColor="@color/tx_cardview_bg"
         app:cardCornerRadius="24dp"
         app:cardElevation="3px"
@@ -237,8 +237,9 @@
             android:id="@+id/thread_compose_send_inner"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
             android:background="@color/transparent"
-            android:gravity="center_vertical"
+            android:gravity="center_horizontal"
             android:orientation="horizontal">
 
             <LinearLayout
@@ -250,13 +251,13 @@
                     android:id="@+id/imv_emotic_btn"
                     android:layout_width="@dimen/bigger_margin"
                     android:layout_height="@dimen/bigger_margin"
+                    android:layout_gravity="center"
                     android:background="@drawable/ic_emotic"
                     android:backgroundTint="@color/tx_title_text"
-                    android:layout_gravity="center"
                     android:clickable="true"
                     android:contentDescription="@string/choose_emoji"
-                    android:visibility="visible"
-                    android:focusable="true"/>
+                    android:focusable="true"
+                    android:visibility="visible" />
 
                 <FrameLayout
                     android:id="@+id/threadSelectSimIconHolder"
@@ -265,14 +266,16 @@
                     android:clickable="true"
                     android:focusable="true"
                     tools:visibility="gone">
+
                     <ImageView
                         android:id="@+id/threadSelectSimIcon"
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:layout_gravity="center"
                         android:alpha="0.9"
-                        android:contentDescription="@null"
-                        android:background="@drawable/ic_cmn_sim1"/>
+                        android:background="@drawable/ic_cmn_sim1"
+                        android:contentDescription="@null" />
+
                     <TextView
                         android:id="@+id/thread_select_sim_number"
                         android:layout_width="match_parent"
@@ -290,18 +293,18 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:padding="@dimen/small_margin">
+                android:padding="@dimen/small_md_margin">
 
                 <ImageView
                     android:id="@+id/threadSendMessage"
                     android:layout_width="@dimen/larger_margin"
                     android:layout_height="16.3dp"
                     android:layout_gravity="center"
-                    android:foregroundGravity="center"
                     android:background="@drawable/ic_cmn_sms_send"
                     android:backgroundTint="@color/tx_title_text"
                     android:clickable="false"
-                    android:contentDescription="@string/ok"/>
+                    android:contentDescription="@string/ok"
+                    android:foregroundGravity="center" />
 
                 <douglasspgyn.com.github.circularcountdown.CircularCountdown
                     android:id="@+id/threadSendMessageCountdown"
