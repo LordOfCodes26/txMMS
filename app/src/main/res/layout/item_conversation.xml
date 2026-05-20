@@ -255,12 +255,13 @@
                 android:layout_marginStart="@dimen/medium_margin"
                 android:ellipsize="end"
                 android:maxLines="1"
-                android:textSize="@dimen/small_text_size"
+                android:textSize="12sp"
                 app:layout_constraintEnd_toStartOf="@id/conversationDate"
                 app:layout_constraintStart_toEndOf="@id/conversationMessageType"
                 app:layout_constraintTop_toBottomOf="@id/conversationHolder"
                 tools:ignore="RtlSymmetry"
                 tools:text="Hey buddy!" />
+<!--            android:textSize="@dimen/small_text_size"-->
 
             <!--            <ImageView-->
             <!--                android:id="@+id/draftClear"-->
