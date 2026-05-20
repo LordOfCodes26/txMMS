@@ -9,6 +9,7 @@ import android.widget.EdgeEffect
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.EdgeEffectFactory
+import androidx.dynamicanimation.animation.DynamicAnimation
 import androidx.dynamicanimation.animation.SpringAnimation
 import androidx.dynamicanimation.animation.SpringForce
 import com.goodwy.commons.R
@@ -61,6 +62,8 @@ open class MyRecyclerView : RecyclerView {
     private var lastMaxItemIndex = 0
     private var linearLayoutManager: LinearLayoutManager? = null
     var onOverscrollTranslationChanged: ((translationY: Float) -> Unit)? = null
+
+    private var bounceRestoreSpring: SpringAnimation? = null
 
     constructor(context: Context) : super(context)
 
@@ -118,6 +121,56 @@ open class MyRecyclerView : RecyclerView {
         totalItemCount = 0
     }
 
+    /** Cancels an in-flight snap-back while the user is still pulling past the edge. */
+    internal fun cancelBounceRestore() {
+        bounceRestoreSpring?.cancel()
+    }
+
+    /**
+     * Snaps [translationY] back to 0. Called from edge-effect [onRelease] and from [dispatchTouchEvent]
+     * on [MotionEvent.ACTION_UP]/[MotionEvent.ACTION_CANCEL] when the parent steals the stream so
+     * [EdgeEffect.onRelease] never runs (stuck overscroll gap at the top).
+     */
+    fun ensureBounceTranslationRestored(startVelocity: Float = 0f) {
+        if (translationY == 0f) {
+            onOverscrollTranslationChanged?.invoke(0f)
+            return
+        }
+        if (bounceRestoreSpring?.isRunning == true) {
+            return
+        }
+        cancelBounceRestore()
+        bounceRestoreSpring = SpringAnimation(this, SpringAnimation.TRANSLATION_Y, 0f).apply {
+            spring = SpringForce(0f).apply {
+                dampingRatio = 0.7f
+                stiffness = SpringForce.STIFFNESS_MEDIUM
+            }
+            addUpdateListener { _, value, _ ->
+                onOverscrollTranslationChanged?.invoke(value)
+            }
+            addEndListener(object : DynamicAnimation.OnAnimationEndListener {
+                override fun onAnimationEnd(
+                    animation: DynamicAnimation<*>?,
+                    canceled: Boolean,
+                    value: Float,
+                    velocity: Float,
+                ) {
+                    if (animation !== bounceRestoreSpring) {
+                        return
+                    }
+                    if (!canceled) {
+                        translationY = 0f
+                        onOverscrollTranslationChanged?.invoke(0f)
+                    }
+                }
+            })
+            if (startVelocity != 0f) {
+                setStartVelocity(startVelocity)
+            }
+            start()
+        }
+    }
+
     override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
         if (!dragSelectActive) {
             try {
@@ -134,6 +187,7 @@ open class MyRecyclerView : RecyclerView {
                 autoScrollHandler.removeCallbacks(autoScrollRunnable)
                 currScaleFactor = 1.0f
                 lastUp = System.currentTimeMillis()
+                post { ensureBounceTranslationRestored() }
                 return true
             }
 
@@ -351,18 +405,7 @@ open class MyRecyclerView : RecyclerView {
         override fun createEdgeEffect(recyclerView: RecyclerView, direction: Int): EdgeEffect {
             return object : EdgeEffect(recyclerView.context) {
 
-                // Spring animation that returns the list back to its resting position.
-                private val spring =
-                    SpringAnimation(recyclerView, SpringAnimation.TRANSLATION_Y).apply {
-                        spring = SpringForce(0f).apply {
-                            // Slightly stronger damping and stiffness for a smoother, less “wobbly” feel.
-                            dampingRatio = 0.7f
-                            stiffness = SpringForce.STIFFNESS_MEDIUM
-                        }
-                        addUpdateListener { _, value, _ ->
-                            (recyclerView as? MyRecyclerView)?.onOverscrollTranslationChanged?.invoke(value)
-                        }
-                    }
+                private fun myRecyclerView(): MyRecyclerView? = recyclerView as? MyRecyclerView
 
                 private fun signForDirection(): Int {
                     return when (direction) {
@@ -379,8 +422,10 @@ open class MyRecyclerView : RecyclerView {
                     val maxOffset = recyclerView.height * 0.15f
                     recyclerView.translationY =
                         (recyclerView.translationY + translationDelta).coerceIn(-maxOffset, maxOffset)
-                    (recyclerView as? MyRecyclerView)?.onOverscrollTranslationChanged?.invoke(recyclerView.translationY)
-                    spring.cancel()
+                    myRecyclerView()?.apply {
+                        onOverscrollTranslationChanged?.invoke(translationY)
+                        cancelBounceRestore()
+                    }
                 }
 
                 override fun onPull(deltaDistance: Float) {
@@ -395,18 +440,12 @@ open class MyRecyclerView : RecyclerView {
                 }
 
                 override fun onRelease() {
-                    if (recyclerView.translationY != 0f) {
-                        spring.start()
-                    } else {
-                        (recyclerView as? MyRecyclerView)?.onOverscrollTranslationChanged?.invoke(0f)
-                    }
+                    myRecyclerView()?.ensureBounceTranslationRestored()
                 }
 
                 override fun onAbsorb(velocity: Int) {
-                    // Fling into the edge – give an initial velocity for a stronger bounce.
                     val sign = signForDirection()
-                    spring.setStartVelocity(sign * velocity * 0.15f)
-                    spring.start()
+                    myRecyclerView()?.ensureBounceTranslationRestored(sign * velocity * 0.15f)
                 }
             }
         }

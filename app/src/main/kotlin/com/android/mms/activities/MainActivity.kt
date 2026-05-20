@@ -9,6 +9,7 @@ import android.content.pm.ShortcutInfo
 import android.content.pm.ShortcutManager
 import android.graphics.Color
 import android.graphics.PorterDuff
+import android.graphics.Rect
 import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.Icon
 import android.graphics.drawable.LayerDrawable
@@ -455,25 +456,45 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         return menuTopOnScreen + menu.height + mainMenuLastAppBarVerticalOffset.coerceAtMost(0)
     }
 
-    /**
-     * List top inset implied by [mainMenuLastAppBarVerticalOffset] (expanded = tall inset, collapsed = short).
-     * Fallback when screen geometry is not yet trustworthy (e.g. right after resume).
-     */
-    private fun mainMenuListTopInsetForCollapsePx(): Int {
+    /** Visible [AppBarLayout] height from layout height + scroll offset (matches CoordinatorLayout draw). */
+    private fun mainMenuVisibleHeightPx(): Int {
         val menu = binding.mainMenu
         val collapsed = menu.getCollapsedHeightPx().coerceAtLeast(0)
-        val visibleH = menu.height.takeIf { it > 0 } ?: collapsed
-        val totalRange = menu.totalScrollRange
-        if (totalRange <= 0) return visibleH
-        val collapseFraction = (
-            kotlin.math.abs(mainMenuLastAppBarVerticalOffset).toFloat() / totalRange.toFloat()
-            ).coerceIn(0f, 1f)
-        return kotlin.math.round(collapsed + (visibleH - collapsed) * (1f - collapseFraction)).toInt()
+        val laidOutHeight = menu.height.takeIf { it > 0 } ?: return collapsed
+        return (laidOutHeight + mainMenuLastAppBarVerticalOffset.coerceAtMost(0)).coerceIn(collapsed, laidOutHeight)
     }
 
     /**
-     * While the app bar scrolls, drive list [paddingTop] only from [mainMenuLastAppBarVerticalOffset] so it
-     * moves in lockstep with CoordinatorLayout (screen geometry can disagree by a frame and flash).
+     * Lowest screen Y covered by toolbar + large title. The layout offset alone can sit above the drawn title
+     * (large [R.id.collapsingTitle] in a short [R.id.searchBarContainer] min height).
+     */
+    private fun mainMenuChromeBottomOnScreenPx(): Int {
+        val menu = binding.mainMenu
+        val mLoc = IntArray(2)
+        menu.getLocationOnScreen(mLoc)
+        var bottom = mainMenuVisibleBottomOnScreenPx(mLoc[1])
+        val title = menu.binding.collapsingTitle
+        if (title.visibility == View.VISIBLE) {
+            val titleRect = Rect()
+            if (title.getGlobalVisibleRect(titleRect) && !titleRect.isEmpty) {
+                bottom = maxOf(bottom, titleRect.bottom)
+            }
+        }
+        val toolbarRect = Rect()
+        if (menu.requireCustomToolbar().getGlobalVisibleRect(toolbarRect) && !toolbarRect.isEmpty) {
+            bottom = maxOf(bottom, toolbarRect.bottom)
+        }
+        return bottom
+    }
+
+    /**
+     * List top inset implied by [mainMenuLastAppBarVerticalOffset] (expanded = tall inset, collapsed = short).
+     */
+    private fun mainMenuListTopInsetForCollapsePx(): Int = mainMenuVisibleHeightPx()
+
+    /**
+     * While the app bar scrolls, keep blur negative margin and list [paddingTop] tied to the same visible chrome
+     * height so content is not left under the large title when the bar is collapsed.
      */
     private fun applyLiveRecentsTopPaddingFromAppBarOffset() {
         if (isFinishing || isDestroyed) return
@@ -481,8 +502,9 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         if (menu.requireCustomToolbar().isSearchExpanded) return
         if ((binding.conversationsList.adapter as? ConversationsAdapter)?.isActionModeActive() == true) return
         if (isSearchResumeInProgress) return
-        val topPad = mainMenuListTopInsetForCollapsePx().coerceAtLeast(0)
+        syncBlurTargetTopMargin(mainMenuVisibleHeightPx())
         val conv = binding.conversationsList
+        val topPad = minOf(recentsListTopPaddingPx(conv), maxTrustedListTopInsetPx()).coerceAtLeast(0)
         if (conv.paddingTop != topPad) {
             conv.updatePadding(top = topPad)
         }
@@ -499,15 +521,7 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         if (menu.requireCustomToolbar().isSearchExpanded) {
             return maxOf(menu.height + slack, minSearchListTop + slack)
         }
-        val collapsed = menu.getCollapsedHeightPx().coerceAtLeast(0)
-        val visibleH = menu.height.takeIf { it > 0 } ?: collapsed
-        val totalRange = menu.totalScrollRange
-        if (totalRange <= 0) return visibleH + slack
-        val collapseFraction = (
-            kotlin.math.abs(mainMenuLastAppBarVerticalOffset).toFloat() / totalRange.toFloat()
-            ).coerceIn(0f, 1f)
-        val allowed = collapsed + ((visibleH - collapsed) * (1f - collapseFraction)).toInt()
-        return allowed + slack
+        return mainMenuVisibleHeightPx() + slack
     }
 
     /**
@@ -527,35 +541,35 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
      * Pass the same [View] you will pad (e.g. [R.id.conversations_list] vs [R.id.search_results_list]);
      * screen geometry differs between the conversation list and the search overlay list.
      */
-    private fun listTopInsetPx(list: View): Int {
+    /**
+     * Distance from the list’s top edge to the bottom of visible toolbar/title chrome on screen.
+     */
+    private fun recentsListTopPaddingPx(list: View): Int {
         val menu = binding.mainMenu
         val toolbar = menu.requireCustomToolbar()
         val minSearchListTop = resources.getDimensionPixelSize(R.dimen.nest_bouncy_content_padding_top)
         val collapseInset = mainMenuListTopInsetForCollapsePx()
-        val maxTrustInset = maxTrustedListTopInsetPx()
-        var inset = collapseInset
         if (
-            list.visibility == View.VISIBLE &&
-            menu.visibility == View.VISIBLE &&
-            menu.isLaidOut &&
-            list.isLaidOut &&
-            menu.height > 0
+            list.visibility != View.VISIBLE ||
+            menu.visibility != View.VISIBLE ||
+            !menu.isLaidOut ||
+            !list.isLaidOut ||
+            menu.height <= 0
         ) {
-            val mLoc = IntArray(2)
-            val lLoc = IntArray(2)
-            menu.getLocationOnScreen(mLoc)
-            list.getLocationOnScreen(lLoc)
-            val geometryInset = mainMenuVisibleBottomOnScreenPx(mLoc[1]) - lLoc[1]
-            if (geometryInset > 0 && geometryInset <= maxTrustInset) {
-                inset = geometryInset
-            }
+            return if (toolbar.isSearchExpanded) maxOf(collapseInset, minSearchListTop) else collapseInset
         }
-        // Locked AppBar height can be smaller than the visible search row; ensure we never under-pad.
+        val listLoc = IntArray(2)
+        list.getLocationOnScreen(listLoc)
+        val chromeInset = (mainMenuChromeBottomOnScreenPx() - listLoc[1]).coerceAtLeast(0)
+        val maxTrustInset = maxTrustedListTopInsetPx()
+        var inset = maxOf(collapseInset, chromeInset.coerceAtMost(maxTrustInset))
         if (toolbar.isSearchExpanded) {
             return maxOf(inset, minSearchListTop)
         }
         return inset
     }
+
+    private fun listTopInsetPx(list: View): Int = recentsListTopPaddingPx(list)
 
     fun getRecentsListTopInsetPx(): Int = listTopInsetPx(binding.conversationsList)
 
@@ -597,15 +611,8 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         }
     }
 
-    /** Normal list: offset curve only. Search: screen geometry (locked short app bar). */
-    private fun recentsListTopInsetForLayoutSync(recentsList: MyRecyclerView): Int {
-        val menu = binding.mainMenu
-        return if (menu.requireCustomToolbar().isSearchExpanded) {
-            listTopInsetPx(recentsList)
-        } else {
-            mainMenuListTopInsetForCollapsePx()
-        }
-    }
+    /** Normal list: toolbar/title chrome on screen. Search: locked short app bar + min search row inset. */
+    private fun recentsListTopInsetForLayoutSync(recentsList: MyRecyclerView): Int = recentsListTopPaddingPx(recentsList)
 
     /** Re-apply when the app bar finishes layout (e.g. after unlockCollapsing); based on txDial MainActivityRecents (no dialpad in Messages). */
     private fun applyFinalRecentsListTopPadding(recentsList: MyRecyclerView) {
@@ -1426,7 +1433,13 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
 
     private fun syncBlurTargetTopMargin(menuHeight: Int) {
         if (menuHeight < 0) return
-        val targetTopMargin = -menuHeight
+        val menu = binding.mainMenu
+        val visibleHeight = if (menu.isLaidOut && menu.height > 0 && !menu.requireCustomToolbar().isSearchExpanded) {
+            mainMenuVisibleHeightPx()
+        } else {
+            menuHeight
+        }
+        val targetTopMargin = -visibleHeight
         binding.blurTarget.updateLayoutParams<ViewGroup.MarginLayoutParams> {
             if (topMargin != targetTopMargin) {
                 topMargin = targetTopMargin
@@ -1445,8 +1458,22 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
 
     private fun setupMainMenuSpringSync() {
         fun bindOverscrollSync(recyclerView: MyRecyclerView?) {
-            recyclerView?.onOverscrollTranslationChanged = { translationY ->
+            recyclerView ?: return
+            recyclerView.onOverscrollTranslationChanged = { translationY ->
                 binding.mainMenu.translationY = translationY * mainMenuOverscrollFactor
+            }
+            // Belt-and-suspenders: if list snap-back completes without a final callback, reset the app bar.
+            recyclerView.setOnTouchListener { _, event ->
+                when (event.action) {
+                    MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                        recyclerView.post {
+                            if (recyclerView.translationY == 0f) {
+                                binding.mainMenu.translationY = 0f
+                            }
+                        }
+                    }
+                }
+                false
             }
         }
 
@@ -1455,8 +1482,14 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
     }
 
     private fun clearMainMenuSpringSync() {
-        (binding.conversationsList as? MyRecyclerView)?.onOverscrollTranslationChanged = null
-        (binding.searchResultsList as? MyRecyclerView)?.onOverscrollTranslationChanged = null
+        (binding.conversationsList as? MyRecyclerView)?.apply {
+            onOverscrollTranslationChanged = null
+            setOnTouchListener(null)
+        }
+        (binding.searchResultsList as? MyRecyclerView)?.apply {
+            onOverscrollTranslationChanged = null
+            setOnTouchListener(null)
+        }
         binding.mainMenu.translationY = 0f
     }
 

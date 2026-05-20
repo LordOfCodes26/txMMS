@@ -28,6 +28,25 @@ class BouncyNestedScrollView @JvmOverloads constructor(
             dampingRatio = 0.7f
             stiffness = SpringForce.STIFFNESS_MEDIUM
         }
+        addEndListener { _, canceled, _, _ ->
+            if (!canceled) {
+                translationY = 0f
+            }
+        }
+    }
+
+    private fun ensureBounceTranslationRestored(startVelocity: Float = 0f) {
+        if (translationY == 0f) {
+            return
+        }
+        if (springAnim.isRunning) {
+            return
+        }
+        springAnim.cancel()
+        if (startVelocity != 0f) {
+            springAnim.setStartVelocity(startVelocity)
+        }
+        springAnim.start()
     }
 
     private var lastY = 0f
@@ -60,9 +79,7 @@ class BouncyNestedScrollView @JvmOverloads constructor(
                 }
             }
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                if (translationY != 0f) {
-                    springAnim.start()
-                }
+                post { ensureBounceTranslationRestored() }
             }
         }
         return super.onTouchEvent(ev)
@@ -80,8 +97,7 @@ class BouncyNestedScrollView @JvmOverloads constructor(
                 else -> 0f
             }
             if (sign != 0f) {
-                springAnim.setStartVelocity(sign * kotlin.math.abs(velocityY.toFloat()) * 0.15f)
-                springAnim.start()
+                ensureBounceTranslationRestored(sign * kotlin.math.abs(velocityY.toFloat()) * 0.15f)
             }
         }
     }
