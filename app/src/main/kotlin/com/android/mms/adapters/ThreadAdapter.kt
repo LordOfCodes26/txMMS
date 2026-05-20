@@ -3,6 +3,7 @@ package com.android.mms.adapters
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
+import android.content.res.ColorStateList
 import android.graphics.*
 import android.graphics.drawable.Drawable
 import android.text.Spannable
@@ -130,7 +131,6 @@ class ThreadAdapter(
     val retryFailedMessage: (Message) -> Unit,
     val deleteMessages: (messages: List<Message>, toRecycleBin: Boolean, fromRecycleBin: Boolean, isPopupMenu: Boolean) -> Unit
 ) : MyRecyclerViewListAdapter<ThreadItem>(activity, recyclerView, ThreadItemDiffCallback(), itemClick) {
-    private var fontSize = activity.getTextSize()
     private var fontSizeSmall = activity.getTextSizeSmall()
     private var fontSizeMessage = activity.getTextSizeMessage()
     private var fontSizeMessageMultiplier = activity.config.fontSizeMessageMultiplier
@@ -294,11 +294,6 @@ class ThreadAdapter(
             ids.add(id)
         }
 
-//        val orderedIds = listOf(
-//            R.id.cab_ripple_delete,
-//            R.id.cab_ripple_message_conversion,
-//            R.id.cab_ripple_copy
-//        )
         val iconForId = { itemId: Int ->
             when (itemId) {
                 R.id.cab_ripple_copy -> R.drawable.ic_sms_ripple_copy
@@ -308,15 +303,6 @@ class ThreadAdapter(
                 else -> 0
             }
         }
-//        for (itemId in orderedIds) {
-//            val mi = m.findItem(itemId) ?: continue
-//            if (!mi.isVisible) continue
-//            val iconRes = iconForId(itemId)
-////            if (iconRes == 0) continue
-//            if (getSelectedItems().size == 0){
-//                break
-//            }
-//            add(iconRes, mi.title ?: "", itemId)
         val titleForId = { itemId: Int ->
             val fromMenu = m.findItem(itemId)?.title?.toString().orEmpty()
             fromMenu.ifEmpty {
@@ -950,17 +936,6 @@ class ThreadAdapter(
                 applyTo(threadMessageHolder)
             }
 
-//            threadMessageSenderPhoto.beVisible()
-//            threadMessageSenderPhoto.setOnClickListener {
-//                val contact = message.getSender()!!
-//                activity.getContactFromAddress(contact.phoneNumbers.first().normalizedNumber) {
-//                    if (it != null) {
-//                        activity.startContactDetailsIntent(it)
-//                    }
-//                }
-//            }
-
-
             val letterBackgroundColors = activity.getLetterBackgroundColors()
             val primaryOrSenderColor =
                 if (activity.config.bubbleInContactColor) letterBackgroundColors[abs(message.senderName.hashCode()) % letterBackgroundColors.size].toInt()
@@ -969,15 +944,11 @@ class ThreadAdapter(
             val surfaceColor = if (useSurfaceColor) activity.getProperBackgroundColor() else activity.getSurfaceColor()
             val backgroundReceived = if (activity.config.bubbleInvertColor) primaryOrSenderColor else surfaceColor
             val selectedBubbleOption = getBubbleDrawableOption(activity.config.bubbleDrawableSet)
-//            val contrastColorReceived = if (selectedBubbleOption != null) activity.getProperTextColor() else backgroundReceived.getContrastColor()
             val contrastColorReceived = DARK_GREY
 
             threadMessageBodyWrapper.apply {
                 setOnTouchListener(pinchToZoomTouchListener)
             }
-            threadMessageBodySpacer.setOnTouchListener(pinchToZoomTouchListener)
-            threadMessageTimeSimHolder.setOnTouchListener(pinchToZoomTouchListener)
-
             threadMessageBodyWrapper.apply {
                 val isRtl = activity.isRTLLayout
                 val bubbleStyle = activity.config.bubbleStyle
@@ -1032,25 +1003,6 @@ class ThreadAdapter(
                 }
             }
 
-//            if (!activity.isFinishing && !activity.isDestroyed) {
-//                SimpleContactsHelper(activity).loadContactImage(message.senderPhotoUri, threadMessageSenderPhoto, message.senderName)
-//            }
-//            if (!activity.isFinishing && !activity.isDestroyed) {
-//                val contactLetterIcon = SimpleContactsHelper(activity).getContactLetterIcon(message.senderName)
-//                val placeholder = contactLetterIcon.toDrawable(activity.resources)
-
-//                val options = RequestOptions()
-//                    .diskCacheStrategy(DiskCacheStrategy.RESOURCE)
-//                    .error(placeholder)
-//                    .centerCrop()
-//
-//                Glide.with(activity)
-//                    .load(message.senderPhotoUri)
-//                    .placeholder(placeholder)
-//                    .apply(options)
-//                    .apply(RequestOptions.circleCropTransform())
-//                    .into(threadMessageSenderPhoto)
-//            }
         }
     }
 
@@ -1084,8 +1036,6 @@ class ThreadAdapter(
             threadMessageBodyWrapper.apply {
                 setOnTouchListener(pinchToZoomTouchListener)
             }
-            threadMessageBodySpacer.setOnTouchListener(pinchToZoomTouchListener)
-            threadMessageTimeSimHolder.setOnTouchListener(pinchToZoomTouchListener)
 
             threadMessageBodyWrapper.apply {
                 updateLayoutParams<RelativeLayout.LayoutParams> {
@@ -1139,8 +1089,6 @@ class ThreadAdapter(
                     setCompoundDrawables(null, null, null, null)
                 }
             }
-            threadMessageBodySpacer.setHeight(0)
-            threadMessageTimeSimHolder.updatePadding(0, (-4 * resources.displayMetrics.density).toInt(), 0, 0)
         }
     }
 
@@ -1347,10 +1295,6 @@ class ThreadAdapter(
                     else -> R.drawable.ic_sim_vector
                 }
                 setImageResource(simRes)
-//                val simColor = if (!activity.config.colorSimIcons) textColor
-//                else {
-//                    if (simId in 1..4) activity.config.simIconsColors[simId] else activity.config.simIconsColors[0]
-//                }
                 val simColor = activity.resolveSimIconTint(textColor, message.subscriptionId, simId)
                 applyColorFilter(simColor)
                 beVisible()
@@ -1374,15 +1318,10 @@ class ThreadAdapter(
                     hideTodaysDate = false,
                     dateFormat = getLocaleDateFormatPatternMonthDay()
                 )
-//                setTextSize(TypedValue.COMPLEX_UNIT_PX, fontSizeMessage)
             }
-//            threadDateTime.setTextColor(secondTextColor)
-//            threadDateTime.alpha = 0.6f
-
             // SIM info is now shown in each message bubble; hide from date header
             threadSimIcon.beGone()
             threadSimNumber.beGone()
-//            threadSimNumber.alpha = 0.6f
         }
     }
 

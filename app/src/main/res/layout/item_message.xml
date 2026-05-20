@@ -17,7 +17,6 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        android:foreground="@drawable/selector"
         app:layout_constraintWidth_percent="0.8">
 
         <ImageView
@@ -58,6 +57,7 @@
             android:layout_marginTop="@dimen/tiny_margin"
             android:layout_below="@+id/thread_message_attachments_holder"
             android:layout_toEndOf="@+id/threadMessageSenderPhoto"
+            android:foreground="@drawable/selector"
             android:orientation="vertical">
 
             <TextView
@@ -80,8 +80,7 @@
             <Space
                 android:id="@+id/threadMessageBodySpacer"
                 android:layout_width="match_parent"
-                android:layout_height="@dimen/tx_cardview_summary_padding_top"
-                android:layout_weight="1" />
+                android:layout_height="@dimen/tx_cardview_summary_padding_top" />
 
             <LinearLayout
                 android:id="@+id/threadMessageTimeSimHolder"
@@ -98,7 +97,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginEnd="@dimen/small_margin"
                     android:visibility="gone"
-                    android:src="@drawable/ic_check_vector"
+                    android:src="@drawable/ic_send_check"
                     tools:ignore="ContentDescription"
                     tools:visibility="visible" />
                 <TextView
@@ -116,7 +115,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginEnd="@dimen/small_margin"
                     android:visibility="gone"
-                    android:src="@drawable/ic_check_vector"
+                    android:src="@drawable/ic_resend_sms"
                     tools:ignore="ContentDescription"
                     tools:visibility="visible" />
 
