@@ -119,31 +119,34 @@
             android:orientation="vertical">
             <LinearLayout
                 android:id="@+id/threadExpandMessage"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:padding="@dimen/smaller_margin"
+                android:layout_width="32.4dp"
+                android:layout_height="32.4dp"
+                android:layout_gravity="center"
+                android:gravity="center"
                 android:visibility="visible"
-                tools:visibility="gone" >
+                tools:visibility="visible" >
 
                 <ImageView
-                    android:layout_width="@dimen/tx_popup_corner_radius"
-                    android:layout_height="@dimen/tx_popup_corner_radius"
-                    android:layout_gravity="center_horizontal"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_vertical"
                     android:contentDescription="@string/expand_message"
                     android:background="@drawable/ic_cmn_maximize"
                     android:backgroundTint="@color/tx_title_text"/>
             </LinearLayout>
 
             <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:padding="@dimen/smaller_margin">
+                android:layout_width="32.4dp"
+                android:layout_height="32.4dp"
+                android:layout_gravity="center"
+                android:gravity="center">
                 <ImageView
                     android:id="@+id/threadAddAttachment"
-                    android:layout_width="@dimen/tx_popup_corner_radius"
-                    android:layout_height="@dimen/tx_popup_corner_radius"
-                    android:background="@drawable/ic_add"
-                    android:layout_gravity="center_horizontal"
+                    android:layout_width="17.5dp"
+                    android:layout_height="17.5dp"
+                    android:background="@drawable/ic_add_attach"
+                    android:backgroundTint="@color/tx_title_text"
+                    android:layout_gravity="center_vertical"
                     android:contentDescription="@string/attachment"/>
 
             </LinearLayout>
@@ -214,15 +217,16 @@
         android:visibility="gone"
         app:layout_constraintBottom_toTopOf="@+id/threadSendMessageActionWrapper"
         app:layout_constraintEnd_toEndOf="@+id/threadSendMessageActionWrapper"
+        app:layout_constraintHorizontal_bias="0.894"
         app:layout_constraintStart_toStartOf="@+id/threadSendMessageActionWrapper"
         tools:ignore="HardcodedText"
         tools:visibility="visible" />
 
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/threadSendMessageActionWrapper"
-        android:layout_width="75.4dp"
+        android:layout_width="75dp"
         android:layout_height="@dimen/input_edit_height"
-        android:layout_marginEnd="8dp"
+        android:layout_marginEnd="@dimen/normal_margin"
         android:layout_marginTop="@dimen/tiny_margin"
         app:cardBackgroundColor="@color/tx_cardview_bg"
         app:cardCornerRadius="24dp"
@@ -245,6 +249,7 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
+                android:layout_marginEnd="@dimen/medium_margin"
                 android:padding="@dimen/small_margin">
 
                 <ImageView
