@@ -98,8 +98,8 @@
 
         <ImageView
             android:id="@+id/chips_address_book_button"
-            android:layout_width="@dimen/tx_common_icon_size"
-            android:layout_height="@dimen/tx_common_icon_size"
+            android:layout_width="@dimen/tx_dialog_btn_margin_top"
+            android:layout_height="@dimen/tx_dialog_corner_radius"
             android:background="@drawable/ic_cmn_contact_add"
             android:backgroundTint="@color/tx_title_text"
             android:contentDescription="@string/search_contacts"

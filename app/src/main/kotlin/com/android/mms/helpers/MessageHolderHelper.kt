@@ -125,7 +125,6 @@ class MessageHolderHelper(
             threadSendMessageCountdown.beGone()
 
             threadExpandMessage.apply {
-                applyColorFilter(textColor)
                 setOnClickListener {
                     onExpandMessage?.invoke()
                 }
