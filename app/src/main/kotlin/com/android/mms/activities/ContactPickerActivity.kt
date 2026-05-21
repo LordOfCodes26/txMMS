@@ -377,22 +377,72 @@ class ContactPickerActivity : SimpleActivity() {
     }
 
     /**
-     * After [MySearchMenu] height changes with [WRAP_CONTENT] (e.g. leaving search), sync blur/side-frame
-     * once layout has settled, then re-apply list top inset.
+     * After [MySearchMenu] height changes (e.g. leaving search), sync blur/side-frame and
+     * re-apply the list top inset, ensuring the **very first drawn frame** is correct.
+     *
+     * Uses [ViewTreeObserver.OnPreDrawListener] which fires after the full layout pass (so all
+     * view heights are real) but **before** the draw.  Returning `false` cancels the pending draw
+     * and schedules a new traversal; that traversal then re-lays out [blurTarget] and the list
+     * with the updated params and draws correctly — so no wrong frame is ever shown.
+     *
+     * Compared to `menu.post { menu.post {} }`: those inner posts fire before layout completes
+     * (menu.height == 0 at that point), silently bail out, and the sync is never run until a
+     * secondary trigger such as the contacts load (~2 s).
+     */
+    /**
+     * Syncs blur geometry and list top padding atomically using [ViewTreeObserver.OnPreDrawListener].
+     *
+     * The listener fires after the full layout pass (real heights available) but before the draw.
+     * We wait until **both** [menu.height] and [bar.height] are non-zero so the blur sync and the
+     * padding update always happen together — preventing the one-frame "overlap" that would appear
+     * if only the blur sync ran while the padding was still 0.
+     *
+     * Returning `false` cancels the pending draw; the next Vsync re-lays out [blurTarget] (with
+     * the new negative topMargin) and [contactRecyclerView] (with the new paddingTop) and draws
+     * the correct first frame.
      */
     private fun syncContactPickerBlurGeometryAndListTopPadding() {
         val menu = blurAppBarLayout ?: return
         val blur = findViewById<BlurTarget>(R.id.blurTarget) ?: return
         val top = findViewById<View>(R.id.m_vertical_side_frame_top)
-        menu.post {
-            menu.post {
-                val h = menu.height.takeIf { it > 0 } ?: menu.measuredHeight.takeIf { it > 0 } ?: return@post
-                syncBlurTargetTopMarginForMenu(blur, h)
-                syncTopSideFrameHeightForMenu(top, menu, h)
+        val rootV = rootView ?: return
+        rootV.viewTreeObserver.addOnPreDrawListener(object : ViewTreeObserver.OnPreDrawListener {
+            override fun onPreDraw(): Boolean {
+                if (isFinishing || isDestroyed) {
+                    rootV.viewTreeObserver.removeOnPreDrawListener(this)
+                    return true
+                }
+                // Wait until the AppBar has a real height.
+                val menuH = menu.height.takeIf { it > 0 } ?: return true
+
+                // Resolve filter-bar height with all fallbacks.  If still 0, defer to next frame
+                // rather than doing a partial sync (blur without padding) that would cause overlap.
+                val bar = contactPickerFilterBar ?: run {
+                    rootV.viewTreeObserver.removeOnPreDrawListener(this)
+                    return true
+                }
+                val barH: Int = bar.height.takeIf { it > 0 }
+                    ?: bar.measuredHeight.takeIf { it > 0 && bar.isLaidOut }
+                    ?: run {
+                        val wSpec = View.MeasureSpec.makeMeasureSpec(
+                            resources.displayMetrics.widthPixels, View.MeasureSpec.EXACTLY)
+                        val hSpec = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+                        bar.measure(wSpec, hSpec)
+                        bar.measuredHeight.takeIf { it > 0 }
+                    }
+                    ?: return true  // bar not ready yet — allow this draw and retry next frame
+
+                // Both values are ready; apply blur sync + padding atomically.
+                rootV.viewTreeObserver.removeOnPreDrawListener(this)
+                syncBlurTargetTopMarginForMenu(blur, menuH)
+                syncTopSideFrameHeightForMenu(top, menu, menuH)
                 blur.invalidate()
-                applyContactPickerListTopPadding()
+                contactPickerListTopInsetPx = barH + dp(12)
+                contactRecyclerView?.updatePadding(top = barH + dp(12))
+                // Cancel this draw; the next traversal re-lays out with correct geometry.
+                return false
             }
-        }
+        })
     }
 
     /** Resolves filter bar height + 12dp without waiting for a layout pass (avoids wrong padding on first search). */
@@ -651,9 +701,13 @@ class ContactPickerActivity : SimpleActivity() {
             }
         }
         updateFilterBar()
-        resolveContactPickerListTopInsetPxIfNeeded()
-        applyContactPickerListTopPadding()
         updateConfirmTabEnable()
+        // Register the blur/padding sync listener NOW, while the view is still unattached.
+        // rootView.viewTreeObserver is a "floating" observer at this point; Android merges it
+        // into the window's real tree observer during dispatchAttachedToWindow() at the START
+        // of the first Vsync traversal (before measure/layout/draw).  This guarantees our
+        // OnPreDrawListener fires before the very first frame is rendered.
+        syncContactPickerBlurGeometryAndListTopPadding()
     }
 
     private fun setupBottomActionTabs() {

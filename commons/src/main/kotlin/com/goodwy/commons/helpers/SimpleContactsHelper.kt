@@ -328,6 +328,11 @@ class SimpleContactsHelper(val context: Context) {
      * because aggregated [Contacts._ID] rows often only carry numbers on Google/other accounts;
      * filtering there produced an empty picker.
      *
+     * **Performance**: contact metadata (name, photo) is collected from the outer cursor window
+     * in one pass, then a single batch `WHERE CONTACT_ID IN (...)` fetches all phone numbers for
+     * the entire page. This replaces the previous per-contact phone lookup (N+1 queries) with
+     * exactly 2 queries per page regardless of batch size.
+     *
      * @param contactCursorOffset row index in the sorted contacts cursor to start from
      * @param maxCursorRows maximum contact **cursor** rows to scan this call (advance offset by this amount, capped at row count)
      * @return Triple(contacts, nextCursorOffset, hasMoreRowsAfterThisWindow)
@@ -377,38 +382,17 @@ class SimpleContactsHelper(val context: Context) {
         var hasMoreInCursor = false
         var phoneLookupMs = 0L
         var rowsScanned = 0
+
+        // ── Phase 1: collect page metadata from the outer cursor (no phone lookups yet) ──────
+        data class ContactRow(val contactId: Int, val displayName: String, val photoUri: String)
+        val pageRows = ArrayList<ContactRow>(maxCursorRows)
+
         cursor.use { c ->
             val idCol = c.getColumnIndex(Contacts._ID)
             val nameCol = c.getColumnIndex(Contacts.DISPLAY_NAME_PRIMARY)
             val photoCol = c.getColumnIndex(Contacts.PHOTO_THUMBNAIL_URI)
-            if (idCol < 0) {
-                return@use
-            }
-            fun consumeRowAt(pos: Int): Boolean {
-                if (!c.moveToPosition(pos)) return false
-                rowsScanned++
-                val contactId = c.getInt(idCol)
-                val displayName = if (nameCol >= 0) c.getString(nameCol)?.trim().orEmpty() else ""
-                val photoUri = if (photoCol >= 0) c.getString(photoCol).orEmpty() else ""
-                val tp = SystemClock.elapsedRealtime()
-                val (rawId, phones) = loadAllPhonesForAggregatedContact(contactId)
-                phoneLookupMs += SystemClock.elapsedRealtime() - tp
-                if (phones.isNotEmpty()) {
-                    val name = displayName.ifEmpty { phones.first().value }
-                    out.add(
-                        SimpleContact(
-                            rawId = rawId,
-                            contactId = contactId,
-                            name = name,
-                            photoUri = photoUri,
-                            phoneNumbers = phones,
-                            birthdays = ArrayList(),
-                            anniversaries = ArrayList(),
-                        ),
-                    )
-                }
-                return true
-            }
+            if (idCol < 0) return@use
+
             val rowCount = c.count
             if (rowCount == 0) {
                 nextOffset = 0
@@ -421,10 +405,24 @@ class SimpleContactsHelper(val context: Context) {
                 hasMoreInCursor = false
                 return@use
             }
+
+            fun collectRowAt(pos: Int): Boolean {
+                if (!c.moveToPosition(pos)) return false
+                rowsScanned++
+                pageRows.add(
+                    ContactRow(
+                        contactId = c.getInt(idCol),
+                        displayName = if (nameCol >= 0) c.getString(nameCol)?.trim().orEmpty() else "",
+                        photoUri = if (photoCol >= 0) c.getString(photoCol).orEmpty() else "",
+                    )
+                )
+                return true
+            }
+
             if (rowCount > 0) {
                 val scanEnd = minOf(contactCursorOffset + maxCursorRows, rowCount)
                 for (pos in contactCursorOffset until scanEnd) {
-                    if (!consumeRowAt(pos)) {
+                    if (!collectRowAt(pos)) {
                         nextOffset = pos
                         hasMoreInCursor = false
                         return@use
@@ -435,7 +433,7 @@ class SimpleContactsHelper(val context: Context) {
             } else {
                 var pos = contactCursorOffset
                 repeat(maxCursorRows) {
-                    if (!consumeRowAt(pos)) {
+                    if (!collectRowAt(pos)) {
                         nextOffset = pos
                         hasMoreInCursor = false
                         return@use
@@ -446,6 +444,39 @@ class SimpleContactsHelper(val context: Context) {
                 hasMoreInCursor = c.moveToPosition(pos)
             }
         }
+
+        if (pageRows.isEmpty()) {
+            if (LOG_CONTACT_PAGE_PERF) {
+                Log.d(CONTACT_PAGE_PERF_TAG, "getSystemContactsPage offset=$contactCursorOffset maxRows=$maxCursorRows EMPTY page")
+            }
+            return Triple(out, nextOffset, hasMoreInCursor)
+        }
+
+        // ── Phase 2: single batch phone lookup for all contact IDs in this page ──────────────
+        val tp = SystemClock.elapsedRealtime()
+        val contactIdList = pageRows.map { it.contactId }
+        val phonesMap = loadAllPhonesForAggregatedContactsBatch(contactIdList)
+        phoneLookupMs = SystemClock.elapsedRealtime() - tp
+
+        // ── Phase 3: assemble SimpleContact objects ───────────────────────────────────────────
+        for (row in pageRows) {
+            val (rawId, phones) = phonesMap[row.contactId] ?: continue
+            if (phones.isNotEmpty()) {
+                val name = row.displayName.ifEmpty { phones.first().value }
+                out.add(
+                    SimpleContact(
+                        rawId = rawId,
+                        contactId = row.contactId,
+                        name = name,
+                        photoUri = row.photoUri,
+                        phoneNumbers = phones,
+                        birthdays = ArrayList(),
+                        anniversaries = ArrayList(),
+                    ),
+                )
+            }
+        }
+
         if (LOG_CONTACT_PAGE_PERF) {
             val totalMs = SystemClock.elapsedRealtime() - wallStart
             Log.d(
@@ -458,11 +489,18 @@ class SimpleContactsHelper(val context: Context) {
         return Triple(out, nextOffset, hasMoreInCursor)
     }
 
-    /** All phone rows for [contactId] (any account), for aggregated contact picker paging. */
-    private fun loadAllPhonesForAggregatedContact(contactId: Int): Pair<Int, ArrayList<PhoneNumber>> {
-        val phones = ArrayList<PhoneNumber>()
-        var firstRawId = 0
-        var rawIdAssigned = false
+    /**
+     * Batch phone lookup: fetches all phone rows for [contactIds] in a **single** query
+     * (`WHERE CONTACT_ID IN (...)`), returning a map of contactId → (firstRawId, phones).
+     *
+     * This replaces the previous per-contact [loadAllPhonesForAggregatedContact] loop that fired
+     * N separate queries for an N-row page — e.g. 40 queries per 40-item page batch.
+     */
+    private fun loadAllPhonesForAggregatedContactsBatch(
+        contactIds: List<Int>,
+    ): Map<Int, Pair<Int, ArrayList<PhoneNumber>>> {
+        if (contactIds.isEmpty()) return emptyMap()
+        val result = HashMap<Int, Pair<Int, ArrayList<PhoneNumber>>>(contactIds.size * 2)
         val uri = Phone.CONTENT_URI
         val projection = arrayOf(
             Data.RAW_CONTACT_ID,
@@ -472,33 +510,32 @@ class SimpleContactsHelper(val context: Context) {
             Phone.TYPE,
             Phone.LABEL,
             Phone.IS_PRIMARY,
-            Phone.PHOTO_URI,
             RawContacts.ACCOUNT_NAME,
             RawContacts.ACCOUNT_TYPE,
         )
-        val selection = "${Phone.CONTACT_ID} = ?"
-        val selectionArgs = arrayOf(contactId.toString())
+        val placeholders = contactIds.joinToString(",") { "?" }
+        val selection = "${Phone.CONTACT_ID} IN ($placeholders)"
+        val selectionArgs = contactIds.map { it.toString() }.toTypedArray()
         context.queryCursor(uri, projection, selection, selectionArgs) { cursor ->
             val number = cursor.getStringValue(Phone.NUMBER) ?: return@queryCursor
             val normalizedNumber = cursor.getStringValue(Phone.NORMALIZED_NUMBER)
                 ?: number.normalizePhoneNumber()
             val rawId = cursor.getIntValue(Data.RAW_CONTACT_ID)
-            if (!rawIdAssigned) {
-                firstRawId = rawId
-                rawIdAssigned = true
-            }
+            val contactId = cursor.getIntValue(Data.CONTACT_ID)
             val type = cursor.getIntValue(Phone.TYPE)
             val label = cursor.getStringValue(Phone.LABEL) ?: ""
             val isPrimary = cursor.getIntValue(Phone.IS_PRIMARY) != 0
-            // edited by sun ----->  
-//            val phoneNumber = PhoneNumber(number, type, label, normalizedNumber, isPrimary)
             val accountName = cursor.getStringValue(RawContacts.ACCOUNT_NAME) ?: ""
             val accountType = cursor.getStringValue(RawContacts.ACCOUNT_TYPE) ?: ""
             val phoneNumber = PhoneNumber(number, type, label, normalizedNumber, isPrimary, accountName, accountType)
-            // <-------------
-            phones.add(phoneNumber)
+            val existing = result[contactId]
+            if (existing == null) {
+                result[contactId] = rawId to ArrayList<PhoneNumber>().also { it.add(phoneNumber) }
+            } else {
+                existing.second.add(phoneNumber)
+            }
         }
-        return firstRawId to phones
+        return result
     }
 
     private fun getContactNames(favoritesOnly: Boolean): List<SimpleContact> {
