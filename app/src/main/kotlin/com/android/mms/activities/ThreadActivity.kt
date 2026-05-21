@@ -1348,6 +1348,9 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         binding.threadMessagesList.onScroll(
             onScrolled = { dx, dy ->
                 tryLoadMoreMessages()
+                if (dy < 0 && wasImeVisibleForThreadListInsets) {
+                    hideKeyboard()
+                }
                 val layoutManager = binding.threadMessagesList.layoutManager as LinearLayoutManager
                 val lastVisibleItemPosition = layoutManager.findLastCompletelyVisibleItemPosition()
 //                 deleted by sun unnecessary ---->
