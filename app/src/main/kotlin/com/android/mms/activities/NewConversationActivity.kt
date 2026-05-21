@@ -1196,19 +1196,19 @@ class NewConversationActivity : SimpleActivity() {
      * also called after [fillSuggestedContacts] runs and from [onResume].
      */
     private fun updateSuggestionsOverlayVisibility(recipientFilterText: String = binding.newConversationAddress.currentText) {
-        if (recipientFilterText.isNotEmpty()) {
-            binding.suggestionsScrollview.beGone()
-            binding.suggestionsOverlay.beGone()
-            return
-        }
-        setupAdapter(ArrayList(), showSearchResults = false)
-        if (binding.suggestionsHolder.childCount > 0) {
-            binding.suggestionsOverlay.beVisible()
-            binding.suggestionsScrollview.beVisible()
-        } else {
-            binding.suggestionsScrollview.beGone()
-            binding.suggestionsOverlay.beGone()
-        }
+//        if (recipientFilterText.isNotEmpty()) {
+//            binding.suggestionsScrollview.beGone()
+//            binding.suggestionsOverlay.beGone()
+//            return
+//        }
+//        setupAdapter(ArrayList(), showSearchResults = false)
+//        if (binding.suggestionsHolder.childCount > 0) {
+//            binding.suggestionsOverlay.beVisible()
+//            binding.suggestionsScrollview.beVisible()
+//        } else {
+//            binding.suggestionsScrollview.beGone()
+//            binding.suggestionsOverlay.beGone()
+//        }
     }
 
     private fun fillSuggestedContacts(callback: (ArrayList<SimpleContact>) -> Unit) {
