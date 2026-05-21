@@ -195,7 +195,7 @@
         android:elevation="@dimen/cardview_default_elevation"
         android:gravity="center"
         android:layout_marginBottom="8dp"
-        android:layout_marginEnd="10dp"
+        android:layout_marginEnd="8dp"
         android:textColor="@color/default_text_color"
         android:textSize="@dimen/tiny_text_size"
         android:visibility="gone"

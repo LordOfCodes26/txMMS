@@ -56,13 +56,14 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/tiny_margin"
             android:layout_below="@+id/thread_message_attachments_holder"
-            android:layout_toEndOf="@+id/threadMessageSenderPhoto">
+            android:layout_toEndOf="@+id/threadMessageSenderPhoto"
+            >
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:foreground="@drawable/selector">
+                android:foreground="@drawable/btn_transparent_ripple_row_tx">
 
                 <TextView
                     android:id="@+id/threadMessageSenderName"
