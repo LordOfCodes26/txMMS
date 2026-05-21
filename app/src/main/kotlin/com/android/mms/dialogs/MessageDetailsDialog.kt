@@ -1,16 +1,19 @@
 package com.android.mms.dialogs
 
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.provider.Telephony.Sms
 import android.telephony.SubscriptionInfo
 import android.view.Gravity
 import android.widget.LinearLayout
+import com.android.common.view.MDialog
 import com.goodwy.commons.activities.BaseSimpleActivity
 import com.goodwy.commons.dialogs.BasePropertiesDialog
 import com.goodwy.commons.extensions.formatDateOrTime
 import com.goodwy.commons.extensions.getProperBlurOverlayColor
 import com.goodwy.commons.extensions.getTimeFormatWithSeconds
 import com.android.mms.R
+import com.android.mms.databinding.DialogBottomComponentBinding
 import com.android.mms.extensions.subscriptionManagerCompat
 import com.android.mms.models.Message
 import com.goodwy.commons.databinding.DialogTitleBinding
@@ -43,6 +46,7 @@ class MessageDetailsDialog(val activity: BaseSimpleActivity, val message: Messag
 
                 )
         }
+
         mDialogView.propertiesHolder.addView(titleBinding.root, 0)
         addProperty(R.string.message_type, if (message.isMMS) activity.getString(R.string.mms) else activity.getString(R.string.sms))
         addProperty(com.goodwy.strings.R.string.status, message.getStatus())
@@ -58,6 +62,14 @@ class MessageDetailsDialog(val activity: BaseSimpleActivity, val message: Messag
         if (!message.isReceivedMessage() && message.status == Sms.STATUS_COMPLETE) {
             addProperty(message.getSentOrReceivedReportAtLabel(), message.getSentOrReceivedReportAt())
         }
+
+        var bottomBiding = DialogBottomComponentBinding.inflate(mInflater, mDialogView.root, false)
+        bottomBiding.btnConfirm.setOnClickListener {
+            dismiss()
+        }
+        mDialogView.propertiesHolder.addView(bottomBiding.root)
+
+
 
         activity.setupMDialogStuff(
             view = mDialogView.root,

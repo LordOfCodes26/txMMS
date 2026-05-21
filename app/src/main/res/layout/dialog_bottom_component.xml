@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/button_ok_wrapper"
+        android:paddingVertical="@dimen/tx_dialog_padding">
+
+        <TextView
+            android:id="@+id/btn_confirm"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:clickable="true"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:textSize="@dimen/tx_content_text"
+            android:textColor="@color/tx_dialog_confirm_text"
+            android:text="@string/confirm_common"
+            android:paddingVertical="@dimen/tx_dialog_padding"
+            android:backgroundTint="#FFFFFF"
+            android:background="@drawable/btn_transparent_ripple_row_tx" />
+
+    </LinearLayout>
+
+</FrameLayout>
