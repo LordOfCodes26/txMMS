@@ -33,6 +33,7 @@ import android.text.format.DateUtils.FORMAT_SHOW_DATE
 import android.text.format.DateUtils.FORMAT_SHOW_TIME
 import android.util.Log
 import android.view.View
+import android.view.ViewTreeObserver
 import android.view.WindowManager
 import android.os.Handler
 import android.view.ViewGroup
@@ -154,6 +155,15 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
     private var composeBarBottomInsetLatch = ComposeBarBottomInsetLatch.NONE
     private var composeBarBottomInsetLatchPx = 0
     private var wasKeyboardVisible = false
+    /** Set while the IME was shown this session; cleared when the keyboard is dismissed (not when pausing). */
+    private var hadKeyboardLayoutWhenLeaving = false
+    /** True while IME is visible; used so [applyThreadMessagesListWindowInsets] only scrolls on IME open, not on every inset re-dispatch (e.g. resume). */
+    private var wasImeVisibleForThreadListInsets = false
+    /** Keyboard was up on pause: keep exact list/compose padding until resume layout stabilizes (no inset recompute). */
+    private var freezeThreadListLayoutOnResume = false
+    private var frozenThreadListPadding: IntArray? = null
+    private var frozenComposeBarInsetBottom = 0
+    private var threadListLayoutFreezePreDrawListener: ViewTreeObserver.OnPreDrawListener? = null
     private var isSpeechToTextAvailable = false
     private var expandedMessageFragment: com.android.mms.fragments.ExpandedMessageFragment? = null
     private var messageHolderHelper: MessageHolderHelper? = null
@@ -187,16 +197,11 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         setupOptionsMenu()
         refreshMenuItems()
 
-        val bottomView = if (isRecycleBin) binding.threadMessagesList else binding.messageHolder.root
         makeSystemBarsToTransparent()
+        // Compose-bar IME padding is handled here (applyComposeBarImePaddingFromInsets + root insets) so
+        // EdgeToEdge does not reset it on resume before the message list padding is frozen.
         setupEdgeToEdge(
             padTopSystem = listOf(binding.topDetailsCompact.root),
-            padBottomImeAndSystem = listOf(
-                bottomView,
-                binding.shortCodeHolder.root
-            ),
-            // IME animation callback on content can leave stale bottom padding when the keyboard hides
-            // without a clean animation (e.g. toolbar steals window focus while the EditText keeps focus).
             animateIme = false
         )
         setupMessagingEdgeToEdge()
@@ -235,6 +240,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
     }
 
     override fun onResume() {
+        applyFrozenThreadListLayoutOnResumeIfNeeded()
         super.onResume()
         if (!isThreadMessageSelectionModeActive()) {
             if (config.threadTopStyle == THREAD_TOP_LARGE) binding.topDetailsCompact.root.beGone()
@@ -281,7 +287,9 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
     /** BlurView + MVSideFrame can stop updating after another activity was shown; re-apply insets and re-bind. */
     private fun refreshSideFrameBlurAndInsets() {
         binding.root.post {
-            ViewCompat.requestApplyInsets(binding.root)
+            if (!freezeThreadListLayoutOnResume) {
+                ViewCompat.requestApplyInsets(binding.root)
+            }
             binding.mVerticalSideFrameTop.bindBlurTarget(binding.mainBlurTarget)
             binding.mVerticalSideFrameBottom.bindBlurTarget(binding.mainBlurTarget)
             syncThreadTopBlurStripGeometry()
@@ -323,6 +331,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
     }
 
     override fun onPause() {
+        captureThreadLayoutForKeyboardResume()
         super.onPause()
         composeBarBottomInsetLatch = ComposeBarBottomInsetLatch.NONE
         // Persist first, then notify: save runs on a background thread; posting before it completes
@@ -348,6 +357,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
 //    }
 
     override fun onDestroy() {
+        releaseThreadListLayoutFreeze(recalculatePadding = false)
         unregisterFeeInfoReceiverIfNeeded()
         if (openedFromSecureConversationList) {
             ProcessLifecycleOwner.get().lifecycle.removeObserver(secureConversationListProcessObserver)
@@ -466,10 +476,19 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
 //            }
 
             if (barContainer != null) {
+                val imeVisible =
+                    ime.bottom > 0 && insets.isVisible(WindowInsetsCompat.Type.ime())
+                if (!imeVisible && !freezeThreadListLayoutOnResume) {
+                    wasImeVisibleForThreadListInsets = false
+                }
+                val scrollToBottomForIme = imeVisible && !wasImeVisibleForThreadListInsets
+                if (imeVisible) {
+                    wasImeVisibleForThreadListInsets = true
+                }
                 applyThreadMessagesListWindowInsets(
                     navHeight = navHeight,
                     imeBottom = ime.bottom,
-                    scrollToBottomForIme = ime.bottom > 0 && insets.isVisible(WindowInsetsCompat.Type.ime()),
+                    scrollToBottomForIme = scrollToBottomForIme,
                 )
             }
             // Toolbar / popups often hide the IME without clearing EditText focus; re-sync compose bar
@@ -477,7 +496,10 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             if (composeBarBottomInsetLatch != ComposeBarBottomInsetLatch.NONE) {
                 applyComposeBarImePaddingFromInsets()
             }
-            binding.root.post { applyComposeBarImePaddingFromInsets() }
+            applyComposeBarImePaddingFromInsets()
+            if (!freezeThreadListLayoutOnResume) {
+                binding.root.post { applyComposeBarImePaddingFromInsets() }
+            }
             insets
         }
 
@@ -495,6 +517,10 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
      */
     private fun refreshThreadMessagesListPaddingForComposeBarHeight() {
         if (isRecycleBin) return
+        if (freezeThreadListLayoutOnResume) {
+            applyFrozenThreadListLayout()
+            return
+        }
         val rootInsets = ViewCompat.getRootWindowInsets(binding.root) ?: return
         val navHeight = rootInsets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom
         val imeBottom = rootInsets.getInsets(WindowInsetsCompat.Type.ime()).bottom
@@ -511,11 +537,16 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         scrollToBottomForIme: Boolean,
     ) {
         if (isRecycleBin) return
+        if (freezeThreadListLayoutOnResume) {
+            applyFrozenThreadListLayout()
+            return
+        }
         val barContainer = binding.messageHolder.root
         val messagesList = binding.threadMessagesList
         val bottomBarLp = barContainer.layoutParams as ViewGroup.MarginLayoutParams
         val bottomOffset = dp(3).toInt()
         val appBarHeightPx = resources.getDimensionPixelSize(com.android.common.R.dimen.tx_top_bar_expand_height)
+        val listTopPadding = appBarHeightPx + dp(10)
         val inputBarHeight = dp(32)
         val attachmentStripKeyboardPlaceholder = config.keyboardHeight + inputBarHeight
         val rootInsets = ViewCompat.getRootWindowInsets(binding.root)
@@ -541,8 +572,8 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                 composeStripHidden -> composeHeight + composeBottomGap
                 else -> composeHeight + composeBottomGap + navHeight
             }
+            messagesList.setPadding(0, listTopPadding, 0, bottomPadding)
             if (extraBottomPadding > 0) {
-                messagesList.setPadding(0, appBarHeightPx, 0, bottomPadding)
                 // Only pin to bottom when IME just opened (same as legacy behavior). Do not auto-scroll on
                 // compose-bar relayouts: findLastCompletelyVisibleItemPosition() is often NO_POSITION (-1),
                 // which compared against (lastIndex - SCROLL_TO_BOTTOM_FAB_LIMIT) wrongly looked "near bottom"
@@ -552,7 +583,6 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                 }
             } else {
                 bottomBarLp.bottomMargin = bottomOffset
-                messagesList.setPadding(0, appBarHeightPx + dp(10), 0, bottomPadding)
                 barContainer.layoutParams = bottomBarLp
             }
         }
@@ -564,6 +594,108 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         barContainer.post {
             val composeHeight = resolveComposeStripHeightForThreadList(barContainer)
             applyWithComposeHeight(composeHeight)
+        }
+    }
+
+    private fun captureThreadLayoutForKeyboardResume() {
+        if (isRecycleBin) {
+            releaseThreadListLayoutFreeze(recalculatePadding = false)
+            return
+        }
+        val keyboardOpen = hadKeyboardLayoutWhenLeaving ||
+            wasKeyboardVisible ||
+            isThreadKeyboardVisible()
+        if (!keyboardOpen) {
+            releaseThreadListLayoutFreeze(recalculatePadding = false)
+            return
+        }
+        val list = binding.threadMessagesList
+        frozenThreadListPadding = intArrayOf(
+            list.paddingLeft,
+            list.paddingTop,
+            list.paddingRight,
+            list.paddingBottom,
+        )
+        frozenComposeBarInsetBottom = captureComposeBarInsetBottom()
+        freezeThreadListLayoutOnResume = true
+        wasImeVisibleForThreadListInsets = true
+    }
+
+    private fun captureComposeBarInsetBottom(): Int {
+        val compose = binding.messageHolder.root
+        val base = compose.ensureBasePadding()
+        return compose.paddingBottom - base[3]
+    }
+
+    private fun applyFrozenThreadListLayout() {
+        val padding = frozenThreadListPadding ?: return
+        binding.threadMessagesList.setPadding(padding[0], padding[1], padding[2], padding[3])
+        if (frozenComposeBarInsetBottom > 0) {
+            binding.messageHolder.root.updatePaddingWithBase(bottom = frozenComposeBarInsetBottom)
+            binding.shortCodeHolder.root.updatePaddingWithBase(bottom = frozenComposeBarInsetBottom)
+        }
+        binding.threadMessagesList.suppressLayout(true)
+    }
+
+    private fun applyFrozenThreadListLayoutOnResumeIfNeeded() {
+        if (!freezeThreadListLayoutOnResume || isRecycleBin) return
+        applyFrozenThreadListLayout()
+        binding.messageHolder.threadTypeMessage.requestFocus()
+        @Suppress("DEPRECATION")
+        window.setSoftInputMode(
+            WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE or
+                WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
+        )
+        attachThreadListLayoutFreezePreDrawListener()
+    }
+
+    private fun attachThreadListLayoutFreezePreDrawListener() {
+        removeThreadListLayoutFreezePreDrawListener()
+        var preDrawFrames = 0
+        val listener = ViewTreeObserver.OnPreDrawListener {
+            if (!freezeThreadListLayoutOnResume || isFinishing || isDestroyed) {
+                removeThreadListLayoutFreezePreDrawListener()
+                return@OnPreDrawListener true
+            }
+            applyFrozenThreadListLayout()
+            preDrawFrames++
+            val keyboardVisible = isThreadKeyboardVisible()
+            if (keyboardVisible && preDrawFrames >= 2) {
+                releaseThreadListLayoutFreeze(recalculatePadding = false)
+                return@OnPreDrawListener true
+            }
+            if (preDrawFrames >= 5) {
+                releaseThreadListLayoutFreeze(recalculatePadding = keyboardVisible)
+                return@OnPreDrawListener true
+            }
+            true
+        }
+        threadListLayoutFreezePreDrawListener = listener
+        binding.root.viewTreeObserver.addOnPreDrawListener(listener)
+    }
+
+    private fun removeThreadListLayoutFreezePreDrawListener() {
+        val listener = threadListLayoutFreezePreDrawListener ?: return
+        if (binding.root.viewTreeObserver.isAlive) {
+            binding.root.viewTreeObserver.removeOnPreDrawListener(listener)
+        }
+        threadListLayoutFreezePreDrawListener = null
+    }
+
+    private fun releaseThreadListLayoutFreeze(recalculatePadding: Boolean) {
+        if (!freezeThreadListLayoutOnResume && frozenThreadListPadding == null) {
+            removeThreadListLayoutFreezePreDrawListener()
+            binding.threadMessagesList.suppressLayout(false)
+            return
+        }
+        freezeThreadListLayoutOnResume = false
+        frozenThreadListPadding = null
+        frozenComposeBarInsetBottom = 0
+        removeThreadListLayoutFreezePreDrawListener()
+        binding.threadMessagesList.suppressLayout(false)
+        if (recalculatePadding && !isRecycleBin) {
+            refreshThreadMessagesListPaddingForComposeBarHeight()
+            binding.root.post { ViewCompat.requestApplyInsets(binding.root) }
         }
     }
 
@@ -608,6 +740,11 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         val rootInsets = ViewCompat.getRootWindowInsets(binding.root)
             ?: ViewCompat.getRootWindowInsets(window.decorView)
             ?: return
+        if (freezeThreadListLayoutOnResume && frozenComposeBarInsetBottom > 0) {
+            binding.messageHolder.root.updatePaddingWithBase(bottom = frozenComposeBarInsetBottom)
+            binding.shortCodeHolder.root.updatePaddingWithBase(bottom = frozenComposeBarInsetBottom)
+            return
+        }
         val imeAndSystem = rootInsets.getInsets(
             WindowInsetsCompat.Type.ime() or WindowInsetsCompat.Type.systemBars()
         )
@@ -2764,8 +2901,12 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                     isAttachmentPickerVisible = false
                 }
                 wasKeyboardVisible = true
+                hadKeyboardLayoutWhenLeaving = true
             } else {
                 wasKeyboardVisible = false
+                if (!freezeThreadListLayoutOnResume) {
+                    hadKeyboardLayoutWhenLeaving = false
+                }
                 if (isAttachmentPickerVisible &&
                     composeBarBottomInsetLatch != ComposeBarBottomInsetLatch.ATTACHMENT_PICKER_TO_KEYBOARD
                 ) {
