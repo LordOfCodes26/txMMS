@@ -1066,13 +1066,20 @@ class ContactPickerActivity : SimpleActivity() {
      * On a cache hit the user sees contacts in < 10 ms.  The DB always re-runs in the background
      * so stale data (deleted / renamed contacts) is corrected within the same open.  The cache is
      * only rewritten when the fresh result differs from what was cached, keeping file I/O minimal.
+     *
+     * @param skipInitialCacheRead When true the cache was already read and displayed synchronously
+     *   by [loadContacts] on the UI thread — skip Step 1 to avoid a redundant second read/update.
      */
-    private fun startBrowseContactsLoadFromDb(requestGeneration: Int = ++contactListGeneration) {
+    private fun startBrowseContactsLoadFromDb(
+        requestGeneration: Int = ++contactListGeneration,
+        skipInitialCacheRead: Boolean = false,
+    ) {
         ensureBackgroundThread {
             val bgWall = SystemClock.elapsedRealtime()
 
             // ── Step 1: show cached contacts immediately ──────────────────────────────────────
-            val cached = if (CONTACTS_CACHE_READ_ENABLED) readContactsFromCache() else null
+            // Skipped when the caller already displayed the cache synchronously on the UI thread.
+            val cached = if (!skipInitialCacheRead && CONTACTS_CACHE_READ_ENABLED) readContactsFromCache() else null
             if (cached != null) {
                 runOnUiThread {
                     if (isFinishing || isDestroyed) return@runOnUiThread
@@ -1428,7 +1435,6 @@ class ContactPickerActivity : SimpleActivity() {
         allContactKeyToIndex.clear()
         contactsCursor?.takeIf { !it.isClosed }?.close()
         contactsCursor = null
-        contactAdapter?.setContactModeItems(emptyList(), emptySet())
         callLogPlaceholder?.visibility = View.GONE
         contactRecyclerView?.visibility = View.VISIBLE
 
@@ -1443,8 +1449,32 @@ class ContactPickerActivity : SimpleActivity() {
 
         // First chunk from DB (SIM/phone-storage phones); private entries merge on that first chunk.
         if (searchString.trim().isEmpty()) {
-            startBrowseContactsLoadFromDb()
+            // Read cache synchronously on the UI thread so contacts appear instantly when switching
+            // back from the call-log tab — same stale-while-revalidate behaviour as first open,
+            // but without the brief blank flash caused by clearing the adapter before the BG thread
+            // can post the cached result.
+            val cached = if (CONTACTS_CACHE_READ_ENABLED) readContactsFromCache() else null
+            if (cached != null) {
+                allContacts.addAll(cached)
+                appendKeyIndicesForRange(0, cached)
+                cached.forEachIndexed { i, c ->
+                    if (alreadySelectedContactIds.contains(contactNumberKey(c.contactId, c.phoneNumber))) selectedPositions.add(i)
+                }
+                filteredContacts.addAll(allContacts)
+                hasMoreContacts = true
+                isLoadingMore = true
+                contactAdapter?.setContactModeItems(ArrayList(filteredContacts), buildFilteredSelectedIndicesForAdapter())
+                hideContactsLetterFastScroller()
+                updateConfirmTabEnable()
+                // Tell startBrowseContactsLoadFromDb to skip its own Step 1 cache read since we
+                // already displayed the cache here — avoids a redundant file read + adapter update.
+                startBrowseContactsLoadFromDb(skipInitialCacheRead = true)
+            } else {
+                contactAdapter?.setContactModeItems(emptyList(), emptySet())
+                startBrowseContactsLoadFromDb(skipInitialCacheRead = false)
+            }
         } else {
+            contactAdapter?.setContactModeItems(emptyList(), emptySet())
             searchListByQuery(searchString)
         }
     }
