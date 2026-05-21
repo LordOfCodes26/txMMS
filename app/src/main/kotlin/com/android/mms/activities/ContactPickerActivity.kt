@@ -58,6 +58,9 @@ import com.android.mms.helpers.MessageHolderHelper
 import com.android.mms.models.Contact
 import com.android.mms.models.ContactPickerListRow
 import com.goodwy.commons.activities.BaseSimpleActivity
+import java.io.DataInputStream
+import java.io.DataOutputStream
+import java.io.File
 import java.util.Calendar
 import com.goodwy.commons.helpers.SimpleContactsHelper
 import com.goodwy.commons.views.MySearchMenu
@@ -87,6 +90,13 @@ class ContactPickerActivity : SimpleActivity() {
         /** Temporary: log scroll / load-more / chunk timings under [PERF_LOG_TAG]. Set to false to disable. */
         private const val CONTACT_PICKER_PERF_LOG = false
         private const val PERF_LOG_TAG = "ContactPickerPerf"
+
+        // ── Contact cache ──────────────────────────────────────────────────────────────────────
+        /** Bump this when the serialised Contact field layout changes. Stale files are discarded. */
+        private const val CONTACTS_CACHE_SCHEMA = 1
+        private const val CONTACTS_CACHE_FILE = "contact_picker_v${CONTACTS_CACHE_SCHEMA}.bin"
+        /** Set to false to skip cache reads during testing (writes still occur for inspection). */
+        private const val CONTACTS_CACHE_READ_ENABLED = true
 
 
         fun getSelectedContacts(data: Intent?): ArrayList<Contact> {
@@ -964,10 +974,123 @@ class ContactPickerActivity : SimpleActivity() {
         }
     }
 
-    /** First browse page from DB + private merge (same rules as [loadContacts]). */
+    // ── Contact cache helpers ──────────────────────────────────────────────────────────────────
+
+    /**
+     * Reads the contact list written by [saveContactsToCache].
+     * Returns null when the file is absent, corrupt, or written by a different schema version.
+     * Safe to call from any thread.
+     */
+    private fun readContactsFromCache(): ArrayList<Contact>? = try {
+        val file = File(cacheDir, CONTACTS_CACHE_FILE)
+        if (!file.exists() || file.length() == 0L) null
+        else DataInputStream(file.inputStream().buffered()).use { din ->
+            if (din.readInt() != CONTACTS_CACHE_SCHEMA) return null   // schema mismatch
+            val count = din.readInt()
+            if (count <= 0) return null
+            ArrayList<Contact>(count).also { list ->
+                repeat(count) {
+                    list.add(
+                        Contact(
+                            name = din.readUTF(),
+                            contactId = din.readUTF(),
+                            icon = din.readInt(),
+                            phoneNumber = din.readUTF(),
+                            address = din.readUTF(),
+                            organizationName = din.readUTF(),
+                            simSlot = din.readInt(),
+                            photoUri = din.readUTF(),
+                        )
+                    )
+                }
+            }
+        }
+    } catch (_: Exception) { null }
+
+    /**
+     * Writes [contacts] to the picker's cache file.
+     * Safe to call from any thread; failures are silently swallowed (cache is best-effort).
+     */
+    private fun saveContactsToCache(contacts: List<Contact>) {
+        try {
+            DataOutputStream(File(cacheDir, CONTACTS_CACHE_FILE).outputStream().buffered()).use { out ->
+                out.writeInt(CONTACTS_CACHE_SCHEMA)
+                out.writeInt(contacts.size)
+                for (c in contacts) {
+                    out.writeUTF(c.name)
+                    out.writeUTF(c.contactId)
+                    out.writeInt(c.icon)
+                    out.writeUTF(c.phoneNumber)
+                    out.writeUTF(c.address)
+                    out.writeUTF(c.organizationName)
+                    out.writeInt(c.simSlot)
+                    out.writeUTF(c.photoUri)
+                }
+            }
+        } catch (_: Exception) { /* cache write is best-effort */ }
+    }
+
+    /**
+     * Heuristic diff: checks count, then scans ALL entries for contactId, phone, or name changes.
+     * Scanning all entries (not just the first 8) ensures a rename anywhere in the list is detected.
+     */
+    private fun contactsDifferFromCache(fresh: List<Contact>, cached: List<Contact>): Boolean {
+        if (fresh.size != cached.size) return true
+        for (i in fresh.indices) {
+            val f = fresh[i]
+            val c = cached[i]
+            if (f.contactId != c.contactId) return true
+            if (normalizePhoneNumber(f.phoneNumber) != normalizePhoneNumber(c.phoneNumber)) return true
+            if (f.name != c.name) return true
+        }
+        return false
+    }
+
+    /**
+     * First browse page from DB + private merge, with a **stale-while-revalidate cache**.
+     *
+     * Timeline:
+     *
+     * ```
+     * BG thread:  [read cache ~5 ms] → runOnUiThread(show cached) → [DB load ~50–120 ms] → runOnUiThread(show fresh)
+     * UI thread:  .....show cached immediately.............................................show fresh (no visible gap)
+     * ```
+     *
+     * On a cache hit the user sees contacts in < 10 ms.  The DB always re-runs in the background
+     * so stale data (deleted / renamed contacts) is corrected within the same open.  The cache is
+     * only rewritten when the fresh result differs from what was cached, keeping file I/O minimal.
+     */
     private fun startBrowseContactsLoadFromDb(requestGeneration: Int = ++contactListGeneration) {
         ensureBackgroundThread {
             val bgWall = SystemClock.elapsedRealtime()
+
+            // ── Step 1: show cached contacts immediately ──────────────────────────────────────
+            val cached = if (CONTACTS_CACHE_READ_ENABLED) readContactsFromCache() else null
+            if (cached != null) {
+                runOnUiThread {
+                    if (isFinishing || isDestroyed) return@runOnUiThread
+                    if (requestGeneration != contactListGeneration || isCallLogMode || searchString.trim().isNotEmpty()) return@runOnUiThread
+                    allContacts.clear()
+                    allContacts.addAll(cached)
+                    allContactKeyToIndex.clear()
+                    appendKeyIndicesForRange(0, cached)
+                    selectedPositions.clear()
+                    cached.forEachIndexed { i, c ->
+                        if (alreadySelectedContactIds.contains(contactNumberKey(c.contactId, c.phoneNumber))) selectedPositions.add(i)
+                    }
+                    filteredContacts.clear()
+                    filteredContacts.addAll(allContacts)
+                    // Lock pagination until the fresh DB load confirms hasMoreContacts.
+                    hasMoreContacts = true
+                    isLoadingMore = true
+                    contactAdapter?.setContactModeItems(ArrayList(filteredContacts), buildFilteredSelectedIndicesForAdapter())
+                    hideContactsLetterFastScroller()
+                    updateConfirmTabEnable()
+                    perfLog("startBrowse cache shown in ${SystemClock.elapsedRealtime() - bgWall} ms")
+                }
+            }
+
+            // ── Step 2: load fresh contacts from DB ───────────────────────────────────────────
             val tPrivate = SystemClock.elapsedRealtime()
             val privateCursor = getMyContactsCursor(favoritesOnly = false, withPhoneNumbersOnly = true)
             val privateList = MyContactsContentProvider.getSimpleContacts(this@ContactPickerActivity, privateCursor)
@@ -976,17 +1099,20 @@ class ContactPickerActivity : SimpleActivity() {
             privateContactsForMerge.addAll(privateList)
             systemContactsSqlOffset = 0
             val chunk = loadNextContactsChunkFromDb(isFirstPage = true)
+            val freshDiffers = cached == null || contactsDifferFromCache(chunk.contacts, cached)
             perfLog(
-                "startBrowse BG done privateMs=$privateMs privateCount=${privateList.size} " +
-                    "firstChunkContacts=${chunk.contacts.size} hasMore=${chunk.hasMoreFromDb} " +
-                    "bgWallMs=${SystemClock.elapsedRealtime() - bgWall}",
+                "startBrowse DB done privateMs=$privateMs privateCount=${privateList.size} " +
+                    "freshContacts=${chunk.contacts.size} hasMore=${chunk.hasMoreFromDb} " +
+                    "freshDiffers=$freshDiffers bgWallMs=${SystemClock.elapsedRealtime() - bgWall}",
             )
+
+            // ── Step 3: update UI with fresh data ─────────────────────────────────────────────
             runOnUiThread {
                 val uiStart = SystemClock.elapsedRealtime()
                 if (isFinishing || isDestroyed) return@runOnUiThread
-                if (requestGeneration != contactListGeneration || isCallLogMode || searchString.trim().isNotEmpty()) {
-                    return@runOnUiThread
-                }
+                if (requestGeneration != contactListGeneration || isCallLogMode || searchString.trim().isNotEmpty()) return@runOnUiThread
+
+                // Always keep state vars in sync with the authoritative DB result.
                 allContacts.clear()
                 allContacts.addAll(chunk.contacts)
                 allContactKeyToIndex.clear()
@@ -997,17 +1123,23 @@ class ContactPickerActivity : SimpleActivity() {
                 filteredContacts.addAll(allContacts)
                 hasMoreContacts = chunk.hasMoreFromDb
                 isLoadingMore = false
-                contactAdapter?.setContactModeItems(
-                    ArrayList(filteredContacts),
-                    buildFilteredSelectedIndicesForAdapter(),
-                )
+
+                if (freshDiffers) {
+                    // Contacts changed since last cache — redraw the list.
+                    contactAdapter?.setContactModeItems(ArrayList(filteredContacts), buildFilteredSelectedIndicesForAdapter())
+                }
+                // If cache was accurate the adapter already shows the right rows; skipping
+                // setContactModeItems avoids a redundant RecyclerView re-layout / flicker.
                 hideContactsLetterFastScroller()
                 updateConfirmTabEnable()
                 scheduleBrowseLoadMoreAfterChunk()
-                perfLog(
-                    "startBrowse UI applied contacts=${chunk.contacts.size} uiMs=${SystemClock.elapsedRealtime() - uiStart} " +
-                        "sinceBgStartMs=${SystemClock.elapsedRealtime() - bgWall}",
-                )
+                perfLog("startBrowse UI refreshed freshDiffers=$freshDiffers uiMs=${SystemClock.elapsedRealtime() - uiStart}")
+            }
+
+            // ── Step 4: persist to cache only when the data actually changed ──────────────────
+            if (freshDiffers) {
+                saveContactsToCache(chunk.contacts)
+                perfLog("startBrowse cache written contacts=${chunk.contacts.size}")
             }
         }
     }
