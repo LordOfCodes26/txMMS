@@ -973,12 +973,14 @@ class ThreadAdapter(
                     // Respect 9-patch content padding when using custom bubble drawables.
                     applyDrawablePadding(bubbleDrawable)
                 }
+
+                messageBinding.threadMessageBodySpacer.layoutParams.height = 40
             }
 
-            val alignment =
-                if (activity.config.textAlignment == TEXT_ALIGNMENT_ALONG_EDGES) View.TEXT_ALIGNMENT_VIEW_START else View.TEXT_ALIGNMENT_INHERIT
+//            val alignment =
+//                if (activity.config.textAlignment == TEXT_ALIGNMENT_ALONG_EDGES) View.TEXT_ALIGNMENT_VIEW_START else View.TEXT_ALIGNMENT_INHERIT
             threadMessageBody.apply {
-                textAlignment = alignment
+//                textAlignment = alignment
                 setTextColor(contrastColorReceived)
                 setLinkTextColor(contrastColorReceived)
             }
@@ -988,7 +990,7 @@ class ThreadAdapter(
             if (isGroupChat && message.body.isNotEmpty() && message.isReceivedMessage()) {
                 threadMessageSenderName.apply {
                     beVisible()
-                    textAlignment = alignment
+//                    textAlignment = alignment
                     text = message.senderName
                     setTextColor(letterBackgroundColors[abs(message.senderName.hashCode()) % letterBackgroundColors.size].toInt())
                     setTextSize(TypedValue.COMPLEX_UNIT_PX, fontSizeMessage * 0.9f * fontSizeMessageMultiplier)
@@ -1023,13 +1025,10 @@ class ThreadAdapter(
         val contrastColorReceived = DARK_GREY
 
         messageBinding.apply {
-            val bubbleEndMargin = resources.getDimensionPixelSize(com.goodwy.commons.R.dimen.medium_margin)
             with(ConstraintSet()) {
                 clone(threadMessageHolder)
                 clear(threadMessageWrapper.id, ConstraintSet.START)
                 connect(threadMessageWrapper.id, ConstraintSet.END, R.id.thread_message_checkbox, ConstraintSet.START)
-                setMargin(threadMessageWrapper.id, ConstraintSet.END, bubbleEndMargin)
-                setGoneMargin(threadMessageWrapper.id, ConstraintSet.END, 0)
                 applyTo(threadMessageHolder)
             }
 
@@ -1198,37 +1197,13 @@ class ThreadAdapter(
         message: Message,
         textColor: Int
     ) {
-        val timeStr = (message.date * 1000L).formatTime(activity)
+        val timeStr = (message.date * 1000L).formatTime(activity, "H:m")
         messageBinding.threadMessageTime.apply {
             text = timeStr
             setTextSize(TypedValue.COMPLEX_UNIT_PX, fontSizeSmall)
         }
-        val holder = messageBinding.threadMessageTimeSimHolder
+
         val isReceived = message.isReceivedMessage()
-        // Received: bottom-left, order HH:mm, SIM icon. Sent: bottom-right, order status, SIM, HH:mm
-        (holder.layoutParams as? android.widget.LinearLayout.LayoutParams)?.gravity = android.view.Gravity.START
-//            if (isReceived) android.view.Gravity.START else android.view.Gravity.END
-        if (isReceived) {
-            // Reorder for received: time first, then sim (order: HH:mm, SIM icon)
-            //holder.removeView(messageBinding.threadMessageTime)
-            holder.removeView(messageBinding.threadMessageSimIcon)
-            //holder.addView(messageBinding.threadMessageTime)
-            holder.addView(messageBinding.threadMessageSimIcon)
-//            messageBinding.threadMessageSimIcon.updateLayoutParams<android.widget.LinearLayout.LayoutParams> {
-//                marginStart = resources.getDimensionPixelSize(com.goodwy.commons.R.dimen.small_margin)
-//                marginEnd = 0
-//            }
-        } else {
-            // Sent: order status, sim, time - ensure correct order after possible recycle from received
-            //holder.removeView(messageBinding.threadMessageTime)
-//            holder.removeView(messageBinding.threadMessageSimIcon)
-//            //holder.addView(messageBinding.threadMessageTime)
-//            holder.addView(messageBinding.threadMessageSimIcon, holder.indexOfChild(messageBinding.threadMessageStatusIcon) + 1)
-//            messageBinding.threadMessageSimIcon.updateLayoutParams<android.widget.LinearLayout.LayoutParams> {
-//                marginStart = 0
-//                marginEnd = resources.getDimensionPixelSize(com.goodwy.commons.R.dimen.small_margin)
-//            }
-        }
         // Status icon for sent messages: error | sending | sent/delivered
         if (isReceived) {
             messageBinding.threadMessageStatusIcon.beGone()
