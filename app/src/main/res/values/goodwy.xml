@@ -7,6 +7,8 @@
     <string name="delete_after_copy">Delete message after copying number from notification</string>
     <string name="sound_on_out_going_messages">Sound on out going messages</string>
     <string name="delivered">Delivered</string>
+    <string name="delivered_to_contact">Delivered to %1$s (%2$s)</string>
+    <string name="delivered_to_number">Delivered to %1$s</string>
     <string name="sent">Sent</string>
     <string name="failed">Failed</string>
     <string name="pending">Pending</string>

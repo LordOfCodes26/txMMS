@@ -7,6 +7,8 @@
     <string name="delete_after_copy">从通知中复制号码后删除邮件</string>
     <string name="sound_on_out_going_messages">发送消息时发出声音</string>
     <string name="delivered">发表</string>
+    <string name="delivered_to_contact">已发送至 %1$s（%2$s）</string>
+    <string name="delivered_to_number">已发送至 %1$s</string>
     <string name="sent">已发送</string>
     <string name="failed">失败的</string>
     <string name="pending">待办的</string>

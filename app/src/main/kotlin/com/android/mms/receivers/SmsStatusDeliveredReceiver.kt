@@ -10,6 +10,7 @@ import android.os.Handler
 import android.os.Looper
 import android.provider.Telephony.Sms
 import com.goodwy.commons.extensions.toast
+import com.goodwy.commons.helpers.SimpleContactsHelper
 import com.goodwy.commons.helpers.ensureBackgroundThread
 import com.android.mms.R
 import com.android.mms.extensions.config
@@ -122,8 +123,19 @@ class SmsStatusDeliveredReceiver : SendStatusReceiver() {
 
     private fun maybeShowDeliveredToast(context: Context, intent: Intent) {
         if (!intent.getBooleanExtra(SendStatusReceiver.EXTRA_SHOW_DELIVERED_TOAST, false)) return
+        val destination = intent.getStringExtra(SendStatusReceiver.EXTRA_DESTINATION_ADDRESS)
+        if (destination.isNullOrEmpty()) {
+            Handler(Looper.getMainLooper()).post { context.toast(R.string.delivered) }
+            return
+        }
+        val contactName = SimpleContactsHelper(context).getNameFromPhoneNumber(destination)
         Handler(Looper.getMainLooper()).post {
-            context.toast(R.string.delivered)
+            val message = if (contactName != destination) {
+                context.getString(R.string.delivered_to_contact, contactName, destination)
+            } else {
+                context.getString(R.string.delivered_to_number, destination)
+            }
+            context.toast(message)
         }
     }
 }

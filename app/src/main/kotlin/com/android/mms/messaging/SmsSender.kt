@@ -73,7 +73,7 @@ class SmsSender(val app: Application) {
                     PendingIntent.getBroadcast(
                         app,
                         partId,
-                        getDeliveredStatusIntent(messageUri, subId, showDeliveredToastOnSuccess),
+                        getDeliveredStatusIntent(messageUri, subId, showDeliveredToastOnSuccess, dest),
                         flags
                     )
                 )
@@ -129,11 +129,12 @@ class SmsSender(val app: Application) {
         return intent
     }
 
-    private fun getDeliveredStatusIntent(requestUri: Uri, subId: Int, showDeliveredToastOnSuccess: Boolean): Intent {
+    private fun getDeliveredStatusIntent(requestUri: Uri, subId: Int, showDeliveredToastOnSuccess: Boolean, destination: String): Intent {
         val intent = Intent(SendStatusReceiver.SMS_DELIVERED_ACTION, requestUri, app, SmsStatusDeliveredReceiver::class.java)
         intent.putExtra(SendStatusReceiver.EXTRA_SUB_ID, subId)
         if (showDeliveredToastOnSuccess) {
             intent.putExtra(SendStatusReceiver.EXTRA_SHOW_DELIVERED_TOAST, true)
+            intent.putExtra(SendStatusReceiver.EXTRA_DESTINATION_ADDRESS, destination)
         }
         return intent
     }
