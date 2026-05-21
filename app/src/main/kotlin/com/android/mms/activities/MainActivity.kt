@@ -308,9 +308,10 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         // fights selection chrome — flash when exiting selection after [onResume]. Skip height animation/wrap
         // resize until selection ends; still refresh blur geometry (matches measured CAB bar).
         val selectionMode = (binding.conversationsList.adapter as? ConversationsAdapter)?.isActionModeActive() == true
+        val menuCollapsedOnResume = mainMenuLastAppBarVerticalOffset < 0 || scrollOffsetForMainToolbarSync() > 0
         binding.mainMenu.post {
             if (!selectionMode) {
-                setMainMenuHeight(null, animated = true)
+                setMainMenuHeight(null, animated = !menuCollapsedOnResume)
             } else {
                 scheduleSyncMainMenuTopBlurGeometry()
             }
@@ -472,6 +473,14 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         val menu = binding.mainMenu
         val mLoc = IntArray(2)
         menu.getLocationOnScreen(mLoc)
+        if (menu.isActionModeToolbarVisible()) {
+            val cabRect = Rect()
+            val cab = menu.getActionModeToolbar()
+            if (cab.getGlobalVisibleRect(cabRect) && !cabRect.isEmpty) {
+                return cabRect.bottom
+            }
+            return mainMenuVisibleBottomOnScreenPx(mLoc[1])
+        }
         var bottom = mainMenuVisibleBottomOnScreenPx(mLoc[1])
         val title = menu.binding.collapsingTitle
         if (title.visibility == View.VISIBLE) {
@@ -487,10 +496,27 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         return bottom
     }
 
+    private fun isConversationListSelectionModeActive(): Boolean =
+        (binding.conversationsList.adapter as? ConversationsAdapter)?.isActionModeActive() == true
+
     /**
-     * List top inset implied by [mainMenuLastAppBarVerticalOffset] (expanded = tall inset, collapsed = short).
+     * List top inset from [mainMenuLastAppBarVerticalOffset] (expanded = tall, collapsed = short).
+     * Uses collapse fraction so [onResume] remeasuring layout height does not grow padding while offset stays collapsed.
      */
-    private fun mainMenuListTopInsetForCollapsePx(): Int = mainMenuVisibleHeightPx()
+    private fun mainMenuListTopInsetForCollapsePx(): Int {
+        val menu = binding.mainMenu
+        val collapsed = menu.getCollapsedHeightPx().coerceAtLeast(0)
+        val visibleH = menu.height.takeIf { it > 0 } ?: collapsed
+        if (menu.isActionModeToolbarVisible() || isConversationListSelectionModeActive()) {
+            return visibleH.coerceAtMost(collapsed).coerceAtLeast(collapsed)
+        }
+        val totalRange = menu.totalScrollRange
+        if (totalRange <= 0) return visibleH
+        val collapseFraction = (
+            kotlin.math.abs(mainMenuLastAppBarVerticalOffset).toFloat() / totalRange.toFloat()
+            ).coerceIn(0f, 1f)
+        return kotlin.math.round(collapsed + (visibleH - collapsed) * (1f - collapseFraction)).toInt()
+    }
 
     /**
      * While the app bar scrolls, keep blur negative margin and list [paddingTop] tied to the same visible chrome
@@ -502,9 +528,10 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         if (menu.requireCustomToolbar().isSearchExpanded) return
         if ((binding.conversationsList.adapter as? ConversationsAdapter)?.isActionModeActive() == true) return
         if (isSearchResumeInProgress) return
-        syncBlurTargetTopMargin(mainMenuVisibleHeightPx())
+        val insetPx = mainMenuListTopInsetForCollapsePx()
+        syncBlurTargetTopMargin(insetPx)
         val conv = binding.conversationsList
-        val topPad = minOf(recentsListTopPaddingPx(conv), maxTrustedListTopInsetPx()).coerceAtLeast(0)
+        val topPad = insetPx.coerceAtLeast(0)
         if (conv.paddingTop != topPad) {
             conv.updatePadding(top = topPad)
         }
@@ -521,7 +548,7 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         if (menu.requireCustomToolbar().isSearchExpanded) {
             return maxOf(menu.height + slack, minSearchListTop + slack)
         }
-        return mainMenuVisibleHeightPx() + slack
+        return mainMenuListTopInsetForCollapsePx() + slack
     }
 
     /**
@@ -549,6 +576,29 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         val toolbar = menu.requireCustomToolbar()
         val minSearchListTop = resources.getDimensionPixelSize(R.dimen.nest_bouncy_content_padding_top)
         val collapseInset = mainMenuListTopInsetForCollapsePx()
+        if (toolbar.isSearchExpanded) {
+            if (
+                list.visibility != View.VISIBLE ||
+                menu.visibility != View.VISIBLE ||
+                !menu.isLaidOut ||
+                !list.isLaidOut ||
+                menu.height <= 0
+            ) {
+                return maxOf(collapseInset, minSearchListTop)
+            }
+            val listLoc = IntArray(2)
+            list.getLocationOnScreen(listLoc)
+            val chromeInset = (mainMenuChromeBottomOnScreenPx() - listLoc[1]).coerceAtLeast(0)
+            val maxTrustInset = maxTrustedListTopInsetPx()
+            return maxOf(collapseInset, chromeInset.coerceAtMost(maxTrustInset), minSearchListTop)
+        }
+        if (
+            menu.isActionModeToolbarVisible() ||
+            isConversationListSelectionModeActive() ||
+            mainMenuLastAppBarVerticalOffset < 0
+        ) {
+            return collapseInset
+        }
         if (
             list.visibility != View.VISIBLE ||
             menu.visibility != View.VISIBLE ||
@@ -556,17 +606,13 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
             !list.isLaidOut ||
             menu.height <= 0
         ) {
-            return if (toolbar.isSearchExpanded) maxOf(collapseInset, minSearchListTop) else collapseInset
+            return collapseInset
         }
         val listLoc = IntArray(2)
         list.getLocationOnScreen(listLoc)
         val chromeInset = (mainMenuChromeBottomOnScreenPx() - listLoc[1]).coerceAtLeast(0)
         val maxTrustInset = maxTrustedListTopInsetPx()
-        var inset = maxOf(collapseInset, chromeInset.coerceAtMost(maxTrustInset))
-        if (toolbar.isSearchExpanded) {
-            return maxOf(inset, minSearchListTop)
-        }
-        return inset
+        return maxOf(collapseInset, chromeInset.coerceAtMost(maxTrustInset))
     }
 
     private fun listTopInsetPx(list: View): Int = recentsListTopPaddingPx(list)
@@ -611,8 +657,15 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         }
     }
 
-    /** Normal list: toolbar/title chrome on screen. Search: locked short app bar + min search row inset. */
-    private fun recentsListTopInsetForLayoutSync(recentsList: MyRecyclerView): Int = recentsListTopPaddingPx(recentsList)
+    /** Normal list: offset curve (stable across resume remeasure). Search: screen geometry. */
+    private fun recentsListTopInsetForLayoutSync(recentsList: MyRecyclerView): Int {
+        val menu = binding.mainMenu
+        return if (menu.requireCustomToolbar().isSearchExpanded) {
+            recentsListTopPaddingPx(recentsList)
+        } else {
+            mainMenuListTopInsetForCollapsePx()
+        }
+    }
 
     /** Re-apply when the app bar finishes layout (e.g. after unlockCollapsing); based on txDial MainActivityRecents (no dialpad in Messages). */
     private fun applyFinalRecentsListTopPadding(recentsList: MyRecyclerView) {
@@ -1435,7 +1488,7 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         if (menuHeight < 0) return
         val menu = binding.mainMenu
         val visibleHeight = if (menu.isLaidOut && menu.height > 0 && !menu.requireCustomToolbar().isSearchExpanded) {
-            mainMenuVisibleHeightPx()
+            mainMenuListTopInsetForCollapsePx()
         } else {
             menuHeight
         }
