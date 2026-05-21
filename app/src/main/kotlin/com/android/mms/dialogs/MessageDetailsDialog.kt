@@ -1,30 +1,30 @@
 package com.android.mms.dialogs
 
 import android.annotation.SuppressLint
-import android.app.Activity
 import android.provider.Telephony.Sms
 import android.telephony.SubscriptionInfo
 import android.view.Gravity
+import android.view.View
 import android.widget.LinearLayout
 import com.android.common.view.MDialog
-import com.goodwy.commons.activities.BaseSimpleActivity
-import com.goodwy.commons.dialogs.BasePropertiesDialog
-import com.goodwy.commons.extensions.formatDateOrTime
-import com.goodwy.commons.extensions.getProperBlurOverlayColor
-import com.goodwy.commons.extensions.getTimeFormatWithSeconds
 import com.android.mms.R
 import com.android.mms.databinding.DialogBottomComponentBinding
 import com.android.mms.extensions.subscriptionManagerCompat
 import com.android.mms.models.Message
+import com.goodwy.commons.activities.BaseSimpleActivity
 import com.goodwy.commons.databinding.DialogTitleBinding
+import com.goodwy.commons.dialogs.BasePropertiesDialog
+import com.goodwy.commons.extensions.formatDateOrTime
+import com.goodwy.commons.extensions.getProperBlurOverlayColor
 import com.goodwy.commons.extensions.getProperTextColor
-import com.goodwy.commons.extensions.getTitle
 import com.goodwy.commons.extensions.setupMDialogStuff
 import eightbitlab.com.blurview.BlurTarget
+
 
 @SuppressLint("SuspiciousIndentation")
 class MessageDetailsDialog(val activity: BaseSimpleActivity, val message: Message, blurTarget: BlurTarget) : BasePropertiesDialog(activity) {
 
+    var dialog: MDialog
     init {
         val decorView = activity.window.decorView
         val windowBackground = decorView.background
@@ -63,20 +63,19 @@ class MessageDetailsDialog(val activity: BaseSimpleActivity, val message: Messag
             addProperty(message.getSentOrReceivedReportAtLabel(), message.getSentOrReceivedReportAt())
         }
 
-        var bottomBiding = DialogBottomComponentBinding.inflate(mInflater, mDialogView.root, false)
-        bottomBiding.btnConfirm.setOnClickListener {
-            dismiss()
-        }
-        mDialogView.propertiesHolder.addView(bottomBiding.root)
+        var bottomBinding = DialogBottomComponentBinding.inflate(mInflater, mDialogView.root, false)
+
+        bottomBinding.btnConfirm.setOnClickListener { dialog.hide() }
+        mDialogView.propertiesHolder.addView(bottomBinding.root)
 
 
 
-        activity.setupMDialogStuff(
+        dialog = activity.setupMDialogStuff(
             view = mDialogView.root,
             blurView = mDialogView.blurView,
             blurTarget = blurTarget,
             titleId = 0
-        )
+        )!!
     }
 
     private fun Message.getSenderOrReceiverLabel(): Int {
