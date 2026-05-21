@@ -850,6 +850,13 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
     }
 
     private fun refreshMenuItems() {
+        var isReceivedMessage = false
+        if (messages.isNotEmpty()){
+            for (message in messages) {
+                isReceivedMessage = message.isReceivedMessage()
+                if (isReceivedMessage) break
+            }
+        }
         val firstPhoneNumber = participants.firstOrNull()?.phoneNumbers?.firstOrNull()?.value
         val archiveAvailable = config.isArchiveAvailable
         val isGroupConversation = participants.size > 1 || conversation?.isGroupConversation == true
@@ -867,7 +874,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             findItem(R.id.rename_conversation)?.isVisible = participants.size > 1 && conversation != null && !isRecycleBin
             findItem(R.id.conversation_details)?.isVisible = false//conversation != null && !isRecycleBin
             findItem(R.id.block_number)?.isVisible = !isRecycleBin
-            findItem(R.id.mark_as_unread)?.isVisible = threadItems.isNotEmpty() && !isRecycleBin
+            findItem(R.id.mark_as_unread)?.isVisible = threadItems.isNotEmpty() && !isRecycleBin && isReceivedMessage
 
             // allow saving number in cases when we don't have it stored yet and it is a casual readable number
             findItem(R.id.add_number_to_contact)?.isVisible =
