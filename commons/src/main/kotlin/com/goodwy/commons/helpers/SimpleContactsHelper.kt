@@ -310,7 +310,16 @@ class SimpleContactsHelper(val context: Context) {
     }
 
     /**
-     * Paged read from [Contacts.CONTENT_URI] (has phone), ordered like the Contacts app.
+     * Paged read from [Contacts.CONTENT_URI] (has phone), ordered like the Contacts app's
+     * MainActivity (always by [Contacts.DISPLAY_NAME_PRIMARY], same as the in-memory
+     * [SimpleContact.compareByFullName] sort used after merging private contacts).
+     *
+     * Using [Contacts.DISPLAY_NAME_PRIMARY] (rather than [Contacts.SORT_KEY_PRIMARY]) keeps
+     * the SQL page order consistent with the in-memory sort so paginated chunks form a globally
+     * correct list. [Contacts.SORT_KEY_PRIMARY] can differ from [Contacts.DISPLAY_NAME_PRIMARY]
+     * when the device "sort by surname" setting is on, which would cause each page to be
+     * re-ordered individually but pages themselves to arrive in surname order — a hybrid order
+     * matching neither surname nor given-name sort.
      *
      * Many OEMs ignore or break `LIMIT`/`OFFSET` in [sortOrder] for this URI, so paging uses
      * [android.database.Cursor.moveToPosition] over a stable sort instead of SQL limits.
@@ -342,7 +351,6 @@ class SimpleContactsHelper(val context: Context) {
             Contacts._ID,
             Contacts.DISPLAY_NAME_PRIMARY,
             Contacts.PHOTO_THUMBNAIL_URI,
-            Contacts.SORT_KEY_PRIMARY,
         )
         val selection = buildString {
             append("${Contacts.HAS_PHONE_NUMBER} != 0")
@@ -350,12 +358,14 @@ class SimpleContactsHelper(val context: Context) {
                 append(" AND ${Contacts.STARRED} = 1")
             }
         }
-        val sortOrder = "${Contacts.SORT_KEY_PRIMARY} COLLATE LOCALIZED ASC, ${Contacts._ID} ASC"
+        // Sort by DISPLAY_NAME_PRIMARY to match the Contacts app's MainActivity sort order
+        // (always display-name-first, same key used by the in-memory SimpleContact.compareByFullName).
+        val sortOrder = "${Contacts.DISPLAY_NAME_PRIMARY} COLLATE LOCALIZED ASC, ${Contacts._ID} ASC"
         val cursor = try {
             context.contentResolver.query(uri, projection, selection, null, sortOrder)
         } catch (_: Exception) {
             try {
-                val sortFallback = "${Contacts.SORT_KEY_PRIMARY} ASC, ${Contacts._ID} ASC"
+                val sortFallback = "${Contacts.DISPLAY_NAME_PRIMARY} ASC, ${Contacts._ID} ASC"
                 context.contentResolver.query(uri, projection, selection, null, sortFallback)
             } catch (_: Exception) {
                 null

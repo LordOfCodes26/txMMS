@@ -852,6 +852,13 @@ class ContactPickerActivity : SimpleActivity() {
      * Loads one batch from the contacts DB (and merges private entries on the first chunk only).
      * Skips consecutive empty cursor pages in one call so the cursor offset still advances.
      * Must run on a background thread.
+     *
+     * Sort order matches the Contacts app's MainActivity: contacts are fetched via
+     * [SimpleContactsHelper.getSystemContactsSortedPageFromDbSync] which sorts by
+     * [android.provider.ContactsContract.Contacts.DISPLAY_NAME_PRIMARY] (same key as the
+     * in-memory [SimpleContact.compareByFullName]). Both SQL and in-memory sorts therefore
+     * agree, so paginated chunks form a globally correct display-name-ordered list regardless
+     * of the device "sort by surname" setting.
      */
     private fun loadNextContactsChunkFromDb(isFirstPage: Boolean): ContactsDbChunk {
         val chunkWallStart = SystemClock.elapsedRealtime()
