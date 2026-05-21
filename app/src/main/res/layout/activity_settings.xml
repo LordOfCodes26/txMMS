@@ -711,11 +711,13 @@
                         <TextView
                             android:id="@+id/settingsBackupsLabel"
                             style="@style/SettingsSectionLabelStyle"
+                            android:visibility="gone"
                             android:text="@string/backups"/>
 
                         <androidx.cardview.widget.CardView
                             android:id="@+id/settingsBackupsHolder"
                             style="@style/SettingsSectionHolder"
+                            android:visibility="gone"
                             app:cardElevation="0dp">
 
                             <LinearLayout
