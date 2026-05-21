@@ -27,7 +27,10 @@ import android.text.TextPaint
 import android.text.TextUtils
 import android.util.Log
 import android.view.View
+import android.view.ViewGroup
 import android.widget.TextView
+import androidx.core.view.updateLayoutParams
+import androidx.core.view.updatePadding
 import android.view.WindowManager
 import android.widget.Toast
 import androidx.annotation.RequiresPermission
@@ -98,6 +101,10 @@ class NewConversationActivity : SimpleActivity() {
     private var scheduledDateTime = DateTime.now().plusMinutes(5)
     private var isScheduledMessage = false
     private val binding by viewBinding(ActivityNewConversationBinding::inflate)
+    /** [@dimen/normal_margin] from [activity_new_conversation.xml] — kept as content gap below the toolbar. */
+    private val newConversationNestScrollBasePaddingTopPx: Int by lazy {
+        resources.getDimensionPixelSize(com.goodwy.commons.R.dimen.normal_margin)
+    }
     private var draftResumeApplied = false
     /** Thread id of the draft opened from the main list; cleared when recipients no longer match that thread. */
     private var resumedDraftThreadId: Long = 0L
@@ -187,7 +194,7 @@ class NewConversationActivity : SimpleActivity() {
                 View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
                     or View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
                     or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
-            )
+                )
         }
         applyNewConversationWindowBackgroundsAndTopChrome()
         updateNewConversationTitle()
@@ -208,7 +215,7 @@ class NewConversationActivity : SimpleActivity() {
         })
 
         refreshNewConversationInsetsAndToolbarGeometry()
-        
+
         setupMessageHolder()
         handlePermission(PERMISSION_READ_PHONE_STATE) {
             if (it) {
@@ -244,8 +251,50 @@ class NewConversationActivity : SimpleActivity() {
                 hideKeyboard()
                 finish()
             }
-            // Top chrome blurs the scroll region behind the toolbar (same inner target as ContactPicker).
-            bindBlurTarget(this@NewConversationActivity, binding.conversationScrollBlur)
+        }
+        bindNewConversationToolbarBlurTarget()
+    }
+
+    /** Toolbar back button blurs [conversationScrollBlur] (inner scroll region), not [mainBlurTarget]. */
+    private fun bindNewConversationToolbarBlurTarget() {
+        binding.newConversationAppbar.requireCustomToolbar()
+            .bindBlurTarget(this@NewConversationActivity, binding.conversationScrollBlur)
+    }
+
+    /**
+     * Negative top margin on the inner scroll [BlurTarget] so BlurView samples content under the app bar.
+     * [applyNewConversationNestScrollTopPaddingForBlur] adds the same offset to [nest_scroll] so layout stays put.
+     */
+    private fun syncNewConversationScrollBlurTopMargin(menuHeight: Int) {
+        if (menuHeight < 0) return
+        val targetTopMargin = -menuHeight
+        binding.conversationScrollBlur.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+            if (topMargin != targetTopMargin) {
+                topMargin = targetTopMargin
+            }
+        }
+    }
+
+    /** XML [R.dimen.normal_margin] plus app-bar height to offset [syncNewConversationScrollBlurTopMargin]. */
+    private fun applyNewConversationNestScrollTopPaddingForBlur(menuHeight: Int) {
+        if (menuHeight < 0) return
+        val topPadding = newConversationNestScrollBasePaddingTopPx + menuHeight
+        if (binding.nestScroll.paddingTop != topPadding) {
+            binding.nestScroll.updatePadding(top = topPadding)
+        }
+    }
+
+    /** After [MySearchMenu] height is known, sync blur margin, scroll padding, and re-bind toolbar glass. */
+    private fun syncNewConversationScrollBlurGeometry() {
+        binding.newConversationAppbar.post {
+            val menu = binding.newConversationAppbar
+            val h = menu.height.takeIf { it > 0 }
+                ?: menu.measuredHeight.takeIf { it > 0 }
+                ?: return@post
+            syncNewConversationScrollBlurTopMargin(h)
+            applyNewConversationNestScrollTopPaddingForBlur(h)
+            binding.conversationScrollBlur.invalidate()
+            bindNewConversationToolbarBlurTarget()
         }
     }
 
@@ -264,12 +313,12 @@ class NewConversationActivity : SimpleActivity() {
         binding.newConversationAppbar.binding.searchBarContainer.setBackgroundColor(Color.TRANSPARENT)
     }
 
-    /** Re-bind back-button blur after resume or when the coordinator is shown again (BlurView can detach). */
+    /** Re-bind back-button blur after resume or when the app bar height settles (BlurView can detach). */
     private fun refreshNewConversationInsetsAndToolbarGeometry() {
         binding.root.post {
             ViewCompat.requestApplyInsets(binding.root)
             setupNewConversationTopBar()
-            binding.conversationScrollBlur.invalidate()
+            syncNewConversationScrollBlurGeometry()
         }
     }
 
@@ -350,7 +399,7 @@ class NewConversationActivity : SimpleActivity() {
 
     private fun setupMessageHolder() {
         isSpeechToTextAvailable = isSpeechToTextAvailable()
-        
+
         messageHolderHelper = MessageHolderHelper(
             activity = this,
             binding = binding.messageHolder,
@@ -383,9 +432,9 @@ class NewConversationActivity : SimpleActivity() {
                 beginAttachmentPickerToKeyboardComposeInsetLatch()
             },
         )
-        
+
         messageHolderHelper?.setup(isSpeechToTextAvailable)
-        
+
         binding.messageHolder.apply {
             threadAddAttachmentHolder.setOnClickListener {
                 if (attachmentPickerHolder.isVisible()) {
@@ -410,7 +459,7 @@ class NewConversationActivity : SimpleActivity() {
                     }, 250)
                 }
             }
-            
+
             messageHolderHelper?.setupAttachmentPicker(
                 onChoosePhoto = { launchGetContentIntent(arrayOf("image/*"), MessageHolderHelper.PICK_PHOTO_INTENT) },
                 onChooseVideo = { launchGetContentIntent(arrayOf("video/*"), MessageHolderHelper.PICK_VIDEO_INTENT) },
@@ -428,7 +477,7 @@ class NewConversationActivity : SimpleActivity() {
                     }
                 }
             )
-            
+
             messageHolderHelper?.hideAttachmentPicker()
         }
         setupScheduleSendUi()
@@ -472,7 +521,7 @@ class NewConversationActivity : SimpleActivity() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, resultData: Intent?) {
         super.onActivityResult(requestCode, resultCode, resultData)
         if (resultCode != RESULT_OK) return
-        
+
         if (requestCode == REQUEST_CODE_SPEECH_INPUT && resultData != null) {
             val res: java.util.ArrayList<String> =
                 resultData.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS) as java.util.ArrayList<String>
@@ -497,7 +546,7 @@ class NewConversationActivity : SimpleActivity() {
             }
         } else {
             messageHolderHelper?.handleActivityResult(requestCode, resultCode, resultData)
-            
+
             if (requestCode == MessageHolderHelper.PICK_CONTACT_INTENT && resultData?.data != null) {
                 addContactAttachment(resultData.data!!)
             }
@@ -549,6 +598,7 @@ class NewConversationActivity : SimpleActivity() {
             setCollapsingTitleVisible(false)
             collapseAndLockCollapsing()
         }
+        syncNewConversationScrollBlurGeometry()
     }
 
     /**
@@ -677,7 +727,7 @@ class NewConversationActivity : SimpleActivity() {
         val surfaceColor = if (useSurfaceColor) getProperBackgroundColor() else getSurfaceColor()
         val properTextColor = getProperTextColor()
         val properAccentColor = getProperAccentColor()
-        
+
         binding.newConversationAddress.setColors(properTextColor, properAccentColor, getProperTextCursorColor())
 //        binding.newConversationAddress.getEditText().setBackgroundResource(com.goodwy.commons.R.drawable.search_bg)
 //        binding.newConversationAddress.getEditText().backgroundTintList = ColorStateList.valueOf(surfaceColor)
@@ -697,7 +747,7 @@ class NewConversationActivity : SimpleActivity() {
             }
             return@setOnChipAddedListener true
         }
-        
+
         // Listen for chip changes to handle typed phone numbers and contact names
         binding.newConversationAddress.setOnChipsChangedListener { chips ->
             if (!isUpdatingChips) {
@@ -1010,53 +1060,53 @@ class NewConversationActivity : SimpleActivity() {
     private fun fetchContacts() {
         fillSuggestedContacts {
 //            SimpleContactsHelper(this).getAvailableContacts(false) {
-                allContacts = it
+            allContacts = it
 
-                if (privateContacts.isNotEmpty()) {
-                    // Deduplicate contacts before adding privateContacts
-                    // Contacts from different sources may have different rawId but same phone numbers
-                    val existingPhoneNumbers = HashSet<String>()
-                    val existingContactNamesWithoutPhone = HashSet<String>()
-                    allContacts.forEach { contact ->
-                        contact.phoneNumbers.forEach { phoneNumber ->
+            if (privateContacts.isNotEmpty()) {
+                // Deduplicate contacts before adding privateContacts
+                // Contacts from different sources may have different rawId but same phone numbers
+                val existingPhoneNumbers = HashSet<String>()
+                val existingContactNamesWithoutPhone = HashSet<String>()
+                allContacts.forEach { contact ->
+                    contact.phoneNumbers.forEach { phoneNumber ->
+                        existingPhoneNumbers.add(phoneNumber.normalizedNumber)
+                    }
+                    // Track names only for contacts without phone numbers (for fallback deduplication)
+                    if (contact.name.isNotEmpty() && contact.phoneNumbers.isEmpty()) {
+                        existingContactNamesWithoutPhone.add(contact.name.lowercase().trim())
+                    }
+                }
+
+                // Only add private contacts that don't already exist (by phone number, or by name if no phone)
+                privateContacts.forEach { privateContact ->
+                    val hasMatchingPhoneNumber = privateContact.phoneNumbers.isNotEmpty() &&
+                        privateContact.phoneNumbers.any { phoneNumber ->
+                            existingPhoneNumbers.contains(phoneNumber.normalizedNumber)
+                        }
+                    // Only check name if contact has no phone numbers (to avoid false positives)
+                    val hasMatchingName = privateContact.phoneNumbers.isEmpty() &&
+                        privateContact.name.isNotEmpty() &&
+                        existingContactNamesWithoutPhone.contains(privateContact.name.lowercase().trim())
+
+                    // Skip if duplicate by phone number or (if no phone) by name
+                    if (!hasMatchingPhoneNumber && !hasMatchingName) {
+                        allContacts.add(privateContact)
+                        // Add its phone numbers and name to the sets for future checks
+                        privateContact.phoneNumbers.forEach { phoneNumber ->
                             existingPhoneNumbers.add(phoneNumber.normalizedNumber)
                         }
-                        // Track names only for contacts without phone numbers (for fallback deduplication)
-                        if (contact.name.isNotEmpty() && contact.phoneNumbers.isEmpty()) {
-                            existingContactNamesWithoutPhone.add(contact.name.lowercase().trim())
+                        if (privateContact.name.isNotEmpty() && privateContact.phoneNumbers.isEmpty()) {
+                            existingContactNamesWithoutPhone.add(privateContact.name.lowercase().trim())
                         }
                     }
-                    
-                    // Only add private contacts that don't already exist (by phone number, or by name if no phone)
-                    privateContacts.forEach { privateContact ->
-                        val hasMatchingPhoneNumber = privateContact.phoneNumbers.isNotEmpty() && 
-                            privateContact.phoneNumbers.any { phoneNumber ->
-                                existingPhoneNumbers.contains(phoneNumber.normalizedNumber)
-                            }
-                        // Only check name if contact has no phone numbers (to avoid false positives)
-                        val hasMatchingName = privateContact.phoneNumbers.isEmpty() && 
-                            privateContact.name.isNotEmpty() && 
-                            existingContactNamesWithoutPhone.contains(privateContact.name.lowercase().trim())
-                        
-                        // Skip if duplicate by phone number or (if no phone) by name
-                        if (!hasMatchingPhoneNumber && !hasMatchingName) {
-                            allContacts.add(privateContact)
-                            // Add its phone numbers and name to the sets for future checks
-                            privateContact.phoneNumbers.forEach { phoneNumber ->
-                                existingPhoneNumbers.add(phoneNumber.normalizedNumber)
-                            }
-                            if (privateContact.name.isNotEmpty() && privateContact.phoneNumbers.isEmpty()) {
-                                existingContactNamesWithoutPhone.add(privateContact.name.lowercase().trim())
-                            }
-                        }
-                    }
-                    allContacts.sort()
                 }
+                allContacts.sort()
+            }
 
-                runOnUiThread {
+            runOnUiThread {
 //                    setupAdapter(allContacts)
-                    maybeApplyDraftResumeFromIntent()
-                }
+                maybeApplyDraftResumeFromIntent()
+            }
 //            }
         }
     }
@@ -1175,7 +1225,7 @@ class NewConversationActivity : SimpleActivity() {
                             ItemSuggestedContactBinding.inflate(layoutInflater).apply {
                                 suggestedContactName.text = contact.name
                                 suggestedContactName.setTextColor(getProperTextColor())
-                                
+
                                 // Display phone numbers
                                 val phoneNumbersText = if (contact.phoneNumbers.isNotEmpty()) {
                                     TextUtils.join(", ", contact.phoneNumbers.map { it.value })
@@ -1301,19 +1351,19 @@ class NewConversationActivity : SimpleActivity() {
      */
     private fun getDisplayTextForPhoneNumberWithType(phoneNumber: PhoneNumber, contact: SimpleContact? = null): String {
         val contactToUse = contact ?: findContactByPhoneNumber(phoneNumber.normalizedNumber)
-        
+
         if (contactToUse == null) {
             // No contact found, return the phone number
             return phoneNumber.normalizedNumber
         }
 
         val contactName = contactToUse.name.ifEmpty { phoneNumber.normalizedNumber }
-        
+
         // If contact has multiple phone numbers, include the type to make chips unique
         if (contactToUse.phoneNumbers.size > 1) {
             return "$contactName (${phoneNumber.value})"
         }
-        
+
         // Single phone number, just return the contact name
         return contactName
     }
@@ -1441,7 +1491,7 @@ class NewConversationActivity : SimpleActivity() {
         // Phone formatting characters: +, -, spaces, parentheses, #, *
         val phoneFormatChars = setOf('+', '-', ' ', '(', ')', '#', '*')
         val containsOnlyNumbersAndFormatting = trimmed.all { it.isDigit() || phoneFormatChars.contains(it) }
-        
+
         // If it contains only numbers and formatting, it's valid (will be normalized to digits)
         if (containsOnlyNumbersAndFormatting) {
             return true
@@ -1481,7 +1531,7 @@ class NewConversationActivity : SimpleActivity() {
             isUpdatingChips = true
             binding.newConversationAddress.removeChip(chipText)
             isUpdatingChips = false
-            
+
             maybeShowNumberPickerDialog(contact.phoneNumbers) { number ->
                 val displayText = getDisplayTextForPhoneNumberWithType(number, contact)
                 isUpdatingChips = true
@@ -1492,7 +1542,7 @@ class NewConversationActivity : SimpleActivity() {
         }
     }
 
-    
+
     private fun sendMessageAndNavigate(text: String, subscriptionId: Int?, attachments: List<Attachment>) {
         hideKeyboard()
         val chips = binding.newConversationAddress.allChips
@@ -1528,7 +1578,7 @@ class NewConversationActivity : SimpleActivity() {
                 }
             }
         }
-        
+
         // Also check for text input that hasn't been added as a chip
         val currentText = binding.newConversationAddress.currentText.trim()
         if (currentText.isNotEmpty()) {
@@ -1545,7 +1595,7 @@ class NewConversationActivity : SimpleActivity() {
                     }
                 }
             }
-            
+
             // If validation passed, process the numbers
             textNumbers.forEach { numberText ->
                 val trimmedNumber = numberText.trim()
@@ -1562,7 +1612,7 @@ class NewConversationActivity : SimpleActivity() {
                 }
             }
         }
-        
+
         if (allNumbers.isEmpty()) {
             toast(R.string.empty_destination_address, length = Toast.LENGTH_SHORT)
             return
@@ -1576,20 +1626,20 @@ class NewConversationActivity : SimpleActivity() {
             sendScheduledMessage(text, finalSubscriptionId, allNumbers)
             return
         }
-        
+
         // Get subscription ID for the numbers if not provided
-        val finalSubscriptionId = subscriptionId 
+        val finalSubscriptionId = subscriptionId
             ?: availableSIMCards.getOrNull(currentSIMCardIndex)?.subscriptionId
             ?: messageHolderHelper?.getSubscriptionIdForNumbers(allNumbers)
             ?: SmsManager.getDefaultSmsSubscriptionId()
-        
+
         // Process message text (remove diacritics if needed)
         val processedText = removeDiacriticsIfNeeded(text)
-        
+
         // Get thread ID before sending to delete draft
         val numbersSet = allNumbers.toSet()
         val threadId = getThreadId(numbersSet)
-        
+
         // Send message
         try {
             sendMessageCompat(
@@ -1600,13 +1650,13 @@ class NewConversationActivity : SimpleActivity() {
                 messageId = null,
                 showDeliveredToastOnSuccess = allNumbers.size == 1,
             )
-            
+
             // Play sound if enabled
             if (config.soundOnOutGoingMessages) {
                 val audioManager = getSystemService(AudioManager::class.java)
                 audioManager.playSoundEffect(AudioManager.FX_KEYPRESS_SPACEBAR)
             }
-            
+
             // Clear message and attachments
             messageHolderHelper?.clearMessage()
             deleteComposeAttachmentCacheIfUnnecessary()
@@ -1621,7 +1671,7 @@ class NewConversationActivity : SimpleActivity() {
                 deleteSmsDraft(threadId)
                 runOnUiThread { resumedDraftThreadId = 0L }
             }
-            
+
             // Navigate to ThreadActivity after sending (don't pass body to avoid showing sent message)
             val numbersString = allNumbers.joinToString(";")
             val displayName = if (allNumbers.size == 1) allNumbers[0] else "${allNumbers.size} recipients"
@@ -1631,11 +1681,11 @@ class NewConversationActivity : SimpleActivity() {
         }
     }
 
-    
+
     private fun addContactAttachment(contactUri: Uri) {
         messageHolderHelper?.addContactAttachment(contactUri)
     }
-    
+
     private fun launchCapturePhotoIntent() {
         val imageFile = java.io.File.createTempFile("attachment_", ".jpg", getAttachmentsDir())
         val capturedImageUri = getMyFileUri(imageFile)
@@ -1645,17 +1695,17 @@ class NewConversationActivity : SimpleActivity() {
         }
         launchActivityForResult(intent, MessageHolderHelper.CAPTURE_PHOTO_INTENT)
     }
-    
+
     private fun launchCaptureVideoIntent() {
         val intent = Intent(MediaStore.ACTION_VIDEO_CAPTURE)
         launchActivityForResult(intent, MessageHolderHelper.CAPTURE_VIDEO_INTENT)
     }
-    
+
     private fun launchCaptureAudioIntent() {
         val intent = Intent(MediaStore.Audio.Media.RECORD_SOUND_ACTION)
         launchActivityForResult(intent, MessageHolderHelper.CAPTURE_AUDIO_INTENT)
     }
-    
+
     private fun launchGetContentIntent(mimeTypes: Array<String>, requestCode: Int) {
         Intent(Intent.ACTION_GET_CONTENT).apply {
             addCategory(Intent.CATEGORY_OPENABLE)
@@ -1665,7 +1715,7 @@ class NewConversationActivity : SimpleActivity() {
             launchActivityForResult(this, requestCode)
         }
     }
-    
+
     private fun launchPickContactIntent() {
         Intent(Intent.ACTION_PICK).apply {
             type = ContactsContract.Contacts.CONTENT_TYPE
@@ -1683,7 +1733,7 @@ class NewConversationActivity : SimpleActivity() {
             }
         }
     }
-    
+
     private fun launchActivityForResult(intent: Intent, requestCode: Int) {
         hideKeyboard()
         try {
@@ -1692,7 +1742,7 @@ class NewConversationActivity : SimpleActivity() {
             showErrorToast(e)
         }
     }
-    
+
     private fun getAttachmentsDir(): java.io.File {
         return java.io.File(cacheDir, "attachments").apply {
             if (!exists()) {
@@ -1871,7 +1921,7 @@ class NewConversationActivity : SimpleActivity() {
                 messageHolderHelper?.setMessageText(text)
                 binding.messageHolder.threadTypeMessage.requestFocus()
             }
-            
+
             // Handle single attachment
             if (intent.action == Intent.ACTION_SEND && intent.extras?.containsKey(Intent.EXTRA_STREAM) == true) {
                 val uri = intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)
@@ -1879,7 +1929,7 @@ class NewConversationActivity : SimpleActivity() {
                     messageHolderHelper?.addAttachment(it)
                 }
             }
-            
+
             // Handle multiple attachments
             if (intent.action == Intent.ACTION_SEND_MULTIPLE && intent.extras?.containsKey(Intent.EXTRA_STREAM) == true) {
                 val uris = intent.getParcelableArrayListExtra<Uri>(Intent.EXTRA_STREAM)
@@ -1889,7 +1939,7 @@ class NewConversationActivity : SimpleActivity() {
             }
         }
     }
-    
+
     private fun launchThreadActivity(phoneNumber: String, name: String, body: String = "", photoUri: String = "", threadId: Long? = null) {
         hideKeyboard()
 //        val text = intent.getStringExtra(Intent.EXTRA_TEXT) ?: intent.getStringExtra("sms_body") ?: ""
@@ -1917,15 +1967,15 @@ class NewConversationActivity : SimpleActivity() {
             finish()
         }
     }
-    
+
     private fun showExpandedMessageFragment() {
         val currentText = binding.messageHolder.threadTypeMessage.text?.toString() ?: ""
         expandedMessageFragment = com.android.mms.fragments.ExpandedMessageFragment.newInstance(currentText)
-        
+
         expandedMessageFragment?.setOnMessageTextChangedListener { text ->
             binding.messageHolder.threadTypeMessage.setText(text)
         }
-        
+
         expandedMessageFragment?.setOnSendMessageListener {
             val text = expandedMessageFragment?.getMessageText() ?: ""
             binding.messageHolder.threadTypeMessage.setText(text)
@@ -1936,13 +1986,13 @@ class NewConversationActivity : SimpleActivity() {
             val subscriptionId = messageHolderHelper?.getSubscriptionIdForNumbers(emptyList())
             sendMessageAndNavigate(messageText, subscriptionId, attachments)
         }
-        
+
         expandedMessageFragment?.setOnMinimizeListener {
             val text = expandedMessageFragment?.getMessageText() ?: ""
             binding.messageHolder.threadTypeMessage.setText(text)
             hideExpandedMessageFragment()
         }
-        
+
         expandedMessageFragment?.let { fragment ->
             // Same visibility pattern as [ThreadActivity.showExpandedMessageFragment]: fragment host is a
             // sibling of the main coordinator (see activity_new_conversation.xml), and the compose strip
@@ -1955,7 +2005,7 @@ class NewConversationActivity : SimpleActivity() {
                 .replace(R.id.fragment_container, fragment)
                 .addToBackStack(null)
                 .commit()
-            
+
             // Update fragment title for new conversation
             fragment.view?.post {
                 updateFragmentTitle(fragment)
@@ -1969,10 +2019,10 @@ class NewConversationActivity : SimpleActivity() {
             }
         }
     }
-    
+
     private fun updateFragmentTitle(fragment: com.android.mms.fragments.ExpandedMessageFragment) {
         if (fragment.view == null) return
-        
+
         val chips = binding.newConversationAddress.allChips
         val recipientNames = chips.filter { it.isNotEmpty() }
         val threadTitle = getNewConversationDisplayTitle()
@@ -2002,7 +2052,7 @@ class NewConversationActivity : SimpleActivity() {
             threadId = expandedThreadId,
         )
     }
-    
+
     private fun hideExpandedMessageFragment() {
         expandedMessageFragment?.let {
             supportFragmentManager.popBackStack()
@@ -2076,7 +2126,7 @@ class NewConversationActivity : SimpleActivity() {
                     textColor,
                     availableSIMCards.getOrNull(currentSIMCardIndex)?.subscriptionId ?: -1,
                     availableSIMCards.getOrNull(currentSIMCardIndex)?.id ?: 1
-                    )
+                )
             )
             binding.messageHolder.threadSelectSimIconHolder.beVisibleIf(true)
             // added by sun ------->
@@ -2096,17 +2146,17 @@ class NewConversationActivity : SimpleActivity() {
                     val blurTarget = this.findViewById<BlurTarget>(R.id.mainBlurTarget)
                     SelectSIMDialog(this, blurTarget, anchorView = binding.messageHolder.threadSendMessage) { _, selectedHandleIndex ->
 
-    //                    binding.messageHolder.simPopupPicker.beVisible()
+                        //                    binding.messageHolder.simPopupPicker.beVisible()
                         currentSIMCardIndex = selectedHandleIndex
                         val currentSIMCard = availableSIMCards[currentSIMCardIndex]
                         @SuppressLint("SetTextI18n")
                         binding.messageHolder.threadSelectSimNumber.text = currentSIMCard.id.toString()
                         // changed by sun for set color to sim type --->
-    //                    val simColor = if (!config.colorSimIcons) textColor
-    //                    else {
-    //                        val simId = currentSIMCard.id
-    //                        if (simId in 1..4) config.simIconsColors[simId] else config.simIconsColors[0]
-    //                    }
+                        //                    val simColor = if (!config.colorSimIcons) textColor
+                        //                    else {
+                        //                        val simId = currentSIMCard.id
+                        //                        if (simId in 1..4) config.simIconsColors[simId] else config.simIconsColors[0]
+                        //                    }
                         val simColor = resolveSimIconTint(textColor, currentSIMCard.subscriptionId, currentSIMCard.id)
                         trySetSystemDefaultSmsSubscriptionId(currentSIMCard.subscriptionId)
                         // <------------
@@ -2170,7 +2220,7 @@ class NewConversationActivity : SimpleActivity() {
         Log.d(debugTag, "updateAvailableMessageCountForCurrentSim: resolved slotId=$slotId")
         if (slotId == null) {
             Log.d(debugTag, "updateAvailableMessageCountForCurrentSim: slotId is null, hiding view")
-             binding.messageHolder.threadAvailableMessageCount.beGone()
+            binding.messageHolder.threadAvailableMessageCount.beGone()
             return
         }
 
@@ -2181,7 +2231,7 @@ class NewConversationActivity : SimpleActivity() {
                 val countView = binding.messageHolder.threadAvailableMessageCount
                 countView.setTextColor(getProperTextColor())
                 if (smsCount == null) {
-                   countView.beGone()
+                    countView.beGone()
                 } else {
                     countView.text = getString(R.string.available_sms_count, smsCount)
                     countView.beVisible()
