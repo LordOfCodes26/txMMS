@@ -224,7 +224,7 @@ class SearchResultsAdapter(
 
             searchResultSnippet.apply {
                 text = searchResult.snippet.highlightTextPart(textToHighlight, properPrimaryColor)
-                alpha = 0.6f
+//                alpha = 0.6f
                 if (searchResult.isBlocked) {
                     setTextColor(colorRed)
                 } else {
