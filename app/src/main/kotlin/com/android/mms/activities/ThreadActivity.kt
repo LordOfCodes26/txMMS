@@ -154,12 +154,6 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
     private var composeBarBottomInsetLatch = ComposeBarBottomInsetLatch.NONE
     private var composeBarBottomInsetLatchPx = 0
     private var wasKeyboardVisible = false
-    /**
-     * True while the message list is already laid out for an open IME (or equivalent bottom inset).
-     * Used so [applyThreadMessagesListWindowInsets] only scrolls to the latest message when the
-     * keyboard opens, not on every inset pass (e.g. returning from another app with IME still up).
-     */
-    private var wasImeInsetsAppliedToMessageList = false
     private var isSpeechToTextAvailable = false
     private var expandedMessageFragment: com.android.mms.fragments.ExpandedMessageFragment? = null
     private var messageHolderHelper: MessageHolderHelper? = null
@@ -331,12 +325,6 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
     override fun onPause() {
         super.onPause()
         composeBarBottomInsetLatch = ComposeBarBottomInsetLatch.NONE
-        // Snapshot before isActivityVisible=false. IME insets often report hidden while leaving the app;
-        // focus on the compose field is a more reliable signal that the keyboard should still be up on return.
-        wasImeInsetsAppliedToMessageList = binding.messageHolder.threadTypeMessage.hasFocus() ||
-            isThreadKeyboardVisible() ||
-            isAttachmentPickerVisible ||
-            wasImeInsetsAppliedToMessageList
         // Persist first, then notify: save runs on a background thread; posting before it completes
         // leaves MainActivity's list without the new draft until the next resume.
         saveDraftMessage(notifyConversationsAfter = true, showDraftSavedToast = isFinishing)
@@ -477,14 +465,12 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
 //                binding.actionModeRippleToolbar.layoutParams = rippleLp
 //            }
 
-            if (barContainer != null && isActivityVisible) {
-                val imeVisible = ime.bottom > 0 && insets.isVisible(WindowInsetsCompat.Type.ime())
+            if (barContainer != null) {
                 applyThreadMessagesListWindowInsets(
                     navHeight = navHeight,
                     imeBottom = ime.bottom,
-                    scrollToBottomForIme = imeVisible && !wasImeInsetsAppliedToMessageList,
+                    scrollToBottomForIme = ime.bottom > 0 && insets.isVisible(WindowInsetsCompat.Type.ime()),
                 )
-                updateWasImeInsetsAppliedToMessageList(imeVisible)
             }
             // Toolbar / popups often hide the IME without clearing EditText focus; re-sync compose bar
             // padding from root insets so it cannot stay stuck between keyboard and nav bar.
@@ -555,24 +541,19 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                 composeStripHidden -> composeHeight + composeBottomGap
                 else -> composeHeight + composeBottomGap + navHeight
             }
-            messagesList.suppressLayout(true)
-            try {
-                if (extraBottomPadding > 0) {
-                    messagesList.setPadding(0, appBarHeightPx, 0, bottomPadding)
-                    // Only pin to bottom when IME just opened (same as legacy behavior). Do not auto-scroll on
-                    // compose-bar relayouts: findLastCompletelyVisibleItemPosition() is often NO_POSITION (-1),
-                    // which compared against (lastIndex - SCROLL_TO_BOTTOM_FAB_LIMIT) wrongly looked "near bottom"
-                    // and prevented scrolling up to read older messages.
-                    if (scrollToBottomForIme) {
-                        messagesList.scrollToPosition((messagesList.adapter?.itemCount ?: 1) - 1)
-                    }
-                } else {
-                    bottomBarLp.bottomMargin = bottomOffset
-                    messagesList.setPadding(0, appBarHeightPx + dp(10), 0, bottomPadding)
-                    barContainer.layoutParams = bottomBarLp
+            if (extraBottomPadding > 0) {
+                messagesList.setPadding(0, appBarHeightPx, 0, bottomPadding)
+                // Only pin to bottom when IME just opened (same as legacy behavior). Do not auto-scroll on
+                // compose-bar relayouts: findLastCompletelyVisibleItemPosition() is often NO_POSITION (-1),
+                // which compared against (lastIndex - SCROLL_TO_BOTTOM_FAB_LIMIT) wrongly looked "near bottom"
+                // and prevented scrolling up to read older messages.
+                if (scrollToBottomForIme) {
+                    messagesList.scrollToPosition((messagesList.adapter?.itemCount ?: 1) - 1)
                 }
-            } finally {
-                messagesList.suppressLayout(false)
+            } else {
+                bottomBarLp.bottomMargin = bottomOffset
+                messagesList.setPadding(0, appBarHeightPx + dp(10), 0, bottomPadding)
+                barContainer.layoutParams = bottomBarLp
             }
         }
 
@@ -694,12 +675,6 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             ?: return false
         return rootInsets.isVisible(WindowInsetsCompat.Type.ime()) &&
             rootInsets.getInsets(WindowInsetsCompat.Type.ime()).bottom > 0
-    }
-
-    private fun updateWasImeInsetsAppliedToMessageList(imeVisible: Boolean) {
-        if (imeVisible || isAttachmentPickerVisible || composeBarBottomInsetLatch != ComposeBarBottomInsetLatch.NONE) {
-            wasImeInsetsAppliedToMessageList = true
-        }
     }
 
     /**
@@ -907,7 +882,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         // Update menu item icon colors after refreshing menu items
         updateMenuItemIconColors()
     }
-    
+
     private fun updateMenuItemIconColors() {
         val topBarColor = getStartRequiredStatusBarColor()
         val contrastColor = topBarColor.getContrastColor()
@@ -1004,7 +979,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
 
         // Handle attachments via helper
         messageHolderHelper?.handleActivityResult(requestCode, resultCode, resultData)
-        
+
         // Handle contact attachment and save operations
         val data = resultData?.data
         if (data != null) {
@@ -1428,10 +1403,10 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
     private fun loadConversation() {
         handlePermission(PERMISSION_READ_PHONE_STATE) { granted ->
             if (granted) {
-        setupMessageHolderHelper()
-        setupButtons()
-        setupConversation()
-        setupCachedMessages {
+                setupMessageHolderHelper()
+                setupButtons()
+                setupConversation()
+                setupCachedMessages {
                     setupThread {
                         val searchedMessageId = intent.getLongExtra(SEARCHED_MESSAGE_ID, -1L)
                         intent.removeExtra(SEARCHED_MESSAGE_ID)
@@ -1455,7 +1430,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
 
     private fun setupMessageHolderHelper() {
         isSpeechToTextAvailable = if (config.useSpeechToText) isSpeechToTextAvailable() else false
-        
+
         messageHolderHelper = MessageHolderHelper(
             activity = this,
             binding = binding.messageHolder,
@@ -1464,7 +1439,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             },
             onSpeechToText = { speechToText() },
             onExpandMessage = { showExpandedMessageFragment() },
-            onTextChanged = { 
+            onTextChanged = {
                 messageToResend = null
             },
             onHideAttachmentPickerRequested = {
@@ -1490,9 +1465,9 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                 beginAttachmentPickerToKeyboardComposeInsetLatch()
             },
         )
-        
+
         messageHolderHelper?.setup(isSpeechToTextAvailable)
-        
+
         binding.messageHolder.apply {
             threadTypeMessage.setText(intent.getStringExtra(THREAD_TEXT))
             threadAddAttachmentHolder.setOnClickListener {
@@ -1540,7 +1515,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
 //                }
 //            }
         }
-        
+
         messageHolderHelper?.setupAttachmentPicker(
             onChoosePhoto = { launchGetContentIntent(arrayOf("image/*"), MessageHolderHelper.PICK_PHOTO_INTENT) },
             onChooseVideo = { launchGetContentIntent(arrayOf("video/*"), MessageHolderHelper.PICK_VIDEO_INTENT) },
@@ -1558,11 +1533,11 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                 }
             }
         )
-        
+
         messageHolderHelper?.hideAttachmentPicker()
         applyThreadDraftAfterHelperInitialized()
     }
-    
+
     private fun setupButtons() = binding.apply {
         updateTextColors(threadHolder)
         val textColor = getProperTextColor()
@@ -1584,11 +1559,11 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
 
         setupScheduleSendUi()
     }
-    
+
     private fun sendMessageWithHelper(text: String, subscriptionId: Int?, attachments: List<Attachment>) {
         val finalSubscriptionId = subscriptionId ?: availableSIMCards.getOrNull(currentSIMCardIndex)?.subscriptionId
-            ?: SmsManager.getDefaultSmsSubscriptionId()
-        
+        ?: SmsManager.getDefaultSmsSubscriptionId()
+
         if (isScheduledMessage) {
             sendScheduledMessage(text, finalSubscriptionId)
         } else {
@@ -1645,7 +1620,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             binding.messageHolder.threadTypeMessage.text?.clear()
             binding.messageHolder.root.beGone()
             binding.shortCodeHolder.root.beVisible()
-            
+
             val textColor = getProperTextColor()
             binding.shortCodeHolder.replyDisabledText.setTextColor(textColor)
             binding.shortCodeHolder.replyDisabledInfo.apply {
@@ -2337,7 +2312,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             }
         }
     }
-    
+
 
     private fun sendScheduledMessage(text: String, subscriptionId: Int) {
         if (scheduledDateTime.millis < System.currentTimeMillis() + 1000L) {
@@ -2783,9 +2758,6 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                 }
                 wasKeyboardVisible = true
             } else {
-                if (wasKeyboardVisible && !binding.messageHolder.threadTypeMessage.hasFocus()) {
-                    wasImeInsetsAppliedToMessageList = false
-                }
                 wasKeyboardVisible = false
                 if (isAttachmentPickerVisible &&
                     composeBarBottomInsetLatch != ComposeBarBottomInsetLatch.ATTACHMENT_PICKER_TO_KEYBOARD
@@ -2804,9 +2776,9 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         const val TYPE_SEND = 15
         const val TYPE_DELETE = 16
         const val MIN_DATE_TIME_DIFF_SECS = 300
-//        deleted by sun unnecessary ---->
+        //        deleted by sun unnecessary ---->
         const val SCROLL_TO_BOTTOM_FAB_LIMIT = 20
-//        <--------
+        //        <--------
         const val PREFETCH_THRESHOLD = 15
         const val PICK_SAVE_FILE_INTENT = 1008
         const val PICK_SAVE_DIR_INTENT = 1009
@@ -2872,11 +2844,11 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
     private fun showExpandedMessageFragment() {
         val currentText = binding.messageHolder.threadTypeMessage.text?.toString() ?: ""
         expandedMessageFragment = com.android.mms.fragments.ExpandedMessageFragment.newInstance(currentText)
-        
+
         expandedMessageFragment?.setOnMessageTextChangedListener { text ->
             binding.messageHolder.threadTypeMessage.setText(text)
         }
-        
+
         expandedMessageFragment?.setOnSendMessageListener {
             val text = expandedMessageFragment?.getMessageText() ?: ""
             binding.messageHolder.threadTypeMessage.setText(text)
@@ -2887,13 +2859,13 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                 sendMessage()
             }
         }
-        
+
         expandedMessageFragment?.setOnMinimizeListener {
             val text = expandedMessageFragment?.getMessageText() ?: ""
             binding.messageHolder.threadTypeMessage.setText(text)
             hideExpandedMessageFragment()
         }
-        
+
         // Update fragment thread title after fragment is created
         expandedMessageFragment?.let { fragment ->
             // Set up lifecycle observer BEFORE committing transaction to ensure it catches the lifecycle events
@@ -2905,16 +2877,16 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                 }
             }
             fragment.lifecycle.addObserver(observer)
-            
+
             // Hide the main content and show the fragment container (sibling of thread_coordinator)
             findViewById<View>(R.id.thread_coordinator)?.beGone()
             findViewById<View>(R.id.fragment_container)?.beVisible()
-            
+
             supportFragmentManager.beginTransaction()
                 .replace(R.id.fragment_container, fragment)
                 .addToBackStack(null)
                 .commit()
-            
+
             // Also try immediate update if view is already available (for faster execution)
             // Use postDelayed to give the fragment time to create its view
             fragment.view?.post {
@@ -2929,10 +2901,10 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             }
         }
     }
-    
+
     private fun updateFragmentThreadTitle(fragment: com.android.mms.fragments.ExpandedMessageFragment) {
         if (fragment.view == null) return
-        
+
         val title = conversation?.title
         // Match setupThreadTitle(): for multiple participants use "Name and N others", else use conversation title or getThreadTitle
         var threadTitle = if (participants.size > 1) {
@@ -2972,7 +2944,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             expandedMessageFragment = null
         }
     }
-    
+
     override fun onBackPressedCompat(): Boolean {
         if (messageHolderHelper?.dismissEmojiPicker() == true) return true
         if (finishThreadMessageSelectionIfActive()) return true
