@@ -285,7 +285,8 @@ class ContactPickerActivity : SimpleActivity() {
             )
         }
         applyContactPickerWindowSurfaces()
-        setupTopBarNavigation()
+        val isSearchActive = blurAppBarLayout?.requireCustomToolbar()?.isSearchExpanded == true
+        if (isSearchActive) hideTopBarNavigation() else setupTopBarNavigation()
         setupBottomActionTabs()
         scrollingView = contactRecyclerView
         blurAppBarLayout?.updateColors(
