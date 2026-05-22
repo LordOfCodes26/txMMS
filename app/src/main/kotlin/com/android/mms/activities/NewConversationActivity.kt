@@ -2374,7 +2374,7 @@ class NewConversationActivity : SimpleActivity() {
 
     private fun shouldConfirmDiscardOnExit(snapshot: NewConversationExitSnapshot = newConversationExitSnapshot()): Boolean {
 //        return snapshot.staleResumeId <= 0L && !snapshot.shouldPersist && !snapshot.shouldClearDraftForEmptyMessage
-        return snapshot.allNumbers.isEmpty() && !snapshot.shouldPersist && !snapshot.shouldClearDraftForEmptyMessage
+        return snapshot.allNumbers.isEmpty() && !snapshot.shouldPersist && !snapshot.shouldClearDraftForEmptyMessage && snapshot.messageText.isNotEmpty()
     }
 
     private fun saveNewConversationDraft(showDraftSavedToast: Boolean = false) {
