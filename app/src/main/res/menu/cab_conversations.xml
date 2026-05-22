@@ -75,11 +75,11 @@
         android:title="@string/decrypt"
         app:showAsAction="never" />
     <item
-        android:id="@+id/cab_secure_space_add"
+        android:id="@+id/cab_private_space_add"
         android:title="@string/private_space_add"
         app:showAsAction="never" />
     <item
-        android:id="@+id/cab_secure_space_delete"
+        android:id="@+id/cab_private_space_delete"
         android:title="@string/private_space_delete"
         app:showAsAction="never" />
     <item
