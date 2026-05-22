@@ -1,11 +1,15 @@
 package com.android.mms.activities
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Bundle
+import androidx.appcompat.content.res.AppCompatResources
 import com.android.mms.R
 import com.android.mms.extensions.applyLargeTitleOnly
 import com.android.mms.extensions.config
 import com.android.mms.extensions.setConversationPinScope
+import com.goodwy.commons.extensions.beGone
+import com.goodwy.commons.extensions.beVisibleIf
 import com.goodwy.commons.extensions.toast
 
 /**
@@ -33,6 +37,20 @@ class SecureMainActivity : MainActivity() {
             return
         }
         super.onCreate(savedInstanceState)
+        setupSecureLockPlaceholder()
+    }
+
+    private fun setupSecureLockPlaceholder() {
+        binding.noConversationsPlaceholder.setImageDrawable(
+            AppCompatResources.getDrawable(this, com.android.common.R.drawable.ic_cmn_lock_fill),
+        )
+        binding.noConversationsPlaceholder2.beGone()
+    }
+
+    @SuppressLint("ResourceAsColor")
+    override fun showOrHidePlaceholder(show: Boolean) {
+        binding.noConversationsPlaceholder.beVisibleIf(show)
+        binding.noConversationsPlaceholder2.beGone()
     }
 
     override fun handleTwoFingerSwipeDown() {
