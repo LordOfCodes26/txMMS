@@ -195,7 +195,9 @@
                 android:layout_marginBottom="@dimen/scroll_number_picker_item_height"
                 android:layout_marginRight="@dimen/tx_actionBar_height"
                 android:contentDescription="@string/new_conversation"
-                android:src="@drawable/ic_plus_vector"
+                android:src="@drawable/ic_cmn_add"
+                android:tint="@color/tx_common_bg"
+
                 app:applyWindowInsets="true"
                 app:elevation="0dp"/>
 

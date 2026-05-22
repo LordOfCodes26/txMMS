@@ -63,7 +63,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:foreground="@drawable/btn_transparent_ripple_row_tx">
+                >
+<!--                android:foreground="@drawable/rounded_rectangle_ripple"-->
 
                 <TextView
                     android:id="@+id/threadMessageSenderName"
