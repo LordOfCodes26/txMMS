@@ -38,6 +38,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.recyclerview.widget.RecyclerView
+import com.android.common.dialogs.MConfirmDialog
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.goodwy.commons.dialogs.PermissionRequiredDialog
@@ -71,6 +72,7 @@ import org.greenrobot.eventbus.EventBus
 import org.joda.time.DateTime
 import java.net.URLDecoder
 import java.util.Objects
+import kotlin.String
 
 class NewConversationActivity : SimpleActivity() {
     private val debugTag = "NewConversationFee"
@@ -113,6 +115,9 @@ class NewConversationActivity : SimpleActivity() {
     private var recipientSearchThrottleRunnable: Runnable? = null
     /** ElapsedRealtime when [runRecipientSearchForChipFilter] last started; used to cap search frequency. */
     private var lastRecipientSearchRunElapsed = 0L
+
+    private var mDiscardMessage: Boolean = false
+
 
     companion object {
         private const val PICK_SAVE_FILE_INTENT = 1008
@@ -2291,7 +2296,34 @@ class NewConversationActivity : SimpleActivity() {
         }
     }
 
-    private fun saveNewConversationDraft(showDraftSavedToast: Boolean = false) {
+    private fun showMConfirmDialog(question: String, onConfirm: () -> Unit) {
+        val blurTarget = findViewById<eightbitlab.com.blurview.BlurTarget>(R.id.mainBlurTarget)
+            ?: throw IllegalStateException("mainBlurTarget not found")
+        val dialog = MConfirmDialog(this@NewConversationActivity)
+        dialog.bindBlurTarget(blurTarget)
+        dialog.setContent(question)
+        dialog.setConfirmTitle(resources.getString(com.goodwy.commons.R.string.ok))
+        dialog.setCancelTitle(resources.getString(com.goodwy.commons.R.string.cancel))
+        dialog.setCanceledOnTouchOutside(true)
+        dialog.setOnCompleteListener { isConfirm ->
+            if (isConfirm) {
+                onConfirm()
+            }
+        }
+        dialog.show()
+    }
+
+    private data class NewConversationExitSnapshot(
+        val staleResumeId: Long,
+        val allNumbers: List<String>,
+        val messageText: String,
+        val attachmentsJson: String?,
+        val scheduledMillis: Long,
+        val shouldPersist: Boolean,
+        val shouldClearDraftForEmptyMessage: Boolean
+    )
+
+    private fun newConversationExitSnapshot(): NewConversationExitSnapshot {
         val chips = binding.newConversationAddress.allChips
         val messageText = binding.messageHolder.threadTypeMessage.text?.toString()?.trim() ?: ""
         val hasAttachments = messageHolderHelper?.getAttachmentSelections()?.isNotEmpty() == true
@@ -2329,7 +2361,31 @@ class NewConversationActivity : SimpleActivity() {
 
         val shouldPersist = hasMessage && allNumbers.isNotEmpty()
         val shouldClearDraftForEmptyMessage = !hasMessage && allNumbers.isNotEmpty()
-        if (staleResumeId <= 0L && !shouldPersist && !shouldClearDraftForEmptyMessage) return
+        return NewConversationExitSnapshot(
+            staleResumeId = staleResumeId,
+            allNumbers = allNumbers,
+            messageText = messageText,
+            attachmentsJson = attachmentsJson,
+            scheduledMillis = scheduledMillis,
+            shouldPersist = shouldPersist,
+            shouldClearDraftForEmptyMessage = shouldClearDraftForEmptyMessage
+        )
+    }
+
+    private fun shouldConfirmDiscardOnExit(snapshot: NewConversationExitSnapshot = newConversationExitSnapshot()): Boolean {
+//        return snapshot.staleResumeId <= 0L && !snapshot.shouldPersist && !snapshot.shouldClearDraftForEmptyMessage
+        return snapshot.allNumbers.isEmpty() && !snapshot.shouldPersist && !snapshot.shouldClearDraftForEmptyMessage
+    }
+
+    private fun saveNewConversationDraft(showDraftSavedToast: Boolean = false) {
+        val snapshot = newConversationExitSnapshot()
+        val staleResumeId = snapshot.staleResumeId
+        val allNumbers = snapshot.allNumbers
+        val messageText = snapshot.messageText
+        val attachmentsJson = snapshot.attachmentsJson
+        val scheduledMillis = snapshot.scheduledMillis
+        val shouldPersist = snapshot.shouldPersist
+        val shouldClearDraftForEmptyMessage = snapshot.shouldClearDraftForEmptyMessage
 
         ensureBackgroundThread {
             var didMutateDrafts = false
@@ -2392,11 +2448,16 @@ class NewConversationActivity : SimpleActivity() {
 
     override fun onBackPressedCompat(): Boolean {
         if (messageHolderHelper?.dismissEmojiPicker() == true) return true
-        return if (expandedMessageFragment != null) {
+        if (expandedMessageFragment != null) {
             hideExpandedMessageFragment()
-            true
-        } else {
-            false
+            return true
         }
+        if (shouldConfirmDiscardOnExit()) {
+            showMConfirmDialog(resources.getString(R.string.sms_no_receiver_address_delete)) {
+                finish()
+            }
+            return true
+        }
+        return false
     }
 }

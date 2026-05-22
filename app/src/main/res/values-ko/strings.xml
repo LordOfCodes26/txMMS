@@ -216,4 +216,6 @@
     <string name="no_search_conversations_found">검색된 통보문리력이 없습니다.</string>
     <string name="sms_txt_copy">본문복사</string>
     <string name="sms_thread_delete">통보문삭제</string>
+    <string name="sms_no_receiver_address_delete">수신자가 없으므로 통보문이 삭제됩니다</string>
+
 </resources>

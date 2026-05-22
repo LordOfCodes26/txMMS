@@ -218,4 +218,5 @@
     <string name="no_search_conversations_found">未找到搜索到的对话</string>
     <string name="sms_txt_copy">复制短信</string>
     <string name="sms_thread_delete">删除短信线程</string>
+    <string name="sms_no_receiver_address_delete">因为没有有效的接收者短信被删除</string>
 </resources>

@@ -256,5 +256,6 @@
     <string name="no_search_conversations_found">No searched conversations have been found</string>
     <string name="sms_txt_copy">Text copy</string>
     <string name="sms_thread_delete">Message delete</string>
+    <string name="sms_no_receiver_address_delete">Your message will be discarded because it has no recipients.</string>
 
 </resources>
