@@ -72,7 +72,7 @@
     <dimen name="input_edit_wrapper_radius">19dp</dimen>
     <dimen name="keyboard_add_height">350dp</dimen>
     <dimen name="cardview_input_corner_radius">26dp</dimen>
-    <dimen name="cardview_stroke">0.5dp</dimen>
+    <dimen name="cardview_stroke">0.7dp</dimen>
     <dimen name="ripple_bottom">48dp</dimen>
 
     <dimen name="ic_send_sms_width">18dp</dimen>

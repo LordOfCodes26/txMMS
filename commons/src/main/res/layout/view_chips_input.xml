@@ -12,7 +12,7 @@
     app:contentPaddingTop="3.5dp"
     app:cardCornerRadius="24dp"
     app:strokeColor="@color/tx_popup_menu_border"
-    app:strokeWidth="0.5dp"
+    app:strokeWidth="@dimen/cardview_stroke"
     app:cardElevation="@dimen/cardview_default_elevation">
 
     <!-- MaxHeightScrollView clamps height so chips/text scroll instead of expanding the screen.
