@@ -78,13 +78,13 @@
         android:layout_gravity="bottom"
         android:layout_marginLeft="15dp"
         android:layout_marginRight="15dp"
-        android:layout_marginBottom="@dimen/activity_margin">
+        android:layout_marginBottom="@dimen/ripple_bottom">
 
         <com.android.common.view.MRippleToolBar
             android:id="@+id/confirm_tab"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="center_horizontal"
+            android:layout_gravity="center"
             android:visibility="visible" />
     </FrameLayout>
 </FrameLayout>
