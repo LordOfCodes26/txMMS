@@ -20,11 +20,11 @@ fun getLocaleDateFormatPatternMonthDayTime(): String {
 
     val lang = Locale.getDefault().getLanguage()
 
-    var pattern = "MMM d H:m"
+    var pattern = "MMM d HH:mm"
     if ("ko" == lang) {
-        pattern = "M월 d일 H:m"
+        pattern = "M월 d일 HH:mm"
     } else if ("zh" == lang) {
-        pattern = "M月 d日 H:m"
+        pattern = "M月 d日 HH:mm"
     }
     return pattern
 }

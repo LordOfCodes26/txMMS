@@ -129,7 +129,7 @@ class MessageDetailsDialog(val activity: BaseSimpleActivity, val message: Messag
             showCurrentYear = true,
             hideTodaysDate = false,
             dateFormat = "yyyy.M.d",
-            timeFormat = "H:m:s"
+            timeFormat = "HH:mm:ss"
         )
     }
 
@@ -141,7 +141,7 @@ class MessageDetailsDialog(val activity: BaseSimpleActivity, val message: Messag
                 showCurrentYear = true,
                 hideTodaysDate = false,
                 dateFormat = "yyyy.M.d",
-                timeFormat = "H:m:s"
+                timeFormat = "HH:mm:ss"
             )
         }
         return getStatus()

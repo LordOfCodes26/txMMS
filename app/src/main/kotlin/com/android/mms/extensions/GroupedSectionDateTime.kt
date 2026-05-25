@@ -48,11 +48,11 @@ fun formatGroupedSectionDateTime(
                     val hours = (delta / ONE_HOUR_MS).toInt().coerceIn(1, 24)
                     context.resources.getQuantityString(R.plurals.grouped_list_hours_ago, hours, hours)
                 }
-                else -> SimpleDateFormat("H:m", Locale.getDefault()).format(lastMessageMillis)
+                else -> SimpleDateFormat("HH:mm", Locale.getDefault()).format(lastMessageMillis)
             }
         }
         ConversationListItem.SECTION_YESTERDAY -> {
-            SimpleDateFormat("H:m", Locale.getDefault()).format(lastMessageMillis)
+            SimpleDateFormat("HH:mm", Locale.getDefault()).format(lastMessageMillis)
         }
         ConversationListItem.SECTION_BEFORE -> {
             val y = msgCal.get(Calendar.YEAR)
@@ -63,7 +63,7 @@ fun formatGroupedSectionDateTime(
                 SimpleDateFormat(getLocaleDateFormatPatternFull(), Locale.getDefault()).format(lastMessageMillis)
             }
         }
-        else -> SimpleDateFormat("H:m", Locale.getDefault()).format(lastMessageMillis)
+        else -> SimpleDateFormat("HH:mm", Locale.getDefault()).format(lastMessageMillis)
     }
 }
 
