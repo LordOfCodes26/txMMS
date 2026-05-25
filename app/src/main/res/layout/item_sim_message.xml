@@ -3,6 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:orientation="vertical"
     android:paddingTop="4dp"
     android:paddingBottom="4dp">
@@ -14,49 +15,51 @@
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:visibility="gone"
-        tools:visibility="visible">
+        tools:visibility="visible"
+        app:layout_constraintWidth_percent="0.8">
 
-        <com.goodwy.commons.views.MyTextView
-            android:id="@+id/simMsgAddress"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
-            android:layout_marginBottom="2dp"
-            android:maxLines="1"
-            android:ellipsize="end"
-            android:textSize="11sp"
-            android:textStyle="bold"
-            android:alpha="0.7"
-            tools:text="+82-10-1234-5678" />
+
 
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
             android:layout_marginEnd="64dp"
-            android:background="@drawable/item_received_rounded_background"
+            android:background="@drawable/bubble_incoming_compact_1"
             android:orientation="vertical"
-            android:paddingStart="@dimen/bubble_padding_left"
+            android:paddingStart="@dimen/bubble_padding_right"
             android:paddingEnd="@dimen/bubble_padding_right"
             android:paddingTop="@dimen/bubble_padding_top"
             android:paddingBottom="@dimen/bubble_padding_bottom">
+
+<!--            <com.goodwy.commons.views.MyTextView-->
+<!--                android:id="@+id/simMsgAddress"-->
+<!--                android:layout_width="wrap_content"-->
+<!--                android:layout_height="wrap_content"-->
+<!--                android:maxLines="1"-->
+<!--                android:ellipsize="end"-->
+<!--                android:textSize="@dimen/tx_normal_text"-->
+<!--                android:textColor="@color/tx_title_text"-->
+<!--                tools:text="+82-10-1234-5678" />-->
 
             <com.goodwy.commons.views.MyTextView
                 android:id="@+id/simMsgBody"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textSize="15sp"
+                android:textSize="@dimen/tx_normal_text"
+                android:textColor="@color/tx_title_text"
                 android:lineSpacingMultiplier="1.1"
+                android:layout_marginTop="@dimen/tiny_margin"
                 tools:text="Hello, this is a SIM message." />
 
             <com.goodwy.commons.views.MyTextView
                 android:id="@+id/simMsgTime"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:gravity="end"
-                android:textSize="11sp"
-                android:alpha="0.6"
-                android:layout_marginTop="2dp"
+                android:gravity="start|bottom"
+                android:textSize="@dimen/tx_small_text"
+                android:textColor="@color/tx_gray"
+                android:layout_marginTop="@dimen/medium_margin"
                 tools:text="10:30" />
 
         </LinearLayout>
@@ -69,18 +72,19 @@
         android:layout_height="wrap_content"
         android:gravity="end"
         android:orientation="vertical"
+        android:layout_marginTop="@dimen/medium_margin"
         android:visibility="gone"
-        tools:visibility="gone">
+        tools:visibility="visible">
 
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="end"
+            android:background="@drawable/bubble_outgoing_compact_1"
+            android:orientation="vertical"
             android:layout_marginStart="64dp"
             android:layout_marginEnd="8dp"
-            android:background="@drawable/item_sent_rounded_background"
-            android:orientation="vertical"
-            android:paddingStart="@dimen/bubble_padding_left"
+            android:paddingStart="@dimen/bubble_padding_right"
             android:paddingEnd="@dimen/bubble_padding_right"
             android:paddingTop="@dimen/bubble_padding_top"
             android:paddingBottom="@dimen/bubble_padding_bottom">
@@ -89,7 +93,8 @@
                 android:id="@+id/simMsgBodySent"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textSize="15sp"
+                android:textSize="@dimen/tx_normal_text"
+                android:textColor="@color/tx_title_text"
                 android:lineSpacingMultiplier="1.1"
                 tools:text="Reply message from me." />
 
@@ -97,10 +102,10 @@
                 android:id="@+id/simMsgTimeSent"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:gravity="end"
-                android:textSize="11sp"
-                android:alpha="0.6"
-                android:layout_marginTop="2dp"
+                android:gravity="start|bottom"
+                android:textSize="@dimen/tx_small_text"
+                android:textColor="@color/tx_gray"
+                android:layout_marginTop="@dimen/medium_margin"
                 tools:text="10:35" />
 
         </LinearLayout>

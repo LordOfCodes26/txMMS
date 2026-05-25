@@ -1,5 +1,6 @@
 package com.android.mms.adapters
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.text.format.DateFormat
 import android.view.LayoutInflater
@@ -32,14 +33,14 @@ class SimMessageAdapter(
     inner class ViewHolder(private val binding: ItemSimMessageBinding) :
         RecyclerView.ViewHolder(binding.root) {
 
+        @SuppressLint("SetTextI18n")
         fun bind(message: SimMessage) {
             val timeStr = formatTime(message.date)
 
             if (message.isIncoming) {
                 binding.simMsgReceivedContainer.beVisible()
                 binding.simMsgSentContainer.beGone()
-                binding.simMsgAddress.text = message.address
-                binding.simMsgBody.text = message.body
+                binding.simMsgBody.text = message.address + " : " + message.body
                 binding.simMsgTime.text = timeStr
             } else {
                 binding.simMsgSentContainer.beVisible()
