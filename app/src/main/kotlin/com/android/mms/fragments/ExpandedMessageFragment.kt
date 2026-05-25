@@ -177,6 +177,11 @@ class ExpandedMessageFragment : Fragment() {
             setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, activity.getTextSizeMessage())
             setTextColor(textColor)
             setHintTextColor(textColor.adjustAlpha(0.6f))
+
+            val properTextColor = context.getProperTextColor()
+            val properAccentColor = context.getProperAccentColor()
+
+            binding.expandedThreadTypeMessage.setColors(properTextColor, properAccentColor, context.getProperTextCursorColor())
             
             // Add text change listener
             addTextChangedListener(object : TextWatcher {
