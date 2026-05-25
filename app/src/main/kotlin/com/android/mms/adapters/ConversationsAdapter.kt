@@ -179,8 +179,8 @@ class ConversationsAdapter(
                 findItem(R.id.cab_conversation_details)?.isVisible = false
 
                 findItem(R.id.cab_ripple_secure_box_lock)?.apply {
-                    isVisible = isPinZeroMode
-                    isEnabled = isPinZeroMode
+                    isVisible = isPinZeroMode || isPinPrivateSpaceMode
+                    isEnabled = isVisible
                 }
                 findItem(R.id.cab_ripple_secure_box_unlock)?.apply {
                     isVisible = !isPinZeroMode && !isPinPrivateSpaceMode
@@ -196,7 +196,7 @@ class ConversationsAdapter(
                 }
                 findItem(R.id.cab_ripple_private_space_delete)?.apply {
                     isVisible = isPinPrivateSpaceMode
-                    isEnabled = isPinPrivateSpaceMode
+                    isEnabled = isVisible
                 }
             }
             return
@@ -226,8 +226,8 @@ class ConversationsAdapter(
             findItem(R.id.cab_encrypt_conversations)?.isVisible = isPinZeroMode
             findItem(R.id.cab_decrypt_conversations)?.isVisible = !isPinZeroMode && !isPinPrivateSpaceMode
             checkPinBtnVisibility(this)
-            findItem(R.id.cab_secure_space_add)?.isVisible = isPinZeroMode
-            findItem(R.id.cab_secure_space_delete)?.isVisible = isPinPrivateSpaceMode
+            findItem(R.id.cab_private_space_add)?.isVisible = isPinZeroMode || isPinPrivateSpaceMode
+            findItem(R.id.cab_private_space_delete)?.isVisible = isPinPrivateSpaceMode
 
             findItem(R.id.cab_ripple_message_conversion)?.isVisible = false
             findItem(R.id.cab_ripple_copy)?.isVisible = false
@@ -472,8 +472,10 @@ class ConversationsAdapter(
             R.id.cab_unpin_conversation -> pinConversation(false)
             R.id.cab_encrypt_conversations -> encryptConversations()
             R.id.cab_decrypt_conversations -> decryptConversations()
-            R.id.cab_secure_space_add -> addToPrivateSpace()
-            R.id.cab_secure_space_delete -> removeFromPrivateSpace()
+            R.id.cab_private_space_add -> {
+                addToPrivateSpace()
+            }
+            R.id.cab_private_space_delete -> removeFromPrivateSpace()
             R.id.cab_history_delete -> askConfirmDelete()
 
             //when ripple

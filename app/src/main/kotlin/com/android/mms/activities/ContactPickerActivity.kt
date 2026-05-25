@@ -58,6 +58,9 @@ import com.android.mms.helpers.MessageHolderHelper
 import com.android.mms.models.Contact
 import com.android.mms.models.ContactPickerListRow
 import com.goodwy.commons.activities.BaseSimpleActivity
+import java.io.DataInputStream
+import java.io.DataOutputStream
+import java.io.File
 import java.util.Calendar
 import com.goodwy.commons.helpers.SimpleContactsHelper
 import com.goodwy.commons.views.MySearchMenu
@@ -87,6 +90,13 @@ class ContactPickerActivity : SimpleActivity() {
         /** Temporary: log scroll / load-more / chunk timings under [PERF_LOG_TAG]. Set to false to disable. */
         private const val CONTACT_PICKER_PERF_LOG = false
         private const val PERF_LOG_TAG = "ContactPickerPerf"
+
+        // ── Contact cache ──────────────────────────────────────────────────────────────────────
+        /** Bump this when the serialised Contact field layout changes. Stale files are discarded. */
+        private const val CONTACTS_CACHE_SCHEMA = 1
+        private const val CONTACTS_CACHE_FILE = "contact_picker_v${CONTACTS_CACHE_SCHEMA}.bin"
+        /** Set to false to skip cache reads during testing (writes still occur for inspection). */
+        private const val CONTACTS_CACHE_READ_ENABLED = true
 
 
         fun getSelectedContacts(data: Intent?): ArrayList<Contact> {
@@ -275,7 +285,8 @@ class ContactPickerActivity : SimpleActivity() {
             )
         }
         applyContactPickerWindowSurfaces()
-        setupTopBarNavigation()
+        val isSearchActive = blurAppBarLayout?.requireCustomToolbar()?.isSearchExpanded == true
+        if (isSearchActive) hideTopBarNavigation() else setupTopBarNavigation()
         setupBottomActionTabs()
         scrollingView = contactRecyclerView
         blurAppBarLayout?.updateColors(
@@ -367,22 +378,72 @@ class ContactPickerActivity : SimpleActivity() {
     }
 
     /**
-     * After [MySearchMenu] height changes with [WRAP_CONTENT] (e.g. leaving search), sync blur/side-frame
-     * once layout has settled, then re-apply list top inset.
+     * After [MySearchMenu] height changes (e.g. leaving search), sync blur/side-frame and
+     * re-apply the list top inset, ensuring the **very first drawn frame** is correct.
+     *
+     * Uses [ViewTreeObserver.OnPreDrawListener] which fires after the full layout pass (so all
+     * view heights are real) but **before** the draw.  Returning `false` cancels the pending draw
+     * and schedules a new traversal; that traversal then re-lays out [blurTarget] and the list
+     * with the updated params and draws correctly — so no wrong frame is ever shown.
+     *
+     * Compared to `menu.post { menu.post {} }`: those inner posts fire before layout completes
+     * (menu.height == 0 at that point), silently bail out, and the sync is never run until a
+     * secondary trigger such as the contacts load (~2 s).
+     */
+    /**
+     * Syncs blur geometry and list top padding atomically using [ViewTreeObserver.OnPreDrawListener].
+     *
+     * The listener fires after the full layout pass (real heights available) but before the draw.
+     * We wait until **both** [menu.height] and [bar.height] are non-zero so the blur sync and the
+     * padding update always happen together — preventing the one-frame "overlap" that would appear
+     * if only the blur sync ran while the padding was still 0.
+     *
+     * Returning `false` cancels the pending draw; the next Vsync re-lays out [blurTarget] (with
+     * the new negative topMargin) and [contactRecyclerView] (with the new paddingTop) and draws
+     * the correct first frame.
      */
     private fun syncContactPickerBlurGeometryAndListTopPadding() {
         val menu = blurAppBarLayout ?: return
         val blur = findViewById<BlurTarget>(R.id.blurTarget) ?: return
         val top = findViewById<View>(R.id.m_vertical_side_frame_top)
-        menu.post {
-            menu.post {
-                val h = menu.height.takeIf { it > 0 } ?: menu.measuredHeight.takeIf { it > 0 } ?: return@post
-                syncBlurTargetTopMarginForMenu(blur, h)
-                syncTopSideFrameHeightForMenu(top, menu, h)
+        val rootV = rootView ?: return
+        rootV.viewTreeObserver.addOnPreDrawListener(object : ViewTreeObserver.OnPreDrawListener {
+            override fun onPreDraw(): Boolean {
+                if (isFinishing || isDestroyed) {
+                    rootV.viewTreeObserver.removeOnPreDrawListener(this)
+                    return true
+                }
+                // Wait until the AppBar has a real height.
+                val menuH = menu.height.takeIf { it > 0 } ?: return true
+
+                // Resolve filter-bar height with all fallbacks.  If still 0, defer to next frame
+                // rather than doing a partial sync (blur without padding) that would cause overlap.
+                val bar = contactPickerFilterBar ?: run {
+                    rootV.viewTreeObserver.removeOnPreDrawListener(this)
+                    return true
+                }
+                val barH: Int = bar.height.takeIf { it > 0 }
+                    ?: bar.measuredHeight.takeIf { it > 0 && bar.isLaidOut }
+                    ?: run {
+                        val wSpec = View.MeasureSpec.makeMeasureSpec(
+                            resources.displayMetrics.widthPixels, View.MeasureSpec.EXACTLY)
+                        val hSpec = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+                        bar.measure(wSpec, hSpec)
+                        bar.measuredHeight.takeIf { it > 0 }
+                    }
+                    ?: return true  // bar not ready yet — allow this draw and retry next frame
+
+                // Both values are ready; apply blur sync + padding atomically.
+                rootV.viewTreeObserver.removeOnPreDrawListener(this)
+                syncBlurTargetTopMarginForMenu(blur, menuH)
+                syncTopSideFrameHeightForMenu(top, menu, menuH)
                 blur.invalidate()
-                applyContactPickerListTopPadding()
+                contactPickerListTopInsetPx = barH + dp(12)
+                contactRecyclerView?.updatePadding(top = barH + dp(12))
+                // Cancel this draw; the next traversal re-lays out with correct geometry.
+                return false
             }
-        }
+        })
     }
 
     /** Resolves filter bar height + 12dp without waiting for a layout pass (avoids wrong padding on first search). */
@@ -641,9 +702,13 @@ class ContactPickerActivity : SimpleActivity() {
             }
         }
         updateFilterBar()
-        resolveContactPickerListTopInsetPxIfNeeded()
-        applyContactPickerListTopPadding()
         updateConfirmTabEnable()
+        // Register the blur/padding sync listener NOW, while the view is still unattached.
+        // rootView.viewTreeObserver is a "floating" observer at this point; Android merges it
+        // into the window's real tree observer during dispatchAttachedToWindow() at the START
+        // of the first Vsync traversal (before measure/layout/draw).  This guarantees our
+        // OnPreDrawListener fires before the very first frame is rendered.
+        syncContactPickerBlurGeometryAndListTopPadding()
     }
 
     private fun setupBottomActionTabs() {
@@ -842,6 +907,13 @@ class ContactPickerActivity : SimpleActivity() {
      * Loads one batch from the contacts DB (and merges private entries on the first chunk only).
      * Skips consecutive empty cursor pages in one call so the cursor offset still advances.
      * Must run on a background thread.
+     *
+     * Sort order matches the Contacts app's MainActivity: contacts are fetched via
+     * [SimpleContactsHelper.getSystemContactsSortedPageFromDbSync] which sorts by
+     * [android.provider.ContactsContract.Contacts.DISPLAY_NAME_PRIMARY] (same key as the
+     * in-memory [SimpleContact.compareByFullName]). Both SQL and in-memory sorts therefore
+     * agree, so paginated chunks form a globally correct display-name-ordered list regardless
+     * of the device "sort by surname" setting.
      */
     private fun loadNextContactsChunkFromDb(isFirstPage: Boolean): ContactsDbChunk {
         val chunkWallStart = SystemClock.elapsedRealtime()
@@ -964,10 +1036,130 @@ class ContactPickerActivity : SimpleActivity() {
         }
     }
 
-    /** First browse page from DB + private merge (same rules as [loadContacts]). */
-    private fun startBrowseContactsLoadFromDb(requestGeneration: Int = ++contactListGeneration) {
+    // ── Contact cache helpers ──────────────────────────────────────────────────────────────────
+
+    /**
+     * Reads the contact list written by [saveContactsToCache].
+     * Returns null when the file is absent, corrupt, or written by a different schema version.
+     * Safe to call from any thread.
+     */
+    private fun readContactsFromCache(): ArrayList<Contact>? = try {
+        val file = File(cacheDir, CONTACTS_CACHE_FILE)
+        if (!file.exists() || file.length() == 0L) null
+        else DataInputStream(file.inputStream().buffered()).use { din ->
+            if (din.readInt() != CONTACTS_CACHE_SCHEMA) return null   // schema mismatch
+            val count = din.readInt()
+            if (count <= 0) return null
+            ArrayList<Contact>(count).also { list ->
+                repeat(count) {
+                    list.add(
+                        Contact(
+                            name = din.readUTF(),
+                            contactId = din.readUTF(),
+                            icon = din.readInt(),
+                            phoneNumber = din.readUTF(),
+                            address = din.readUTF(),
+                            organizationName = din.readUTF(),
+                            simSlot = din.readInt(),
+                            photoUri = din.readUTF(),
+                        )
+                    )
+                }
+            }
+        }
+    } catch (_: Exception) { null }
+
+    /**
+     * Writes [contacts] to the picker's cache file.
+     * Safe to call from any thread; failures are silently swallowed (cache is best-effort).
+     */
+    private fun saveContactsToCache(contacts: List<Contact>) {
+        try {
+            DataOutputStream(File(cacheDir, CONTACTS_CACHE_FILE).outputStream().buffered()).use { out ->
+                out.writeInt(CONTACTS_CACHE_SCHEMA)
+                out.writeInt(contacts.size)
+                for (c in contacts) {
+                    out.writeUTF(c.name)
+                    out.writeUTF(c.contactId)
+                    out.writeInt(c.icon)
+                    out.writeUTF(c.phoneNumber)
+                    out.writeUTF(c.address)
+                    out.writeUTF(c.organizationName)
+                    out.writeInt(c.simSlot)
+                    out.writeUTF(c.photoUri)
+                }
+            }
+        } catch (_: Exception) { /* cache write is best-effort */ }
+    }
+
+    /**
+     * Heuristic diff: checks count, then scans ALL entries for contactId, phone, or name changes.
+     * Scanning all entries (not just the first 8) ensures a rename anywhere in the list is detected.
+     */
+    private fun contactsDifferFromCache(fresh: List<Contact>, cached: List<Contact>): Boolean {
+        if (fresh.size != cached.size) return true
+        for (i in fresh.indices) {
+            val f = fresh[i]
+            val c = cached[i]
+            if (f.contactId != c.contactId) return true
+            if (normalizePhoneNumber(f.phoneNumber) != normalizePhoneNumber(c.phoneNumber)) return true
+            if (f.name != c.name) return true
+        }
+        return false
+    }
+
+    /**
+     * First browse page from DB + private merge, with a **stale-while-revalidate cache**.
+     *
+     * Timeline:
+     *
+     * ```
+     * BG thread:  [read cache ~5 ms] → runOnUiThread(show cached) → [DB load ~50–120 ms] → runOnUiThread(show fresh)
+     * UI thread:  .....show cached immediately.............................................show fresh (no visible gap)
+     * ```
+     *
+     * On a cache hit the user sees contacts in < 10 ms.  The DB always re-runs in the background
+     * so stale data (deleted / renamed contacts) is corrected within the same open.  The cache is
+     * only rewritten when the fresh result differs from what was cached, keeping file I/O minimal.
+     *
+     * @param skipInitialCacheRead When true the cache was already read and displayed synchronously
+     *   by [loadContacts] on the UI thread — skip Step 1 to avoid a redundant second read/update.
+     */
+    private fun startBrowseContactsLoadFromDb(
+        requestGeneration: Int = ++contactListGeneration,
+        skipInitialCacheRead: Boolean = false,
+    ) {
         ensureBackgroundThread {
             val bgWall = SystemClock.elapsedRealtime()
+
+            // ── Step 1: show cached contacts immediately ──────────────────────────────────────
+            // Skipped when the caller already displayed the cache synchronously on the UI thread.
+            val cached = if (!skipInitialCacheRead && CONTACTS_CACHE_READ_ENABLED) readContactsFromCache() else null
+            if (cached != null) {
+                runOnUiThread {
+                    if (isFinishing || isDestroyed) return@runOnUiThread
+                    if (requestGeneration != contactListGeneration || isCallLogMode || searchString.trim().isNotEmpty()) return@runOnUiThread
+                    allContacts.clear()
+                    allContacts.addAll(cached)
+                    allContactKeyToIndex.clear()
+                    appendKeyIndicesForRange(0, cached)
+                    selectedPositions.clear()
+                    cached.forEachIndexed { i, c ->
+                        if (alreadySelectedContactIds.contains(contactNumberKey(c.contactId, c.phoneNumber))) selectedPositions.add(i)
+                    }
+                    filteredContacts.clear()
+                    filteredContacts.addAll(allContacts)
+                    // Lock pagination until the fresh DB load confirms hasMoreContacts.
+                    hasMoreContacts = true
+                    isLoadingMore = true
+                    contactAdapter?.setContactModeItems(ArrayList(filteredContacts), buildFilteredSelectedIndicesForAdapter())
+                    hideContactsLetterFastScroller()
+                    updateConfirmTabEnable()
+                    perfLog("startBrowse cache shown in ${SystemClock.elapsedRealtime() - bgWall} ms")
+                }
+            }
+
+            // ── Step 2: load fresh contacts from DB ───────────────────────────────────────────
             val tPrivate = SystemClock.elapsedRealtime()
             val privateCursor = getMyContactsCursor(favoritesOnly = false, withPhoneNumbersOnly = true)
             val privateList = MyContactsContentProvider.getSimpleContacts(this@ContactPickerActivity, privateCursor)
@@ -976,17 +1168,20 @@ class ContactPickerActivity : SimpleActivity() {
             privateContactsForMerge.addAll(privateList)
             systemContactsSqlOffset = 0
             val chunk = loadNextContactsChunkFromDb(isFirstPage = true)
+            val freshDiffers = cached == null || contactsDifferFromCache(chunk.contacts, cached)
             perfLog(
-                "startBrowse BG done privateMs=$privateMs privateCount=${privateList.size} " +
-                    "firstChunkContacts=${chunk.contacts.size} hasMore=${chunk.hasMoreFromDb} " +
-                    "bgWallMs=${SystemClock.elapsedRealtime() - bgWall}",
+                "startBrowse DB done privateMs=$privateMs privateCount=${privateList.size} " +
+                    "freshContacts=${chunk.contacts.size} hasMore=${chunk.hasMoreFromDb} " +
+                    "freshDiffers=$freshDiffers bgWallMs=${SystemClock.elapsedRealtime() - bgWall}",
             )
+
+            // ── Step 3: update UI with fresh data ─────────────────────────────────────────────
             runOnUiThread {
                 val uiStart = SystemClock.elapsedRealtime()
                 if (isFinishing || isDestroyed) return@runOnUiThread
-                if (requestGeneration != contactListGeneration || isCallLogMode || searchString.trim().isNotEmpty()) {
-                    return@runOnUiThread
-                }
+                if (requestGeneration != contactListGeneration || isCallLogMode || searchString.trim().isNotEmpty()) return@runOnUiThread
+
+                // Always keep state vars in sync with the authoritative DB result.
                 allContacts.clear()
                 allContacts.addAll(chunk.contacts)
                 allContactKeyToIndex.clear()
@@ -997,17 +1192,23 @@ class ContactPickerActivity : SimpleActivity() {
                 filteredContacts.addAll(allContacts)
                 hasMoreContacts = chunk.hasMoreFromDb
                 isLoadingMore = false
-                contactAdapter?.setContactModeItems(
-                    ArrayList(filteredContacts),
-                    buildFilteredSelectedIndicesForAdapter(),
-                )
+
+                if (freshDiffers) {
+                    // Contacts changed since last cache — redraw the list.
+                    contactAdapter?.setContactModeItems(ArrayList(filteredContacts), buildFilteredSelectedIndicesForAdapter())
+                }
+                // If cache was accurate the adapter already shows the right rows; skipping
+                // setContactModeItems avoids a redundant RecyclerView re-layout / flicker.
                 hideContactsLetterFastScroller()
                 updateConfirmTabEnable()
                 scheduleBrowseLoadMoreAfterChunk()
-                perfLog(
-                    "startBrowse UI applied contacts=${chunk.contacts.size} uiMs=${SystemClock.elapsedRealtime() - uiStart} " +
-                        "sinceBgStartMs=${SystemClock.elapsedRealtime() - bgWall}",
-                )
+                perfLog("startBrowse UI refreshed freshDiffers=$freshDiffers uiMs=${SystemClock.elapsedRealtime() - uiStart}")
+            }
+
+            // ── Step 4: persist to cache only when the data actually changed ──────────────────
+            if (freshDiffers) {
+                saveContactsToCache(chunk.contacts)
+                perfLog("startBrowse cache written contacts=${chunk.contacts.size}")
             }
         }
     }
@@ -1289,7 +1490,6 @@ class ContactPickerActivity : SimpleActivity() {
         allContactKeyToIndex.clear()
         contactsCursor?.takeIf { !it.isClosed }?.close()
         contactsCursor = null
-        contactAdapter?.setContactModeItems(emptyList(), emptySet())
         callLogPlaceholder?.visibility = View.GONE
         contactRecyclerView?.visibility = View.VISIBLE
 
@@ -1304,8 +1504,32 @@ class ContactPickerActivity : SimpleActivity() {
 
         // First chunk from DB (SIM/phone-storage phones); private entries merge on that first chunk.
         if (searchString.trim().isEmpty()) {
-            startBrowseContactsLoadFromDb()
+            // Read cache synchronously on the UI thread so contacts appear instantly when switching
+            // back from the call-log tab — same stale-while-revalidate behaviour as first open,
+            // but without the brief blank flash caused by clearing the adapter before the BG thread
+            // can post the cached result.
+            val cached = if (CONTACTS_CACHE_READ_ENABLED) readContactsFromCache() else null
+            if (cached != null) {
+                allContacts.addAll(cached)
+                appendKeyIndicesForRange(0, cached)
+                cached.forEachIndexed { i, c ->
+                    if (alreadySelectedContactIds.contains(contactNumberKey(c.contactId, c.phoneNumber))) selectedPositions.add(i)
+                }
+                filteredContacts.addAll(allContacts)
+                hasMoreContacts = true
+                isLoadingMore = true
+                contactAdapter?.setContactModeItems(ArrayList(filteredContacts), buildFilteredSelectedIndicesForAdapter())
+                hideContactsLetterFastScroller()
+                updateConfirmTabEnable()
+                // Tell startBrowseContactsLoadFromDb to skip its own Step 1 cache read since we
+                // already displayed the cache here — avoids a redundant file read + adapter update.
+                startBrowseContactsLoadFromDb(skipInitialCacheRead = true)
+            } else {
+                contactAdapter?.setContactModeItems(emptyList(), emptySet())
+                startBrowseContactsLoadFromDb(skipInitialCacheRead = false)
+            }
         } else {
+            contactAdapter?.setContactModeItems(emptyList(), emptySet())
             searchListByQuery(searchString)
         }
     }
