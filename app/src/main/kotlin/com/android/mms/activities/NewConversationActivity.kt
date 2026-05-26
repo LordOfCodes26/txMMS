@@ -814,6 +814,7 @@ class NewConversationActivity : SimpleActivity() {
                 recipientSearchThrottleRunnable?.let { recipientSearchHandler.removeCallbacks(it) }
                 recipientSearchThrottleRunnable = null
                 lastRecipientSearchRunElapsed = 0L
+                binding.contactsListWrapper.beGone()
                 return@setOnTextChangedListener
             }
 
