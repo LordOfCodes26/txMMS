@@ -36,7 +36,7 @@ class ChipsInputView @JvmOverloads constructor(
     private val flexContainer: FlexboxLayout
     private val chipsScrollView: MaxHeightScrollView?
     private val editText: MyEditText
-    private val clearButton: ImageView
+//    private val clearButton: ImageView
     private val addressBookButton: ImageView
     private val speechToTextButton: ImageView
 
@@ -101,7 +101,7 @@ class ChipsInputView @JvmOverloads constructor(
         chipsScrollView = flexContainer.parent as? MaxHeightScrollView
         editText = rootView.findViewById(R.id.chips_edit_text)
         val chipsEditWrapper = rootView.findViewById<View>(R.id.chips_edit_wrapper)
-        clearButton = rootView.findViewById(R.id.chips_clear_button)
+//        clearButton = rootView.findViewById(R.id.chips_clear_button)
         addressBookButton = rootView.findViewById(R.id.chips_address_book_button)
         speechToTextButton = rootView.findViewById(R.id.chips_speech_to_text_button)
 
@@ -163,10 +163,10 @@ class ChipsInputView @JvmOverloads constructor(
     }
 
     private fun setupButtons() {
-        clearButton.setOnClickListener {
-            editText.setText("")
-            editText.requestFocus()
-        }
+//        clearButton.setOnClickListener {
+//            editText.setText("")
+//            editText.requestFocus()
+//        }
         addressBookButton.setOnClickListener {}
         speechToTextButton.setOnClickListener {}
     }
@@ -262,7 +262,7 @@ class ChipsInputView @JvmOverloads constructor(
             }
         }
 
-        clearButton.imageTintList = ColorStateList.valueOf(textColor.adjustAlpha(0.4f))
+//        clearButton.imageTintList = ColorStateList.valueOf(textColor.adjustAlpha(0.4f))
         addressBookButton.imageTintList = ColorStateList.valueOf(textColor.adjustAlpha(0.4f))
         speechToTextButton.imageTintList = ColorStateList.valueOf(textColor.adjustAlpha(0.4f))
     }
@@ -334,8 +334,7 @@ class ChipsInputView @JvmOverloads constructor(
 
     private fun updateButtonsVisibility(text: String) {
         val hasText = text.isNotEmpty()
-        clearButton.visibility = if (hasText) View.VISIBLE else View.GONE
-        addressBookButton.visibility = if (!hasText) View.VISIBLE else View.GONE
+        addressBookButton.visibility = View.VISIBLE
         speechToTextButton.visibility = View.GONE
     }
 
@@ -361,8 +360,8 @@ class ChipsInputView @JvmOverloads constructor(
         }
     }
 
-    fun getEditText(): MyEditText = editText
-    fun getClearButton(): ImageView = clearButton
+//    fun getEditText(): MyEditText = editText
+//    fun getClearButton(): ImageView = clearButton
     fun getAddressBookButton(): ImageView = addressBookButton
-    fun getSpeechToTextButton(): ImageView = speechToTextButton
+//    fun getSpeechToTextButton(): ImageView = speechToTextButton
 }

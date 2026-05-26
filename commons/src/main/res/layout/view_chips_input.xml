@@ -66,20 +66,20 @@
                     android:textColorHighlight="@color/tx_text_selection_highlight"
                     android:textCursorDrawable="@null" />
 
-                <ImageView
-                    android:id="@+id/chips_clear_button"
-                    android:layout_width="@dimen/chips_input_chip_row_height"
-                    android:layout_height="@dimen/chips_input_chip_row_height"
-                    android:layout_alignTop="@+id/chips_edit_text"
-                    android:layout_alignEnd="@+id/chips_edit_text"
-                    android:layout_marginStart="@dimen/small_margin"
-                    android:layout_marginEnd="@dimen/medium_margin"
-                    android:background="?selectableItemBackgroundBorderless"
-                    android:alpha="0.4"
-                    android:contentDescription="@string/delete"
-                    android:src="@drawable/ic_clear_round"
-                    android:visibility="gone"
-                    tools:tint="@color/md_red_900" />
+<!--                <ImageView-->
+<!--                    android:id="@+id/chips_clear_button"-->
+<!--                    android:layout_width="@dimen/chips_input_chip_row_height"-->
+<!--                    android:layout_height="@dimen/chips_input_chip_row_height"-->
+<!--                    android:layout_alignTop="@+id/chips_edit_text"-->
+<!--                    android:layout_alignEnd="@+id/chips_edit_text"-->
+<!--                    android:layout_marginStart="@dimen/small_margin"-->
+<!--                    android:layout_marginEnd="@dimen/medium_margin"-->
+<!--                    android:background="?selectableItemBackgroundBorderless"-->
+<!--                    android:alpha="0.4"-->
+<!--                    android:contentDescription="@string/delete"-->
+<!--                    android:src="@drawable/ic_clear_round"-->
+<!--                    android:visibility="gone"-->
+<!--                    tools:tint="@color/md_red_900" />-->
 
             </RelativeLayout>
 
