@@ -341,7 +341,8 @@ class ExpandedMessageFragment : Fragment() {
                 val senderNumberView = binding.topDetailsLargeExpanded.findViewById<com.goodwy.commons.views.MyTextView>(R.id.sender_number_large_expanded)
                 
                 // Follow ThreadActivity setupThreadTitle() THREAD_TOP_LARGE logic (sender_name_large, sender_number_large)
-                senderPhotoView?.beVisibleIf(showContactThumbnails)
+//                senderPhotoView?.beVisibleIf(showContactThumbnails)
+                senderPhotoView?.beGone()
                 if (threadTitle.isNotEmpty()) {
                     senderNameView?.text = threadTitle
                     senderNameView?.setTextColor(textColor)

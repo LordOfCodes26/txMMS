@@ -639,7 +639,7 @@ open class BaseConfig(val context: Context) {
         set(ignoreContactSources) = prefs.edit { remove(IGNORED_CONTACT_SOURCES).putStringSet(IGNORED_CONTACT_SOURCES, ignoreContactSources) }
 
     var showContactThumbnails: Boolean
-        get() = prefs.getBoolean(SHOW_CONTACT_THUMBNAILS, false)
+        get() = prefs.getBoolean(SHOW_CONTACT_THUMBNAILS, true)
         set(showContactThumbnails) = prefs.edit { putBoolean(SHOW_CONTACT_THUMBNAILS, showContactThumbnails) }
 
     var showPhoneNumbers: Boolean
