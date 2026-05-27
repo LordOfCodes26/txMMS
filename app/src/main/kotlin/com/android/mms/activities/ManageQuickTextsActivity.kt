@@ -5,22 +5,19 @@ import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
 import android.view.View
-import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.updateLayoutParams
 import androidx.core.view.updatePadding
 import com.android.common.dialogs.MRenameDialog
+import com.android.common.view.MActionBar
 import com.goodwy.commons.extensions.beVisibleIf
-import com.goodwy.commons.extensions.getColoredDrawableWithColor
 import com.goodwy.commons.extensions.getTempFile
 import com.goodwy.commons.extensions.getProperBackgroundColor
 import com.goodwy.commons.extensions.getProperPrimaryColor
-import com.goodwy.commons.extensions.getProperTextColor
 import com.goodwy.commons.extensions.getSurfaceColor
 import com.goodwy.commons.extensions.hideKeyboard
 import com.goodwy.commons.extensions.isDynamicTheme
@@ -38,21 +35,19 @@ import com.android.mms.R
 import com.android.mms.databinding.ActivityManageQuickTextsBinding
 import com.android.mms.dialogs.ExportQuickTextsDialog
 import com.android.mms.dialogs.ManageQuickTextsAdapter
-import com.android.mms.extensions.applyLargeTitleOnly
-import com.android.mms.extensions.clearMySearchMenuSpringSync
 import com.android.mms.extensions.config
-import com.android.mms.extensions.postSyncMySearchMenuToolbarGeometry
 import com.android.mms.extensions.setRippleTabEnabledWidthAlpha
-import com.android.mms.extensions.setupMySearchMenuSpringSync
 import com.android.mms.extensions.toArrayList
 import com.android.mms.helpers.QuickTextsExporter
 import com.android.mms.helpers.QuickTextsImporter
 import com.goodwy.commons.extensions.showKeyboard
 import java.io.FileOutputStream
 import java.io.OutputStream
+
 class ManageQuickTextsActivity : SimpleActivity(), RefreshRecyclerViewListener, ActionModeToolbarHost {
 
     private lateinit var binding: ActivityManageQuickTextsBinding
+    private var quickTextsAppBarVerticalOffset = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -61,8 +56,8 @@ class ManageQuickTextsActivity : SimpleActivity(), RefreshRecyclerViewListener, 
         initTheme()
         setupEdgeToEdge()
         makeSystemBarsToTransparent()
-        setupTopBar()
-        setupOptionsMenu()
+        setupQuickTextsTopAppBar()
+        setupNestBouncyScroll()
         applyQuickTextsWindowSurfacesAndChrome()
         updateQuickTexts()
         binding.manageQuickTextsPlaceholder2.apply {
@@ -72,17 +67,18 @@ class ManageQuickTextsActivity : SimpleActivity(), RefreshRecyclerViewListener, 
                 addOrEditQuickText()
             }
         }
-        binding.nestScroll.post {
-            setupMySearchMenuSpringSync(binding.quickTextsAppbar, binding.manageQuickTextsList)
-            if (config.changeColourTopBar) {
-                scrollingView = binding.manageQuickTextsList
-                val useSurfaceColor = isDynamicTheme() && !isSystemInDarkMode()
-                setupSearchMenuScrollListener(
-                    binding.manageQuickTextsList,
-                    binding.quickTextsAppbar,
-                    useSurfaceColor,
-                )
-            }
+        scrollingView = binding.manageQuickTextsList
+        binding.quickTextsAppbar.addOnOffsetChangedListener { _, verticalOffset ->
+            quickTextsAppBarVerticalOffset = verticalOffset
+            binding.mVerticalSideFrameTop.update()
+            syncListTopPadding()
+        }
+        binding.manageQuickTextsList.post {
+            binding.quickTextsAppbar.dismissCollapse()
+            quickTextsAppBarVerticalOffset = 0
+            applyTransparentMAppBarChrome()
+            syncListTopPadding()
+            refreshSideFrameBlurAndInsets()
         }
     }
 
@@ -102,7 +98,10 @@ class ManageQuickTextsActivity : SimpleActivity(), RefreshRecyclerViewListener, 
 
         applyQuickTextsWindowSurfacesAndChrome()
         updateTextColors(binding.rootView)
-        setupTopBar()
+        setupQuickTextsTopAppBar()
+        binding.quickTextsAppbar.translationY = 0f
+        applyTransparentMAppBarChrome()
+        syncListTopPadding()
         refreshSideFrameBlurAndInsets()
     }
 
@@ -112,22 +111,20 @@ class ManageQuickTextsActivity : SimpleActivity(), RefreshRecyclerViewListener, 
             ViewCompat.requestApplyInsets(binding.root)
             binding.mVerticalSideFrameTop.bindBlurTarget(binding.mainBlurTarget)
             binding.mVerticalSideFrameBottom.bindBlurTarget(binding.mainBlurTarget)
-            binding.quickTextsAppbar.requireCustomToolbar().bindBlurTarget(
+            binding.quickTextsAppbar.getBackArrow()?.bindBlurTarget(
                 this@ManageQuickTextsActivity,
                 binding.mainBlurTarget,
             )
-            binding.quickTextsAppbar.getActionModeToolbar().bindBlurTarget(
+            binding.quickTextsAppbar.getActionBarView()?.bindBlurTarget(
                 this@ManageQuickTextsActivity,
                 binding.mainBlurTarget,
             )
-            postSyncMySearchMenuToolbarGeometry(
-                binding.root,
-                binding.quickTextsAppbar,
+            binding.quickTextsActionModeToolbar.bindBlurTarget(
+                this@ManageQuickTextsActivity,
                 binding.mainBlurTarget,
-                binding.mVerticalSideFrameTop,
-                binding.manageQuickTextsList,
             )
-            refreshActionModeToolbarBlur()
+            applyTransparentMAppBarChrome()
+            binding.mVerticalSideFrameTop.update()
         }
     }
 
@@ -136,8 +133,7 @@ class ManageQuickTextsActivity : SimpleActivity(), RefreshRecyclerViewListener, 
         val adapter = binding.manageQuickTextsList.adapter as? ManageQuickTextsAdapter ?: return
         if (!adapter.isActionModeActive()) return
         binding.mainBlurTarget.invalidate()
-        binding.quickTextsAppbar.getActionModeToolbar()
-            .bindBlurTarget(this, binding.mainBlurTarget)
+        binding.quickTextsActionModeToolbar.bindBlurTarget(this, binding.mainBlurTarget)
     }
 
     private fun applyQuickTextsWindowSurfacesAndChrome() {
@@ -148,15 +144,11 @@ class ManageQuickTextsActivity : SimpleActivity(), RefreshRecyclerViewListener, 
         binding.mainBlurTarget.setBackgroundColor(backgroundColor)
         binding.manageQuickTextsList.setBackgroundColor(backgroundColor)
         scrollingView = binding.manageQuickTextsList
-        binding.quickTextsAppbar.updateColors(
-            getStartRequiredStatusBarColor(),
-            scrollingView?.computeVerticalScrollOffset() ?: 0,
-        )
-        setQuickTextsTransparentAppBarBackground()
+        applyTransparentMAppBarChrome()
     }
 
     override fun onDestroy() {
-        clearMySearchMenuSpringSync(binding.quickTextsAppbar, binding.manageQuickTextsList)
+        binding.manageQuickTextsList.onOverscrollTranslationChanged = null
         super.onDestroy()
     }
 
@@ -168,19 +160,7 @@ class ManageQuickTextsActivity : SimpleActivity(), RefreshRecyclerViewListener, 
     private fun makeSystemBarsToTransparent() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
-            val nav = insets.getInsets(WindowInsetsCompat.Type.navigationBars())
-//            val navHeight = nav.bottom
-//            val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
-//            val dp5 = (5 * resources.displayMetrics.density).toInt()
-//            binding.mVerticalSideFrameBottom.layoutParams =
-//                binding.mVerticalSideFrameBottom.layoutParams.apply { height = navHeight + dp5 }
-//            val bottomInset = maxOf(navHeight, ime.bottom)
-//            val rippleLp = binding.actionModeRippleToolbar.layoutParams as? ViewGroup.MarginLayoutParams
-//            if (rippleLp != null) {
-//                val rippleBase = resources.getDimensionPixelSize(R.dimen.ripple_bottom)
-//                rippleLp.bottomMargin = rippleBase + bottomInset
-//                binding.actionModeRippleToolbar.layoutParams = rippleLp
-//            }
+            insets.getInsets(WindowInsetsCompat.Type.navigationBars())
             syncManageQuickTextsListBottomPadding()
             insets
         }
@@ -207,10 +187,12 @@ class ManageQuickTextsActivity : SimpleActivity(), RefreshRecyclerViewListener, 
     }
 
     override fun getActionModeToolbar(): CustomActionModeToolbar =
-        binding.quickTextsAppbar.getActionModeToolbar()
+        binding.quickTextsActionModeToolbar
 
     override fun showActionModeToolbar() {
-        binding.quickTextsAppbar.showActionModeToolbar()
+        binding.quickTextsAppbar.visibility = View.GONE
+        binding.quickTextsActionModeToolbar.visibility = View.VISIBLE
+        syncListTopPadding()
         binding.root.post {
             applyActionModeRippleToolbarForQuickTexts()
             refreshActionModeToolbarBlur()
@@ -219,9 +201,49 @@ class ManageQuickTextsActivity : SimpleActivity(), RefreshRecyclerViewListener, 
     }
 
     override fun hideActionModeToolbar() {
-        binding.quickTextsAppbar.hideActionModeToolbar()
+        binding.quickTextsActionModeToolbar.visibility = View.GONE
+        binding.quickTextsAppbar.visibility = View.VISIBLE
         binding.actionModeRippleToolbar.visibility = View.GONE
+        binding.quickTextsAppbar.dismissCollapse()
+        quickTextsAppBarVerticalOffset = 0
+        syncListTopPadding()
         syncManageQuickTextsListBottomPadding()
+        applyTransparentMAppBarChrome()
+    }
+
+    /** Pinned toolbar row height when [MAppBarLayout] is fully collapsed (txCommon). */
+    private fun getCollapsedAppBarHeightPx(): Int =
+        resources.getDimensionPixelSize(com.android.common.R.dimen.tx_top_bar_toolbar_margin_top) +
+            resources.getDimensionPixelSize(com.android.common.R.dimen.tx_top_bar_toolbar_height)
+
+    private fun getExpandedAppBarHeightPx(): Int =
+        resources.getDimensionPixelSize(com.android.common.R.dimen.tx_nest_bouncy_content_padding_top)
+
+    private fun listTopPaddingForAppBarOffset(verticalOffset: Int): Int {
+        val expanded = getExpandedAppBarHeightPx()
+        val collapsed = getCollapsedAppBarHeightPx()
+        val totalRange = binding.quickTextsAppbar.totalScrollRange
+        if (totalRange <= 0) return expanded
+        val collapseFraction = (
+            kotlin.math.abs(verticalOffset).toFloat() / totalRange.toFloat()
+            ).coerceIn(0f, 1f)
+        return kotlin.math.round(collapsed + (expanded - collapsed) * (1f - collapseFraction)).toInt()
+    }
+
+    private fun isQuickTextsActionModeVisible(): Boolean {
+        if (binding.quickTextsActionModeToolbar.visibility == View.VISIBLE) return true
+        return (binding.manageQuickTextsList.adapter as? ManageQuickTextsAdapter)?.isActionModeActive() == true
+    }
+
+    /** Keep list content aligned with visible top chrome (expanded / collapsed / action mode). */
+    private fun syncListTopPadding() {
+        val topPad = if (isQuickTextsActionModeVisible()) {
+            getCollapsedAppBarHeightPx()
+        } else {
+            listTopPaddingForAppBarOffset(quickTextsAppBarVerticalOffset)
+        }
+        binding.manageQuickTextsList.updatePadding(top = topPad)
+        binding.manageQuickTextsPlaceholder.updatePadding(top = topPad)
     }
 
     override fun getBlurTargetView() = binding.mainBlurTarget
@@ -252,75 +274,88 @@ class ManageQuickTextsActivity : SimpleActivity(), RefreshRecyclerViewListener, 
         }
     }
 
-
     fun refreshActionModeRippleToolbarIfNeeded() {
         if (isDestroyed || isFinishing) return
         applyActionModeRippleToolbarForQuickTexts()
         binding.root.post { syncManageQuickTextsListBottomPadding() }
     }
 
-    private fun setQuickTextsTransparentAppBarBackground() {
-        binding.quickTextsAppbar.setBackgroundColor(Color.TRANSPARENT)
-        binding.quickTextsAppbar.binding.searchBarContainer.setBackgroundColor(Color.TRANSPARENT)
-    }
-
-    private fun setupTopBar() {
-        binding.quickTextsAppbar.applyLargeTitleOnly(getString(R.string.manage_quick_texts))
-        binding.quickTextsAppbar.requireCustomToolbar().apply {
-            val textColor = getProperTextColor()
-            navigationIcon = resources.getColoredDrawableWithColor(
-                this@ManageQuickTextsActivity,
-                com.android.common.R.drawable.ic_cmn_arrow_left_fill,
-                textColor,
-            )
-            setNavigationContentDescription(com.goodwy.commons.R.string.back)
-            setNavigationOnClickListener {
-                hideKeyboard()
-                finish()
-            }
+    /** Glass top chrome: keep [MAppBarLayout] transparent so [MVSideFrame] blur shows through (txCommon). */
+    private fun applyTransparentMAppBarChrome() {
+        binding.quickTextsAppbar.apply {
+            setBackgroundColor(Color.TRANSPARENT)
+            elevation = 0f
+            stateListAnimator = null
+            setLiftOnScrollColor(null)
         }
-        binding.quickTextsAppbar.searchBeVisibleIf(false)
+        binding.quickTextsActionModeToolbar.setBackgroundColor(Color.TRANSPARENT)
     }
 
-    private fun setupOptionsMenu() {
-        binding.quickTextsAppbar.requireCustomToolbar().apply {
-            menu.clear()
-            inflateMenu(R.menu.menu_add_quick_text)
-            updateMenuItemColors(menu)
+    private fun setupQuickTextsTopAppBar() {
+        binding.quickTextsAppbar.setTitle(getString(R.string.manage_quick_texts))
+
+        binding.quickTextsAppbar.getBackArrow()?.apply {
+            bindBlurTarget(this@ManageQuickTextsActivity, binding.mainBlurTarget)
             setOnMenuItemClickListener { menuItem ->
-                when (menuItem.itemId) {
-                    R.id.add_quick_text -> {
-                        addOrEditQuickText()
-                        true
-                    }
-
-                    R.id.export_quick_texts -> {
-                        tryExportQuickTexts()
-                        true
-                    }
-
-                    R.id.import_quick_texts -> {
-                        tryImportQuickTexts()
-                        true
-                    }
-
-                    R.id.select_quick_text -> {
-                        val adapter = binding.manageQuickTextsList.adapter as? ManageQuickTextsAdapter
-                        if (adapter != null && adapter.itemCount > 0) {
-                            adapter.startActMode()
-                        }
-                        true
-                    }
-
-                    else -> false
+                if (menuItem.itemId == com.android.common.R.id.back_arrow) {
+                    hideKeyboard()
+                    finish()
+                    true
+                } else {
+                    false
                 }
             }
-            invalidateMenu()
         }
-        binding.quickTextsAppbar.getActionModeToolbar().bindBlurTarget(
-            this,
-            binding.mainBlurTarget,
-        )
+
+        binding.quickTextsAppbar.getSearchView()?.visibility = View.GONE
+        binding.quickTextsAppbar.getActionBarView()?.let(::setupQuickTextsActionBarMenu)
+        applyTransparentMAppBarChrome()
+    }
+
+    private fun setupQuickTextsActionBarMenu(actionBar: MActionBar) {
+        actionBar.bindBlurTarget(this, binding.mainBlurTarget)
+        actionBar.setPosition("right")
+        actionBar.inflateMenu(R.menu.menu_add_quick_text)
+        actionBar.setOnMenuItemClickListener { menuItem ->
+            when (menuItem.itemId) {
+                R.id.add_quick_text -> {
+                    addOrEditQuickText()
+                    true
+                }
+
+                R.id.export_quick_texts -> {
+                    tryExportQuickTexts()
+                    true
+                }
+
+                R.id.import_quick_texts -> {
+                    tryImportQuickTexts()
+                    true
+                }
+
+                R.id.select_quick_text -> {
+                    val adapter = binding.manageQuickTextsList.adapter as? ManageQuickTextsAdapter
+                    if (adapter != null && adapter.itemCount > 0) {
+                        adapter.startActMode()
+                    }
+                    true
+                }
+
+                else -> false
+            }
+        }
+    }
+
+    private fun setupNestBouncyScroll() {
+        val list = binding.manageQuickTextsList
+        list.setOnScrollChangeListener { _, _, _, _, _ ->
+            applyTransparentMAppBarChrome()
+            binding.mVerticalSideFrameTop.update()
+        }
+        list.onOverscrollTranslationChanged = { overScrolledDistance ->
+            val overscrollTranslation = overScrolledDistance * NEST_BOUNCY_OVERSCROLL_FACTOR
+            binding.quickTextsAppbar.translationY = overscrollTranslation
+        }
     }
 
     private val createDocument =
@@ -476,5 +511,9 @@ class ManageQuickTextsActivity : SimpleActivity(), RefreshRecyclerViewListener, 
         dialog.window?.decorView?.findViewById<EditText>(com.android.common.R.id.input_text)?.let { et ->
             et.post { showKeyboard(et) }
         }
+    }
+
+    companion object {
+        private const val NEST_BOUNCY_OVERSCROLL_FACTOR = 0.35f
     }
 }
