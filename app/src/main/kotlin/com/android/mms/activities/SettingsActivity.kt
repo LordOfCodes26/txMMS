@@ -211,20 +211,9 @@ class SettingsActivity : SimpleActivity() {
             setBackgroundColor(Color.TRANSPARENT)
             elevation = 0f
             stateListAnimator = null
-            for (i in 0 until childCount) {
-                when (val child = getChildAt(i)) {
-                    is CollapsingToolbarLayout -> {
-                        child.setBackgroundColor(Color.TRANSPARENT)
-                        child.setContentScrimColor(Color.TRANSPARENT)
-                        child.setStatusBarScrimColor(Color.TRANSPARENT)
-                        for (j in 0 until child.childCount) {
-                            child.getChildAt(j).setBackgroundColor(Color.TRANSPARENT)
-                        }
-                    }
-                    is Toolbar -> child.setBackgroundColor(Color.TRANSPARENT)
-                    else -> child.setBackgroundColor(Color.TRANSPARENT)
-                }
-            }
+            // Prevent AppBarLayout's lift-on-scroll elevation-overlay animation from calling
+            // setBackgroundColor(solidSurfaceColor) during collapse/expand, which causes the flash.
+            setLiftOnScrollColor(null)
         }
     }
 
@@ -241,7 +230,7 @@ class SettingsActivity : SimpleActivity() {
         scroll.setOnOverScrollListener { _, overScrolledDistance ->
             val overscrollTranslation = overScrolledDistance * NEST_BOUNCY_OVERSCROLL_FACTOR
             binding.settingsMenu.translationY = overscrollTranslation
-            binding.mVerticalSideFrameTop.translationY = overscrollTranslation
+            // binding.mVerticalSideFrameTop.update()
         }
     }
 

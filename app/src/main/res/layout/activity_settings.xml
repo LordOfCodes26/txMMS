@@ -29,8 +29,7 @@
                 android:paddingTop="@dimen/tx_nest_bouncy_content_padding_top"
                 android:clipToPadding="false"
                 android:fillViewport="true"
-                android:scrollbars="none"
-                app:layout_behavior="@string/appbar_scrolling_view_behavior">
+                android:scrollbars="none">
 
                 <LinearLayout
                         android:id="@+id/settings_holder"
@@ -791,6 +790,7 @@
             android:layout_height="@dimen/tx_top_bar_expand_height"
             android:background="@color/transparent"
             app:elevation="0dp"
+            app:liftOnScroll="false"
             app:titleText="@string/settings" />
 
         <com.android.common.view.MVSideFrame
