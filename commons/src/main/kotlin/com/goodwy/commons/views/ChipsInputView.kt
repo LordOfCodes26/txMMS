@@ -5,6 +5,7 @@ import android.content.res.ColorStateList
 import android.graphics.Outline
 import android.graphics.drawable.GradientDrawable
 import android.text.Editable
+import android.text.InputType
 import android.text.TextUtils
 import android.text.TextWatcher
 import android.util.AttributeSet
@@ -15,6 +16,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.ViewOutlineProvider
+import android.view.inputmethod.BaseInputConnection
 import android.view.inputmethod.EditorInfo
 import android.widget.FrameLayout
 import android.widget.ImageView
@@ -116,6 +118,8 @@ class ChipsInputView @JvmOverloads constructor(
     }
 
     private fun setupEditText() {
+        editText.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE
+
         editText.setOnEditorActionListener { _, actionId, event ->
             if (actionId == EditorInfo.IME_ACTION_DONE ||
                 (event != null && event.keyCode == KeyEvent.KEYCODE_ENTER && event.action == KeyEvent.ACTION_DOWN)) {
@@ -148,7 +152,7 @@ class ChipsInputView @JvmOverloads constructor(
                 if (text.endsWith(",") || text.endsWith(";")) {
                     val trimmed = text.dropLast(1).trim()
                     if (trimmed.isNotEmpty()) {
-                        editText.setText("")
+                        editText.text?.clear()
                         addChip(trimmed)
                     }
                 } else {
@@ -189,7 +193,7 @@ class ChipsInputView @JvmOverloads constructor(
     private fun addChipFromText() {
         val text = editText.text?.toString()?.trim() ?: ""
         if (text.isNotEmpty() && addChip(text)) {
-            editText.setText("")
+            editText.text?.clear()
         }
     }
 
@@ -213,7 +217,7 @@ class ChipsInputView @JvmOverloads constructor(
     }
 
     fun clearText() {
-        editText.setText("")
+        editText.text?.clear()
     }
 
     fun setText(text: String) {

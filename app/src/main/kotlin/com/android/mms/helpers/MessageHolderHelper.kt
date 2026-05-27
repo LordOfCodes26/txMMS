@@ -8,6 +8,7 @@ import android.os.Handler
 import android.os.Looper
 import android.telephony.SmsManager
 import android.telephony.SmsMessage
+import android.text.InputType
 import android.util.TypedValue
 import android.view.KeyEvent
 import android.view.ViewGroup
@@ -167,7 +168,10 @@ class MessageHolderHelper(
             }
 
             if (activity.config.sendOnEnter) {
-                threadTypeMessage.inputType = EditorInfo.TYPE_TEXT_FLAG_CAP_SENTENCES
+                // Keep TYPE_CLASS_TEXT and MULTI_LINE — setting only CAP_SENTENCES breaks CJK IMEs.
+                threadTypeMessage.inputType = InputType.TYPE_CLASS_TEXT or
+                    InputType.TYPE_TEXT_FLAG_CAP_SENTENCES or
+                    InputType.TYPE_TEXT_FLAG_MULTI_LINE
                 threadTypeMessage.imeOptions = EditorInfo.IME_ACTION_SEND
                 threadTypeMessage.setOnEditorActionListener { _, action, _ ->
                     if (action == EditorInfo.IME_ACTION_SEND) {
