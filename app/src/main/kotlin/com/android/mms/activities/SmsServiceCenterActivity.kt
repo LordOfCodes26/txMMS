@@ -13,22 +13,17 @@ import android.widget.LinearLayout
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 import com.android.common.dialogs.MRenameDialog
 import com.android.mms.R
 import com.android.mms.databinding.ActivitySmsServiceCenterBinding
 import com.android.mms.databinding.ItemSmsServiceCenterSimBinding
-import com.android.mms.extensions.applyLargeTitleOnly
-import com.android.mms.extensions.clearMySearchMenuSpringSync
-import com.android.mms.extensions.config
-import com.android.mms.extensions.postSyncMySearchMenuToolbarGeometry
-import com.android.mms.extensions.setupMySearchMenuSpringSync
 import com.android.mms.extensions.subscriptionManagerCompat
 import com.android.mms.helpers.resolveSimIconTint
 import com.android.mms.models.SIMCard
 import com.goodwy.commons.extensions.applyColorFilter
 import com.goodwy.commons.extensions.beGone
 import com.goodwy.commons.extensions.beVisible
-import com.goodwy.commons.extensions.getColoredDrawableWithColor
 import com.goodwy.commons.extensions.getProperBackgroundColor
 import com.goodwy.commons.extensions.getProperTextColor
 import com.goodwy.commons.extensions.getSurfaceColor
@@ -51,27 +46,18 @@ class SmsServiceCenterActivity : SimpleActivity() {
         initTheme()
         setupEdgeToEdge()
         makeSystemBarsToTransparent()
-        setupTopBar()
+        setupSmsServiceCenterTopAppBar()
+        setupNestBouncyScroll()
         applyWindowSurfaces()
         loadSimRows()
+        scrollingView = binding.nestScroll
+        binding.smsServiceCenterAppbar.addOnOffsetChangedListener { _, _ ->
+            binding.mVerticalSideFrameTop.update()
+        }
         binding.nestScroll.post {
-            postSyncMySearchMenuToolbarGeometry(
-                binding.root,
-                binding.smsServiceCenterAppbar,
-                binding.mainBlurTarget,
-                binding.mVerticalSideFrameTop,
-                binding.simServiceCenterWrapper,
-            )
-            setupMySearchMenuSpringSync(binding.smsServiceCenterAppbar, null)
-            if (config.changeColourTopBar) {
-                scrollingView = binding.nestScroll
-                val useSurfaceColor = isDynamicTheme() && !isSystemInDarkMode()
-                setupSearchMenuScrollListener(
-                    binding.nestScroll,
-                    binding.smsServiceCenterAppbar,
-                    useSurfaceColor,
-                )
-            }
+            binding.smsServiceCenterAppbar.dismissCollapse()
+            applyTransparentMAppBarChrome()
+            refreshSideFrameBlurAndInsets()
         }
     }
 
@@ -90,13 +76,10 @@ class SmsServiceCenterActivity : SimpleActivity() {
         }
         applyWindowSurfaces()
         updateTextColors(binding.rootView)
-        setupTopBar()
+        setupSmsServiceCenterTopAppBar()
+        binding.smsServiceCenterAppbar.translationY = 0f
+        applyTransparentMAppBarChrome()
         refreshSideFrameBlurAndInsets()
-    }
-
-    override fun onDestroy() {
-        clearMySearchMenuSpringSync(binding.smsServiceCenterAppbar, null)
-        super.onDestroy()
     }
 
     private fun initTheme() {
@@ -106,7 +89,10 @@ class SmsServiceCenterActivity : SimpleActivity() {
 
     private fun makeSystemBarsToTransparent() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
-        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets -> insets }
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
+            insets.getInsets(WindowInsetsCompat.Type.navigationBars())
+            insets
+        }
     }
 
     private fun applyWindowSurfaces() {
@@ -115,13 +101,9 @@ class SmsServiceCenterActivity : SimpleActivity() {
         binding.root.setBackgroundColor(backgroundColor)
         binding.rootView.setBackgroundColor(backgroundColor)
         binding.mainBlurTarget.setBackgroundColor(backgroundColor)
+        binding.nestScroll.setBackgroundColor(Color.TRANSPARENT)
         scrollingView = binding.nestScroll
-        binding.smsServiceCenterAppbar.updateColors(
-            getStartRequiredStatusBarColor(),
-            scrollingView?.computeVerticalScrollOffset() ?: 0,
-        )
-        binding.smsServiceCenterAppbar.setBackgroundColor(Color.TRANSPARENT)
-        binding.smsServiceCenterAppbar.binding.searchBarContainer.setBackgroundColor(Color.TRANSPARENT)
+        applyTransparentMAppBarChrome()
     }
 
     /** BlurView + MVSideFrame can stop updating after another activity was shown; re-apply insets and re-bind. */
@@ -130,36 +112,56 @@ class SmsServiceCenterActivity : SimpleActivity() {
             ViewCompat.requestApplyInsets(binding.root)
             binding.mVerticalSideFrameTop.bindBlurTarget(binding.mainBlurTarget)
             binding.mVerticalSideFrameBottom.bindBlurTarget(binding.mainBlurTarget)
-            binding.smsServiceCenterAppbar.requireCustomToolbar().bindBlurTarget(
+            binding.smsServiceCenterAppbar.getBackArrow()?.bindBlurTarget(
                 this@SmsServiceCenterActivity,
                 binding.mainBlurTarget,
             )
-            postSyncMySearchMenuToolbarGeometry(
-                binding.root,
-                binding.smsServiceCenterAppbar,
-                binding.mainBlurTarget,
-                binding.mVerticalSideFrameTop,
-                binding.simServiceCenterWrapper,
-            )
+            applyTransparentMAppBarChrome()
+            binding.mVerticalSideFrameTop.update()
         }
     }
 
-    private fun setupTopBar() {
-        binding.smsServiceCenterAppbar.applyLargeTitleOnly(getString(R.string.sms_service_center))
-        binding.smsServiceCenterAppbar.requireCustomToolbar().apply {
-            val textColor = getProperTextColor()
-            navigationIcon = resources.getColoredDrawableWithColor(
-                this@SmsServiceCenterActivity,
-                com.android.common.R.drawable.ic_cmn_arrow_left_fill,
-                textColor,
-            )
-            setNavigationContentDescription(com.goodwy.commons.R.string.back)
-            setNavigationOnClickListener {
-                hideKeyboard()
-                finish()
+    /** Glass top chrome: keep [MAppBarLayout] transparent so [MVSideFrame] blur shows through (txCommon). */
+    private fun applyTransparentMAppBarChrome() {
+        binding.smsServiceCenterAppbar.apply {
+            setBackgroundColor(Color.TRANSPARENT)
+            elevation = 0f
+            stateListAnimator = null
+            setLiftOnScrollColor(null)
+        }
+    }
+
+    private fun setupSmsServiceCenterTopAppBar() {
+        binding.smsServiceCenterAppbar.setTitle(getString(R.string.sms_service_center))
+
+        binding.smsServiceCenterAppbar.getBackArrow()?.apply {
+            bindBlurTarget(this@SmsServiceCenterActivity, binding.mainBlurTarget)
+            setOnMenuItemClickListener { menuItem ->
+                if (menuItem.itemId == com.android.common.R.id.back_arrow) {
+                    hideKeyboard()
+                    finish()
+                    true
+                } else {
+                    false
+                }
             }
         }
-        binding.smsServiceCenterAppbar.searchBeVisibleIf(false)
+
+        binding.smsServiceCenterAppbar.getSearchView()?.visibility = View.GONE
+        binding.smsServiceCenterAppbar.getActionBarView()?.visibility = View.GONE
+        applyTransparentMAppBarChrome()
+    }
+
+    private fun setupNestBouncyScroll() {
+        val scroll = binding.nestScroll
+        scroll.setOnScrollChangeListener { _, _, _, _, _ ->
+            applyTransparentMAppBarChrome()
+            binding.mVerticalSideFrameTop.update()
+        }
+        scroll.setOnOverScrollListener { _, overScrolledDistance ->
+            val overscrollTranslation = overScrolledDistance * NEST_BOUNCY_OVERSCROLL_FACTOR
+            binding.smsServiceCenterAppbar.translationY = overscrollTranslation
+        }
     }
 
     @SuppressLint("MissingPermission")
@@ -228,7 +230,6 @@ class SmsServiceCenterActivity : SimpleActivity() {
             layoutInflater, binding.simServiceCenterRows, false
         )
 
-        // SIM icon
         val simIconRes = when (sim.id) {
             1 -> com.android.common.R.drawable.ic_cmn_sim1
             2 -> com.android.common.R.drawable.ic_cmn_sim2
@@ -241,26 +242,20 @@ class SmsServiceCenterActivity : SimpleActivity() {
             sim.id
         ))
 
-        // Label
         rowBinding.simLabel.text = sim.label
 
-        // Phone number subtitle
         if (sim.number.isNotEmpty()) {
             rowBinding.simNumber.text = sim.number
             rowBinding.simNumber.beVisible()
         }
 
-        // Chevron tint
         rowBinding.simServiceCenterChevron.applyColorFilter(textColor)
 
-        // Ripple background
         rowBinding.simServiceCenterRow.background =
             AppCompatResources.getDrawable(this, R.drawable.ripple_all_corners)
 
-        // Load SMSC in background
         loadSmscForRow(sim, rowBinding)
 
-        // Click to edit
         rowBinding.simServiceCenterRow.setOnClickListener {
             editSmscForSim(sim, rowBinding)
         }
@@ -336,5 +331,9 @@ class SmsServiceCenterActivity : SimpleActivity() {
         if (address.isEmpty()) return true
         return if (address.startsWith("+")) address.drop(1).all { it.isDigit() }
                else address.all { it.isDigit() }
+    }
+
+    companion object {
+        private const val NEST_BOUNCY_OVERSCROLL_FACTOR = 0.35f
     }
 }

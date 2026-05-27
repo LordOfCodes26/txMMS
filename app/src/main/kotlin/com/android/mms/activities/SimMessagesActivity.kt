@@ -10,28 +10,21 @@ import android.view.Gravity
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.view.menu.MenuBuilder
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updateLayoutParams
+import androidx.core.view.updatePadding
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.android.common.dialogs.MConfirmDialog
 import com.android.mms.R
 import com.android.mms.adapters.SimMessageAdapter
 import com.android.mms.databinding.ActivitySimMessagesBinding
-import com.android.mms.extensions.applyLargeTitleOnly
-import com.android.mms.extensions.clearMySearchMenuSpringSync
-import com.android.mms.extensions.config
-import com.android.mms.extensions.postSyncMySearchMenuToolbarGeometry
-import com.android.mms.extensions.setupMySearchMenuSpringSync
-import com.android.mms.models.Message
 import com.android.mms.models.SimMessage
 import com.goodwy.commons.extensions.beGone
 import com.goodwy.commons.extensions.beVisible
-import com.goodwy.commons.extensions.getColoredDrawableWithColor
 import com.goodwy.commons.extensions.getProperBackgroundColor
-import com.goodwy.commons.extensions.getProperTextColor
 import com.goodwy.commons.extensions.getSurfaceColor
 import com.goodwy.commons.extensions.hideKeyboard
 import com.goodwy.commons.extensions.isDynamicTheme
@@ -50,6 +43,7 @@ class SimMessagesActivity : SimpleActivity() {
         const val EXTRA_SIM_LABEL = "sim_label"
 
         private val ICC_URI = Uri.parse("content://sms/icc")
+        private const val NEST_BOUNCY_OVERSCROLL_FACTOR = 0.35f
     }
 
     private lateinit var binding: ActivitySimMessagesBinding
@@ -57,6 +51,7 @@ class SimMessagesActivity : SimpleActivity() {
     private var simLabel: String = ""
     private val messages = mutableListOf<SimMessage>()
     private var adapter: SimMessageAdapter? = null
+    private var simMessagesAppBarVerticalOffset = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -69,29 +64,23 @@ class SimMessagesActivity : SimpleActivity() {
         initTheme()
         setupEdgeToEdge()
         makeSystemBarsToTransparent()
-        setupTopBar()
+        setupSimMessagesTopAppBar()
+        setupNestBouncyScroll()
         applyWindowSurfaces()
         setupRecyclerView()
         loadMessages()
-
+        scrollingView = binding.simMessagesList
+        binding.simMessagesAppbar.addOnOffsetChangedListener { _, verticalOffset ->
+            simMessagesAppBarVerticalOffset = verticalOffset
+            binding.mVerticalSideFrameTop.update()
+            syncListTopPadding()
+        }
         binding.simMessagesList.post {
-            postSyncMySearchMenuToolbarGeometry(
-                binding.root,
-                binding.simMessagesAppbar,
-                binding.mainBlurTarget,
-                binding.mVerticalSideFrameTop,
-                binding.simMessagesList,
-            )
-            setupMySearchMenuSpringSync(binding.simMessagesAppbar, null)
-            if (config.changeColourTopBar) {
-                scrollingView = binding.simMessagesList
-                val useSurfaceColor = isDynamicTheme() && !isSystemInDarkMode()
-                setupSearchMenuScrollListener(
-                    binding.simMessagesList,
-                    binding.simMessagesAppbar,
-                    useSurfaceColor,
-                )
-            }
+            binding.simMessagesAppbar.dismissCollapse()
+            simMessagesAppBarVerticalOffset = 0
+            applyTransparentMAppBarChrome()
+            syncListTopPadding()
+            refreshSideFrameBlurAndInsets()
         }
     }
 
@@ -110,12 +99,15 @@ class SimMessagesActivity : SimpleActivity() {
         }
         applyWindowSurfaces()
         updateTextColors(binding.root)
-        setupTopBar()
+        setupSimMessagesTopAppBar()
+        binding.simMessagesAppbar.translationY = 0f
+        applyTransparentMAppBarChrome()
+        syncListTopPadding()
         refreshSideFrameBlurAndInsets()
     }
 
     override fun onDestroy() {
-        clearMySearchMenuSpringSync(binding.simMessagesAppbar, null)
+        binding.simMessagesList.onOverscrollTranslationChanged = null
         super.onDestroy()
     }
 
@@ -126,7 +118,10 @@ class SimMessagesActivity : SimpleActivity() {
 
     private fun makeSystemBarsToTransparent() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
-        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets -> insets }
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
+            insets.getInsets(WindowInsetsCompat.Type.navigationBars())
+            insets
+        }
     }
 
     private fun applyWindowSurfaces() {
@@ -134,13 +129,9 @@ class SimMessagesActivity : SimpleActivity() {
         val backgroundColor = if (useSurfaceColor) getSurfaceColor() else getProperBackgroundColor()
         binding.root.setBackgroundColor(backgroundColor)
         binding.mainBlurTarget.setBackgroundColor(backgroundColor)
+        binding.simMessagesList.setBackgroundColor(backgroundColor)
         scrollingView = binding.simMessagesList
-        binding.simMessagesAppbar.updateColors(
-            getStartRequiredStatusBarColor(),
-            scrollingView?.computeVerticalScrollOffset() ?: 0,
-        )
-        binding.simMessagesAppbar.setBackgroundColor(Color.TRANSPARENT)
-        binding.simMessagesAppbar.binding.searchBarContainer.setBackgroundColor(Color.TRANSPARENT)
+        applyTransparentMAppBarChrome()
     }
 
     /** BlurView + MVSideFrame can stop updating after another activity was shown; re-apply insets and re-bind. */
@@ -149,36 +140,86 @@ class SimMessagesActivity : SimpleActivity() {
             ViewCompat.requestApplyInsets(binding.root)
             binding.mVerticalSideFrameTop.bindBlurTarget(binding.mainBlurTarget)
             binding.mVerticalSideFrameBottom.bindBlurTarget(binding.mainBlurTarget)
-            binding.simMessagesAppbar.requireCustomToolbar().bindBlurTarget(
+            binding.simMessagesAppbar.getBackArrow()?.bindBlurTarget(
                 this@SimMessagesActivity,
                 binding.mainBlurTarget,
             )
-            postSyncMySearchMenuToolbarGeometry(
-                binding.root,
-                binding.simMessagesAppbar,
+            binding.simMessagesAppbar.getActionBarView()?.bindBlurTarget(
+                this@SimMessagesActivity,
                 binding.mainBlurTarget,
-                binding.mVerticalSideFrameTop,
-                binding.simMessagesList,
             )
+            applyTransparentMAppBarChrome()
+            binding.mVerticalSideFrameTop.update()
         }
     }
 
-    private fun setupTopBar() {
-        binding.simMessagesAppbar.applyLargeTitleOnly(simLabel)
-        binding.simMessagesAppbar.requireCustomToolbar().apply {
-            val textColor = getProperTextColor()
-            navigationIcon = resources.getColoredDrawableWithColor(
-                this@SimMessagesActivity,
-                com.android.common.R.drawable.ic_cmn_arrow_left_fill,
-                textColor,
-            )
-            setNavigationContentDescription(com.goodwy.commons.R.string.back)
-            setNavigationOnClickListener {
-                hideKeyboard()
-                finish()
+    /** Glass top chrome: keep [MAppBarLayout] transparent so [MVSideFrame] blur shows through (txCommon). */
+    private fun applyTransparentMAppBarChrome() {
+        binding.simMessagesAppbar.apply {
+            setBackgroundColor(Color.TRANSPARENT)
+            elevation = 0f
+            stateListAnimator = null
+            setLiftOnScrollColor(null)
+        }
+    }
+
+    private fun setupSimMessagesTopAppBar() {
+        binding.simMessagesAppbar.setTitle(simLabel)
+
+        binding.simMessagesAppbar.getBackArrow()?.apply {
+            bindBlurTarget(this@SimMessagesActivity, binding.mainBlurTarget)
+            setOnMenuItemClickListener { menuItem ->
+                if (menuItem.itemId == com.android.common.R.id.back_arrow) {
+                    hideKeyboard()
+                    finish()
+                    true
+                } else {
+                    false
+                }
             }
         }
-        binding.simMessagesAppbar.searchBeVisibleIf(false)
+
+        binding.simMessagesAppbar.getSearchView()?.visibility = View.GONE
+        binding.simMessagesAppbar.getActionBarView()?.visibility = View.GONE
+        applyTransparentMAppBarChrome()
+    }
+
+    /** Pinned toolbar row height when [MAppBarLayout] is fully collapsed (txCommon). */
+    private fun getCollapsedAppBarHeightPx(): Int =
+        resources.getDimensionPixelSize(com.android.common.R.dimen.tx_top_bar_toolbar_margin_top) +
+            resources.getDimensionPixelSize(com.android.common.R.dimen.tx_top_bar_toolbar_height)
+
+    private fun getExpandedAppBarHeightPx(): Int =
+        resources.getDimensionPixelSize(com.android.common.R.dimen.tx_nest_bouncy_content_padding_top)
+
+    private fun listTopPaddingForAppBarOffset(verticalOffset: Int): Int {
+        val expanded = getExpandedAppBarHeightPx()
+        val collapsed = getCollapsedAppBarHeightPx()
+        val totalRange = binding.simMessagesAppbar.totalScrollRange
+        if (totalRange <= 0) return expanded
+        val collapseFraction = (
+            kotlin.math.abs(verticalOffset).toFloat() / totalRange.toFloat()
+            ).coerceIn(0f, 1f)
+        return kotlin.math.round(collapsed + (expanded - collapsed) * (1f - collapseFraction)).toInt()
+    }
+
+    /** Keep list content aligned with visible top chrome (expanded / collapsed). */
+    private fun syncListTopPadding() {
+        val topPad = listTopPaddingForAppBarOffset(simMessagesAppBarVerticalOffset)
+        binding.simMessagesList.updatePadding(top = topPad)
+        binding.simMessagesEmptyHolder.updatePadding(top = topPad)
+    }
+
+    private fun setupNestBouncyScroll() {
+        val list = binding.simMessagesList
+        list.setOnScrollChangeListener { _, _, _, _, _ ->
+            applyTransparentMAppBarChrome()
+            binding.mVerticalSideFrameTop.update()
+        }
+        list.onOverscrollTranslationChanged = { overScrolledDistance ->
+            val overscrollTranslation = overScrolledDistance * NEST_BOUNCY_OVERSCROLL_FACTOR
+            binding.simMessagesAppbar.translationY = overscrollTranslation
+        }
     }
 
     private fun setupRecyclerView() {
@@ -259,10 +300,6 @@ class SimMessagesActivity : SimpleActivity() {
 
     @SuppressLint("RestrictedApi")
     private fun showMessageOptions(message: SimMessage, view: View) {
-//        val options = arrayOf(
-//            getString(R.string.sim_copy_to_phone),
-//            getString(R.string.sim_delete_message),
-//        )
         val menu = MenuBuilder(this)
         menu.add(1, 0, 0, R.string.sim_copy_to_phone)
         menu.add(1, 1, 1, R.string.sim_delete_message)
@@ -284,14 +321,6 @@ class SimMessagesActivity : SimpleActivity() {
                 true
             },
         )
-//        AlertDialog.Builder(this)
-//            .setItems(options) { _, which ->
-//                when (which) {
-//                    0 -> copyToPhone(message)
-//                    1 -> confirmDelete(message)
-//                }
-//            }
-//            .show()
     }
 
     private fun copyToPhone(message: SimMessage) {
@@ -322,15 +351,6 @@ class SimMessagesActivity : SimpleActivity() {
                 deleteFromSim(message)
             }
         }
-//        dialog.show()
-//        AlertDialog.Builder(this)
-//            .setTitle(R.string.sim_delete_message)
-//            .setMessage(R.string.sim_confirm_delete)
-//            .setPositiveButton(com.goodwy.commons.R.string.yes) { _, _ ->
-//                deleteFromSim(message)
-//            }
-//            .setNegativeButton(com.goodwy.commons.R.string.no, null)
-//            .show()
     }
 
     private fun showMConfirmDialog(question: String, onConfirm: () -> Unit) {

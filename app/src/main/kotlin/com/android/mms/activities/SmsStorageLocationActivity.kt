@@ -9,14 +9,11 @@ import android.widget.LinearLayout
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 import com.android.mms.R
 import com.android.mms.databinding.ActivitySmsStorageLocationBinding
 import com.android.mms.databinding.ItemSmsStorageLocationSimBinding
-import com.android.mms.extensions.applyLargeTitleOnly
-import com.android.mms.extensions.clearMySearchMenuSpringSync
 import com.android.mms.extensions.config
-import com.android.mms.extensions.postSyncMySearchMenuToolbarGeometry
-import com.android.mms.extensions.setupMySearchMenuSpringSync
 import com.android.mms.extensions.subscriptionManagerCompat
 import com.android.mms.helpers.SMS_SAVE_LOCATION_PHONE
 import com.android.mms.helpers.SMS_SAVE_LOCATION_SIM
@@ -26,7 +23,6 @@ import com.goodwy.commons.dialogs.RadioGroupDialog
 import com.goodwy.commons.extensions.applyColorFilter
 import com.goodwy.commons.extensions.beGone
 import com.goodwy.commons.extensions.beVisible
-import com.goodwy.commons.extensions.getColoredDrawableWithColor
 import com.goodwy.commons.extensions.getProperBackgroundColor
 import com.goodwy.commons.extensions.getProperTextColor
 import com.goodwy.commons.extensions.getSurfaceColor
@@ -48,27 +44,18 @@ class SmsStorageLocationActivity : SimpleActivity() {
         initTheme()
         setupEdgeToEdge()
         makeSystemBarsToTransparent()
-        setupTopBar()
+        setupSmsStorageLocationTopAppBar()
+        setupNestBouncyScroll()
         applyWindowSurfaces()
         loadSimRows()
+        scrollingView = binding.nestScroll
+        binding.smsStorageLocationAppbar.addOnOffsetChangedListener { _, _ ->
+            binding.mVerticalSideFrameTop.update()
+        }
         binding.nestScroll.post {
-            postSyncMySearchMenuToolbarGeometry(
-                binding.root,
-                binding.smsStorageLocationAppbar,
-                binding.mainBlurTarget,
-                binding.mVerticalSideFrameTop,
-                binding.storageLocationWrapper,
-            )
-            setupMySearchMenuSpringSync(binding.smsStorageLocationAppbar, null)
-            if (config.changeColourTopBar) {
-                scrollingView = binding.nestScroll
-                val useSurfaceColor = isDynamicTheme() && !isSystemInDarkMode()
-                setupSearchMenuScrollListener(
-                    binding.nestScroll,
-                    binding.smsStorageLocationAppbar,
-                    useSurfaceColor,
-                )
-            }
+            binding.smsStorageLocationAppbar.dismissCollapse()
+            applyTransparentMAppBarChrome()
+            refreshSideFrameBlurAndInsets()
         }
     }
 
@@ -87,13 +74,10 @@ class SmsStorageLocationActivity : SimpleActivity() {
         }
         applyWindowSurfaces()
         updateTextColors(binding.rootView)
-        setupTopBar()
+        setupSmsStorageLocationTopAppBar()
+        binding.smsStorageLocationAppbar.translationY = 0f
+        applyTransparentMAppBarChrome()
         refreshSideFrameBlurAndInsets()
-    }
-
-    override fun onDestroy() {
-        clearMySearchMenuSpringSync(binding.smsStorageLocationAppbar, null)
-        super.onDestroy()
     }
 
     private fun initTheme() {
@@ -103,7 +87,10 @@ class SmsStorageLocationActivity : SimpleActivity() {
 
     private fun makeSystemBarsToTransparent() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
-        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets -> insets }
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
+            insets.getInsets(WindowInsetsCompat.Type.navigationBars())
+            insets
+        }
     }
 
     private fun applyWindowSurfaces() {
@@ -112,13 +99,9 @@ class SmsStorageLocationActivity : SimpleActivity() {
         binding.root.setBackgroundColor(backgroundColor)
         binding.rootView.setBackgroundColor(backgroundColor)
         binding.mainBlurTarget.setBackgroundColor(backgroundColor)
+        binding.nestScroll.setBackgroundColor(Color.TRANSPARENT)
         scrollingView = binding.nestScroll
-        binding.smsStorageLocationAppbar.updateColors(
-            getStartRequiredStatusBarColor(),
-            scrollingView?.computeVerticalScrollOffset() ?: 0,
-        )
-        binding.smsStorageLocationAppbar.setBackgroundColor(Color.TRANSPARENT)
-        binding.smsStorageLocationAppbar.binding.searchBarContainer.setBackgroundColor(Color.TRANSPARENT)
+        applyTransparentMAppBarChrome()
     }
 
     /** BlurView + MVSideFrame can stop updating after another activity was shown; re-apply insets and re-bind. */
@@ -127,36 +110,56 @@ class SmsStorageLocationActivity : SimpleActivity() {
             ViewCompat.requestApplyInsets(binding.root)
             binding.mVerticalSideFrameTop.bindBlurTarget(binding.mainBlurTarget)
             binding.mVerticalSideFrameBottom.bindBlurTarget(binding.mainBlurTarget)
-            binding.smsStorageLocationAppbar.requireCustomToolbar().bindBlurTarget(
+            binding.smsStorageLocationAppbar.getBackArrow()?.bindBlurTarget(
                 this@SmsStorageLocationActivity,
                 binding.mainBlurTarget,
             )
-            postSyncMySearchMenuToolbarGeometry(
-                binding.root,
-                binding.smsStorageLocationAppbar,
-                binding.mainBlurTarget,
-                binding.mVerticalSideFrameTop,
-                binding.storageLocationWrapper,
-            )
+            applyTransparentMAppBarChrome()
+            binding.mVerticalSideFrameTop.update()
         }
     }
 
-    private fun setupTopBar() {
-        binding.smsStorageLocationAppbar.applyLargeTitleOnly(getString(R.string.sms_storage_location))
-        binding.smsStorageLocationAppbar.requireCustomToolbar().apply {
-            val textColor = getProperTextColor()
-            navigationIcon = resources.getColoredDrawableWithColor(
-                this@SmsStorageLocationActivity,
-                com.android.common.R.drawable.ic_cmn_arrow_left_fill,
-                textColor,
-            )
-            setNavigationContentDescription(com.goodwy.commons.R.string.back)
-            setNavigationOnClickListener {
-                hideKeyboard()
-                finish()
+    /** Glass top chrome: keep [MAppBarLayout] transparent so [MVSideFrame] blur shows through (txCommon). */
+    private fun applyTransparentMAppBarChrome() {
+        binding.smsStorageLocationAppbar.apply {
+            setBackgroundColor(Color.TRANSPARENT)
+            elevation = 0f
+            stateListAnimator = null
+            setLiftOnScrollColor(null)
+        }
+    }
+
+    private fun setupSmsStorageLocationTopAppBar() {
+        binding.smsStorageLocationAppbar.setTitle(getString(R.string.sms_storage_location))
+
+        binding.smsStorageLocationAppbar.getBackArrow()?.apply {
+            bindBlurTarget(this@SmsStorageLocationActivity, binding.mainBlurTarget)
+            setOnMenuItemClickListener { menuItem ->
+                if (menuItem.itemId == com.android.common.R.id.back_arrow) {
+                    hideKeyboard()
+                    finish()
+                    true
+                } else {
+                    false
+                }
             }
         }
-        binding.smsStorageLocationAppbar.searchBeVisibleIf(false)
+
+        binding.smsStorageLocationAppbar.getSearchView()?.visibility = View.GONE
+        binding.smsStorageLocationAppbar.getActionBarView()?.visibility = View.GONE
+        applyTransparentMAppBarChrome()
+    }
+
+    private fun setupNestBouncyScroll() {
+        val scroll = binding.nestScroll
+        scroll.setOnScrollChangeListener { _, _, _, _, _ ->
+            applyTransparentMAppBarChrome()
+            binding.mVerticalSideFrameTop.update()
+        }
+        scroll.setOnOverScrollListener { _, overScrolledDistance ->
+            val overscrollTranslation = overScrolledDistance * NEST_BOUNCY_OVERSCROLL_FACTOR
+            binding.smsStorageLocationAppbar.translationY = overscrollTranslation
+        }
     }
 
     @SuppressLint("MissingPermission")
@@ -282,10 +285,14 @@ class SmsStorageLocationActivity : SimpleActivity() {
             currentLocation,
             R.string.sms_storage_location,
             blurTarget = blurTarget,
-            requireConfirmButton =true,
+            requireConfirmButton = true,
         ) { selected ->
             config.setSmsStorageLocation(sim.subscriptionId, selected as Int)
             updateRowValue(sim.subscriptionId, rowBinding)
         }
+    }
+
+    companion object {
+        private const val NEST_BOUNCY_OVERSCROLL_FACTOR = 0.35f
     }
 }
