@@ -4,37 +4,34 @@ import android.annotation.SuppressLint
 import android.content.Intent
 import android.media.AudioManager
 import android.net.Uri
-import android.telephony.SmsManager
-import android.telephony.SmsMessage
 import android.os.Handler
 import android.os.Looper
+import android.telephony.SmsManager
+import android.telephony.SmsMessage
 import android.util.TypedValue
-import android.view.Gravity
 import android.view.KeyEvent
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
-import android.widget.LinearLayout
 import android.widget.Toast
+import androidx.core.content.res.ResourcesCompat
 import androidx.core.net.toUri
 import androidx.core.view.updateLayoutParams
-import java.io.File
-import androidx.core.content.res.ResourcesCompat
-import androidx.constraintlayout.widget.ConstraintLayout.LayoutParams as ClLayoutParams
-import com.android.mms.emoji.ChatPaneEmoji
-import com.android.mms.emoji.Ch350EmojiBootstrap
-import com.android.mms.emoji.RepeatListener
 import com.android.common.dialogs.MDateTimePickerDialog
-import com.goodwy.commons.activities.BaseSimpleActivity
 import com.android.mms.R
+import com.android.mms.activities.NewConversationActivity
 import com.android.mms.activities.SimpleActivity
 import com.android.mms.adapters.AttachmentsAdapter
 import com.android.mms.databinding.LayoutThreadSendMessageHolderBinding
 import com.android.mms.dialogs.SelectSIMDialog
+import com.android.mms.emoji.Ch350EmojiBootstrap
+import com.android.mms.emoji.ChatPaneEmoji
+import com.android.mms.emoji.RepeatListener
 import com.android.mms.extensions.*
 import com.android.mms.models.Attachment
 import com.android.mms.models.AttachmentSelection
 import com.android.mms.models.DraftStoredAttachment
 import com.android.mms.models.SIMCard
+import com.goodwy.commons.activities.BaseSimpleActivity
 import com.goodwy.commons.dialogs.RadioGroupDialog
 import com.goodwy.commons.extensions.*
 import com.goodwy.commons.helpers.*
@@ -42,6 +39,7 @@ import com.goodwy.commons.models.RadioItem
 import douglasspgyn.com.github.circularcountdown.CircularCountdown
 import douglasspgyn.com.github.circularcountdown.listener.CircularListener
 import eightbitlab.com.blurview.BlurTarget
+import java.io.File
 
 class MessageHolderHelper(
     private val activity: BaseSimpleActivity,
@@ -145,7 +143,10 @@ class MessageHolderHelper(
 
             threadTypeMessage.onTextChangeListener {
                 onTextChanged?.invoke(it)
-                checkSendMessageAvailability()
+                var activityName = "Thread"
+                if (activity is NewConversationActivity)
+                    activityName = "New"
+                checkSendMessageAvailability(activityName = activityName)
                 if (activity.config.showCharacterCounter) {
                     if (it.isEmpty()) {
                         composeUiHandler.removeCallbacks(debouncedRefreshCharacterCounter)
@@ -364,11 +365,16 @@ class MessageHolderHelper(
         }
     }
 
-    fun checkSendMessageAvailability() {
+    // changed by sun
+    // added params
+    // why in newConversationActivity send message button has to disable if newConversationAddress and message are empty.
+    // and in ThreadActivity only message is empty
+    fun checkSendMessageAvailability(addressStr: String = "", activityName: String = "Thread") {
         val selections = getAttachmentSelections()
         val hasReadyAttachments = selections.isNotEmpty() && !selections.any { it.isPending }
         val hasText = binding.threadTypeMessage.text?.isNotEmpty() == true
-        val canSend = hasText || hasReadyAttachments
+        val hasAddress = (!addressStr.isEmpty() && activityName == "New") || (addressStr.isEmpty() && activityName == "Thread")
+        val canSend = (hasText || hasReadyAttachments) && hasAddress
 
         val newMode = when {
             canSend -> ComposeSendMode.SEND

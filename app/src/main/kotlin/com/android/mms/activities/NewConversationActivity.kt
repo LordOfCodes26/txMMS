@@ -95,7 +95,7 @@ class NewConversationActivity : SimpleActivity() {
     private var messageHolderHelper: MessageHolderHelper? = null
     private var expandedMessageFragment: com.android.mms.fragments.ExpandedMessageFragment? = null
     // Map to store chip display text -> phone number mapping
-    private val chipDisplayToPhoneNumber = mutableMapOf<String, String>()
+    public val chipDisplayToPhoneNumber = mutableMapOf<String, String>()
     // Flag to prevent recursive calls when updating chips
     private var isUpdatingChips = false
     private val availableSIMCards = ArrayList<SIMCard>()
@@ -810,6 +810,7 @@ class NewConversationActivity : SimpleActivity() {
         binding.newConversationAddress.setOnTextChangedListener { searchString ->
             updateSuggestionsOverlayVisibility(searchString)
 
+            messageHolderHelper?.checkSendMessageAvailability(addressStr = searchString, activityName = "New")
             if (searchString.isEmpty()) {
                 recipientSearchThrottleRunnable?.let { recipientSearchHandler.removeCallbacks(it) }
                 recipientSearchThrottleRunnable = null
