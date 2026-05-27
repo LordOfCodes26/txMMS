@@ -13,6 +13,7 @@
         android:layout_width="@dimen/select_sim_dialog_width"
         android:layout_height="@dimen/select_sim_dialog_height"
         android:background="@drawable/rectangle"
+        android:backgroundTint="@color/tx_card_bg"
         android:orientation="vertical"
         android:paddingVertical="@dimen/select_sim_dialog_padding"
         android:visibility="gone">
