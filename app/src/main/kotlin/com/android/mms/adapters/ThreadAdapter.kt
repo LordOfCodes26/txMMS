@@ -1197,7 +1197,7 @@ class ThreadAdapter(
         message: Message,
         textColor: Int
     ) {
-        val timeStr = (message.date * 1000L).formatTime(activity, "H:m")
+        val timeStr = (message.date * 1000L).formatTime(activity, "HH:mm")
         messageBinding.threadMessageTime.apply {
             text = timeStr
             setTextSize(TypedValue.COMPLEX_UNIT_PX, fontSizeSmall)
