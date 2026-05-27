@@ -860,14 +860,14 @@ class ThreadAdapter(
 //            }
 //        })
 
-        if (numbersList.isNotEmpty()) {
-            val range = if (numbersList.size > 7) 0..7 else 0 until numbersList.size
-            for (index in range) {
-                val number = numbersList[index]
-                val label = activity.getString(com.goodwy.commons.R.string.copy) + " \"$number\""
-                options.add(label to { activity.copyToClipboard(number) })
-            }
-        }
+//        if (numbersList.isNotEmpty()) {
+//            val range = if (numbersList.size > 7) 0..7 else 0 until numbersList.size
+//            for (index in range) {
+//                val number = numbersList[index]
+//                val label = activity.getString(com.goodwy.commons.R.string.copy) + " \"$number\""
+//                options.add(label to { activity.copyToClipboard(number) })
+//            }
+//        }
 
         val blurTarget = activity.findViewById<eightbitlab.com.blurview.BlurTarget>(com.android.mms.R.id.mainBlurTarget)
         val threadActivity = activity as? ThreadActivity
