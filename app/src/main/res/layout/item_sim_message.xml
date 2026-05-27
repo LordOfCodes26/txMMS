@@ -47,7 +47,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textSize="@dimen/tx_normal_text"
-                android:textColor="@color/tx_title_text"
+                android:textColor="@color/dark_grey"
                 android:lineSpacingMultiplier="1.1"
                 android:layout_marginTop="@dimen/tiny_margin"
                 tools:text="Hello, this is a SIM message." />
@@ -94,7 +94,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textSize="@dimen/tx_normal_text"
-                android:textColor="@color/tx_title_text"
+                android:textColor="@color/dark_grey"
                 android:lineSpacingMultiplier="1.1"
                 tools:text="Reply message from me." />
 
