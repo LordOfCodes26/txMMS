@@ -7,33 +7,25 @@ import android.view.ViewGroup
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.updateLayoutParams
 import androidx.core.view.updatePadding
-import androidx.recyclerview.widget.LinearLayoutManager
 import com.android.common.helper.IconItem
-import com.android.common.view.MVSideFrame
 import com.android.mms.R
 import com.android.mms.adapters.MessageBubblePickerAdapter
 import com.android.mms.databinding.ActivityMessageBubblePickerBinding
-import com.android.mms.extensions.applyLargeTitleOnly
-import com.android.mms.extensions.clearMySearchMenuSpringSync
 import com.android.mms.extensions.config
-import com.android.mms.extensions.postSyncMySearchMenuToolbarGeometry
-import com.android.mms.extensions.setupMySearchMenuSpringSync
 import com.android.mms.helpers.BUBBLE_DRAWABLE_OPTIONS
 import com.android.mms.helpers.refreshMessages
-import com.goodwy.commons.extensions.getColoredDrawableWithColor
 import com.goodwy.commons.extensions.getProperBackgroundColor
-import com.goodwy.commons.extensions.getProperTextColor
 import com.goodwy.commons.extensions.getSurfaceColor
+import com.goodwy.commons.extensions.hideKeyboard
 import com.goodwy.commons.extensions.isDynamicTheme
 import com.goodwy.commons.extensions.isSystemInDarkMode
 import com.goodwy.commons.extensions.updateTextColors
-import eightbitlab.com.blurview.BlurTarget
 
 class MessageBubblePickerActivity : SimpleActivity() {
     private lateinit var binding: ActivityMessageBubblePickerBinding
     private var pendingSelectedOptionId = 0
+    private var bubblePickerAppBarVerticalOffset = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -41,31 +33,25 @@ class MessageBubblePickerActivity : SimpleActivity() {
         setContentView(binding.root)
         pendingSelectedOptionId = config.bubbleDrawableSet
         initTheme()
-        initMVSideFrames()
         setupEdgeToEdge()
         makeSystemBarsToTransparent()
         applyBubblePickerWindowSurfacesAndChrome()
-        setupTopBar()
+        setupBubblePickerTopAppBar()
+        setupNestBouncyScroll()
         setupActionTabs()
         setupList()
-        binding.nestScroll.post {
-            postSyncMySearchMenuToolbarGeometry(
-                binding.root,
-                binding.bubblePickerAppbar,
-                binding.blurTarget,
-                binding.mVerticalSideFrameTop,
-                binding.bubblePickerList,
-            )
-            setupMySearchMenuSpringSync(binding.bubblePickerAppbar, binding.bubblePickerList)
-            if (config.changeColourTopBar) {
-                scrollingView = binding.bubblePickerList
-                val useSurfaceColor = isDynamicTheme() && !isSystemInDarkMode()
-                setupSearchMenuScrollListener(
-                    binding.bubblePickerList,
-                    binding.bubblePickerAppbar,
-                    useSurfaceColor,
-                )
-            }
+        scrollingView = binding.bubblePickerList
+        binding.bubblePickerAppbar.addOnOffsetChangedListener { _, verticalOffset ->
+            bubblePickerAppBarVerticalOffset = verticalOffset
+            binding.mVerticalSideFrameTop.update()
+            syncListTopPadding()
+        }
+        binding.bubblePickerList.post {
+            binding.bubblePickerAppbar.dismissCollapse()
+            bubblePickerAppBarVerticalOffset = 0
+            applyTransparentMAppBarChrome()
+            syncListTopPadding()
+            refreshSideFrameBlurAndInsets()
         }
     }
 
@@ -85,7 +71,10 @@ class MessageBubblePickerActivity : SimpleActivity() {
 
         applyBubblePickerWindowSurfacesAndChrome()
         updateTextColors(binding.rootView)
-        setupTopBar()
+        setupBubblePickerTopAppBar()
+        binding.bubblePickerAppbar.translationY = 0f
+        applyTransparentMAppBarChrome()
+        syncListTopPadding()
         refreshSideFrameBlurAndInsets()
     }
 
@@ -95,18 +84,13 @@ class MessageBubblePickerActivity : SimpleActivity() {
         binding.root.setBackgroundColor(backgroundColor)
         binding.rootView.setBackgroundColor(backgroundColor)
         binding.mainBlurTarget.setBackgroundColor(backgroundColor)
-        binding.blurTarget.setBackgroundColor(backgroundColor)
         binding.bubblePickerList.setBackgroundColor(backgroundColor)
         scrollingView = binding.bubblePickerList
-        binding.bubblePickerAppbar.updateColors(
-            getStartRequiredStatusBarColor(),
-            scrollingView?.computeVerticalScrollOffset() ?: 0,
-        )
-        setBubblePickerTransparentAppBarBackground()
+        applyTransparentMAppBarChrome()
     }
 
     override fun onDestroy() {
-        clearMySearchMenuSpringSync(binding.bubblePickerAppbar, binding.bubblePickerList)
+        binding.bubblePickerList.onOverscrollTranslationChanged = null
         super.onDestroy()
     }
 
@@ -115,30 +99,22 @@ class MessageBubblePickerActivity : SimpleActivity() {
         window.statusBarColor = Color.TRANSPARENT
     }
 
-    private fun initMVSideFrames() {
-        val blurTarget = findViewById<BlurTarget>(R.id.blurTarget)
-        findViewById<MVSideFrame>(R.id.m_vertical_side_frame_top).bindBlurTarget(blurTarget)
-        findViewById<MVSideFrame>(R.id.m_vertical_side_frame_bottom).bindBlurTarget(blurTarget)
-    }
-
-    /** Top chrome uses the shifted inner blur target; the bottom ripple bar uses the unshifted outer target. */
+    /** BlurView + MVSideFrame can stop updating after another activity was shown; re-apply insets and re-bind. */
     private fun refreshSideFrameBlurAndInsets() {
         binding.root.post {
             ViewCompat.requestApplyInsets(binding.root)
-            binding.mVerticalSideFrameTop.bindBlurTarget(binding.blurTarget)
-            binding.mVerticalSideFrameBottom.bindBlurTarget(binding.blurTarget)
-            binding.bubblePickerAppbar.requireCustomToolbar().bindBlurTarget(
+            binding.mVerticalSideFrameTop.bindBlurTarget(binding.mainBlurTarget)
+            binding.mVerticalSideFrameBottom.bindBlurTarget(binding.mainBlurTarget)
+            binding.bubblePickerAppbar.getBackArrow()?.bindBlurTarget(
                 this@MessageBubblePickerActivity,
-                binding.blurTarget,
+                binding.mainBlurTarget,
             )
-            postSyncMySearchMenuToolbarGeometry(
-                binding.root,
-                binding.bubblePickerAppbar,
-                binding.blurTarget,
-                binding.mVerticalSideFrameTop,
-                binding.bubblePickerList,
+            binding.bubblePickerAppbar.getActionBarView()?.bindBlurTarget(
+                this@MessageBubblePickerActivity,
+                binding.mainBlurTarget,
             )
-            setupActionTabs()
+            applyTransparentMAppBarChrome()
+            binding.mVerticalSideFrameTop.update()
         }
     }
 
@@ -172,23 +148,71 @@ class MessageBubblePickerActivity : SimpleActivity() {
         )
     }
 
-    private fun setBubblePickerTransparentAppBarBackground() {
-        binding.bubblePickerAppbar.setBackgroundColor(Color.TRANSPARENT)
-        binding.bubblePickerAppbar.binding.searchBarContainer.setBackgroundColor(Color.TRANSPARENT)
+    /** Glass top chrome: keep [MAppBarLayout] transparent so [MVSideFrame] blur shows through (txCommon). */
+    private fun applyTransparentMAppBarChrome() {
+        binding.bubblePickerAppbar.apply {
+            setBackgroundColor(Color.TRANSPARENT)
+            elevation = 0f
+            stateListAnimator = null
+            setLiftOnScrollColor(null)
+        }
     }
 
-    private fun setupTopBar() {
-        binding.bubblePickerAppbar.applyLargeTitleOnly(getString(com.goodwy.strings.R.string.speech_bubble))
-        binding.bubblePickerAppbar.requireCustomToolbar().apply {
-            val textColor = getProperTextColor()
-            navigationIcon = resources.getColoredDrawableWithColor(
-                this@MessageBubblePickerActivity,
-                com.android.common.R.drawable.ic_cmn_arrow_left_fill,
-                textColor
-            )
-            setNavigationOnClickListener { cancelAndFinish() }
-            setNavigationContentDescription(com.goodwy.commons.R.string.back)
-            bindBlurTarget(this@MessageBubblePickerActivity, binding.blurTarget)
+    private fun setupBubblePickerTopAppBar() {
+        binding.bubblePickerAppbar.setTitle(getString(com.goodwy.strings.R.string.speech_bubble))
+
+        binding.bubblePickerAppbar.getBackArrow()?.apply {
+            bindBlurTarget(this@MessageBubblePickerActivity, binding.mainBlurTarget)
+            setOnMenuItemClickListener { menuItem ->
+                if (menuItem.itemId == com.android.common.R.id.back_arrow) {
+                    hideKeyboard()
+                    cancelAndFinish()
+                    true
+                } else {
+                    false
+                }
+            }
+        }
+
+        binding.bubblePickerAppbar.getSearchView()?.visibility = View.GONE
+        binding.bubblePickerAppbar.getActionBarView()?.visibility = View.GONE
+        applyTransparentMAppBarChrome()
+    }
+
+    /** Pinned toolbar row height when [MAppBarLayout] is fully collapsed (txCommon). */
+    private fun getCollapsedAppBarHeightPx(): Int =
+        resources.getDimensionPixelSize(com.android.common.R.dimen.tx_top_bar_toolbar_margin_top) +
+            resources.getDimensionPixelSize(com.android.common.R.dimen.tx_top_bar_toolbar_height)
+
+    private fun getExpandedAppBarHeightPx(): Int =
+        resources.getDimensionPixelSize(com.android.common.R.dimen.tx_nest_bouncy_content_padding_top)
+
+    private fun listTopPaddingForAppBarOffset(verticalOffset: Int): Int {
+        val expanded = getExpandedAppBarHeightPx()
+        val collapsed = getCollapsedAppBarHeightPx()
+        val totalRange = binding.bubblePickerAppbar.totalScrollRange
+        if (totalRange <= 0) return expanded
+        val collapseFraction = (
+            kotlin.math.abs(verticalOffset).toFloat() / totalRange.toFloat()
+            ).coerceIn(0f, 1f)
+        return kotlin.math.round(collapsed + (expanded - collapsed) * (1f - collapseFraction)).toInt()
+    }
+
+    /** Keep list content aligned with visible top chrome (expanded / collapsed). */
+    private fun syncListTopPadding() {
+        val topPad = listTopPaddingForAppBarOffset(bubblePickerAppBarVerticalOffset)
+        binding.bubblePickerList.updatePadding(top = topPad)
+    }
+
+    private fun setupNestBouncyScroll() {
+        val list = binding.bubblePickerList
+        list.setOnScrollChangeListener { _, _, _, _, _ ->
+            applyTransparentMAppBarChrome()
+            binding.mVerticalSideFrameTop.update()
+        }
+        list.onOverscrollTranslationChanged = { overScrolledDistance ->
+            val overscrollTranslation = overScrolledDistance * NEST_BOUNCY_OVERSCROLL_FACTOR
+            binding.bubblePickerAppbar.translationY = overscrollTranslation
         }
     }
 
@@ -226,7 +250,6 @@ class MessageBubblePickerActivity : SimpleActivity() {
     }
 
     private fun setupList() {
-        binding.bubblePickerList.layoutManager = LinearLayoutManager(this)
         binding.bubblePickerList.adapter = MessageBubblePickerAdapter(
             items = BUBBLE_DRAWABLE_OPTIONS,
             selectedOptionId = pendingSelectedOptionId
@@ -236,4 +259,8 @@ class MessageBubblePickerActivity : SimpleActivity() {
     }
 
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
+
+    companion object {
+        private const val NEST_BOUNCY_OVERSCROLL_FACTOR = 0.35f
+    }
 }
