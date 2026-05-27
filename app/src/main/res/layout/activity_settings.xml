@@ -4,7 +4,8 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/root_view"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="@color/tx_common_bg">
 
     <androidx.coordinatorlayout.widget.CoordinatorLayout
         android:id="@+id/settings_coordinator"
@@ -19,20 +20,19 @@
             android:background="@color/tx_common_bg"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            android:layout_marginTop="@dimen/tx_blur_target_margin_top"
             app:layout_behavior="@string/appbar_scrolling_view_behavior">
-            <RelativeLayout
+            <com.android.common.nestbouncy.BouncyScrollView
+                android:id="@+id/settingsNestedScrollview"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent">
-                <androidx.core.widget.NestedScrollView
-                    android:id="@+id/settingsNestedScrollview"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:paddingHorizontal="@dimen/activity_padding_left_right"
-                    android:fillViewport="true"
-                    android:scrollbars="none"
-                    app:layout_behavior="@string/appbar_scrolling_view_behavior">
+                android:layout_height="match_parent"
+                android:paddingTop="@dimen/tx_nest_bouncy_content_padding_top"
+                android:clipToPadding="false"
+                android:fillViewport="true"
+                android:scrollbars="none"
+                app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
-                    <LinearLayout
+                <LinearLayout
                         android:id="@+id/settings_holder"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -773,29 +773,32 @@
                             </LinearLayout>
                         </androidx.cardview.widget.CardView>
 
-                    </LinearLayout>
-                </androidx.core.widget.NestedScrollView>
-            </RelativeLayout>
+                </LinearLayout>
+            </com.android.common.nestbouncy.BouncyScrollView>
 
         </eightbitlab.com.blurview.BlurTarget>
 
         <com.android.common.view.MVSideFrame
             android:id="@+id/m_vertical_side_frame_top"
             android:layout_width="match_parent"
-            android:layout_height="110dp"
-            android:layout_alignParentTop="true" />
+            android:layout_height="@dimen/tx_mv_side_top_frame_height"
+            android:layout_alignParentTop="true"
+            app:autoUpdate="false" />
 
-        <com.goodwy.commons.views.MySearchMenu
+        <com.android.common.view.MAppBarLayout
             android:id="@+id/settings_menu"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="@color/transparent" />
+            android:layout_height="@dimen/tx_top_bar_expand_height"
+            android:background="@color/transparent"
+            app:elevation="0dp"
+            app:titleText="@string/settings" />
 
         <com.android.common.view.MVSideFrame
             android:id="@+id/m_vertical_side_frame_bottom"
             android:layout_width="match_parent"
             android:layout_height="@dimen/tx_mv_side_bottom_frame_height"
             android:layout_gravity="bottom"
+            app:autoUpdate="false"
             app:isTopFrame="false" />
 
     </androidx.coordinatorlayout.widget.CoordinatorLayout>

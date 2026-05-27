@@ -13,7 +13,6 @@ import android.os.Bundle
 import android.provider.Settings
 import android.telephony.SmsManager
 import android.text.InputType
-import android.view.Menu
 import android.view.View
 import android.widget.EditText
 import androidx.activity.result.contract.ActivityResultContracts
@@ -22,7 +21,10 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowCompat
 import androidx.appcompat.content.res.AppCompatResources
+import androidx.appcompat.widget.Toolbar
 import com.android.common.dialogs.MRenameDialog
+import com.android.common.view.MActionBar
+import com.google.android.material.appbar.CollapsingToolbarLayout
 import com.goodwy.commons.dialogs.*
 import com.goodwy.commons.extensions.*
 import com.goodwy.commons.helpers.*
@@ -140,28 +142,17 @@ class SettingsActivity : SimpleActivity() {
         initTheme()
         setupEdgeToEdge()
         makeSystemBarsToTransparent()
-        setupOptionsMenu()
         setupSettingsTopAppBar()
+        setupNestBouncyScroll()
         applySettingsWindowBackgroundsAndTopChrome()
-
+        scrollingView = binding.settingsNestedScrollview
+        binding.settingsMenu.addOnOffsetChangedListener { _, _ ->
+            binding.mVerticalSideFrameTop.update()
+        }
         binding.settingsNestedScrollview.post {
-            postSyncMySearchMenuToolbarGeometry(
-                binding.root,
-                binding.settingsMenu,
-                binding.mainBlurTarget,
-                binding.mVerticalSideFrameTop,
-                binding.settingsHolder,
-            )
-            scrollingView = binding.settingsNestedScrollview
-            if (config.changeColourTopBar) {
-                val useSurfaceColor = isDynamicTheme() && !isSystemInDarkMode()
-                setupSearchMenuScrollListener(
-                    binding.settingsNestedScrollview,
-                    binding.settingsMenu,
-                    useSurfaceColor,
-                )
-            }
-            refreshSettingsTopBarColors()
+            binding.settingsMenu.dismissCollapse()
+            applyTransparentMAppBarChrome()
+            refreshSideFrameBlurAndInsets()
         }
     }
 
@@ -190,58 +181,68 @@ class SettingsActivity : SimpleActivity() {
         binding.settingsNestedScrollview.setBackgroundColor(Color.TRANSPARENT)
         binding.settingsHolder.setBackgroundColor(backgroundColor)
         scrollingView = binding.settingsNestedScrollview
-        refreshSettingsTopBarColors()
-    }
-
-    private fun initTheme() {
-        window.navigationBarColor = Color.TRANSPARENT
-        window.statusBarColor = Color.TRANSPARENT
-    }
-
-    private fun makeSystemBarsToTransparent() {
-        WindowCompat.setDecorFitsSystemWindows(window, false)
-        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
-            val nav = insets.getInsets(WindowInsetsCompat.Type.navigationBars())
-//            val navHeight = nav.bottom
-//            val dp5 = (5 * resources.displayMetrics.density).toInt()
-//            binding.mVerticalSideFrameBottom.layoutParams =
-//                binding.mVerticalSideFrameBottom.layoutParams.apply { height = navHeight + dp5 }
-            insets
-        }
-    }
-
-    /** Same sequence as [MessageBubblePickerActivity.onResume] for the MySearchMenu chrome. */
-    private fun setSettingsTransparentAppBarBackground() {
-        binding.settingsMenu.setBackgroundColor(Color.TRANSPARENT)
-        binding.settingsMenu.binding.searchBarContainer.setBackgroundColor(Color.TRANSPARENT)
-    }
-
-    private fun refreshSettingsTopBarColors() {
-        val useSurfaceColor = isDynamicTheme() && !isNightDisplay()
-        val backColor = if (useSurfaceColor) getSurfaceColor() else getProperBackgroundColor()
-        binding.settingsMenu.updateColors(
-            backColor,
-            scrollingView?.computeVerticalScrollOffset() ?: 0,
-        )
-        setSettingsTransparentAppBarBackground()
+        applyTransparentMAppBarChrome()
     }
 
     private fun setupSettingsTopAppBar() {
-        binding.settingsMenu.applyLargeTitleOnly(getString(com.goodwy.commons.R.string.settings))
-        binding.settingsMenu.requireCustomToolbar().apply {
-            val textColor = getProperTextColor()
-            navigationIcon = resources.getColoredDrawableWithColor(
-                this@SettingsActivity,
-                com.android.common.R.drawable.ic_cmn_arrow_left_fill,
-                textColor,
-            )
-            setNavigationContentDescription(com.goodwy.commons.R.string.back)
-            setNavigationOnClickListener {
-                hideKeyboard()
-                finish()
+        binding.settingsMenu.setTitle(getString(com.goodwy.commons.R.string.settings))
+
+        binding.settingsMenu.getBackArrow()?.apply {
+            bindBlurTarget(this@SettingsActivity, binding.mainBlurTarget)
+            setOnMenuItemClickListener { menuItem ->
+                if (menuItem.itemId == com.android.common.R.id.back_arrow) {
+                    hideKeyboard()
+                    finish()
+                    true
+                } else {
+                    false
+                }
             }
         }
-        binding.settingsMenu.searchBeVisibleIf(false)
+
+        binding.settingsMenu.getSearchView()?.visibility = View.GONE
+        binding.settingsMenu.getActionBarView()?.let(::setupSettingsActionBarMenu)
+        applyTransparentMAppBarChrome()
+    }
+
+    /** Glass top chrome: keep [MAppBarLayout] and scrims transparent so [MVSideFrame] blur shows through (txCommon). */
+    private fun applyTransparentMAppBarChrome() {
+        binding.settingsMenu.apply {
+            setBackgroundColor(Color.TRANSPARENT)
+            elevation = 0f
+            stateListAnimator = null
+            for (i in 0 until childCount) {
+                when (val child = getChildAt(i)) {
+                    is CollapsingToolbarLayout -> {
+                        child.setBackgroundColor(Color.TRANSPARENT)
+                        child.setContentScrimColor(Color.TRANSPARENT)
+                        child.setStatusBarScrimColor(Color.TRANSPARENT)
+                        for (j in 0 until child.childCount) {
+                            child.getChildAt(j).setBackgroundColor(Color.TRANSPARENT)
+                        }
+                    }
+                    is Toolbar -> child.setBackgroundColor(Color.TRANSPARENT)
+                    else -> child.setBackgroundColor(Color.TRANSPARENT)
+                }
+            }
+        }
+    }
+
+    private fun refreshSettingsTopBarColors() {
+        applyTransparentMAppBarChrome()
+    }
+
+    private fun setupNestBouncyScroll() {
+        val scroll = binding.settingsNestedScrollview
+        scroll.setOnScrollChangeListener { _, _, _, _, _ ->
+            refreshSettingsTopBarColors()
+            binding.mVerticalSideFrameTop.update()
+        }
+        scroll.setOnOverScrollListener { _, overScrolledDistance ->
+            val overscrollTranslation = overScrolledDistance * NEST_BOUNCY_OVERSCROLL_FACTOR
+            binding.settingsMenu.translationY = overscrollTranslation
+            binding.mVerticalSideFrameTop.translationY = overscrollTranslation
+        }
     }
 
     override fun onResume() {
@@ -349,10 +350,10 @@ class SettingsActivity : SimpleActivity() {
 //            }
 //            <--------------
         }
-        binding.settingsMenu.requireCustomToolbar().menu.let { updateMenuItemColors(it) }
         isRebindingSettings = false
-
-        refreshSettingsTopBarColors()
+        binding.settingsMenu.translationY = 0f
+        binding.mVerticalSideFrameTop.translationY = 0f
+        applyTransparentMAppBarChrome()
         refreshSideFrameBlurAndInsets()
     }
     // for edit sms service center --------->
@@ -492,17 +493,10 @@ class SettingsActivity : SimpleActivity() {
             ViewCompat.requestApplyInsets(binding.root)
             binding.mVerticalSideFrameTop.bindBlurTarget(binding.mainBlurTarget)
             binding.mVerticalSideFrameBottom.bindBlurTarget(binding.mainBlurTarget)
-            binding.settingsMenu.requireCustomToolbar().bindBlurTarget(
-                this@SettingsActivity,
-                binding.mainBlurTarget,
-            )
-            postSyncMySearchMenuToolbarGeometry(
-                binding.root,
-                binding.settingsMenu,
-                binding.mainBlurTarget,
-                binding.mVerticalSideFrameTop,
-                binding.settingsHolder,
-            )
+            binding.settingsMenu.getBackArrow()?.bindBlurTarget(this@SettingsActivity, binding.mainBlurTarget)
+            binding.settingsMenu.getActionBarView()?.bindBlurTarget(this@SettingsActivity, binding.mainBlurTarget)
+            applyTransparentMAppBarChrome()
+            binding.mVerticalSideFrameTop.update()
         }
     }
 
@@ -638,6 +632,7 @@ class SettingsActivity : SimpleActivity() {
     companion object {
         private const val PICK_NOTIFICATION_SOUND_INTENT_ID = 1001
         private const val PICK_DELIVERY_REPORT_SOUND_INTENT_ID = 1002
+        private const val NEST_BOUNCY_OVERSCROLL_FACTOR = 0.35f
     }
 
     /**
@@ -981,25 +976,33 @@ class SettingsActivity : SimpleActivity() {
         }
     )
 
-    override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        updateMenuItemColors(menu)
-        return super.onCreateOptionsMenu(menu)
+    private fun setupSettingsActionBarMenu(actionBar: MActionBar) {
+        actionBar.bindBlurTarget(this, binding.mainBlurTarget)
+        actionBar.setPosition("right")
+        actionBar.inflateMenu(R.menu.menu_settings)
+        actionBar.setOnMenuItemClickListener { menuItem ->
+            when (menuItem.itemId) {
+                R.id.whats_new -> {
+                    val blurTarget = findViewById<BlurTarget>(R.id.mainBlurTarget)
+                        ?: throw IllegalStateException("mainBlurTarget not found")
+                    WhatsNewDialog(this@SettingsActivity, whatsNewList(), blurTarget = blurTarget)
+                    true
+                }
+                else -> false
+            }
+        }
     }
 
-    private fun setupOptionsMenu() {
-        binding.settingsMenu.requireCustomToolbar().apply {
-            inflateMenu(R.menu.menu_settings)
-            setOnMenuItemClickListener { menuItem ->
-                when (menuItem.itemId) {
-                    R.id.whats_new -> {
-                        val blurTarget = findViewById<BlurTarget>(R.id.mainBlurTarget)
-                            ?: throw IllegalStateException("mainBlurTarget not found")
-                        WhatsNewDialog(this@SettingsActivity, whatsNewList(), blurTarget = blurTarget)
-                        true
-                    }
-                    else -> false
-                }
-            }
+    private fun initTheme() {
+        window.navigationBarColor = Color.TRANSPARENT
+        window.statusBarColor = Color.TRANSPARENT
+    }
+
+    private fun makeSystemBarsToTransparent() {
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
+            insets.getInsets(WindowInsetsCompat.Type.navigationBars())
+            insets
         }
     }
 }
