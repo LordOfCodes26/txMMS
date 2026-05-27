@@ -137,6 +137,7 @@ class NewConversationActivity : SimpleActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
+        binding.nestScroll.isNestedScrollingEnabled = false
         // While app bar insets/height and the chip row are still settling, hide scroll content to avoid
         // an overlapped first frame; [revealNewConversationScrollContentAfterAppBar] runs after the lock.
         binding.nestScroll.beInvisible()
@@ -151,14 +152,6 @@ class NewConversationActivity : SimpleActivity() {
         setupNewConversationComposeWindowInsets()
         binding.nestScroll.post {
             scrollingView = binding.nestScroll
-            if (config.changeColourTopBar) {
-                val useSurfaceColor = isDynamicTheme() && !isSystemInDarkMode()
-                setupSearchMenuScrollListener(
-                    binding.nestScroll,
-                    binding.newConversationAppbar,
-                    useSurfaceColor,
-                )
-            }
         }
 
         window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE)
@@ -167,15 +160,19 @@ class NewConversationActivity : SimpleActivity() {
 
         setupMessagingEdgeToEdge()
 
-        // [collapseAndLockCollapsing] height uses status-bar padding; that is only set after [WindowCompat] +
+        // [forceKeepCollapse] height uses status-bar padding; that is only set after [WindowCompat] +
         // edge-to-edge insets. Running the title/collapse before that produced a too-short app bar and overlap
         // with the chips row until a chip add triggered [updateNewConversationTitle] again.
         ViewCompat.requestApplyInsets(binding.root)
         setupNewConversationTopBar()
         binding.newConversationAppbar.post {
-            updateNewConversationTitle()
-            revealNewConversationScrollContentAfterAppBar()
-            refreshNewConversationInsetsAndToolbarGeometry()
+            binding.newConversationAppbar.forceKeepCollapse()
+            binding.newConversationAppbar.post {
+                updateNewConversationTitle()
+                syncNewConversationScrollChromeGeometry()
+                revealNewConversationScrollContentAfterAppBar()
+                refreshNewConversationToolbarGeometry()
+            }
         }
 
         // READ_CONTACTS permission is not mandatory, but without it we won't be able to show any suggestions during typing
@@ -204,6 +201,7 @@ class NewConversationActivity : SimpleActivity() {
         applyNewConversationWindowBackgroundsAndTopChrome()
         updateNewConversationTitle()
         setupNewConversationTopBar()
+        applyTransparentMAppBarChrome()
 //        binding.newConversationHolder.setBackgroundColor(backgroundColor)
 //        binding.newConversationAddress.setBackgroundColor(backgroundColor)
 //        binding.suggestionsOverlay.setBackgroundColor(backgroundColor)
@@ -219,7 +217,7 @@ class NewConversationActivity : SimpleActivity() {
             }
         })
 
-        refreshNewConversationInsetsAndToolbarGeometry()
+        refreshNewConversationToolbarGeometry()
 
         setupMessageHolder()
         handlePermission(PERMISSION_READ_PHONE_STATE) {
@@ -243,64 +241,66 @@ class NewConversationActivity : SimpleActivity() {
     }
 
     private fun setupNewConversationTopBar() {
-        binding.newConversationAppbar.requireCustomToolbar().apply {
-            val textColor = getProperTextColor()
-            setTitleTextColor(textColor)
-            navigationIcon = resources.getColoredDrawableWithColor(
-                this@NewConversationActivity,
-                com.android.common.R.drawable.ic_cmn_arrow_left_fill,
-                textColor,
-            )
-            setNavigationContentDescription(com.goodwy.commons.R.string.back)
-            setNavigationOnClickListener {
-                hideKeyboard()
-                finish()
+        binding.newConversationAppbar.getBackArrow()?.apply {
+            bindBlurTarget(this@NewConversationActivity, binding.conversationScrollBlur)
+            setOnMenuItemClickListener { menuItem ->
+                if (menuItem.itemId == com.android.common.R.id.back_arrow) {
+                    hideKeyboard()
+                    finish()
+                    true
+                } else {
+                    false
+                }
             }
         }
-        bindNewConversationToolbarBlurTarget()
+        binding.newConversationAppbar.getSearchView()?.visibility = View.GONE
+        binding.newConversationAppbar.getActionBarView()?.visibility = View.GONE
+        applyTransparentMAppBarChrome()
     }
 
     /** Toolbar back button blurs [conversationScrollBlur] (inner scroll region), not [mainBlurTarget]. */
     private fun bindNewConversationToolbarBlurTarget() {
-        binding.newConversationAppbar.requireCustomToolbar()
-            .bindBlurTarget(this@NewConversationActivity, binding.conversationScrollBlur)
+        binding.newConversationAppbar.getBackArrow()
+            ?.bindBlurTarget(this@NewConversationActivity, binding.conversationScrollBlur)
     }
 
     /**
-     * Negative top margin on the inner scroll [BlurTarget] so BlurView samples content under the app bar.
-     * [applyNewConversationNestScrollTopPaddingForBlur] adds the same offset to [nest_scroll] so layout stays put.
+     * Top padding so [nest_scroll] content starts below the collapsed [MAppBarLayout].
+     * Accounts for [conversation_scroll_blur] negative [R.dimen.tx_blur_target_margin_top].
      */
-    private fun syncNewConversationScrollBlurTopMargin(menuHeight: Int) {
-        if (menuHeight < 0) return
-        val targetTopMargin = -menuHeight
-        binding.conversationScrollBlur.updateLayoutParams<ViewGroup.MarginLayoutParams> {
-            if (topMargin != targetTopMargin) {
-                topMargin = targetTopMargin
+    private fun getNewConversationNestScrollTopPaddingPx(): Int {
+        val appBar = binding.newConversationAppbar
+        val appBarHeight = appBar.height.takeIf { it > 0 }
+            ?: appBar.measuredHeight.takeIf { it > 0 }
+            ?: resources.getDimensionPixelSize(com.android.common.R.dimen.tx_nest_bouncy_content_padding_top)
+
+        val appBarLoc = IntArray(2)
+        val scrollLoc = IntArray(2)
+        if (appBar.isLaidOut && binding.nestScroll.isLaidOut) {
+            appBar.getLocationInWindow(appBarLoc)
+            binding.nestScroll.getLocationInWindow(scrollLoc)
+            val belowAppBar = appBarLoc[1] + appBar.height - scrollLoc[1]
+            if (belowAppBar > 0) {
+                return belowAppBar + newConversationNestScrollBasePaddingTopPx
             }
         }
+
+        val blurMarginTop = (binding.conversationScrollBlur.layoutParams as? ViewGroup.MarginLayoutParams)?.topMargin ?: 0
+        return -blurMarginTop + appBarHeight + newConversationNestScrollBasePaddingTopPx
     }
 
-    /** XML [R.dimen.normal_margin] plus app-bar height to offset [syncNewConversationScrollBlurTopMargin]. */
-    private fun applyNewConversationNestScrollTopPaddingForBlur(menuHeight: Int) {
-        if (menuHeight < 0) return
-        val topPadding = newConversationNestScrollBasePaddingTopPx + menuHeight
+    private fun applyNewConversationNestScrollTopPadding() {
+        val topPadding = getNewConversationNestScrollTopPaddingPx()
         if (binding.nestScroll.paddingTop != topPadding) {
             binding.nestScroll.updatePadding(top = topPadding)
         }
     }
 
-    /** After [MySearchMenu] height is known, sync blur margin, scroll padding, and re-bind toolbar glass. */
-    private fun syncNewConversationScrollBlurGeometry() {
-        binding.newConversationAppbar.post {
-            val menu = binding.newConversationAppbar
-            val h = menu.height.takeIf { it > 0 }
-                ?: menu.measuredHeight.takeIf { it > 0 }
-                ?: return@post
-            syncNewConversationScrollBlurTopMargin(h)
-            applyNewConversationNestScrollTopPaddingForBlur(h)
-            binding.conversationScrollBlur.invalidate()
-            bindNewConversationToolbarBlurTarget()
-        }
+    /** Sync scroll padding and re-bind toolbar glass (collapsed-only). */
+    private fun syncNewConversationScrollChromeGeometry() {
+        applyNewConversationNestScrollTopPadding()
+        binding.conversationScrollBlur.invalidate()
+        bindNewConversationToolbarBlurTarget()
     }
 
     private fun applyNewConversationWindowBackgroundsAndTopChrome() {
@@ -310,20 +310,26 @@ class NewConversationActivity : SimpleActivity() {
         binding.mainBlurTarget.setBackgroundColor(backgroundColor)
         binding.conversationScrollBlur.setBackgroundColor(backgroundColor)
         scrollingView = binding.nestScroll
-        binding.newConversationAppbar.updateColors(
-            getStartRequiredStatusBarColor(),
-            scrollingView?.computeVerticalScrollOffset() ?: 0,
-        )
-        binding.newConversationAppbar.setBackgroundColor(Color.TRANSPARENT)
-        binding.newConversationAppbar.binding.searchBarContainer.setBackgroundColor(Color.TRANSPARENT)
+        applyTransparentMAppBarChrome()
     }
 
-    /** Re-bind back-button blur after resume or when the app bar height settles (BlurView can detach). */
-    private fun refreshNewConversationInsetsAndToolbarGeometry() {
+    /** Glass top chrome: keep [MAppBarLayout] transparent (txCommon). */
+    private fun applyTransparentMAppBarChrome() {
+        binding.newConversationAppbar.apply {
+            setBackgroundColor(Color.TRANSPARENT)
+            elevation = 0f
+            stateListAnimator = null
+            setLiftOnScrollColor(null)
+        }
+    }
+
+    /** Re-apply insets and re-bind toolbar glass after resume or when the app bar height settles. */
+    private fun refreshNewConversationToolbarGeometry() {
         binding.root.post {
             ViewCompat.requestApplyInsets(binding.root)
             setupNewConversationTopBar()
-            syncNewConversationScrollBlurGeometry()
+            syncNewConversationScrollChromeGeometry()
+            applyTransparentMAppBarChrome()
         }
     }
 
@@ -338,6 +344,7 @@ class NewConversationActivity : SimpleActivity() {
             }
             binding.root.post {
                 applyComposeBarImePaddingFromInsets()
+                applyNewConversationNestScrollTopPadding()
             }
             insets
         }
@@ -594,33 +601,26 @@ class NewConversationActivity : SimpleActivity() {
     private fun updateNewConversationTitle() {
         val chips = binding.newConversationAddress.allChips.filter { it.isNotEmpty() }
         val fullCombinedTitle = getNewConversationDisplayTitle()
+        val titleColor = getProperTextColor()
         binding.newConversationAppbar.apply {
-            binding.collapsingTitle.text = ""
-            requireCustomToolbar().apply {
-                when {
-                    chips.isEmpty() -> {
-                        title = fullCombinedTitle
-                    }
-                    chips.size == 1 -> {
-                        title = chips[0]
-                    }
-                    else -> {
-                        // Always set a correct baseline title first. The crowding-adjust path below is
-                        // posted and may early-return if layout isn't ready yet; without a baseline the
-                        // toolbar can get stuck showing only the first recipient after draft restore.
-                        title = fullCombinedTitle
-                        adjustNewConversationToolbarTitleIfCrowded(
-                            chips = chips,
-                            fullCombinedTitle = fullCombinedTitle,
-                        )
-                    }
+            when {
+                chips.isEmpty() -> setTitle(fullCombinedTitle)
+                chips.size == 1 -> setTitle(chips[0])
+                else -> {
+                    // Always set a correct baseline title first. The crowding-adjust path below is
+                    // posted and may early-return if layout isn't ready yet; without a baseline the
+                    // toolbar can get stuck showing only the first recipient after draft restore.
+                    setTitle(fullCombinedTitle)
+                    adjustNewConversationToolbarTitleIfCrowded(
+                        chips = chips,
+                        fullCombinedTitle = fullCombinedTitle,
+                    )
                 }
-                setTitleTextColor(getProperTextColor())
             }
-            setCollapsingTitleVisible(false)
-            collapseAndLockCollapsing()
+            findViewById<TextView>(com.android.common.R.id.m_app_bar_title)?.setTextColor(titleColor)
+            forceKeepCollapse()
         }
-        syncNewConversationScrollBlurGeometry()
+        syncNewConversationScrollChromeGeometry()
     }
 
     /**
@@ -635,10 +635,8 @@ class NewConversationActivity : SimpleActivity() {
     ) {
         if (chips.size < 2) return
         val appBar = binding.newConversationAppbar
-        val toolbar = appBar.requireCustomToolbar()
-        // title1 and title2 are laid out flush; no extra margin between them (see custom_toolbar).
         appBar.post {
-            val titleView = toolbar.findViewById<TextView>(com.goodwy.commons.R.id.titleTextView) ?: return@post
+            val titleView = appBar.findViewById<TextView>(com.android.common.R.id.m_app_bar_title) ?: return@post
             val appBarW = appBar.width
             if (appBarW <= 0) return@post
             val paint = TextPaint(titleView.paint)
@@ -662,7 +660,7 @@ class NewConversationActivity : SimpleActivity() {
                 othersPhrase = othersPhrase,
                 maxWidth = maxTextWidth,
             )
-            toolbar.title = adjusted
+            appBar.setTitle(adjusted)
             return@post
         }
     }
@@ -2084,7 +2082,7 @@ class NewConversationActivity : SimpleActivity() {
             findViewById<View>(R.id.new_conversation_coordinator)?.beVisible()
             findViewById<View>(R.id.message_holder_wrapper)?.beVisible()
             expandedMessageFragment = null
-            refreshNewConversationInsetsAndToolbarGeometry()
+            refreshNewConversationToolbarGeometry()
         }
     }
 
