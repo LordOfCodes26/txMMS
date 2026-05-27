@@ -23,7 +23,6 @@ import androidx.core.view.WindowCompat
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.appcompat.widget.Toolbar
 import com.android.common.dialogs.MRenameDialog
-import com.android.common.view.MActionBar
 import com.google.android.material.appbar.CollapsingToolbarLayout
 import com.goodwy.commons.dialogs.*
 import com.goodwy.commons.extensions.*
@@ -201,7 +200,7 @@ class SettingsActivity : SimpleActivity() {
         }
 
         binding.settingsMenu.getSearchView()?.visibility = View.GONE
-        binding.settingsMenu.getActionBarView()?.let(::setupSettingsActionBarMenu)
+        binding.settingsMenu.getActionBarView()?.visibility = View.GONE
         applyTransparentMAppBarChrome()
     }
 
@@ -483,7 +482,6 @@ class SettingsActivity : SimpleActivity() {
             binding.mVerticalSideFrameTop.bindBlurTarget(binding.mainBlurTarget)
             binding.mVerticalSideFrameBottom.bindBlurTarget(binding.mainBlurTarget)
             binding.settingsMenu.getBackArrow()?.bindBlurTarget(this@SettingsActivity, binding.mainBlurTarget)
-            binding.settingsMenu.getActionBarView()?.bindBlurTarget(this@SettingsActivity, binding.mainBlurTarget)
             applyTransparentMAppBarChrome()
             binding.mVerticalSideFrameTop.update()
         }
@@ -964,23 +962,6 @@ class SettingsActivity : SimpleActivity() {
             else -> com.goodwy.commons.R.string.nothing
         }
     )
-
-    private fun setupSettingsActionBarMenu(actionBar: MActionBar) {
-        actionBar.bindBlurTarget(this, binding.mainBlurTarget)
-        actionBar.setPosition("right")
-        actionBar.inflateMenu(R.menu.menu_settings)
-        actionBar.setOnMenuItemClickListener { menuItem ->
-            when (menuItem.itemId) {
-                R.id.whats_new -> {
-                    val blurTarget = findViewById<BlurTarget>(R.id.mainBlurTarget)
-                        ?: throw IllegalStateException("mainBlurTarget not found")
-                    WhatsNewDialog(this@SettingsActivity, whatsNewList(), blurTarget = blurTarget)
-                    true
-                }
-                else -> false
-            }
-        }
-    }
 
     private fun initTheme() {
         window.navigationBarColor = Color.TRANSPARENT
