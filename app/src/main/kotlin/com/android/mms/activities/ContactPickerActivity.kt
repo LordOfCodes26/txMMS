@@ -446,7 +446,6 @@ class ContactPickerActivity : SimpleActivity() {
         contactPickerAppbar?.forceKeepCollapse()
         applyContactPickerFilterBarTopMarginForSearch(collapsedMenu = true)
         contactPickerListTopInsetPx = -1
-        resolveContactPickerListTopInsetPxIfNeeded()
         syncContactPickerListTopPadding()
         contactPickerFilterBar?.post { syncContactPickerListTopPadding() }
         contactRecyclerView?.isNestedScrollingEnabled = false
@@ -474,25 +473,22 @@ class ContactPickerActivity : SimpleActivity() {
     }
 
     /**
-     * List starts below [R.id.contact_picker_filter_bar] plus 12dp.
+     * In search mode: list top = collapsed bar height (tx_top_bar_toolbar_margin_top +
+     * tx_top_bar_toolbar_height) + contact_picker_filter_bar_child height.
+     * In browse mode: list top = full filter bar height + 12dp.
      */
     private fun syncContactPickerListTopPadding() {
         val rv = contactRecyclerView ?: return
-        val bar = contactPickerFilterBar
-        if (isSearchOpen && bar != null) {
-            val baseNow = bar.height.takeIf { it > 0 }
-                ?: if (bar.isLaidOut) bar.measuredHeight.takeIf { it > 0 } else null
-                ?: run {
-                    val widthPx = bar.width.takeIf { it > 0 } ?: resources.displayMetrics.widthPixels
-                    val widthSpec = View.MeasureSpec.makeMeasureSpec(widthPx, View.MeasureSpec.EXACTLY)
-                    val heightSpec = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
-                    bar.measure(widthSpec, heightSpec)
-                    bar.measuredHeight.takeIf { it > 0 }
-                }
-            if (baseNow != null) {
-                rv.updatePadding(top = baseNow + dp(12))
-                return
-            }
+        if (isSearchOpen) {
+            val collapsedBarHeight =
+                resources.getDimensionPixelSize(com.android.common.R.dimen.tx_top_bar_toolbar_margin_top) +
+                resources.getDimensionPixelSize(com.android.common.R.dimen.tx_top_bar_toolbar_height)
+            val child = findViewById<View>(R.id.contact_picker_filter_bar_child)
+            val childH = child?.height?.takeIf { it > 0 }
+                ?: child?.measuredHeight?.takeIf { it > 0 }
+                ?: 0
+            rv.updatePadding(top = collapsedBarHeight + childH)
+            return
         }
 
         resolveContactPickerListTopInsetPxIfNeeded()
@@ -500,7 +496,7 @@ class ContactPickerActivity : SimpleActivity() {
             rv.updatePadding(top = contactPickerListTopInsetPx)
             return
         }
-        val safeBar = bar ?: return
+        val safeBar = contactPickerFilterBar ?: return
         if (contactPickerFilterBarInsetListener != null) return
         val listener = object : ViewTreeObserver.OnGlobalLayoutListener {
             override fun onGlobalLayout() {
@@ -519,6 +515,8 @@ class ContactPickerActivity : SimpleActivity() {
     /**
      * The filter strip uses a large [R.id.contact_picker_filter_bar_child] top margin to clear the expanded
      * large title; in search mode the app bar is collapsed, so the margin must match collapsed toolbar height.
+     * After layout settles, [alignFilterBarChildBelowSearchView] refines the margin to the actual
+     * rendered bottom of the search input.
      */
     private fun applyContactPickerFilterBarTopMarginForSearch(collapsedMenu: Boolean) {
         val child = findViewById<View>(R.id.contact_picker_filter_bar_child) ?: return
@@ -533,7 +531,6 @@ class ContactPickerActivity : SimpleActivity() {
                 lp.topMargin = target
                 child.layoutParams = lp
             }
-            // Refine with the actual measured bottom of the search input after layout settles.
             child.post { alignFilterBarChildBelowSearchView() }
         } else if (contactPickerFilterBarExpandedTopMarginPx != Int.MIN_VALUE) {
             lp.topMargin = contactPickerFilterBarExpandedTopMarginPx
@@ -543,8 +540,8 @@ class ContactPickerActivity : SimpleActivity() {
 
     /**
      * Positions [R.id.contact_picker_filter_bar_child] so its top edge aligns with the bottom of
-     * the [MSearchView] inside the collapsed top app bar.  Uses [View.getLocationInWindow] so the
-     * result is independent of hard-coded dimension resources and matches the actual rendered layout.
+     * the [MSearchView] inside the collapsed top app bar. Only adjusts the child margin; list
+     * padding is handled separately by [syncContactPickerListTopPadding].
      */
     private fun alignFilterBarChildBelowSearchView() {
         if (!isSearchOpen) return
@@ -562,8 +559,6 @@ class ContactPickerActivity : SimpleActivity() {
         if (lp.topMargin != target) {
             lp.topMargin = target
             child.layoutParams = lp
-            contactPickerListTopInsetPx = -1
-            syncContactPickerListTopPadding()
         }
     }
 
