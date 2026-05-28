@@ -88,23 +88,23 @@
 
     <!-- Buttons at top right - clickable=false so touches pass through to edit text below -->
     <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="match_parent"
-        android:layout_gravity="top|end"
+        android:layout_width="@dimen/tx_common_icon_size"
+        android:layout_height="@dimen/tx_common_icon_size"
+        android:layout_gravity="end|center"
         android:orientation="horizontal"
-        android:gravity="center_vertical"
+        android:gravity="center"
+        android:background="@drawable/ripple_all_corners_56dp"
         android:clickable="false"
         android:focusable="false">
 
-        <ImageView
+        <com.android.common.view.MImageButton
             android:id="@+id/chips_address_book_button"
             android:layout_width="@dimen/tx_dialog_btn_margin_top"
             android:layout_height="@dimen/tx_dialog_btn_margin_top"
-            android:background="@drawable/ic_cmn_contact_add"
+            android:src="@drawable/ic_cmn_contact_add"
+            android:layout_gravity="center_vertical"
             android:backgroundTint="@color/tx_title_text"
             android:contentDescription="@string/search_contacts"
-            android:layout_marginEnd="@dimen/medium_md_margin"
-            android:padding="@dimen/tiny_margin"
             android:visibility="visible"/>
 
         <ImageView

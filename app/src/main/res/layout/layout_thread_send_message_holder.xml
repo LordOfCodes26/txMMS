@@ -122,6 +122,7 @@
                 android:layout_width="31.4dp"
                 android:layout_height="31.4dp"
                 android:layout_gravity="center"
+                android:background="@drawable/ripple_all_corners_56dp"
                 android:gravity="center"
                 android:visibility="visible"
                 tools:visibility="visible" >
@@ -139,6 +140,7 @@
                 android:layout_width="31.4dp"
                 android:layout_height="31.4dp"
                 android:layout_gravity="center"
+                android:background="@drawable/ripple_all_corners_56dp"
                 android:gravity="center">
                 <ImageView
                     android:id="@+id/threadAddAttachment"
@@ -250,6 +252,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:layout_marginEnd="@dimen/small_margin"
+                android:background="@drawable/tx_item_ripple"
+                android:clipToPadding="false"
                 android:padding="@dimen/small_margin">
 
                 <ImageView
@@ -298,6 +302,8 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
+                android:background="@drawable/tx_item_ripple"
+                android:clipToPadding="false"
                 android:padding="@dimen/small_margin">
 
                 <ImageView
@@ -308,8 +314,7 @@
                     android:background="@drawable/ic_cmn_sms_send"
                     android:backgroundTint="@color/tx_title_text"
                     android:clickable="false"
-                    android:contentDescription="@string/ok"
-                    android:foregroundGravity="center" />
+                    android:contentDescription="@string/ok" />
 
                 <douglasspgyn.com.github.circularcountdown.CircularCountdown
                     android:id="@+id/threadSendMessageCountdown"
