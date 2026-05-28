@@ -9,8 +9,7 @@
         android:id="@+id/bubbleCard"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:foreground="?attr/selectableItemBackground"
-        app:cardCornerRadius="@dimen/activity_margin"
+        style="@style/SettingsSectionHolder"
         app:cardElevation="0dp">
 
         <LinearLayout
