@@ -402,6 +402,21 @@ class NewConversationActivity : SimpleActivity() {
         applyComposeBarImePaddingFromInsets()
     }
 
+    private fun hasRecipientAddress(): Boolean {
+        val allNumbers = mutableListOf<String>()
+        binding.newConversationAddress.allChips.forEach { chip ->
+            if (chip.isNotEmpty()) {
+                val phoneNumber = chipDisplayToPhoneNumber[chip]
+                    ?: chip.normalizePhoneNumber().takeIf { it.length >= 3 && it.all { c -> c.isDigit() } }
+                if (phoneNumber != null && phoneNumber.isNotEmpty() && !allNumbers.contains(phoneNumber)) {
+                    allNumbers.add(phoneNumber)
+                }
+            }
+        }
+        mergeRecipientNumbersFromRecipientField(allNumbers)
+        return allNumbers.isNotEmpty()
+    }
+
     private fun setupMessageHolder() {
         isSpeechToTextAvailable = isSpeechToTextAvailable()
 
@@ -411,6 +426,7 @@ class NewConversationActivity : SimpleActivity() {
             onSendMessage = { text, subscriptionId, attachments ->
                 sendMessageAndNavigate(text, subscriptionId, attachments)
             },
+            hasAddressForSend = { hasRecipientAddress() },
             onSpeechToText = { speechToText() },
             onExpandMessage = { showExpandedMessageFragment() },
             onHideAttachmentPickerRequested = {
@@ -548,6 +564,7 @@ class NewConversationActivity : SimpleActivity() {
                     }
                 }
                 isUpdatingChips = false
+                messageHolderHelper?.checkSendMessageAvailability()
             }
         } else {
             messageHolderHelper?.handleActivityResult(requestCode, resultCode, resultData)
@@ -805,12 +822,12 @@ class NewConversationActivity : SimpleActivity() {
                 }
             }
             updateNewConversationTitle()
+            messageHolderHelper?.checkSendMessageAvailability()
         }
 
         binding.newConversationAddress.setOnTextChangedListener { searchString ->
             updateSuggestionsOverlayVisibility(searchString)
-
-            messageHolderHelper?.checkSendMessageAvailability(addressStr = searchString, activityName = "New")
+            messageHolderHelper?.checkSendMessageAvailability()
             if (searchString.isEmpty()) {
                 recipientSearchThrottleRunnable?.let { recipientSearchHandler.removeCallbacks(it) }
                 recipientSearchThrottleRunnable = null

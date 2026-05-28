@@ -52,6 +52,7 @@ class MessageHolderHelper(
     private val onThreadTypeMessageFocusChange: ((hasFocus: Boolean) -> Unit)? = null,
     /** Invoked before hiding the attachment picker when the field gains focus and the picker is open (keyboard replacing picker). */
     private val onPrepareKeyboardFromAttachmentPicker: (() -> Unit)? = null,
+    private val hasAddressForSend: (() -> Boolean)? = null
 ) {
     var isCountdownActive = false
     private var isSpeechToTextAvailable = false
@@ -143,10 +144,7 @@ class MessageHolderHelper(
 
             threadTypeMessage.onTextChangeListener {
                 onTextChanged?.invoke(it)
-                var activityName = "Thread"
-                if (activity is NewConversationActivity)
-                    activityName = "New"
-                checkSendMessageAvailability(activityName = activityName)
+                checkSendMessageAvailability()
                 if (activity.config.showCharacterCounter) {
                     if (it.isEmpty()) {
                         composeUiHandler.removeCallbacks(debouncedRefreshCharacterCounter)
@@ -369,16 +367,19 @@ class MessageHolderHelper(
     // added params
     // why in newConversationActivity send message button has to disable if newConversationAddress and message are empty.
     // and in ThreadActivity only message is empty
-    fun checkSendMessageAvailability(addressStr: String = "", activityName: String = "Thread") {
+    fun checkSendMessageAvailability() {
         val selections = getAttachmentSelections()
         val hasReadyAttachments = selections.isNotEmpty() && !selections.any { it.isPending }
         val hasText = binding.threadTypeMessage.text?.isNotEmpty() == true
-        val hasAddress = (!addressStr.isEmpty() && activityName == "New") || (addressStr.isEmpty() && activityName == "Thread")
-        val canSend = (hasText || hasReadyAttachments) && hasAddress
+        val hasContent = hasText || hasReadyAttachments
+
+        val requiresAddress = hasAddressForSend != null
+        val hasAddress = hasAddressForSend?.invoke() ?: true
+        val canSend = hasContent &&  hasAddress
 
         val newMode = when {
             canSend -> ComposeSendMode.SEND
-            isSpeechToTextAvailable -> ComposeSendMode.SPEECH
+            isSpeechToTextAvailable && (!requiresAddress || hasAddress) -> ComposeSendMode.SPEECH
             else -> ComposeSendMode.DISABLED
         }
 
@@ -460,9 +461,11 @@ class MessageHolderHelper(
         val selections = selectionsOverride ?: getAttachmentSelections()
         val hasReadyAttachments = selections.isNotEmpty() && !selections.any { it.isPending }
         val hasText = binding.threadTypeMessage.text?.isNotEmpty() == true
+        val hasContent = hasText || hasReadyAttachments
+        val hasAddress = hasAddressForSend?.invoke() ?: true
         val drawableResId = if (isScheduledMessage) {
             R.drawable.ic_schedule_send_vector
-        } else if (hasText || hasReadyAttachments) {
+        } else if (hasContent || hasAddress) {
             R.drawable.ic_send_vector
         } else if (isSpeechToTextAvailable) {
             com.goodwy.commons.R.drawable.ic_microphone_vector
