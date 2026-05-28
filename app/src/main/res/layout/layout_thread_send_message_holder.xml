@@ -324,7 +324,7 @@
                     app:countdownBackgroundColor="?attr/colorControlNormal"
                     app:countdownForegroundColor="?attr/colorPrimary"
                     app:countdownTextColor="?attr/colorPrimary"
-                    app:countdownTextSize="24sp" />
+                    app:countdownTextSize="@dimen/tx_small_text" />
             </LinearLayout>
 
         </LinearLayout>
