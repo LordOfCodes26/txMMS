@@ -31,9 +31,6 @@
 
         </ScrollView>
 
-        <include
-            android:id="@+id/dialog_radio_holder_divider"
-            layout="@layout/divider" />
 
         <LinearLayout
             android:layout_width="match_parent"
