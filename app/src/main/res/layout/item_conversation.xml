@@ -197,29 +197,51 @@
                     android:textSize="@dimen/small_text_size"/>
             </androidx.cardview.widget.CardView>
 
-
-            <ImageView
-                android:id="@+id/conversationMessageType"
-                android:layout_width="@dimen/list_icon_size_xx_small"
-                android:layout_height="@dimen/list_icon_size_xx_small"
-                android:layout_marginTop="@dimen/tx_cardview_card_title_margin_top"
-                android:contentDescription="@null"
-                android:scaleType="fitCenter"
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
                 app:layout_constraintStart_toStartOf="@+id/conversationHolder"
                 app:layout_constraintTop_toBottomOf="@id/conversationHolder"
-                tools:src="@drawable/ic_sms_out" />
+                app:layout_constraintEnd_toStartOf="@id/conversationDate"
+                tools:ignore="RtlSymmetry">
 
-            <TextView
-                android:id="@+id/tvConversationCHOGO"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textSize="@dimen/small_text_size"
-                android:paddingTop="@dimen/tx_cardview_summary_padding_top"
-                android:text="@string/conversation_chogo_label"
-                android:visibility="gone"
-                android:textColor="@color/red_unread"
-                app:layout_constraintStart_toStartOf="@+id/conversationHolder"
-                app:layout_constraintTop_toBottomOf="@id/conversationHolder"/>
+                <ImageView
+                    android:id="@+id/conversationMessageType"
+                    android:layout_width="@dimen/list_icon_size_xx_small"
+                    android:layout_height="@dimen/list_icon_size_xx_small"
+                    android:layout_marginTop="@dimen/tx_cardview_card_title_margin_top"
+                    android:contentDescription="@null"
+                    android:scaleType="fitCenter"
+                    android:visibility="gone"
+                    tools:src="@drawable/ic_sms_out" />
+
+                <com.goodwy.commons.views.MyTextView
+                    android:id="@+id/tvConversationCHOGO"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="@dimen/tiny_margin"
+                    android:textSize="12sp"
+                    android:paddingTop="@dimen/tx_cardview_summary_padding_top"
+                    android:text="@string/conversation_chogo_label"
+                    android:textColor="@color/red_unread"/>
+
+                <com.goodwy.commons.views.MyTextView
+                    android:id="@+id/conversationBodyShort"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:paddingTop="@dimen/tx_cardview_summary_padding_top"
+                    android:layout_marginEnd="@dimen/section_margin"
+                    android:layout_marginStart="@dimen/medium_margin"
+                    android:textDirection="firstStrongLtr"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:textSize="12sp"
+                    tools:ignore="RtlSymmetry"
+                    tools:text="Hey buddy!" />
+            </LinearLayout>
+
+
 
             <androidx.constraintlayout.widget.Barrier
                 android:id="@+id/conversationMessageTypeBarrier"
@@ -227,91 +249,6 @@
                 android:layout_height="wrap_content"
                 app:barrierDirection="start"
                 app:constraint_referenced_ids="conversationMessageType" />
-
-            <!--            <TextView-->
-            <!--                android:id="@+id/draftIndicator"-->
-            <!--                android:layout_width="wrap_content"-->
-            <!--                android:layout_height="wrap_content"-->
-            <!--                android:layout_marginStart="@dimen/small_margin"-->
-            <!--                android:layout_marginBottom="@dimen/medium_margin"-->
-            <!--                android:ellipsize="end"-->
-            <!--                android:maxLines="1"-->
-            <!--                android:paddingEnd="@dimen/small_margin"-->
-            <!--                android:text="@string/draft"-->
-            <!--                android:textColor="@color/color_primary"-->
-            <!--                android:textSize="@dimen/normal_text_size"-->
-            <!--                android:textStyle="italic"-->
-            <!--                app:layout_constraintTop_toBottomOf="@+id/conversationAddress"-->
-            <!--                app:layout_constraintBottom_toBottomOf="parent"-->
-            <!--                app:layout_constraintStart_toEndOf="@+id/conversationMessageTypeBarrier"-->
-            <!--                tools:ignore="RtlSymmetry"/>-->
-
-            <com.goodwy.commons.views.MyTextView
-                android:id="@+id/conversationBodyShort"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:paddingTop="@dimen/tx_cardview_summary_padding_top"
-                android:layout_marginEnd="@dimen/section_margin"
-                android:layout_marginStart="@dimen/medium_margin"
-                android:ellipsize="end"
-                android:maxLines="1"
-                android:textSize="12sp"
-                app:layout_constraintEnd_toStartOf="@id/conversationDate"
-                app:layout_constraintStart_toEndOf="@id/conversationMessageType"
-                app:layout_constraintTop_toBottomOf="@id/conversationHolder"
-                tools:ignore="RtlSymmetry"
-                tools:text="Hey buddy!" />
-<!--            android:textSize="@dimen/small_text_size"-->
-
-            <!--            <ImageView-->
-            <!--                android:id="@+id/draftClear"-->
-            <!--                android:layout_width="@dimen/pin_icon_size"-->
-            <!--                android:layout_height="@dimen/pin_icon_size"-->
-            <!--                android:layout_marginBottom="-2dp"-->
-            <!--                android:layout_marginEnd="24dp"-->
-            <!--                android:src="@drawable/ic_cross_vector"-->
-            <!--                android:background="?selectableItemBackgroundBorderless"-->
-            <!--                android:contentDescription="@null"-->
-            <!--                android:visibility="gone"-->
-            <!--                app:layout_constraintTop_toTopOf="@+id/conversationBodyShort"-->
-            <!--                app:layout_constraintBottom_toBottomOf="@+id/conversationBodyShort"-->
-            <!--                app:layout_constraintStart_toEndOf="@+id/conversationBodyShort"-->
-            <!--                app:layout_constraintEnd_toEndOf="parent" />-->
-
-            <!--            <ImageView-->
-            <!--                android:id="@+id/pinIndicator"-->
-            <!--                android:layout_width="@dimen/pin_icon_size"-->
-            <!--                android:layout_height="@dimen/pin_icon_size"-->
-            <!--                android:layout_marginBottom="-2dp"-->
-            <!--                android:contentDescription="@null"-->
-            <!--                android:src="@drawable/ic_pin_angle_filled"-->
-            <!--                android:visibility="gone"-->
-            <!--                app:layout_constraintTop_toTopOf="@+id/conversationBodyShort"-->
-            <!--                app:layout_constraintBottom_toBottomOf="@+id/conversationBodyShort"-->
-            <!--                app:layout_constraintEnd_toEndOf="parent" />-->
-
-            <!--            <TextView-->
-            <!--                android:id="@+id/unreadCountBadge"-->
-            <!--                android:layout_width="wrap_content"-->
-            <!--                android:layout_height="wrap_content"-->
-            <!--                android:minWidth="19dp"-->
-            <!--                android:minHeight="19dp"-->
-            <!--                android:layout_marginBottom="-2dp"-->
-            <!--                android:gravity="center"-->
-            <!--                android:paddingVertical="@dimen/tiny_margin"-->
-            <!--                android:paddingHorizontal="@dimen/smaller_margin"-->
-            <!--                android:textSize="12dp"-->
-            <!--                android:textColor="@color/white"-->
-            <!--                android:textStyle="bold"-->
-            <!--                android:background="@drawable/tab_background"-->
-            <!--                android:visibility="gone"-->
-            <!--                android:includeFontPadding="false"-->
-            <!--                app:layout_constraintTop_toTopOf="@+id/conversationBodyShort"-->
-            <!--                app:layout_constraintBottom_toBottomOf="@+id/conversationBodyShort"-->
-            <!--                app:layout_constraintEnd_toEndOf="parent"-->
-            <!--                tools:backgroundTint="@color/primary"-->
-            <!--                tools:text="8"-->
-            <!--                tools:ignore="SpUsage" />-->
 
             <com.goodwy.commons.views.MyTextView
                 android:id="@+id/conversationDate"
@@ -325,19 +262,6 @@
                 app:layout_constraintEnd_toStartOf="@id/conversationCheckbox"
                 app:layout_constraintTop_toBottomOf="@id/conversationHolder"
                 tools:text="13:30" />
-
-            <!--            <ImageView-->
-            <!--                android:id="@+id/conversationChevron"-->
-            <!--                android:layout_width="12dp"-->
-            <!--                android:layout_height="12dp"-->
-            <!--                android:gravity="center_vertical"-->
-            <!--                android:alpha="0.4"-->
-            <!--                android:layout_marginEnd="@dimen/small_margin"-->
-            <!--                android:src="@drawable/ic_chevron_right_vector"-->
-            <!--                android:contentDescription="@null"-->
-            <!--                app:layout_constraintTop_toTopOf="@+id/conversationAddress"-->
-            <!--                app:layout_constraintBottom_toBottomOf="@+id/conversationAddress"-->
-            <!--                app:layout_constraintEnd_toStartOf="@+id/conversationCheckbox" />-->
 
             <com.android.common.view.MCycleCheckBox
                 android:id="@+id/conversationCheckbox"

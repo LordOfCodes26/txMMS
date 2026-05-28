@@ -413,7 +413,7 @@ abstract class BaseConversationsAdapter(
             if (smsDraft != null) {
                 tvConversationCHOGO.beVisible()
                 conversationMessageType.beGone()
-                conversationBodyShort.translationX = (40 * resources.displayMetrics.density)
+                conversationBodyShort.translationX = (-10 * resources.displayMetrics.density)
 //                conversationDraft.beVisible()
 //                conversationDraft.apply {
 //                    setTextColor(colorRed)
