@@ -473,21 +473,24 @@ class ContactPickerActivity : SimpleActivity() {
     }
 
     /**
-     * In search mode: list top = collapsed bar height (tx_top_bar_toolbar_margin_top +
-     * tx_top_bar_toolbar_height) + contact_picker_filter_bar_child height.
+     * In search mode: list top = full [R.id.contact_picker_filter_bar] height (child top margin
+     * is aligned to the search box bottom, so 82dp + child height alone is too small).
      * In browse mode: list top = full filter bar height + 12dp.
      */
     private fun syncContactPickerListTopPadding() {
         val rv = contactRecyclerView ?: return
         if (isSearchOpen) {
-            val collapsedBarHeight =
-                resources.getDimensionPixelSize(com.android.common.R.dimen.tx_top_bar_toolbar_margin_top) +
-                resources.getDimensionPixelSize(com.android.common.R.dimen.tx_top_bar_toolbar_height)
+            val bar = contactPickerFilterBar
+            val barH = bar?.height?.takeIf { it > 0 }
+                ?: bar?.measuredHeight?.takeIf { it > 0 }
+            if (barH != null) {
+                rv.updatePadding(top = barH)
+                return
+            }
             val child = findViewById<View>(R.id.contact_picker_filter_bar_child)
-            val childH = child?.height?.takeIf { it > 0 }
-                ?: child?.measuredHeight?.takeIf { it > 0 }
-                ?: 0
-            rv.updatePadding(top = collapsedBarHeight + childH)
+            val childTopMargin = (child?.layoutParams as? ViewGroup.MarginLayoutParams)?.topMargin ?: 0
+            val childH = child?.measuredHeight?.takeIf { it > 0 } ?: 0
+            rv.updatePadding(top = childTopMargin + childH + dp(1))
             return
         }
 
@@ -560,6 +563,7 @@ class ContactPickerActivity : SimpleActivity() {
             lp.topMargin = target
             child.layoutParams = lp
         }
+        filterBar.post { syncContactPickerListTopPadding() }
     }
 
     private fun initComponent() {
