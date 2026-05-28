@@ -25,9 +25,7 @@ import androidx.core.view.updatePadding
 import androidx.core.widget.NestedScrollView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.google.android.material.appbar.AppBarLayout
 import com.goodwy.commons.extensions.getProperBackgroundColor
-import com.goodwy.commons.extensions.getColoredDrawableWithColor
 import com.goodwy.commons.extensions.getProperPrimaryColor
 import com.goodwy.commons.extensions.getProperTextColor
 import com.goodwy.commons.extensions.getSurfaceColor
@@ -40,16 +38,11 @@ import com.goodwy.commons.models.SimpleContact
 import com.goodwy.commons.views.MyRecyclerView
 import com.goodwy.commons.views.MyTextView
 import com.android.common.helper.IconItem
+import com.android.common.view.MAppBarLayout
 import com.android.common.view.MRippleToolBar
+import com.android.common.view.MSearchView
 import com.android.common.view.MVSideFrame
 import com.android.mms.R
-import com.android.mms.extensions.applyLargeTitleOnly
-import com.android.mms.extensions.clearMySearchMenuSpringSync
-import com.android.mms.extensions.config
-import com.android.mms.extensions.postSyncMySearchMenuToolbarGeometry
-import com.android.mms.extensions.syncBlurTargetTopMarginForMenu
-import com.android.mms.extensions.syncTopSideFrameHeightForMenu
-import com.android.mms.extensions.setupMySearchMenuSpringSync
 import com.android.mms.adapters.ContactPickerAdapter
 import com.android.mms.extensions.setRippleTabEnabledWidthAlpha
 import com.android.mms.extensions.getNameAndPhotoFromPhoneNumber
@@ -57,13 +50,11 @@ import com.android.mms.helpers.ContactSimSlotHelper
 import com.android.mms.helpers.MessageHolderHelper
 import com.android.mms.models.Contact
 import com.android.mms.models.ContactPickerListRow
-import com.goodwy.commons.activities.BaseSimpleActivity
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.File
 import java.util.Calendar
 import com.goodwy.commons.helpers.SimpleContactsHelper
-import com.goodwy.commons.views.MySearchMenu
 import eightbitlab.com.blurview.BlurTarget
 
 class ContactPickerActivity : SimpleActivity() {
@@ -97,7 +88,7 @@ class ContactPickerActivity : SimpleActivity() {
         private const val CONTACTS_CACHE_FILE = "contact_picker_v${CONTACTS_CACHE_SCHEMA}.bin"
         /** Set to false to skip cache reads during testing (writes still occur for inspection). */
         private const val CONTACTS_CACHE_READ_ENABLED = true
-
+        private const val NEST_BOUNCY_OVERSCROLL_FACTOR = 0.35f
 
         fun getSelectedContacts(data: Intent?): ArrayList<Contact> {
             if (data != null && data.hasExtra(EXTRA_SELECTED_CONTACTS)) {
@@ -126,8 +117,10 @@ class ContactPickerActivity : SimpleActivity() {
         activity = this )
 
     private var scrollView: View? = null
-    private var blurAppBarLayout: MySearchMenu? = null
+    private var contactPickerAppbar: MAppBarLayout? = null
     private var rootView: View? = null
+    private var contactPickerAppBarVerticalOffset = 0
+    private var isSearchOpen = false
     /** Host of the contact list; when it scrolls instead of the [RecyclerView], RV [onScrolled] does not run. */
     private var nestScrollView: NestedScrollView? = null
     private val browseLoadMoreFromScrollRunnable = Runnable { maybeLoadMoreBrowseContactsFromScroll() }
@@ -160,17 +153,9 @@ class ContactPickerActivity : SimpleActivity() {
     private var contactPickerFilterBar: View? = null
     /** Filter bar height + 12dp; recomputed when search mode toggles (filter bar top margin changes). */
     private var contactPickerListTopInsetPx: Int = -1
-    /**
-     * [AppBarLayout] vertical offset while the inline search toolbar is open (search mode). The filter bar
-     * is translated by this; list top padding uses [contactPickerListTopInsetPx] + this so content moves up
-     * in sync with app bar collapse.
-     */
-    private var contactPickerSearchListTopAppBarOffsetPx: Int = 0
-    private var contactPickerSearchListPaddingAppBarListener: AppBarLayout.OnOffsetChangedListener? = null
-    /** Top margin of [R.id.contact_picker_filter_bar_child] when the large-title app bar is expanded. */
+    /** Saved [R.id.contact_picker_filter_bar_child] top margin for browse mode; restored on search exit. */
     private var contactPickerFilterBarExpandedTopMarginPx: Int = Int.MIN_VALUE
     private var contactPickerFilterBarInsetListener: ViewTreeObserver.OnGlobalLayoutListener? = null
-    private var contactPickerFilterBarAppBarOffsetListener: AppBarLayout.OnOffsetChangedListener? = null
     /** Letter rail disabled for performance on large address books; kept as plain [View] to hide in layout. */
     private var contactsLetterFastscroller: View? = null
     private var contactsLetterFastscrollerThumb: View? = null
@@ -214,34 +199,27 @@ class ContactPickerActivity : SimpleActivity() {
         setContentView(R.layout.activity_contact_picker)
         mContent = this@ContactPickerActivity
         rootView = findViewById(R.id.root_view)
+        scrollView = findViewById(R.id.nest_scroll)
+        contactPickerAppbar = findViewById(R.id.contact_picker_appbar)
         initTheme()
-        initMVSideFrames()
-        initBouncy()
-        initComponent()
-        makeSystemBarsToTransparent()
         setupEdgeToEdge()
+        makeSystemBarsToTransparent()
         applyContactPickerWindowSurfaces()
-
+        initComponent()
+        setupContactPickerTopAppBar()
+        setupNestBouncyScroll()
+        initMVSideFrames()
+        contactPickerAppbar?.addOnOffsetChangedListener { _, verticalOffset ->
+            contactPickerAppBarVerticalOffset = verticalOffset
+            syncFilterBarTranslation()
+            findViewById<MVSideFrame>(R.id.m_vertical_side_frame_top)?.update()
+        }
         findViewById<View>(R.id.nest_scroll).post {
-            val menu = blurAppBarLayout ?: return@post
-            val blur = findViewById<BlurTarget>(R.id.blurTarget)
-            val top = findViewById<View>(R.id.m_vertical_side_frame_top)
-            val rv = contactRecyclerView ?: return@post
-            postSyncMySearchMenuToolbarGeometry(rootView!!, menu, blur, top, paddedList = null)
-            syncContactPickerBlurGeometryAndListTopPadding()
-            contactPickerFilterBarAppBarOffsetListener =
-                setupMySearchMenuSpringSync(menu, rv, contactPickerFilterBar)
-            contactPickerSearchListPaddingAppBarListener = AppBarLayout.OnOffsetChangedListener { _, vOffset ->
-                val inSearch = menu.requireCustomToolbar().isSearchExpanded
-                contactPickerSearchListTopAppBarOffsetPx = if (inSearch) vOffset else 0
-                if (inSearch) applyContactPickerListTopPadding()
-            }
-            contactPickerSearchListPaddingAppBarListener?.let { menu.addOnOffsetChangedListener(it) }
-            if (config.changeColourTopBar) {
-                scrollingView = contactRecyclerView
-                val useSurfaceColor = isDynamicTheme() && !isSystemInDarkMode()
-                setupSearchMenuScrollListener(contactRecyclerView!!, menu, useSurfaceColor)
-            }
+            contactPickerAppbar?.dismissCollapse()
+            contactPickerAppBarVerticalOffset = 0
+            applyTransparentMAppBarChrome()
+            syncContactPickerListTopPadding()
+            refreshSideFrameBlurAndInsets()
         }
 
         if (checkContactsPermission()) {
@@ -259,20 +237,19 @@ class ContactPickerActivity : SimpleActivity() {
         val backgroundColor = if (useSurfaceColor) getSurfaceColor() else getProperBackgroundColor()
         rootView?.setBackgroundColor(backgroundColor)
         findViewById<BlurTarget>(R.id.mainBlurTarget)?.setBackgroundColor(backgroundColor)
-        findViewById<BlurTarget>(R.id.blurTarget)?.setBackgroundColor(backgroundColor)
         scrollView?.setBackgroundColor(backgroundColor)
         contactRecyclerView?.setBackgroundColor(backgroundColor)
+        applyTransparentMAppBarChrome()
     }
 
     private fun initMVSideFrames() {
-        val blurTarget = findViewById<BlurTarget>(R.id.blurTarget)
-        findViewById<MVSideFrame>(R.id.m_vertical_side_frame_top).bindBlurTarget(blurTarget)
-        findViewById<MVSideFrame>(R.id.m_vertical_side_frame_bottom).bindBlurTarget(blurTarget)
+        val blurTarget = findViewById<BlurTarget>(R.id.mainBlurTarget)
+        findViewById<MVSideFrame>(R.id.m_vertical_side_frame_top)?.bindBlurTarget(blurTarget)
+        findViewById<MVSideFrame>(R.id.m_vertical_side_frame_bottom)?.bindBlurTarget(blurTarget)
     }
 
     override fun onResume() {
         super.onResume()
-        // Match ThreadActivity: layout fullscreen so content draws behind transparent status/nav bars
         if (isSystemInDarkMode()) {
             @Suppress("DEPRECATION")
             window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
@@ -285,32 +262,34 @@ class ContactPickerActivity : SimpleActivity() {
             )
         }
         applyContactPickerWindowSurfaces()
-        val isSearchActive = blurAppBarLayout?.requireCustomToolbar()?.isSearchExpanded == true
-        if (isSearchActive) hideTopBarNavigation() else setupTopBarNavigation()
+        setupContactPickerTopAppBar()
+        contactPickerAppbar?.translationY = 0f
+        applyTransparentMAppBarChrome()
+        syncContactPickerListTopPadding()
         setupBottomActionTabs()
         scrollingView = contactRecyclerView
-        blurAppBarLayout?.updateColors(
-            getStartRequiredStatusBarColor(),
-            scrollingView?.computeVerticalScrollOffset() ?: 0,
-        )
-        setContactPickerTransparentAppBarBackground()
         refreshSideFrameBlurAndInsets()
         if (isCallLogMode) {
             contactAdapter?.scheduleGroupedTodayTimeRefresh()
         }
     }
 
-    /** Top chrome uses the shifted inner blur target; the bottom ripple bar uses the unshifted outer target. */
+    /** BlurView + MVSideFrame can stop updating after another activity was shown; re-apply insets and re-bind. */
     private fun refreshSideFrameBlurAndInsets() {
         rootView?.post {
             val root = rootView ?: return@post
-            val topBlurTarget = findViewById<BlurTarget>(R.id.blurTarget) ?: return@post
+            val blurTarget = findViewById<BlurTarget>(R.id.mainBlurTarget) ?: return@post
             ViewCompat.requestApplyInsets(root)
-            findViewById<MVSideFrame>(R.id.m_vertical_side_frame_top)?.bindBlurTarget(topBlurTarget)
-            findViewById<MVSideFrame>(R.id.m_vertical_side_frame_bottom)?.bindBlurTarget(topBlurTarget)
-            blurAppBarLayout?.requireCustomToolbar()?.bindBlurTarget(this@ContactPickerActivity, topBlurTarget)
-            syncContactPickerBlurGeometryAndListTopPadding()
-            setupBottomActionTabs()
+            findViewById<MVSideFrame>(R.id.m_vertical_side_frame_top)?.bindBlurTarget(blurTarget)
+            findViewById<MVSideFrame>(R.id.m_vertical_side_frame_bottom)?.bindBlurTarget(blurTarget)
+            contactPickerAppbar?.getBackArrow()?.bindBlurTarget(this@ContactPickerActivity, blurTarget)
+            contactPickerAppbar?.getActionBarView()?.bindBlurTarget(this@ContactPickerActivity, blurTarget)
+            contactPickerAppbar?.getSearchView()?.bindBlurTarget(this@ContactPickerActivity, blurTarget, 0)
+            applyTransparentMAppBarChrome()
+            applyContactPickerSearchModeChrome(isSearchOpen)
+            syncContactPickerListTopPadding()
+            if (isSearchOpen) alignFilterBarChildBelowSearchView()
+            findViewById<MVSideFrame>(R.id.m_vertical_side_frame_top)?.update()
         }
     }
 
@@ -324,17 +303,7 @@ class ContactPickerActivity : SimpleActivity() {
             contactPickerFilterBar?.viewTreeObserver?.removeOnGlobalLayoutListener(listener)
         }
         contactPickerFilterBarInsetListener = null
-        blurAppBarLayout?.let { menu ->
-            contactPickerSearchListPaddingAppBarListener?.let { menu.removeOnOffsetChangedListener(it) }
-            clearMySearchMenuSpringSync(
-                menu,
-                contactRecyclerView,
-                contactPickerFilterBarAppBarOffsetListener,
-                contactPickerFilterBar,
-            )
-        }
-        contactPickerFilterBarAppBarOffsetListener = null
-        contactPickerSearchListPaddingAppBarListener = null
+        contactRecyclerView?.onOverscrollTranslationChanged = null
         contactsCursor?.takeIf { !it.isClosed }?.close()
         contactsCursor = null
         contactRecyclerView?.removeCallbacks(browseLoadMoreFromScrollRunnable)
@@ -359,7 +328,6 @@ class ContactPickerActivity : SimpleActivity() {
                 val bottomOffset = dp(0)
                 if (ime.bottom > 0) {
                     bottomBarLp.bottomMargin = ime.bottom + bottomOffset
-                    contactRecyclerView?.scrollToPosition((contactAdapter?.itemCount ?: 1) - 1)
                 } else {
                     bottomBarLp.bottomMargin = navHeight + bottomOffset
                 }
@@ -377,73 +345,112 @@ class ContactPickerActivity : SimpleActivity() {
         rv.updatePadding(bottom = bottomInset + activityMargin + dp(90))
     }
 
-    /**
-     * After [MySearchMenu] height changes (e.g. leaving search), sync blur/side-frame and
-     * re-apply the list top inset, ensuring the **very first drawn frame** is correct.
-     *
-     * Uses [ViewTreeObserver.OnPreDrawListener] which fires after the full layout pass (so all
-     * view heights are real) but **before** the draw.  Returning `false` cancels the pending draw
-     * and schedules a new traversal; that traversal then re-lays out [blurTarget] and the list
-     * with the updated params and draws correctly — so no wrong frame is ever shown.
-     *
-     * Compared to `menu.post { menu.post {} }`: those inner posts fire before layout completes
-     * (menu.height == 0 at that point), silently bail out, and the sync is never run until a
-     * secondary trigger such as the contacts load (~2 s).
-     */
-    /**
-     * Syncs blur geometry and list top padding atomically using [ViewTreeObserver.OnPreDrawListener].
-     *
-     * The listener fires after the full layout pass (real heights available) but before the draw.
-     * We wait until **both** [menu.height] and [bar.height] are non-zero so the blur sync and the
-     * padding update always happen together — preventing the one-frame "overlap" that would appear
-     * if only the blur sync ran while the padding was still 0.
-     *
-     * Returning `false` cancels the pending draw; the next Vsync re-lays out [blurTarget] (with
-     * the new negative topMargin) and [contactRecyclerView] (with the new paddingTop) and draws
-     * the correct first frame.
-     */
-    private fun syncContactPickerBlurGeometryAndListTopPadding() {
-        val menu = blurAppBarLayout ?: return
-        val blur = findViewById<BlurTarget>(R.id.blurTarget) ?: return
-        val top = findViewById<View>(R.id.m_vertical_side_frame_top)
-        val rootV = rootView ?: return
-        rootV.viewTreeObserver.addOnPreDrawListener(object : ViewTreeObserver.OnPreDrawListener {
-            override fun onPreDraw(): Boolean {
-                if (isFinishing || isDestroyed) {
-                    rootV.viewTreeObserver.removeOnPreDrawListener(this)
-                    return true
-                }
-                // Wait until the AppBar has a real height.
-                val menuH = menu.height.takeIf { it > 0 } ?: return true
+    /** Glass top chrome: keep [MAppBarLayout] transparent so [MVSideFrame] blur shows through (txCommon). */
+    private fun applyTransparentMAppBarChrome() {
+        contactPickerAppbar?.apply {
+            setBackgroundColor(Color.TRANSPARENT)
+            elevation = 0f
+            stateListAnimator = null
+            setLiftOnScrollColor(null)
+        }
+    }
 
-                // Resolve filter-bar height with all fallbacks.  If still 0, defer to next frame
-                // rather than doing a partial sync (blur without padding) that would cause overlap.
-                val bar = contactPickerFilterBar ?: run {
-                    rootV.viewTreeObserver.removeOnPreDrawListener(this)
-                    return true
-                }
-                val barH: Int = bar.height.takeIf { it > 0 }
-                    ?: bar.measuredHeight.takeIf { it > 0 && bar.isLaidOut }
-                    ?: run {
-                        val wSpec = View.MeasureSpec.makeMeasureSpec(
-                            resources.displayMetrics.widthPixels, View.MeasureSpec.EXACTLY)
-                        val hSpec = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
-                        bar.measure(wSpec, hSpec)
-                        bar.measuredHeight.takeIf { it > 0 }
+    private fun syncFilterBarTranslation() {
+        val appbar = contactPickerAppbar ?: return
+        contactPickerFilterBar?.translationY =
+            contactPickerAppBarVerticalOffset.toFloat() + appbar.translationY
+    }
+
+    private fun setupNestBouncyScroll() {
+        val rv = contactRecyclerView ?: return
+        rv.setOnScrollChangeListener { _, _, _, _, _ ->
+            applyTransparentMAppBarChrome()
+            findViewById<MVSideFrame>(R.id.m_vertical_side_frame_top)?.update()
+        }
+        rv.onOverscrollTranslationChanged = { overScrolledDistance ->
+            val overscrollTranslation = overScrolledDistance * NEST_BOUNCY_OVERSCROLL_FACTOR
+            contactPickerAppbar?.translationY = overscrollTranslation
+            syncFilterBarTranslation()
+        }
+    }
+
+    private fun setupContactPickerTopAppBar() {
+        val appbar = contactPickerAppbar ?: return
+        val blurTarget = findViewById<BlurTarget>(R.id.mainBlurTarget) ?: return
+        appbar.setTitle(getString(R.string.select_contacts))
+
+        appbar.getBackArrow()?.apply {
+            bindBlurTarget(this@ContactPickerActivity, blurTarget)
+            setOnMenuItemClickListener { menuItem ->
+                if (menuItem.itemId == com.android.common.R.id.back_arrow) {
+                    if (isSearchOpen) {
+                        appbar.getSearchView()?.searchEnd()
+                    } else {
+                        finish()
                     }
-                    ?: return true  // bar not ready yet — allow this draw and retry next frame
-
-                // Both values are ready; apply blur sync + padding atomically.
-                rootV.viewTreeObserver.removeOnPreDrawListener(this)
-                syncBlurTargetTopMarginForMenu(blur, menuH)
-                syncTopSideFrameHeightForMenu(top, menu, menuH)
-                blur.invalidate()
-                contactPickerListTopInsetPx = barH + dp(12)
-                contactRecyclerView?.updatePadding(top = barH + dp(12))
-                // Cancel this draw; the next traversal re-lays out with correct geometry.
-                return false
+                    true
+                } else {
+                    false
+                }
             }
-        })
+        }
+
+        val searchView = appbar.getSearchView()
+        appbar.getActionBarView()?.let { actionBar ->
+            actionBar.bindBlurTarget(this@ContactPickerActivity, blurTarget)
+            actionBar.setPosition("right")
+            actionBar.inflateMenu(R.menu.menu_contact_picker)
+            if (searchView != null) {
+                actionBar.setSearchView(searchView, R.id.search)
+            }
+        }
+
+        searchView?.let { sv ->
+            val existingListener = sv.onStateListener
+            sv.setOnStateListener(object : MSearchView.OnSearchStateListener {
+                override fun onState(state: Int) {
+                    existingListener?.onState(state)
+                    when (state) {
+                        MSearchView.SEARCH_START -> onContactPickerSearchStarted()
+                        MSearchView.SEARCH_END -> finishContactPickerSearchMode(fromSearchEnd = true)
+                    }
+                }
+
+                override fun onSearchTextChanged(newText: String) {
+                    existingListener?.onSearchTextChanged(newText)
+                    searchString = newText
+                    if (isCallLogMode) {
+                        updateAdapterWithFilteredContacts()
+                    } else {
+                        searchListByQuery(searchString)
+                    }
+                }
+            })
+        }
+
+        applyTransparentMAppBarChrome()
+        applyContactPickerSearchModeChrome(isSearchOpen)
+    }
+
+    /** Hide large title and back arrow while [MSearchView] is open (txCommon [MAppBarLayout] behavior). */
+    private fun applyContactPickerSearchModeChrome(inSearch: Boolean) {
+        val appbar = contactPickerAppbar ?: return
+        appbar.findViewById<View>(com.android.common.R.id.m_app_bar_title)?.visibility =
+            if (inSearch) View.INVISIBLE else View.VISIBLE
+        appbar.getBackArrow()?.visibility = if (inSearch) View.GONE else View.VISIBLE
+    }
+
+    private fun onContactPickerSearchStarted() {
+        isSearchOpen = true
+        applyContactPickerSearchModeChrome(inSearch = true)
+        contactPickerAppbar?.forceKeepCollapse()
+        applyContactPickerFilterBarTopMarginForSearch(collapsedMenu = true)
+        contactPickerListTopInsetPx = -1
+        resolveContactPickerListTopInsetPxIfNeeded()
+        syncContactPickerListTopPadding()
+        contactPickerFilterBar?.post { syncContactPickerListTopPadding() }
+        contactRecyclerView?.isNestedScrollingEnabled = false
+        contactRecyclerView?.scrollToPosition((contactAdapter?.itemCount ?: 1) - 1)
     }
 
     /** Resolves filter bar height + 12dp without waiting for a layout pass (avoids wrong padding on first search). */
@@ -468,24 +475,11 @@ class ContactPickerActivity : SimpleActivity() {
 
     /**
      * List starts below [R.id.contact_picker_filter_bar] plus 12dp.
-     *
-     * Important: the list is inside a [NestedScrollView] while the filter bar is an overlay sibling.
-     * So using on-screen geometry (getLocationOnScreen) will change as the parent scrolls and can
-     * incorrectly inflate the list top padding.
      */
-    private fun applyContactPickerListTopPadding() {
+    private fun syncContactPickerListTopPadding() {
         val rv = contactRecyclerView ?: return
-        val inSearch = blurAppBarLayout?.requireCustomToolbar()?.isSearchExpanded == true
         val bar = contactPickerFilterBar
-        fun topPxForBaseInset(): Int {
-            val base = contactPickerListTopInsetPx
-            if (base < 0) return -1
-            return (base + if (inSearch) contactPickerSearchListTopAppBarOffsetPx else 0).coerceAtLeast(0)
-        }
-        // In search mode the app bar is collapsed and the filter strip child top margin changes.
-        // LinearLayout measured height includes child margins, so using the *current* filter bar height
-        // keeps the list padding in sync with that margin change (no stale cached inset).
-        if (inSearch && bar != null) {
+        if (isSearchOpen && bar != null) {
             val baseNow = bar.height.takeIf { it > 0 }
                 ?: if (bar.isLaidOut) bar.measuredHeight.takeIf { it > 0 } else null
                 ?: run {
@@ -496,21 +490,18 @@ class ContactPickerActivity : SimpleActivity() {
                     bar.measuredHeight.takeIf { it > 0 }
                 }
             if (baseNow != null) {
-                rv.updatePadding(top = (baseNow + dp(12) + contactPickerSearchListTopAppBarOffsetPx).coerceAtLeast(0))
+                rv.updatePadding(top = baseNow + dp(12))
                 return
             }
         }
 
         resolveContactPickerListTopInsetPxIfNeeded()
         if (contactPickerListTopInsetPx >= 0) {
-            val top = topPxForBaseInset()
-            if (top >= 0) rv.updatePadding(top = top)
+            rv.updatePadding(top = contactPickerListTopInsetPx)
             return
         }
         val safeBar = bar ?: return
-        if (contactPickerFilterBarInsetListener != null) {
-            return
-        }
+        if (contactPickerFilterBarInsetListener != null) return
         val listener = object : ViewTreeObserver.OnGlobalLayoutListener {
             override fun onGlobalLayout() {
                 val b = contactPickerFilterBar ?: return
@@ -518,7 +509,7 @@ class ContactPickerActivity : SimpleActivity() {
                 contactPickerListTopInsetPx = b.height + dp(12)
                 b.viewTreeObserver.removeOnGlobalLayoutListener(this)
                 contactPickerFilterBarInsetListener = null
-                applyContactPickerListTopPadding()
+                syncContactPickerListTopPadding()
             }
         }
         contactPickerFilterBarInsetListener = listener
@@ -526,101 +517,61 @@ class ContactPickerActivity : SimpleActivity() {
     }
 
     /**
-     * Search mode uses a fixed collapsed app bar height; sync blur/side-frame in the same frame as
-     * [MySearchMenu.collapseAndLockCollapsing] so the list does not jump before padding settles.
-     */
-    private fun syncContactPickerBlurForCollapsedSearchMenu() {
-        val menu = blurAppBarLayout ?: return
-        val blur = findViewById<BlurTarget>(R.id.blurTarget) ?: return
-        val top = findViewById<View>(R.id.m_vertical_side_frame_top)
-        val h = menu.getCollapsedHeightPx().takeIf { it > 0 } ?: return
-        syncBlurTargetTopMarginForMenu(blur, h)
-        syncTopSideFrameHeightForMenu(top, menu, h)
-        blur.invalidate()
-    }
-
-    /**
      * The filter strip uses a large [R.id.contact_picker_filter_bar_child] top margin to clear the expanded
-     * large title; in search mode the app bar is collapsed, so the margin must match [MySearchMenu] height.
+     * large title; in search mode the app bar is collapsed, so the margin must match collapsed toolbar height.
      */
     private fun applyContactPickerFilterBarTopMarginForSearch(collapsedMenu: Boolean) {
         val child = findViewById<View>(R.id.contact_picker_filter_bar_child) ?: return
         val lp = child.layoutParams as? ViewGroup.MarginLayoutParams ?: return
         if (collapsedMenu) {
-            val menu = blurAppBarLayout ?: return
             if (contactPickerFilterBarExpandedTopMarginPx == Int.MIN_VALUE) {
                 contactPickerFilterBarExpandedTopMarginPx = lp.topMargin
             }
-            val target = menu.getCollapsedHeightPx().takeIf { it > 0 } ?: return
+            val target = resources.getDimensionPixelSize(com.android.common.R.dimen.tx_top_bar_toolbar_margin_top) +
+                resources.getDimensionPixelSize(com.android.common.R.dimen.tx_top_bar_toolbar_height)
             if (lp.topMargin != target) {
                 lp.topMargin = target
                 child.layoutParams = lp
             }
+            // Refine with the actual measured bottom of the search input after layout settles.
+            child.post { alignFilterBarChildBelowSearchView() }
         } else if (contactPickerFilterBarExpandedTopMarginPx != Int.MIN_VALUE) {
             lp.topMargin = contactPickerFilterBarExpandedTopMarginPx
             child.layoutParams = lp
         }
     }
 
-    private fun setContactPickerTransparentAppBarBackground() {
-        val menu = blurAppBarLayout ?: return
-        menu.setBackgroundColor(Color.TRANSPARENT)
-        menu.binding.searchBarContainer.setBackgroundColor(Color.TRANSPARENT)
-    }
-
-    private fun initBouncy() {
-        blurAppBarLayout = findViewById(R.id.blur_app_bar_layout)
-        scrollView = findViewById(R.id.nest_scroll)
+    /**
+     * Positions [R.id.contact_picker_filter_bar_child] so its top edge aligns with the bottom of
+     * the [MSearchView] inside the collapsed top app bar.  Uses [View.getLocationInWindow] so the
+     * result is independent of hard-coded dimension resources and matches the actual rendered layout.
+     */
+    private fun alignFilterBarChildBelowSearchView() {
+        if (!isSearchOpen) return
+        val child = findViewById<View>(R.id.contact_picker_filter_bar_child) ?: return
+        val filterBar = contactPickerFilterBar ?: return
+        val searchView = contactPickerAppbar?.getSearchView() ?: return
+        if (!searchView.isLaidOut || searchView.height <= 0) return
+        val searchLoc = IntArray(2)
+        searchView.getLocationInWindow(searchLoc)
+        val filterBarLoc = IntArray(2)
+        filterBar.getLocationInWindow(filterBarLoc)
+        val target = (searchLoc[1] + searchView.height) - filterBarLoc[1]
+        if (target <= 0) return
+        val lp = child.layoutParams as? ViewGroup.MarginLayoutParams ?: return
+        if (lp.topMargin != target) {
+            lp.topMargin = target
+            child.layoutParams = lp
+            contactPickerListTopInsetPx = -1
+            syncContactPickerListTopPadding()
+        }
     }
 
     private fun initComponent() {
-        blurAppBarLayout?.applyLargeTitleOnly(getString(R.string.select_contacts))
-        setupTopBarNavigation()
-
         bottomBarContainer = findViewById(R.id.lyt_action)
         tabBar = findViewById(R.id.confirm_tab)
 
         setupBottomActionTabs()
-
-        val blurTarget = findViewById<BlurTarget>(R.id.blurTarget)
-        blurAppBarLayout?.requireCustomToolbar()?.apply {
-            inflateMenu(R.menu.menu_contact_picker)
-            bindBlurTarget(this@ContactPickerActivity, blurTarget)
-            setOnMenuItemClickListener { item ->
-                if (item.itemId == R.id.search) {
-                    val bar = blurAppBarLayout ?: return@setOnMenuItemClickListener true
-                    // Collapse the large-title region before expanding inline search (same order as MainActivity).
-                    bar.collapseAndLockCollapsing()
-                    syncContactPickerBlurForCollapsedSearchMenu()
-                    bar.binding.collapsingTitle.visibility = View.GONE
-                    expandSearch()
-                    true
-                } else false
-            }
-            setOnSearchExpandListener {
-                val bar = blurAppBarLayout ?: return@setOnSearchExpandListener
-                bar.collapseAndLockCollapsing()
-                syncContactPickerBlurForCollapsedSearchMenu()
-                applyContactPickerFilterBarTopMarginForSearch(collapsedMenu = true)
-                contactPickerListTopInsetPx = -1
-                resolveContactPickerListTopInsetPxIfNeeded()
-                applyContactPickerListTopPadding()
-                contactPickerFilterBar?.post { applyContactPickerListTopPadding() }
-                bar.binding.collapsingTitle.visibility = View.GONE
-                hideTopBarNavigation()
-                contactRecyclerView?.isNestedScrollingEnabled = false
-                contactRecyclerView?.scrollToPosition((contactAdapter?.itemCount ?: 1) - 1)
-            }
-            setOnSearchBackClickListener { finishContactPickerSearchMode() }
-            setOnSearchTextChangedListener { s ->
-                searchString = s ?: ""
-                if (isCallLogMode) {
-                    updateAdapterWithFilteredContacts()
-                } else {
-                    searchListByQuery(searchString)
-                }
-            }
-        }
 
         contactRecyclerView = findViewById<MyRecyclerView>(R.id.contactRecyclerView).apply {
             layoutManager = LinearLayoutManager(this@ContactPickerActivity)
@@ -665,7 +616,6 @@ class ContactPickerActivity : SimpleActivity() {
         })
 
         contactPickerFilterBar = findViewById(R.id.contact_picker_filter_bar)
-        val filterBar = contactPickerFilterBar as? ViewGroup
         callLogPlaceholder = findViewById(R.id.call_log_placeholder)
 //        if (filterBar != null && filterBar.childCount >= 2) {
 //            filterCallLog = filterBar.getChildAt(0) as? MyTextView
@@ -703,18 +653,11 @@ class ContactPickerActivity : SimpleActivity() {
         }
         updateFilterBar()
         updateConfirmTabEnable()
-        // Register the blur/padding sync listener NOW, while the view is still unattached.
-        // rootView.viewTreeObserver is a "floating" observer at this point; Android merges it
-        // into the window's real tree observer during dispatchAttachedToWindow() at the START
-        // of the first Vsync traversal (before measure/layout/draw).  This guarantees our
-        // OnPreDrawListener fires before the very first frame is rendered.
-        syncContactPickerBlurGeometryAndListTopPadding()
+        syncContactPickerListTopPadding()
     }
 
     private fun setupBottomActionTabs() {
-        val rippleBlurTarget = findViewById<BlurTarget>(R.id.mainBlurTarget)
-            ?: findViewById<BlurTarget>(R.id.blurTarget)
-            ?: return
+        val rippleBlurTarget = findViewById<BlurTarget>(R.id.mainBlurTarget) ?: return
         val items = ArrayList<IconItem>().apply {
             add(IconItem().apply {
                 icon = com.android.common.R.drawable.ic_cmn_cancel_fill
@@ -741,8 +684,8 @@ class ContactPickerActivity : SimpleActivity() {
         updateConfirmTabEnable()
     }
 
-    private fun finishContactPickerSearchMode() {
-        val bar = blurAppBarLayout ?: return
+    private fun finishContactPickerSearchMode(fromSearchEnd: Boolean = false) {
+        if (!isSearchOpen && !fromSearchEnd) return
         if (searchString.isNotEmpty()) {
             searchString = ""
             if (isCallLogMode) {
@@ -752,21 +695,20 @@ class ContactPickerActivity : SimpleActivity() {
             }
         }
         applyContactPickerFilterBarTopMarginForSearch(collapsedMenu = false)
-        contactPickerSearchListTopAppBarOffsetPx = 0
         contactPickerListTopInsetPx = -1
-        bar.unlockCollapsing()
-        bar.setExpanded(true, true)
-        bar.binding.collapsingTitle.visibility = View.VISIBLE
-        setupTopBarNavigation()
+        isSearchOpen = false
+        applyContactPickerSearchModeChrome(inSearch = false)
+        contactPickerAppbar?.dismissCollapse()
+        contactPickerAppBarVerticalOffset = 0
+        syncFilterBarTranslation()
         contactRecyclerView?.isNestedScrollingEnabled = false
-        syncContactPickerBlurGeometryAndListTopPadding()
+        syncContactPickerListTopPadding()
+        applyTransparentMAppBarChrome()
     }
 
     override fun onBackPressedCompat(): Boolean {
-        val toolbar = blurAppBarLayout?.requireCustomToolbar()
-        if (toolbar?.isSearchExpanded == true) {
-            toolbar.collapseSearch()
-            finishContactPickerSearchMode()
+        if (isSearchOpen) {
+            contactPickerAppbar?.getSearchView()?.searchEnd()
             return true
         }
         return super.onBackPressedCompat()
@@ -774,27 +716,6 @@ class ContactPickerActivity : SimpleActivity() {
 
     private fun updateConfirmTabEnable() {
         tabBar?.setRippleTabEnabledWidthAlpha(1, !selectedPositions.isEmpty())
-    }
-    private fun setupTopBarNavigation() {
-        blurAppBarLayout?.requireCustomToolbar()?.apply {
-            val textColor = getProperTextColor()
-            navigationIcon = resources.getColoredDrawableWithColor(
-                this@ContactPickerActivity,
-                com.android.common.R.drawable.ic_cmn_arrow_left_fill,
-                textColor
-            )
-            setNavigationContentDescription(com.goodwy.commons.R.string.back)
-            setNavigationOnClickListener {
-                finish()
-            }
-        }
-    }
-
-    private fun hideTopBarNavigation() {
-        blurAppBarLayout?.requireCustomToolbar()?.apply {
-            navigationIcon = null
-            setNavigationOnClickListener(null)
-        }
     }
 
     private fun updateFilterBar() {
