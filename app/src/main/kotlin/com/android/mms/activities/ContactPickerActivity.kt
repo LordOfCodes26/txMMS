@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
+import android.graphics.Rect
 import android.os.Bundle
 import android.os.SystemClock
 import android.util.Log
@@ -89,6 +90,12 @@ class ContactPickerActivity : SimpleActivity() {
         /** Set to false to skip cache reads during testing (writes still occur for inspection). */
         private const val CONTACTS_CACHE_READ_ENABLED = true
         private const val NEST_BOUNCY_OVERSCROLL_FACTOR = 0.35f
+        /** [MSearchView.startSearch] slide-in duration in txCommon (ms). */
+        private const val TX_SEARCH_OPEN_ANIM_MS = 300L
+        /** Extra buffer after search open animation before aligning filter bar / list inset. */
+        private const val CONTACT_PICKER_SEARCH_LAYOUT_SETTLE_MS = 320L
+        /** [MAppBarLayout] scroll-content offset animation when search opens from expanded (txCommon). */
+        private const val TX_SEARCH_CONTENT_OFFSET_ANIM_MS = 300L
 
         fun getSelectedContacts(data: Intent?): ArrayList<Contact> {
             if (data != null && data.hasExtra(EXTRA_SELECTED_CONTACTS)) {
@@ -125,6 +132,22 @@ class ContactPickerActivity : SimpleActivity() {
     private var nestScrollView: NestedScrollView? = null
     private val browseLoadMoreFromScrollRunnable = Runnable { maybeLoadMoreBrowseContactsFromScroll() }
     private val browseLoadMoreAfterChunkRunnable = Runnable { maybeLoadMoreBrowseContactsFromScroll() }
+    private val contactPickerSearchLayoutSyncRunnable = Runnable {
+        if (!isSearchOpen || isFinishing || isDestroyed) return@Runnable
+        alignFilterBarChildBelowSearchView()
+    }
+    private val contactPickerSearchRefineRunnable = Runnable {
+        if (!isSearchOpen || isFinishing || isDestroyed) return@Runnable
+        alignFilterBarChildBelowSearchViewRefine()
+    }
+    private var contactPickerSearchAlignAttempts = 0
+    /** True when search opened before the app bar was fully collapsed (extra layout settle needed). */
+    private var contactPickerSearchOpenedFromExpanded = false
+    /**
+     * True after search exit until the next search layout sync finishes; txCommon animates scroll
+     * content back on [MSearchView.SEARCH_END] and re-entry must wait before measuring list inset.
+     */
+    private var contactPickerSearchContentOffsetUnsettled = false
 
     private fun perfLog(message: String) {
         if (CONTACT_PICKER_PERF_LOG) {
@@ -153,8 +176,12 @@ class ContactPickerActivity : SimpleActivity() {
     private var contactPickerFilterBar: View? = null
     /** Filter bar height + 12dp; recomputed when search mode toggles (filter bar top margin changes). */
     private var contactPickerListTopInsetPx: Int = -1
+    /** Search mode list top inset after [contactPickerSearchFilterBarAligned]; -1 until computed. */
+    private var contactPickerSearchListTopInsetPx: Int = -1
     /** Saved [R.id.contact_picker_filter_bar_child] top margin for browse mode; restored on search exit. */
     private var contactPickerFilterBarExpandedTopMarginPx: Int = Int.MIN_VALUE
+    /** True after [alignFilterBarChildBelowSearchView] positions tabs under the search field. */
+    private var contactPickerSearchFilterBarAligned = false
     private var contactPickerFilterBarInsetListener: ViewTreeObserver.OnGlobalLayoutListener? = null
     /** Letter rail disabled for performance on large address books; kept as plain [View] to hide in layout. */
     private var contactsLetterFastscroller: View? = null
@@ -287,8 +314,11 @@ class ContactPickerActivity : SimpleActivity() {
             contactPickerAppbar?.getSearchView()?.bindBlurTarget(this@ContactPickerActivity, blurTarget, 0)
             applyTransparentMAppBarChrome()
             applyContactPickerSearchModeChrome(isSearchOpen)
-            syncContactPickerListTopPadding()
-            if (isSearchOpen) alignFilterBarChildBelowSearchView()
+            if (isSearchOpen) {
+                requestContactPickerSearchLayoutSync()
+            } else {
+                syncContactPickerListTopPadding()
+            }
             findViewById<MVSideFrame>(R.id.m_vertical_side_frame_top)?.update()
         }
     }
@@ -299,15 +329,13 @@ class ContactPickerActivity : SimpleActivity() {
     }
 
     override fun onDestroy() {
-        contactPickerFilterBarInsetListener?.let { listener ->
-            contactPickerFilterBar?.viewTreeObserver?.removeOnGlobalLayoutListener(listener)
-        }
-        contactPickerFilterBarInsetListener = null
+        clearContactPickerFilterBarInsetListener()
         contactRecyclerView?.onOverscrollTranslationChanged = null
         contactsCursor?.takeIf { !it.isClosed }?.close()
         contactsCursor = null
         contactRecyclerView?.removeCallbacks(browseLoadMoreFromScrollRunnable)
         contactRecyclerView?.removeCallbacks(browseLoadMoreAfterChunkRunnable)
+        cancelContactPickerSearchLayoutSync()
         super.onDestroy()
     }
 
@@ -440,16 +468,117 @@ class ContactPickerActivity : SimpleActivity() {
         appbar.getBackArrow()?.visibility = if (inSearch) View.GONE else View.VISIBLE
     }
 
+    private fun clearContactPickerFilterBarInsetListener() {
+        contactPickerFilterBarInsetListener?.let { listener ->
+            contactPickerFilterBar?.viewTreeObserver?.removeOnGlobalLayoutListener(listener)
+        }
+        contactPickerFilterBarInsetListener = null
+    }
+
+    private fun cancelContactPickerSearchLayoutSync() {
+        contactPickerAppbar?.removeCallbacks(contactPickerSearchLayoutSyncRunnable)
+        val searchView = contactPickerAppbar?.getSearchView()
+        searchView?.removeCallbacks(contactPickerSearchLayoutSyncRunnable)
+        searchView?.removeCallbacks(contactPickerSearchRefineRunnable)
+    }
+
+    private fun contactPickerSearchContainer(searchView: MSearchView): View? =
+        searchView.findViewById(com.android.common.R.id.search_container)
+
+    private fun contactPickerSearchEditText(searchView: MSearchView): View? =
+        searchView.findViewById(com.android.common.R.id.et_search_text)
+
+    /**
+     * txCommon [MSearchView] fires [MSearchView.SEARCH_START] before its 300ms slide-in finishes;
+     * until [com.android.common.R.id.search_container] is laid out and settled, chrome height is invalid.
+     */
+    private fun isContactPickerSearchChromeLayoutReady(searchView: MSearchView): Boolean {
+        val container = contactPickerSearchContainer(searchView) ?: return false
+        val editText = contactPickerSearchEditText(searchView) ?: return false
+        if (container.visibility != View.VISIBLE) return false
+        if (!container.isLaidOut || container.height <= 0) return false
+        if (!editText.isLaidOut || editText.height <= 0) return false
+        if (!searchView.isLaidOut || searchView.height <= 0) return false
+        if (container.width > 0 && kotlin.math.abs(container.x) > 1f) return false
+        return true
+    }
+
+    private fun isContactPickerAppBarCollapseSettled(): Boolean {
+        val appbar = contactPickerAppbar ?: return true
+        val range = appbar.totalScrollRange
+        if (range <= 0) return true
+        return -contactPickerAppBarVerticalOffset >= range
+    }
+
+    private fun contactPickerSearchChromeBottomInWindow(searchView: MSearchView): Int {
+        if (!isContactPickerSearchChromeLayoutReady(searchView)) return -1
+        val container = contactPickerSearchContainer(searchView) ?: return -1
+        val loc = IntArray(2)
+        container.getLocationInWindow(loc)
+        return loc[1] + container.height
+    }
+
     private fun onContactPickerSearchStarted() {
         isSearchOpen = true
+        contactPickerSearchFilterBarAligned = false
+        contactPickerSearchAlignAttempts = 0
+        val appbar = contactPickerAppbar
+        val range = appbar?.totalScrollRange ?: 0
+        contactPickerSearchOpenedFromExpanded =
+            range > 0 && -contactPickerAppBarVerticalOffset < range
         applyContactPickerSearchModeChrome(inSearch = true)
         contactPickerAppbar?.forceKeepCollapse()
         applyContactPickerFilterBarTopMarginForSearch(collapsedMenu = true)
         contactPickerListTopInsetPx = -1
-        syncContactPickerListTopPadding()
-        contactPickerFilterBar?.post { syncContactPickerListTopPadding() }
+        contactPickerSearchListTopInsetPx = -1
+        clearContactPickerFilterBarInsetListener()
+        scheduleContactPickerInterimSearchListPadding()
+        nestScrollView?.scrollTo(0, 0)
         contactRecyclerView?.isNestedScrollingEnabled = false
-        contactRecyclerView?.scrollToPosition((contactAdapter?.itemCount ?: 1) - 1)
+        requestContactPickerSearchLayoutSync()
+    }
+
+    /** Align filter bar + list padding after search chrome + app bar collapse have settled. */
+    private fun requestContactPickerSearchLayoutSync() {
+        val appbar = contactPickerAppbar ?: return
+        val searchView = appbar.getSearchView() ?: return
+        cancelContactPickerSearchLayoutSync()
+        val needsExtraSettle = contactPickerSearchOpenedFromExpanded ||
+            contactPickerSearchContentOffsetUnsettled
+        val settleMs = CONTACT_PICKER_SEARCH_LAYOUT_SETTLE_MS +
+            if (needsExtraSettle) TX_SEARCH_CONTENT_OFFSET_ANIM_MS else 0L
+        searchView.postDelayed(contactPickerSearchLayoutSyncRunnable, settleMs)
+    }
+
+    /**
+     * Replaces stale browse-mode [RecyclerView] top padding as soon as the filter bar relayouts
+     * after the search top-margin change (fixes oversized gap on search re-entry).
+     */
+    private fun scheduleContactPickerInterimSearchListPadding() {
+        val bar = contactPickerFilterBar ?: return
+        bar.requestLayout()
+        bar.post {
+            if (!isSearchOpen || contactPickerSearchFilterBarAligned) return@post
+            val h = bar.height.takeIf { it > 0 } ?: return@post
+            applyContactPickerListTopPadding(h + dp(12))
+        }
+    }
+
+    private fun applyContactPickerSearchListPaddingFromFilterBarLayout() {
+        if (!isSearchOpen) return
+        val bar = contactPickerFilterBar ?: return
+        if (!bar.isLaidOut || bar.height <= 0) {
+            scheduleContactPickerListTopPaddingAfterFilterBarLayout()
+            return
+        }
+        contactPickerSearchListTopInsetPx = -1
+        val inset = computeContactPickerSearchListTopInsetPxOnce()
+        if (inset != null) {
+            contactPickerSearchListTopInsetPx = inset
+            applyContactPickerListTopPadding(inset)
+        } else {
+            scheduleContactPickerListTopPaddingAfterFilterBarLayout()
+        }
     }
 
     /** Resolves filter bar height + 12dp without waiting for a layout pass (avoids wrong padding on first search). */
@@ -473,39 +602,89 @@ class ContactPickerActivity : SimpleActivity() {
     }
 
     /**
-     * In search mode: list top = full [R.id.contact_picker_filter_bar] height (child top margin
-     * is aligned to the search box bottom, so 82dp + child height alone is too small).
-     * In browse mode: list top = full filter bar height + 12dp.
+     * One-shot search inset: max(filter bar height + 12dp, filter chrome bottom − list top on screen).
+     * Cached in [contactPickerSearchListTopInsetPx] so [NestedScrollView] scroll does not recompute it.
+     */
+    private fun computeContactPickerSearchListTopInsetPxOnce(): Int? {
+        val bar = contactPickerFilterBar ?: return null
+        val rv = contactRecyclerView ?: return null
+        if (!bar.isLaidOut || bar.height <= 0 || !rv.isLaidOut) return null
+
+        val barInset = bar.height + dp(12)
+        val rect = Rect()
+        val chromeBottom = if (bar.getGlobalVisibleRect(rect) && !rect.isEmpty) {
+            rect.bottom
+        } else {
+            val loc = IntArray(2)
+            bar.getLocationOnScreen(loc)
+            loc[1] + bar.height
+        }
+        val rvLoc = IntArray(2)
+        rv.getLocationOnScreen(rvLoc)
+        val geometryInset = (chromeBottom - rvLoc[1]).coerceAtLeast(0)
+        return maxOf(barInset, geometryInset)
+    }
+
+    private fun contactPickerSearchListTopPaddingPx(): Int {
+        if (contactPickerSearchListTopInsetPx >= 0) {
+            return contactPickerSearchListTopInsetPx
+        }
+        val computed = computeContactPickerSearchListTopInsetPxOnce() ?: return -1
+        contactPickerSearchListTopInsetPx = computed
+        return contactPickerSearchListTopInsetPx
+    }
+
+    private fun applyContactPickerListTopPadding(topPx: Int) {
+        val rv = contactRecyclerView ?: return
+        if (rv.paddingTop == topPx) return
+        rv.updatePadding(top = topPx)
+        if (isSearchOpen) {
+            rv.post {
+                (rv.layoutManager as? LinearLayoutManager)?.scrollToPositionWithOffset(0, 0)
+            }
+        }
+    }
+
+    /**
+     * In search mode: cached inset from [computeContactPickerSearchListTopInsetPxOnce] after tabs align
+     * (fixed for the session — not recomputed on scroll). Browse: filter bar height + 12dp.
      */
     private fun syncContactPickerListTopPadding() {
-        val rv = contactRecyclerView ?: return
         if (isSearchOpen) {
-            val bar = contactPickerFilterBar
-            val barH = bar?.height?.takeIf { it > 0 }
-                ?: bar?.measuredHeight?.takeIf { it > 0 }
-            if (barH != null) {
-                rv.updatePadding(top = barH)
+            if (!contactPickerSearchFilterBarAligned) {
                 return
             }
-            val child = findViewById<View>(R.id.contact_picker_filter_bar_child)
-            val childTopMargin = (child?.layoutParams as? ViewGroup.MarginLayoutParams)?.topMargin ?: 0
-            val childH = child?.measuredHeight?.takeIf { it > 0 } ?: 0
-            rv.updatePadding(top = childTopMargin + childH + dp(1))
+            val topPad = contactPickerSearchListTopPaddingPx()
+            if (topPad >= 0) {
+                applyContactPickerListTopPadding(topPad)
+                return
+            }
+            scheduleContactPickerListTopPaddingAfterFilterBarLayout()
             return
         }
 
+        val rv = contactRecyclerView ?: return
         resolveContactPickerListTopInsetPxIfNeeded()
         if (contactPickerListTopInsetPx >= 0) {
-            rv.updatePadding(top = contactPickerListTopInsetPx)
+            applyContactPickerListTopPadding(contactPickerListTopInsetPx)
             return
         }
+        scheduleContactPickerListTopPaddingAfterFilterBarLayout()
+    }
+
+    private fun scheduleContactPickerListTopPaddingAfterFilterBarLayout() {
         val safeBar = contactPickerFilterBar ?: return
         if (contactPickerFilterBarInsetListener != null) return
         val listener = object : ViewTreeObserver.OnGlobalLayoutListener {
             override fun onGlobalLayout() {
                 val b = contactPickerFilterBar ?: return
                 if (b.height <= 0) return
-                contactPickerListTopInsetPx = b.height + dp(12)
+                if (isSearchOpen) {
+                    if (!contactPickerSearchFilterBarAligned) return
+                    if (computeContactPickerSearchListTopInsetPxOnce() == null) return
+                } else {
+                    contactPickerListTopInsetPx = b.height + dp(12)
+                }
                 b.viewTreeObserver.removeOnGlobalLayoutListener(this)
                 contactPickerFilterBarInsetListener = null
                 syncContactPickerListTopPadding()
@@ -534,7 +713,6 @@ class ContactPickerActivity : SimpleActivity() {
                 lp.topMargin = target
                 child.layoutParams = lp
             }
-            child.post { alignFilterBarChildBelowSearchView() }
         } else if (contactPickerFilterBarExpandedTopMarginPx != Int.MIN_VALUE) {
             lp.topMargin = contactPickerFilterBarExpandedTopMarginPx
             child.layoutParams = lp
@@ -548,22 +726,82 @@ class ContactPickerActivity : SimpleActivity() {
      */
     private fun alignFilterBarChildBelowSearchView() {
         if (!isSearchOpen) return
+        val appbar = contactPickerAppbar ?: return
+        val searchView = appbar.getSearchView() ?: return
         val child = findViewById<View>(R.id.contact_picker_filter_bar_child) ?: return
         val filterBar = contactPickerFilterBar ?: return
-        val searchView = contactPickerAppbar?.getSearchView() ?: return
-        if (!searchView.isLaidOut || searchView.height <= 0) return
-        val searchLoc = IntArray(2)
-        searchView.getLocationInWindow(searchLoc)
+        if (!isContactPickerSearchChromeLayoutReady(searchView) ||
+            !isContactPickerAppBarCollapseSettled()
+        ) {
+            contactPickerSearchAlignAttempts++
+            if (contactPickerSearchAlignAttempts >= 60) {
+                contactPickerSearchFilterBarAligned = true
+                contactPickerSearchListTopInsetPx = -1
+                syncContactPickerListTopPadding()
+                return
+            }
+            searchView.post { alignFilterBarChildBelowSearchView() }
+            return
+        }
+        val chromeBottom = contactPickerSearchChromeBottomInWindow(searchView)
+        if (chromeBottom <= 0) {
+            contactPickerSearchAlignAttempts++
+            if (contactPickerSearchAlignAttempts >= 60) {
+                contactPickerSearchFilterBarAligned = true
+                contactPickerSearchListTopInsetPx = -1
+                syncContactPickerListTopPadding()
+                return
+            }
+            searchView.post { alignFilterBarChildBelowSearchView() }
+            return
+        }
+        contactPickerSearchAlignAttempts = 0
         val filterBarLoc = IntArray(2)
         filterBar.getLocationInWindow(filterBarLoc)
-        val target = (searchLoc[1] + searchView.height) - filterBarLoc[1]
+        val target = chromeBottom - filterBarLoc[1]
         if (target <= 0) return
         val lp = child.layoutParams as? ViewGroup.MarginLayoutParams ?: return
         if (lp.topMargin != target) {
             lp.topMargin = target
             child.layoutParams = lp
         }
-        filterBar.post { syncContactPickerListTopPadding() }
+        contactPickerSearchFilterBarAligned = true
+        contactPickerSearchContentOffsetUnsettled = false
+        filterBar.post {
+            if (!isSearchOpen) return@post
+            applyContactPickerSearchListPaddingFromFilterBarLayout()
+        }
+        searchView.removeCallbacks(contactPickerSearchRefineRunnable)
+        searchView.postDelayed(contactPickerSearchRefineRunnable, 80L)
+    }
+
+    /** Second pass after the first align layout pass — catches late app bar / search chrome movement. */
+    private fun alignFilterBarChildBelowSearchViewRefine() {
+        if (!isSearchOpen) return
+        val appbar = contactPickerAppbar ?: return
+        val searchView = appbar.getSearchView() ?: return
+        if (!isContactPickerSearchChromeLayoutReady(searchView) ||
+            !isContactPickerAppBarCollapseSettled()
+        ) {
+            return
+        }
+        val child = findViewById<View>(R.id.contact_picker_filter_bar_child) ?: return
+        val filterBar = contactPickerFilterBar ?: return
+        val chromeBottom = contactPickerSearchChromeBottomInWindow(searchView)
+        if (chromeBottom <= 0) return
+        val filterBarLoc = IntArray(2)
+        filterBar.getLocationInWindow(filterBarLoc)
+        val target = chromeBottom - filterBarLoc[1]
+        if (target <= 0) return
+        val lp = child.layoutParams as? ViewGroup.MarginLayoutParams ?: return
+        if (lp.topMargin == target) return
+        lp.topMargin = target
+        child.layoutParams = lp
+        contactPickerSearchContentOffsetUnsettled = false
+        filterBar.post {
+            if (!isSearchOpen) return@post
+            applyContactPickerSearchListPaddingFromFilterBarLayout()
+        }
     }
 
     private fun initComponent() {
@@ -695,6 +933,11 @@ class ContactPickerActivity : SimpleActivity() {
         }
         applyContactPickerFilterBarTopMarginForSearch(collapsedMenu = false)
         contactPickerListTopInsetPx = -1
+        contactPickerSearchListTopInsetPx = -1
+        contactPickerSearchFilterBarAligned = false
+        contactPickerSearchContentOffsetUnsettled = true
+        cancelContactPickerSearchLayoutSync()
+        clearContactPickerFilterBarInsetListener()
         isSearchOpen = false
         applyContactPickerSearchModeChrome(inSearch = false)
         contactPickerAppbar?.dismissCollapse()
