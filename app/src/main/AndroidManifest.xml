@@ -55,6 +55,8 @@
         android:label="@string/messages"
         android:roundIcon="@mipmap/ic_launcher"
         android:theme="@style/Theme.Transparent"
+        android:screenOrientation="portrait"
+        tools:ignore="DiscouragedApi,LockedOrientationActivity"
         tools:replace="android:label">
 
         <activity
@@ -71,21 +73,21 @@
             android:configChanges="orientation"
             android:exported="false"
             android:theme="@style/BlurAppBarTheme"
-            android:parentActivityName=".activities.MainActivity" />
+            android:parentActivityName=".activities.MainActivity"/>
 
         <activity
             android:name=".activities.RecycleBinConversationsActivity"
             android:configChanges="orientation"
             android:exported="true"
             android:label="@string/recycle_bin"
-            android:parentActivityName=".activities.MainActivity" />
+            android:parentActivityName=".activities.MainActivity"/>
 
         <activity
             android:name=".activities.ArchivedConversationsActivity"
             android:configChanges="orientation"
             android:exported="true"
             android:label="@string/archived_conversations"
-            android:parentActivityName=".activities.MainActivity" />
+            android:parentActivityName=".activities.MainActivity"/>
 
         <activity
             android:name=".activities.ThreadActivity"
@@ -94,6 +96,8 @@
             android:launchMode="singleTop"
             android:theme="@style/BlurAppBarTheme"
             android:parentActivityName=".activities.MainActivity"
+            android:screenOrientation="portrait"
+            tools:ignore="DiscouragedApi,LockedOrientationActivity"
             android:windowSoftInputMode="adjustResize" />
 
         <activity
@@ -102,6 +106,8 @@
             android:exported="false"
             android:label="@string/select_contacts"
             android:theme="@style/BlurAppBarTheme"
+            android:screenOrientation="portrait"
+            tools:ignore="DiscouragedApi,LockedOrientationActivity"
             android:parentActivityName=".activities.NewConversationActivity" />
 
         <activity
@@ -109,6 +115,8 @@
             android:configChanges="orientation"
             android:exported="true"
             android:parentActivityName=".activities.MainActivity"
+            android:screenOrientation="portrait"
+            tools:ignore="DiscouragedApi,LockedOrientationActivity"
             android:windowSoftInputMode="adjustResize">
 
             <intent-filter>
@@ -146,6 +154,8 @@
             android:exported="true"
             android:label="@string/settings"
             android:theme="@style/BlurAppBarTheme"
+            android:screenOrientation="portrait"
+            tools:ignore="DiscouragedApi,LockedOrientationActivity"
             android:parentActivityName=".activities.MainActivity">
 
             <intent-filter>
@@ -159,6 +169,8 @@
             android:configChanges="orientation"
             android:exported="false"
             android:theme="@style/BlurAppBarTheme"
+            android:screenOrientation="portrait"
+            tools:ignore="DiscouragedApi,LockedOrientationActivity"
             android:parentActivityName=".activities.SettingsActivity" />
 
         <activity
@@ -190,6 +202,8 @@
             android:exported="false"
             android:label="@string/blocked_items"
             android:parentActivityName=".activities.MainActivity"
+            android:screenOrientation="portrait"
+            tools:ignore="DiscouragedApi,LockedOrientationActivity"
             tools:targetApi="tiramisu" />
 
         <activity
@@ -204,6 +218,8 @@
             android:configChanges="orientation"
             android:exported="false"
             android:label="@string/quick_texts"
+            android:screenOrientation="portrait"
+            tools:ignore="DiscouragedApi,LockedOrientationActivity"
             android:parentActivityName=".activities.SettingsActivity" />
 
         <activity
@@ -212,6 +228,8 @@
             android:exported="false"
             android:label="@string/sim_card_messages"
             android:theme="@style/BlurAppBarTheme"
+            android:screenOrientation="portrait"
+            tools:ignore="DiscouragedApi,LockedOrientationActivity"
             android:parentActivityName=".activities.SettingsActivity" />
 
         <activity
@@ -220,6 +238,8 @@
             android:exported="false"
             android:label="@string/sim_card_messages"
             android:theme="@style/BlurAppBarTheme"
+            android:screenOrientation="portrait"
+            tools:ignore="DiscouragedApi,LockedOrientationActivity"
             android:parentActivityName=".activities.ManageSimMessagesActivity" />
 
         <activity
@@ -228,6 +248,8 @@
             android:exported="false"
             android:label="@string/sms_service_center"
             android:theme="@style/BlurAppBarTheme"
+            android:screenOrientation="portrait"
+            tools:ignore="DiscouragedApi,LockedOrientationActivity"
             android:parentActivityName=".activities.SettingsActivity" />
 
         <activity
@@ -236,6 +258,8 @@
             android:exported="false"
             android:label="@string/sms_storage_location"
             android:theme="@style/BlurAppBarTheme"
+            android:screenOrientation="portrait"
+            tools:ignore="DiscouragedApi,LockedOrientationActivity"
             android:parentActivityName=".activities.SettingsActivity" />
 
         <activity
