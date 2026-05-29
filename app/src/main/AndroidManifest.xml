@@ -54,13 +54,16 @@
         android:icon="@mipmap/ic_launcher"
         android:label="@string/messages"
         android:roundIcon="@mipmap/ic_launcher"
-        android:theme="@style/AppTheme"
+        android:theme="@style/Theme.Transparent"
         tools:replace="android:label">
 
         <activity
             android:name=".activities.MainActivity"
             android:configChanges="orientation"
-            android:theme="@style/BlurAppBarTheme"
+            android:theme="@style/Theme.Transparent"
+            android:background="@android:color/transparent"
+            android:windowBackground="@android:color/transparent"
+            android:windowIsTranslucent="true"
             android:exported="true" />
 
         <activity
