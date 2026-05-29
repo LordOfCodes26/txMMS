@@ -1052,11 +1052,11 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
                     startActivity(this)
                 }
             }
-            R.id.private_space -> {
-                hideKeyboard()
-                binding.mainMenu.closeSearch()
-                launchPrivateSpace()
-            }
+//            R.id.private_space -> {
+//                hideKeyboard()
+//                binding.mainMenu.closeSearch()
+//                launchPrivateSpace()
+//            }
 //            R.id.sim_card_message -> {}
             R.id.settings -> launchSettings()
 //            R.id.about -> launchAbout()

@@ -73,6 +73,8 @@
             android:configChanges="orientation"
             android:exported="false"
             android:theme="@style/BlurAppBarTheme"
+            android:screenOrientation="portrait"
+            tools:ignore="DiscouragedApi,LockedOrientationActivity"
             android:parentActivityName=".activities.MainActivity"/>
 
         <activity

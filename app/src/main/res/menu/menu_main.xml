@@ -29,14 +29,14 @@
             android:showAsAction="never" />
     </group>
 
-    <group
-        android:id="@+id/menu_group_private_space"
-        android:checkableBehavior="single">
-        <item
-            android:id="@+id/private_space"
-            android:title="@string/private_space"
-            android:showAsAction="never" />
-    </group>
+<!--    <group-->
+<!--        android:id="@+id/menu_group_private_space"-->
+<!--        android:checkableBehavior="single">-->
+<!--        <item-->
+<!--            android:id="@+id/private_space"-->
+<!--            android:title="@string/private_space"-->
+<!--            android:showAsAction="never" />-->
+<!--    </group>-->
 <!--    <group-->
 <!--        android:id="@+id/menu_group_sim_card_message"-->
 <!--        android:checkableBehavior="single">-->
