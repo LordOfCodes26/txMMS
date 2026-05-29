@@ -3,7 +3,8 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:layout_marginTop="@dimen/smaller_margin">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/topDetailsLargeExpanded"
@@ -15,18 +16,35 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/expandedMinimizeButtonWrapper"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:translationZ="4dp"
+            app:cardBackgroundColor="@color/tx_cardview_bg"
+            app:cardCornerRadius="24dp"
+            app:cardElevation="3px"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:strokeColor="@color/tx_popup_menu_border"
+            app:strokeWidth="@dimen/cardview_stroke">
+
         <ImageView
             android:id="@+id/expandedMinimizeButton"
             android:layout_width="@dimen/medium_icon_size"
             android:layout_height="@dimen/medium_icon_size"
-            android:background="@drawable/ic_minimize"
+            android:src="@drawable/ic_cmn_minimize"
             android:foreground="@drawable/ripple_all_corners_56dp"
             android:contentDescription="@string/minimize_message"
             android:padding="@dimen/smaller_margin"
             android:translationZ="4dp"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintStart_toStartOf="parent" />
+            app:tint="@color/tx_title_text" />
+
+        </com.google.android.material.card.MaterialCardView>
+
+
 
         <com.goodwy.commons.views.MyTextView
             android:id="@+id/expandedThreadCharacterCounter"
@@ -45,21 +63,38 @@
             tools:ignore="HardcodedText"
             tools:visibility="visible" />
 
-        <LinearLayout
+        <com.google.android.material.card.MaterialCardView
             android:id="@+id/expandedThreadSendMessageWrapper"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:translationZ="4dp"
+            app:cardBackgroundColor="@color/tx_cardview_bg"
+            app:cardCornerRadius="24dp"
+            app:cardElevation="3px"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent" >
+            app:layout_constraintEnd_toEndOf="parent"
+            app:strokeColor="@color/tx_popup_menu_border"
+            app:strokeWidth="@dimen/cardview_stroke">
 
-            <ImageView
+<!--        <LinearLayout-->
+<!--            android:id="@+id/expandedThreadSendMessageWrapper"-->
+<!--            android:layout_width="wrap_content"-->
+<!--            android:layout_height="wrap_content"-->
+<!--            android:orientation="horizontal"-->
+<!--            android:translationZ="4dp"-->
+<!--            app:layout_constraintTop_toTopOf="parent"-->
+<!--            app:layout_constraintBottom_toBottomOf="parent"-->
+<!--            app:layout_constraintEnd_toEndOf="parent" >-->
+
+            <com.android.common.view.MImageButton
                 android:id="@+id/expandedThreadSendMessage"
                 android:layout_width="@dimen/medium_icon_size"
                 android:layout_height="@dimen/medium_icon_size"
-                android:background="@drawable/ic_sms_send"
+                android:padding="@dimen/smaller_margin"
+                android:src="@drawable/ic_cmn_sms_send"
+                android:tint="@color/tx_title_text"
                 android:foreground="@drawable/ripple_all_corners_56dp"
                 android:contentDescription="@string/send_sms"
                 android:translationZ="4dp" />
@@ -68,12 +103,29 @@
                 android:id="@+id/expandedThreadSendMessageCountdown"
                 android:layout_width="@dimen/medium_icon_size"
                 android:layout_height="@dimen/medium_icon_size"
+                android:padding="@dimen/smaller_margin"
                 android:visibility="gone"
                 app:countdownBackgroundColor="?attr/colorControlNormal"
                 app:countdownForegroundColor="?attr/colorPrimary"
-                app:countdownTextColor="?attr/colorPrimary"
-                app:countdownTextSize="24sp" />
-        </LinearLayout>
+                app:countdownTextColor="@color/tx_title_text"
+                app:countdownTextSize="@dimen/tx_normal_text" />
+
+            <com.goodwy.commons.views.MyTextView
+                android:id="@+id/threadAvailableMessageCount"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:elevation="@dimen/cardview_default_elevation"
+                android:layout_gravity="end|bottom"
+                android:layout_marginBottom="@dimen/medium_margin"
+                android:layout_marginEnd="@dimen/small_margin"
+                android:textColor="@color/default_text_color"
+                android:textSize="@dimen/tiny_text_size"
+                android:visibility="visible"
+                tools:text="20"
+                tools:visibility="visible" />
+
+        </com.google.android.material.card.MaterialCardView>
+
 
         <com.goodwy.commons.views.ContactAvatarView
             android:id="@+id/sender_photo_large_expanded"

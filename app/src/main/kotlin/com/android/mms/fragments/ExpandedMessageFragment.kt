@@ -1,14 +1,22 @@
 package com.android.mms.fragments
 
+import android.Manifest
 import android.annotation.SuppressLint
+import android.content.Context
 import android.media.AudioManager
 import android.os.Bundle
+import android.telephony.SmsManager
 import android.telephony.SmsMessage
+import android.telephony.SubscriptionInfo
 import android.text.Editable
 import android.text.TextWatcher
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
+import android.widget.LinearLayout
+import androidx.annotation.RequiresPermission
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import kotlin.math.max
@@ -17,11 +25,20 @@ import com.android.mms.R
 import com.android.mms.databinding.FragmentExpandedMessageBinding
 import com.android.mms.extensions.config
 import com.android.mms.extensions.getTextSizeMessage
+import com.android.mms.extensions.indexOfFirstOrNull
+import com.android.mms.extensions.subscriptionManagerCompat
+import com.android.mms.helpers.FeeInfoUtils
+import com.android.mms.helpers.THREAD_TOP_COMPACT
+import com.android.mms.helpers.THREAD_TOP_LARGE
 import com.android.mms.helpers.bindConversationListAvatar
+import com.android.mms.helpers.syncEmojiButtonWithSimHolderVisibility
+import com.android.mms.models.SIMCard
 import com.goodwy.commons.activities.BaseSimpleActivity
 import com.goodwy.commons.extensions.*
 import com.goodwy.commons.helpers.SimpleContactsHelper
+import com.goodwy.commons.helpers.ensureBackgroundThread
 import com.goodwy.commons.views.ContactAvatarView
+import com.goodwy.commons.views.MyTextView
 import douglasspgyn.com.github.circularcountdown.CircularCountdown
 import douglasspgyn.com.github.circularcountdown.listener.CircularListener
 
@@ -34,6 +51,9 @@ class ExpandedMessageFragment : Fragment() {
     private var onSendMessage: (() -> Unit)? = null
     private var onMinimize: (() -> Unit)? = null
     private var isCountdownActive = false
+
+    private var currentSIMCardIndex = 0
+    private val availableSIMCards = ArrayList<SIMCard>()
 
     companion object {
         private const val ARG_MESSAGE_TEXT = "message_text"
@@ -68,6 +88,7 @@ class ExpandedMessageFragment : Fragment() {
         setupViews()
     }
 
+    @SuppressLint("MissingPermission")
     private fun setupViews() {
         val activity = requireActivity()
         val textColor = activity.getProperTextColor()
@@ -258,6 +279,79 @@ class ExpandedMessageFragment : Fragment() {
 
         // Update send button availability
         updateSendButtonAvailability()
+        getCurrentSIMCardIndex()
+        updateAvailableMessageCountForCurrentSim()
+    }
+
+    @RequiresPermission(Manifest.permission.READ_PHONE_STATE)
+    private fun getCurrentSIMCardIndex() {
+        val availableSIMs = activity?.subscriptionManagerCompat()?.activeSubscriptionInfoList ?: run {
+            return
+        }
+        if (availableSIMs.size >= 1) {
+            availableSIMCards.clear()
+            availableSIMs.forEachIndexed { index, subscriptionInfo ->
+                var label = subscriptionInfo.displayName?.toString() ?: ""
+                if (subscriptionInfo.number?.isNotEmpty() == true) {
+                    label += " (${subscriptionInfo.number})"
+                }
+                val SIMCard = SIMCard(index + 1, subscriptionInfo.subscriptionId, label, subscriptionInfo.mnc)
+                availableSIMCards.add(SIMCard)
+            }
+
+        }
+        currentSIMCardIndex =  getProperSimIndex(availableSIMs)
+    }
+    @SuppressLint("MissingPermission")
+    private fun getProperSimIndex(
+        availableSIMs: MutableList<SubscriptionInfo>,
+    ): Int {
+
+        val defaultSmsSubscriptionId = SmsManager.getDefaultSmsSubscriptionId()
+        val systemPreferredSimIdx = if (defaultSmsSubscriptionId >= 0) {
+            availableSIMs.indexOfFirstOrNull { it.subscriptionId == defaultSmsSubscriptionId }
+        } else {
+            null
+        }
+
+        return systemPreferredSimIdx ?: 0
+    }
+
+    fun updateAvailableMessageCountForCurrentSim() {
+        activity?.config?.showSmsRemainedCount?.let {
+            if (!it) {
+                binding.threadAvailableMessageCount.beGone()
+                return
+            }
+        }
+        val slotId = context?.let {
+            FeeInfoUtils.getCurrentSimSlotId(
+                context = it,
+                availableSIMCards = availableSIMCards,
+                currentSIMCardIndex = currentSIMCardIndex
+            )
+        }
+        Log.d("SUN_DEBUG", "updateAvailableMessageCountForCurrentSim: resolved slotId=$slotId")
+        if (slotId == null) {
+            Log.d("SUN_DEBUG", "updateAvailableMessageCountForCurrentSim: slotId is null, hiding view")
+            binding.threadAvailableMessageCount.beGone()
+            return
+        }
+
+        ensureBackgroundThread {
+            val smsCount = activity?.let { FeeInfoUtils.getAvailableSmsCountForSlot(it, slotId) }
+            Log.d("SUN_DEBUG", "updateAvailableMessageCountForCurrentSim: slotId=$slotId, smsCount=$smsCount")
+            activity?.runOnUiThread {
+                val countView = binding.threadAvailableMessageCount
+                if (smsCount == null) {
+                    countView.beGone()
+                } else {
+                    countView.text = getString(R.string.available_sms_count, smsCount)
+                    activity?.getProperTextColor()?.let { countView.setTextColor(it) }
+                    countView.beVisible()
+                }
+            }
+        }
     }
 
     fun setMessageText(text: String) {
@@ -298,14 +392,14 @@ class ExpandedMessageFragment : Fragment() {
         val contactsHelper = SimpleContactsHelper(requireContext())
         
         when (threadTopStyle) {
-            com.android.mms.helpers.THREAD_TOP_COMPACT -> {
+            THREAD_TOP_COMPACT -> {
                 binding.topDetailsCompactExpanded.beVisible()
                 binding.topDetailsLargeExpanded.beGone()
                 
                 // Access views within the FrameLayout using findViewById
-                val senderPhotoView = binding.topDetailsCompactExpanded.findViewById<android.widget.ImageView>(R.id.sender_photo)
-                val senderNameView = binding.topDetailsCompactExpanded.findViewById<com.goodwy.commons.views.MyTextView>(R.id.sender_name)
-                val senderNumberView = binding.topDetailsCompactExpanded.findViewById<com.goodwy.commons.views.MyTextView>(R.id.sender_number)
+                val senderPhotoView = binding.topDetailsCompactExpanded.findViewById<ImageView>(R.id.sender_photo)
+                val senderNameView = binding.topDetailsCompactExpanded.findViewById<MyTextView>(R.id.sender_name)
+                val senderNumberView = binding.topDetailsCompactExpanded.findViewById<MyTextView>(R.id.sender_number)
                 
                 // Follow ThreadActivity setupThreadTitle() THREAD_TOP_COMPACT logic (sender_name, sender_number)
                 senderPhotoView?.beVisibleIf(showContactThumbnails)
@@ -331,14 +425,14 @@ class ExpandedMessageFragment : Fragment() {
                     )
                 }
             }
-            com.android.mms.helpers.THREAD_TOP_LARGE -> {
+            THREAD_TOP_LARGE -> {
                 binding.topDetailsCompactExpanded.beGone()
                 binding.topDetailsLargeExpanded.beVisible()
                 
                 val senderPhotoView =
                     binding.topDetailsLargeExpanded.findViewById<ContactAvatarView>(R.id.sender_photo_large_expanded)
-                val senderNameView = binding.topDetailsLargeExpanded.findViewById<com.goodwy.commons.views.MyTextView>(R.id.sender_name_large_expanded)
-                val senderNumberView = binding.topDetailsLargeExpanded.findViewById<com.goodwy.commons.views.MyTextView>(R.id.sender_number_large_expanded)
+                val senderNameView = binding.topDetailsLargeExpanded.findViewById<MyTextView>(R.id.sender_name_large_expanded)
+                val senderNumberView = binding.topDetailsLargeExpanded.findViewById<MyTextView>(R.id.sender_number_large_expanded)
                 
                 // Follow ThreadActivity setupThreadTitle() THREAD_TOP_LARGE logic (sender_name_large, sender_number_large)
 //                senderPhotoView?.beVisibleIf(showContactThumbnails)
@@ -374,7 +468,7 @@ class ExpandedMessageFragment : Fragment() {
     private fun loadContactImage(
         contactsHelper: SimpleContactsHelper,
         photoUri: String?,
-        imageView: android.widget.ImageView,
+        imageView: ImageView,
         threadTitle: String,
         conversationTitle: String?,
         conversationPhoneNumber: String?,
@@ -408,8 +502,8 @@ class ExpandedMessageFragment : Fragment() {
             isClickable = hasText
             alpha = if (hasText) 1f else 0.4f
         }
-        binding.topDetailsCompactExpanded.findViewById<android.widget.LinearLayout>(
-            com.android.mms.R.id.expandedThreadSendMessageWrapperCompact
+        binding.topDetailsCompactExpanded.findViewById<LinearLayout>(
+            R.id.expandedThreadSendMessageWrapperCompact
         )?.apply {
             isEnabled = hasText
             isClickable = hasText
@@ -432,6 +526,8 @@ class ExpandedMessageFragment : Fragment() {
         // Handle countdown for large view
         binding.apply {
             expandedThreadSendMessage.beGone()
+            threadAvailableMessageCount.beGone()
+
             expandedThreadSendMessageCountdown.beVisible()
             
             expandedThreadSendMessageCountdown.setOnClickListener {
@@ -452,7 +548,7 @@ class ExpandedMessageFragment : Fragment() {
                             hideCountdown()
                             onSendMessage?.invoke()
                             if (activity.config.soundOnOutGoingMessages) {
-                                val audioManager = activity.getSystemService(android.content.Context.AUDIO_SERVICE) as AudioManager
+                                val audioManager = activity.getSystemService(Context.AUDIO_SERVICE) as AudioManager
                                 audioManager.playSoundEffect(AudioManager.FX_KEYPRESS_SPACEBAR)
                             }
                         }
@@ -466,11 +562,11 @@ class ExpandedMessageFragment : Fragment() {
         }
         
         // Handle countdown for compact view
-        val compactSendButton = binding.topDetailsCompactExpanded.findViewById<android.widget.ImageView>(
-            com.android.mms.R.id.expandedThreadSendMessageCompact
+        val compactSendButton = binding.topDetailsCompactExpanded.findViewById<ImageView>(
+            R.id.expandedThreadSendMessageCompact
         )
-        val compactCountdown = binding.topDetailsCompactExpanded.findViewById<douglasspgyn.com.github.circularcountdown.CircularCountdown>(
-            com.android.mms.R.id.expandedThreadSendMessageCountdownCompact
+        val compactCountdown = binding.topDetailsCompactExpanded.findViewById<CircularCountdown>(
+            R.id.expandedThreadSendMessageCountdownCompact
         )
         
         compactSendButton?.beGone()
@@ -497,13 +593,14 @@ class ExpandedMessageFragment : Fragment() {
             expandedThreadSendMessageCountdown.setOnClickListener(null)
             expandedThreadSendMessageCountdown.beGone()
             expandedThreadSendMessage.beVisible()
+            threadAvailableMessageCount.beVisible()
         }
         
-        val compactCountdown = binding.topDetailsCompactExpanded.findViewById<douglasspgyn.com.github.circularcountdown.CircularCountdown>(
-            com.android.mms.R.id.expandedThreadSendMessageCountdownCompact
+        val compactCountdown = binding.topDetailsCompactExpanded.findViewById<CircularCountdown>(
+            R.id.expandedThreadSendMessageCountdownCompact
         )
-        val compactSendButton = binding.topDetailsCompactExpanded.findViewById<android.widget.ImageView>(
-            com.android.mms.R.id.expandedThreadSendMessageCompact
+        val compactSendButton = binding.topDetailsCompactExpanded.findViewById<ImageView>(
+            R.id.expandedThreadSendMessageCompact
         )
         
         compactCountdown?.apply {

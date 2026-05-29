@@ -500,6 +500,7 @@ class MessageHolderHelper(
         isCountdownActive = true
         binding.apply {
             threadSendMessage.beGone()
+            threadAvailableMessageCount.beGone()
             threadSendMessageCountdown.beVisible()
 
             threadSendMessageCountdown.setOnClickListener {
@@ -545,6 +546,7 @@ class MessageHolderHelper(
             threadSendMessageCountdown.setOnClickListener(null)
             threadSendMessageCountdown.beGone()
             threadSendMessage.beVisible()
+            threadSendMessageCountdown.beVisible()
         }
     }
     // added by sun
