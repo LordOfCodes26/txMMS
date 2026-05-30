@@ -163,7 +163,7 @@ class NewConversationActivity : SimpleActivity() {
 
         window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE)
         binding.newConversationAddress.hint = getString(R.string.recipients_hint)
-        binding.newConversationAddress.getAddressBookButton().setColorFilter(com.goodwy.commons.R.color.bw_000)
+        //binding.newConversationAddress.getAddressBookButton().setColorFilter(com.goodwy.commons.R.color.bw_000)
 
         setupMessagingEdgeToEdge()
 

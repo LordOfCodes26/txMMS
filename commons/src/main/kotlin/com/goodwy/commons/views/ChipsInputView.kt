@@ -263,8 +263,6 @@ class ChipsInputView @JvmOverloads constructor(
         }
 
 //        clearButton.imageTintList = ColorStateList.valueOf(textColor.adjustAlpha(0.4f))
-        addressBookButton.imageTintList = ColorStateList.valueOf(textColor.adjustAlpha(0.4f))
-        speechToTextButton.imageTintList = ColorStateList.valueOf(textColor.adjustAlpha(0.4f))
     }
 
     private fun createChipView(text: String) {
