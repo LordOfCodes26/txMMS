@@ -5,7 +5,6 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.appcompat.content.res.AppCompatResources
 import com.android.mms.R
-import com.android.mms.extensions.applyLargeTitleOnly
 import com.android.mms.extensions.config
 import com.android.mms.extensions.setConversationPinScope
 import com.goodwy.commons.extensions.beGone
@@ -57,17 +56,15 @@ class SecureMainActivity : MainActivity() {
         launchSecretBoxForUnlock()
     }
 
-    override fun refreshMenuItemsAndTitle() {
+    override fun mainOverflowMenuRes(): Int = R.menu.menu_main_secure
+
+    override fun refreshMenuItems() {
         val title = when {
             config.selectedConversationPin == 1 -> getString(R.string.private_space)
             config.selectedConversationPin > 1 -> getString(R.string.secure_box)
             else -> getString(R.string.private_space)
         }
-        binding.mainMenu.applyLargeTitleOnly(title)
-//        binding.mainMenu.requireCustomToolbar().menu.apply {
-//            findItem(R.id.private_space)?.isVisible = false
-//        }
-        binding.mainMenu.requireCustomToolbar().invalidateMenu()
+        binding.mainAppbar.setTitle(title)
     }
 
     override fun onResume() {

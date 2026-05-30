@@ -1,7 +1,6 @@
 package com.android.mms.activities
 
 import android.annotation.SuppressLint
-import android.app.SearchManager
 import android.app.role.RoleManager
 import android.content.ActivityNotFoundException
 import android.content.Intent
@@ -26,6 +25,7 @@ import android.view.MotionEvent
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewTreeObserver
 import androidx.activity.result.contract.ActivityResultContracts
 import android.widget.ImageView
 import android.widget.TextView
@@ -36,12 +36,19 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.doOnLayout
 import androidx.core.view.updateLayoutParams
 import androidx.core.view.updatePadding
+import androidx.appcompat.view.menu.MenuBuilder
 import androidx.appcompat.widget.SearchView
-import androidx.core.view.MenuItemCompat
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.recyclerview.widget.RecyclerView
+import android.widget.EditText
 import com.google.android.material.appbar.AppBarLayout
+import com.google.android.material.appbar.AppBarLayout.ScrollingViewBehavior
+import com.google.android.material.appbar.CollapsingToolbarLayout
+import com.android.common.view.MSearchView
 import com.android.common.view.MVSideFrame
+import com.goodwy.commons.views.showMPopupMenu
+import eightbitlab.com.blurview.BlurTarget
+import com.goodwy.commons.views.CustomActionModeToolbar
 import com.goodwy.commons.dialogs.PermissionRequiredDialog
 import com.goodwy.commons.extensions.*
 import com.goodwy.commons.helpers.*
@@ -88,6 +95,10 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         /** CAB menu for the main conversation list ([R.menu.cab_action_menu_select]): select-all only; delete stays on the bottom ripple. */
         @JvmField
         val ACTION_MODE_MENU_SELECT: Int = R.menu.cab_action_menu_select
+
+        /** txCommon [MAppBarLayout] scroll-content offset animation when search opens from expanded. */
+        private const val TX_SEARCH_CONTENT_OFFSET_ANIM_MS = 300L
+        private const val MAIN_SEARCH_LAYOUT_SETTLE_MS = 320L
     }
 
     override var isSearchBarEnabled = true
@@ -107,8 +118,6 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
     /** True while a search-expanded resume is in progress; blocks blur-margin updates until layout settles. */
     private var isSearchResumeInProgress = false
 
-    private var mSearchMenuItem: MenuItem? = null
-    private var mSearchView: SearchView? = null
     private lateinit var twoFingerGestureDetector: TwoFingerSlideGestureDetector
     private var pendingThreadIdsToEncrypt: LongArray? = null
     private var shouldExitSecureModeOnResume = false
@@ -120,17 +129,25 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
 
     protected val binding by viewBinding(ActivityMainBinding::inflate)
 
-    private var menuHeightAnimator: android.animation.ValueAnimator? = null
-    private var currentMenuHeight: Int = -1
-    private var fullMenuHeight: Int = -1
     private val mainMenuOverscrollFactor = 0.35f
+    /** Search-mode list top inset after chrome settles; -1 until [computeMainSearchListTopInsetPxOnce]. */
+    private var mainSearchListTopInsetPx = -1
+    /** True when search opened before the app bar was fully collapsed (extra layout settle). */
+    private var mainSearchOpenedFromExpanded = false
+    private var mainSearchAlignAttempts = 0
+    private var mainSearchChromeLayoutListener: ViewTreeObserver.OnGlobalLayoutListener? = null
+    private val mainSearchLayoutSyncRunnable = Runnable {
+        if (!isSearchOpen || isFinishing || isDestroyed) return@Runnable
+        alignMainSearchListTopPadding()
+    }
+    private val mainSearchRefineRunnable = Runnable {
+        if (!isSearchOpen || isFinishing || isDestroyed) return@Runnable
+        refineMainSearchListTopPadding()
+    }
     private var isStartActionMode = false
 
-    /**
-     * [AppBarLayout.Behavior] / [AppBarLayout.OnOffsetChangedListener] offset before CAB
-     * (≤ 0; negative means collapsed). List scroll alone is unreliable with [androidx.core.widget.NestedScrollView].
-     */
-    private var mainMenuAppBarOffsetBeforeActionMode: Int? = null
+    /** Saved [ScrollingViewBehavior] while action mode clears app-bar coupling from [R.id.blur_target]. */
+    private var blurTargetScrollingBehavior: CoordinatorLayout.Behavior<View>? = null
 
     /** Mirrors [AppBarLayout] offset (0 expanded, negative collapsed); kept in sync while the bar is on screen. */
     private var mainMenuLastAppBarVerticalOffset: Int = 0
@@ -154,8 +171,9 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         // Theme.Material3.Dark windowBackground is dark; paint window + decor before inflation so edge-to-edge does not flash behind transparent bars.
         paintMainScreenWindowBeforeContentView()
         setContentView(binding.root)
-        binding.mainMenu.addOnOffsetChangedListener { _, verticalOffset ->
+        binding.mainAppbar.addOnOffsetChangedListener { _, verticalOffset ->
             mainMenuLastAppBarVerticalOffset = verticalOffset
+            binding.mVerticalSideFrameTop.update()
             applyLiveRecentsTopPaddingFromAppBarOffset()
         }
         initTheme()
@@ -171,14 +189,10 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         }
         setupOptionsMenu()
         applyMainScreenBackgroundAndTopChrome()
-        refreshMenuItemsAndTitle()
+        refreshMenuItems()
         setupEdgeToEdge()
         checkWhatsNewDialog()
         storeStateVariables()
-
-        binding.mainMenu.apply {
-            searchBeVisibleIf(isSearchAlwaysShow) //hide top search bar
-        }
 
         checkAndDeleteOldRecycleBinMessages()
         clearAllMessagesIfNeeded {
@@ -195,7 +209,7 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
 
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                 super.onScrolled(recyclerView, dx, dy)
-                setMainMenuTransparentBackground()
+                onMainListScrolled(recyclerView.computeVerticalScrollOffset())
             }
         })
         binding.searchResultsList.addOnScrollListener(object : RecyclerView.OnScrollListener() {
@@ -206,12 +220,23 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
 
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                 super.onScrolled(recyclerView, dx, dy)
-                setMainMenuTransparentBackground()
+                onMainListScrolled(recyclerView.computeVerticalScrollOffset())
             }
         })
+        binding.conversationsNestedScroll.setOnScrollChangeListener { _, _, _, _, _ ->
+            onMainListScrolled(
+                maxOf(
+                    binding.conversationsList.computeVerticalScrollOffset(),
+                    binding.conversationsNestedScroll.scrollY,
+                ),
+            )
+        }
         binding.conversationsNestedScroll.post {
-            setMainMenuHeight(null, animated = false)
+            binding.mainAppbar.dismissCollapse()
+            mainMenuLastAppBarVerticalOffset = 0
+            clearMainAppBarScrims()
             setupMainMenuSpringSync()
+            refreshSideFrameBlurAndInsets()
             applyLiveRecentsTopPaddingFromAppBarOffset()
             if (config.changeColourTopBar) scrollChange()
         }
@@ -242,7 +267,7 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
 
         applyMainScreenBackgroundAndTopChrome()
 
-        refreshMenuItemsAndTitle()
+        refreshMenuItems()
 
         getOrCreateConversationsAdapter().apply {
             if (storedPrimaryColor != getProperPrimaryColor()) {
@@ -277,53 +302,36 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
 
         setFabIconColor()
 
-        val searchExpandedOnResume = binding.mainMenu.requireCustomToolbar().isSearchExpanded
-        isSearchResumeInProgress = searchExpandedOnResume
+        isSearchResumeInProgress = isSearchOpen
 
-        if (fullMenuHeight == -1) {
-            val menu = binding.mainMenu
-            if (menu.height == 0) {
-                menu.viewTreeObserver.addOnGlobalLayoutListener(object : android.view.ViewTreeObserver.OnGlobalLayoutListener {
-                    override fun onGlobalLayout() {
-                        menu.viewTreeObserver.removeOnGlobalLayoutListener(this)
-                        if (fullMenuHeight == -1 && menu.height > 0) {
-                            fullMenuHeight = menu.height
-                            if (currentMenuHeight == -1) {
-                                currentMenuHeight = fullMenuHeight
-                            }
-                            syncTopSideFrameHeight(fullMenuHeight)
-                        }
-                    }
-                })
-            } else if (menu.height > 0) {
-                fullMenuHeight = menu.height
-                if (currentMenuHeight == -1) {
-                    currentMenuHeight = fullMenuHeight
-                }
-                syncTopSideFrameHeight(fullMenuHeight)
-            }
-        }
-
-        // While CAB is visible, [setMainMenuHeight](null) forces WRAP_CONTENT + re-measure on the AppBar and
-        // fights selection chrome — flash when exiting selection after [onResume]. Skip height animation/wrap
-        // resize until selection ends; still refresh blur geometry (matches measured CAB bar).
-        val selectionMode = (binding.conversationsList.adapter as? ConversationsAdapter)?.isActionModeActive() == true
-        val menuCollapsedOnResume = mainMenuLastAppBarVerticalOffset < 0 || scrollOffsetForMainToolbarSync() > 0
-        binding.mainMenu.post {
-            if (!selectionMode) {
-                setMainMenuHeight(null, animated = !menuCollapsedOnResume)
+        binding.root.post {
+            syncMainMenuActionModeToolbarWithAdapter()
+            if (isActionModeToolbarVisible()) {
+                binding.mVerticalSideFrameTop.visibility = View.GONE
+                syncBlurTargetScrollingBehaviorForActionMode()
+                syncBlurTargetTopMarginForAppBar()
+                syncActionModeListTopPadding()
             } else {
-                scheduleSyncMainMenuTopBlurGeometry()
+                binding.mVerticalSideFrameTop.visibility = View.VISIBLE
+                setupVerticalSideFrameBlur()
+                binding.mVerticalSideFrameTop.update()
             }
         }
 
+        val selectionMode = (binding.conversationsList.adapter as? ConversationsAdapter)?.isActionModeActive() == true
         if (!selectionMode) {
+            binding.mainAppbar.post {
+                clearMainAppBarScrims()
+                syncTopSideFrameHeight()
+                requestTopInsetSync()
+            }
             refreshSideFrameBlurAndInsets()
-            if (searchExpandedOnResume) {
-                binding.mainMenu.postDelayed({
+            if (isSearchOpen) {
+                mainSearchListTopInsetPx = -1
+                binding.mainAppbar.postDelayed({
                     if (isFinishing || isDestroyed) return@postDelayed
                     isSearchResumeInProgress = false
-                    requestTopInsetSync()
+                    scheduleMainSearchLayoutSync()
                 }, 150L)
             }
         }
@@ -335,16 +343,21 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
     private fun refreshSideFrameBlurAndInsets() {
         binding.root.post {
             ViewCompat.requestApplyInsets(binding.root)
-//            refreshMainToolbarBlur()
             setupVerticalSideFrameBlur()
+            binding.mainAppbar.getActionBarView()?.bindBlurTarget(this@MainActivity, binding.blurTarget)
+            binding.mainAppbar.getSearchView()?.bindBlurTarget(this@MainActivity, binding.blurTarget, 0)
+            binding.actionModeToolbar.bindBlurTarget(this@MainActivity, binding.blurTarget)
+            clearMainAppBarScrims()
+            applyToolbarSearchModeChrome(isSearchOpen)
             setMainMenuTransparentBackground()
+            binding.mVerticalSideFrameTop.update()
         }
     }
 
     /** Toolbar glass on inner [blurTarget] (txDial); re-bind after [syncBlurTargetTopMargin]. */
 //    private fun refreshMainToolbarBlur() {
 //        binding.blurTarget.invalidate()
-//        binding.mainMenu.requireCustomToolbar()
+//        binding.mainAppbar.requireCustomToolbar()
 //            .bindBlurTarget(this, binding.blurTarget, getProperBlurOverlayColor())
 //    }
 
@@ -353,8 +366,7 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         val adapter = binding.conversationsList.adapter as? ConversationsAdapter ?: return
         if (!adapter.isActionModeActive()) return
         binding.blurTarget.invalidate()
-        binding.mainMenu.getActionModeToolbar()
-            .bindBlurTarget(this, binding.blurTarget)
+        binding.actionModeToolbar.bindBlurTarget(this, binding.blurTarget)
     }
 
     /**
@@ -363,21 +375,16 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
      * gradient strip. Uses one [doOnLayout] pass (no [setMainMenuHeight] forced relayout) to avoid flash.
      */
     private fun scheduleSyncMainMenuTopBlurGeometry() {
-        val menu = binding.mainMenu
+        val menu = binding.mainAppbar
         menu.doOnLayout {
             if (isFinishing || isDestroyed) return@doOnLayout
-            val h = menu.height.takeIf { it > 0 } ?: menu.measuredHeight.takeIf { it > 0 } ?: return@doOnLayout
-            currentMenuHeight = h
-            if (!menu.requireCustomToolbar().isSearchExpanded) {
-                fullMenuHeight = h
-            }
-            syncTopSideFrameHeight(h)
+            menu.height.takeIf { it > 0 } ?: menu.measuredHeight.takeIf { it > 0 } ?: return@doOnLayout
+            syncTopSideFrameHeight()
             ViewCompat.requestApplyInsets(binding.root)
 //            refreshMainToolbarBlur()
             refreshActionModeToolbarBlur()
             setupVerticalSideFrameBlur()
             setMainMenuTransparentBackground()
-            menu.requireCustomToolbar().updateSearchColors()
             requestTopInsetSync()
         }
     }
@@ -401,6 +408,8 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
     }
 
     override fun onDestroy() {
+        cancelMainSearchLayoutSync()
+        clearMainSearchChromeLayoutListener()
         super.onDestroy()
         clearMainMenuSpringSync()
         config.needRestart = false
@@ -408,9 +417,8 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
     }
 
     override fun onBackPressedCompat(): Boolean {
-        val customToolbar = binding.mainMenu.requireCustomToolbar()
-        if (customToolbar.isSearchExpanded) {
-            endMainMenuSearchMode()
+        if (isMSearchOpen() || isSearchOpen) {
+            closeMSearchView()
             return true
         }
         if (finishConversationSelectionIfActive()) {
@@ -437,12 +445,10 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
     }
 
     fun getMainMenuVisibleHeight(): Int {
-        return binding.mainMenu.height
+        return binding.mainAppbar.height
             .takeIf { it > 0 }
-            ?: binding.mainMenu.measuredHeight.takeIf { it > 0 }
-            ?: currentMenuHeight.takeIf { it > 0 }
-            ?: fullMenuHeight.takeIf { it > 0 }
-            ?: 0
+            ?: binding.mainAppbar.measuredHeight.takeIf { it > 0 }
+            ?: getCollapsedAppBarHeightPx()
     }
 
     private fun mainMenuListTopInsetSlackPx(): Int =
@@ -453,44 +459,49 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
      * [View.getHeight] on [AppBarLayout] stays at the expanded height while collapsing, so geometry must add offset.
      */
     private fun mainMenuVisibleBottomOnScreenPx(menuTopOnScreen: Int): Int {
-        val menu = binding.mainMenu
+        val menu = binding.mainAppbar
         return menuTopOnScreen + menu.height + mainMenuLastAppBarVerticalOffset.coerceAtMost(0)
     }
 
     /** Visible [AppBarLayout] height from layout height + scroll offset (matches CoordinatorLayout draw). */
     private fun mainMenuVisibleHeightPx(): Int {
-        val menu = binding.mainMenu
-        val collapsed = menu.getCollapsedHeightPx().coerceAtLeast(0)
+        val menu = binding.mainAppbar
+        val collapsed = getCollapsedAppBarHeightPx()
         val laidOutHeight = menu.height.takeIf { it > 0 } ?: return collapsed
         return (laidOutHeight + mainMenuLastAppBarVerticalOffset.coerceAtMost(0)).coerceIn(collapsed, laidOutHeight)
     }
 
     /**
      * Lowest screen Y covered by toolbar + large title. The layout offset alone can sit above the drawn title
-     * (large [R.id.collapsingTitle] in a short [R.id.searchBarContainer] min height).
+     * (large [com.android.common.R.id.m_app_bar_title] under collapsed toolbar chrome).
      */
     private fun mainMenuChromeBottomOnScreenPx(): Int {
-        val menu = binding.mainMenu
+        val menu = binding.mainAppbar
         val mLoc = IntArray(2)
         menu.getLocationOnScreen(mLoc)
-        if (menu.isActionModeToolbarVisible()) {
+        if (isActionModeToolbarVisible()) {
             val cabRect = Rect()
-            val cab = menu.getActionModeToolbar()
+            val cab = binding.actionModeToolbar
             if (cab.getGlobalVisibleRect(cabRect) && !cabRect.isEmpty) {
                 return cabRect.bottom
             }
             return mainMenuVisibleBottomOnScreenPx(mLoc[1])
         }
+        if (isSearchOpen) {
+            val searchBottom = mainSearchChromeBottomOnScreenPx()
+            if (searchBottom > 0) return searchBottom
+        }
         var bottom = mainMenuVisibleBottomOnScreenPx(mLoc[1])
-        val title = menu.binding.collapsingTitle
-        if (title.visibility == View.VISIBLE) {
+        val title = menu.findViewById<View>(com.android.common.R.id.m_app_bar_title)
+        if (title?.visibility == View.VISIBLE) {
             val titleRect = Rect()
             if (title.getGlobalVisibleRect(titleRect) && !titleRect.isEmpty) {
                 bottom = maxOf(bottom, titleRect.bottom)
             }
         }
+        val actionBar = menu.getActionBarView()
         val toolbarRect = Rect()
-        if (menu.requireCustomToolbar().getGlobalVisibleRect(toolbarRect) && !toolbarRect.isEmpty) {
+        if (actionBar?.getGlobalVisibleRect(toolbarRect) == true && !toolbarRect.isEmpty) {
             bottom = maxOf(bottom, toolbarRect.bottom)
         }
         return bottom
@@ -504,18 +515,252 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
      * Uses collapse fraction so [onResume] remeasuring layout height does not grow padding while offset stays collapsed.
      */
     private fun mainMenuListTopInsetForCollapsePx(): Int {
-        val menu = binding.mainMenu
-        val collapsed = menu.getCollapsedHeightPx().coerceAtLeast(0)
-        val visibleH = menu.height.takeIf { it > 0 } ?: collapsed
-        if (menu.isActionModeToolbarVisible() || isConversationListSelectionModeActive()) {
-            return visibleH.coerceAtMost(collapsed).coerceAtLeast(collapsed)
+        if (isActionModeToolbarVisible()) {
+            return getCollapsedAppBarHeightPx()
         }
-        val totalRange = menu.totalScrollRange
-        if (totalRange <= 0) return visibleH
+        return listTopPaddingForAppBarOffset(mainMenuLastAppBarVerticalOffset)
+    }
+
+    /** Pinned toolbar row height when [MAppBarLayout] is fully collapsed (txCommon). */
+    private fun getCollapsedAppBarHeightPx(): Int =
+        resources.getDimensionPixelSize(com.android.common.R.dimen.tx_top_bar_toolbar_margin_top) +
+            resources.getDimensionPixelSize(com.android.common.R.dimen.tx_top_bar_toolbar_height)
+
+    private fun getExpandedAppBarHeightPx(): Int =
+        resources.getDimensionPixelSize(com.android.common.R.dimen.tx_nest_bouncy_content_padding_top)
+
+    private fun listTopPaddingForAppBarOffset(verticalOffset: Int): Int {
+        val expanded = getExpandedAppBarHeightPx()
+        val collapsed = getCollapsedAppBarHeightPx()
+        val totalRange = binding.mainAppbar.totalScrollRange
+        if (totalRange <= 0) return expanded
         val collapseFraction = (
-            kotlin.math.abs(mainMenuLastAppBarVerticalOffset).toFloat() / totalRange.toFloat()
+            kotlin.math.abs(verticalOffset).toFloat() / totalRange.toFloat()
             ).coerceIn(0f, 1f)
-        return kotlin.math.round(collapsed + (visibleH - collapsed) * (1f - collapseFraction)).toInt()
+        return kotlin.math.round(collapsed + (expanded - collapsed) * (1f - collapseFraction)).toInt()
+    }
+
+    private fun isActionModeToolbarVisible(): Boolean =
+        binding.actionModeToolbar.visibility == View.VISIBLE
+
+    private fun mainSearchChromeBottomOnScreenPx(): Int {
+        val searchView = binding.mainAppbar.getSearchView() ?: return -1
+        val container = searchView.findViewById<View>(com.android.common.R.id.search_container)
+        if (
+            container != null &&
+            container.visibility == View.VISIBLE &&
+            container.isLaidOut &&
+            container.height > 0
+        ) {
+            val loc = IntArray(2)
+            container.getLocationOnScreen(loc)
+            return loc[1] + container.height
+        }
+        if (searchView.visibility == View.VISIBLE && searchView.isLaidOut && searchView.height > 0) {
+            val loc = IntArray(2)
+            searchView.getLocationOnScreen(loc)
+            return loc[1] + searchView.height
+        }
+        return -1
+    }
+
+    /** [MAppBarLayout] shifts scroll content via translation on search open; list padding handles inset instead. */
+    private fun clearMainSearchScrollContentTranslation() {
+        binding.blurTarget.translationY = 0f
+        binding.conversationsNestedScroll.translationY = 0f
+    }
+
+    private fun mainSearchMinListTopPaddingPx(): Int =
+        resources.getDimensionPixelSize(R.dimen.nest_bouncy_content_padding_top)
+
+    private fun cancelMainSearchLayoutSync() {
+        binding.mainAppbar.removeCallbacks(mainSearchLayoutSyncRunnable)
+        binding.mainAppbar.getSearchView()?.removeCallbacks(mainSearchLayoutSyncRunnable)
+        binding.mainAppbar.getSearchView()?.removeCallbacks(mainSearchRefineRunnable)
+    }
+
+    private fun clearMainSearchChromeLayoutListener() {
+        mainSearchChromeLayoutListener?.let { listener ->
+            binding.mainAppbar.viewTreeObserver.removeOnGlobalLayoutListener(listener)
+        }
+        mainSearchChromeLayoutListener = null
+    }
+
+    private fun isMainSearchChromeLayoutReady(searchView: MSearchView): Boolean {
+        val container = searchView.findViewById<View>(com.android.common.R.id.search_container) ?: return false
+        val editText = searchView.findViewById<View>(com.android.common.R.id.et_search_text) ?: return false
+        if (container.visibility != View.VISIBLE) return false
+        if (!container.isLaidOut || container.height <= 0) return false
+        if (!editText.isLaidOut || editText.height <= 0) return false
+        if (!searchView.isLaidOut || searchView.height <= 0) return false
+        if (container.width > 0 && kotlin.math.abs(container.x) > 1f) return false
+        return true
+    }
+
+    private fun isMainAppBarCollapseSettled(): Boolean {
+        val menu = binding.mainAppbar
+        val range = menu.totalScrollRange
+        if (range <= 0) return true
+        return -mainMenuLastAppBarVerticalOffset >= range
+    }
+
+    /**
+     * One-shot search inset: bottom of visible search chrome − list top on screen.
+     * Cached in [mainSearchListTopInsetPx] so scroll / resume does not reapply a smaller stale value.
+     */
+    private fun computeMainSearchListTopInsetPxOnce(list: View): Int? {
+        val menu = binding.mainAppbar
+        val searchView = menu.getSearchView() ?: return null
+        if (
+            list.visibility != View.VISIBLE ||
+            !menu.isLaidOut ||
+            !list.isLaidOut ||
+            menu.height <= 0 ||
+            !isMainSearchChromeLayoutReady(searchView) ||
+            !isMainAppBarCollapseSettled()
+        ) {
+            return null
+        }
+        clearMainSearchScrollContentTranslation()
+        val listLoc = IntArray(2)
+        list.getLocationOnScreen(listLoc)
+        val geometryInset = (mainMenuChromeBottomOnScreenPx() - listLoc[1]).coerceAtLeast(0)
+        return maxOf(geometryInset, mainSearchMinListTopPaddingPx())
+    }
+
+    private fun mainSearchListTopPaddingPx(list: View = binding.conversationsList): Int {
+        if (mainSearchListTopInsetPx >= 0) {
+            return mainSearchListTopInsetPx
+        }
+        val computed = computeMainSearchListTopInsetPxOnce(list) ?: return -1
+        mainSearchListTopInsetPx = computed
+        return mainSearchListTopInsetPx
+    }
+
+    private fun applyMainSearchListTopPadding(topPx: Int) {
+        val resolved = when {
+            mainSearchListTopInsetPx >= 0 -> maxOf(mainSearchListTopInsetPx, topPx, mainSearchMinListTopPaddingPx())
+            else -> maxOf(topPx, mainSearchMinListTopPaddingPx())
+        }
+        listOf(binding.conversationsList, binding.searchResultsList).forEach { list ->
+            val rv = list as MyRecyclerView
+            if (rv.paddingTop != resolved) {
+                rv.updatePadding(top = resolved)
+            }
+            if (isSearchOpen) {
+                rv.post {
+                    (rv.layoutManager as? androidx.recyclerview.widget.LinearLayoutManager)
+                        ?.scrollToPositionWithOffset(0, 0)
+                }
+            }
+        }
+        if (binding.searchHolder.childCount > 0) {
+            binding.searchHolder.getChildAt(0)!!.updatePadding(top = resolved)
+        }
+    }
+
+    private fun alignMainSearchListTopPadding() {
+        if (!isSearchOpen) return
+        clearMainSearchScrollContentTranslation()
+        val list = if (binding.searchResultsList.visibility == View.VISIBLE) {
+            binding.searchResultsList
+        } else {
+            binding.conversationsList
+        }
+        val inset = computeMainSearchListTopInsetPxOnce(list)
+        if (inset != null) {
+            mainSearchAlignAttempts = 0
+            mainSearchListTopInsetPx = inset
+            applyMainSearchListTopPadding(inset)
+            syncBlurTargetTopMargin()
+            return
+        }
+        mainSearchAlignAttempts++
+        if (mainSearchAlignAttempts >= 60) {
+            applyMainSearchListTopPadding(mainSearchMinListTopPaddingPx())
+            syncBlurTargetTopMargin()
+            return
+        }
+        binding.mainAppbar.post { alignMainSearchListTopPadding() }
+    }
+
+    /** Second pass after search chrome / app bar finish moving (ContactPicker refine pattern). */
+    private fun refineMainSearchListTopPadding() {
+        if (!isSearchOpen) return
+        val searchView = binding.mainAppbar.getSearchView() ?: return
+        if (!isMainSearchChromeLayoutReady(searchView) || !isMainAppBarCollapseSettled()) return
+        clearMainSearchScrollContentTranslation()
+        val list = if (binding.searchResultsList.visibility == View.VISIBLE) {
+            binding.searchResultsList
+        } else {
+            binding.conversationsList
+        }
+        val inset = computeMainSearchListTopInsetPxOnce(list) ?: return
+        if (mainSearchListTopInsetPx < 0 || inset > mainSearchListTopInsetPx) {
+            mainSearchListTopInsetPx = inset
+            applyMainSearchListTopPadding(inset)
+            syncBlurTargetTopMargin()
+        }
+    }
+
+    private fun scheduleMainSearchChromeLayoutListener() {
+        if (mainSearchChromeLayoutListener != null) return
+        val menu = binding.mainAppbar
+        val listener = object : ViewTreeObserver.OnGlobalLayoutListener {
+            override fun onGlobalLayout() {
+                if (!isSearchOpen || isFinishing || isDestroyed) return
+                clearMainSearchScrollContentTranslation()
+                val list = if (binding.searchResultsList.visibility == View.VISIBLE) {
+                    binding.searchResultsList
+                } else {
+                    binding.conversationsList
+                }
+                val inset = computeMainSearchListTopInsetPxOnce(list) ?: return
+                if (mainSearchListTopInsetPx < 0 || inset > mainSearchListTopInsetPx) {
+                    mainSearchListTopInsetPx = inset
+                    applyMainSearchListTopPadding(inset)
+                    syncBlurTargetTopMargin()
+                }
+                val searchView = menu.getSearchView() ?: return
+                if (mainSearchListTopInsetPx >= 0 && isMainSearchChromeLayoutReady(searchView)) {
+                    menu.viewTreeObserver.removeOnGlobalLayoutListener(this)
+                    mainSearchChromeLayoutListener = null
+                }
+            }
+        }
+        mainSearchChromeLayoutListener = listener
+        menu.viewTreeObserver.addOnGlobalLayoutListener(listener)
+    }
+
+    private fun applySearchModeListTopPadding() {
+        clearMainSearchScrollContentTranslation()
+        val topPad = mainSearchListTopPaddingPx()
+        if (topPad >= 0) {
+            applyMainSearchListTopPadding(topPad)
+        } else {
+            applyMainSearchListTopPadding(mainSearchMinListTopPaddingPx())
+            alignMainSearchListTopPadding()
+        }
+        syncBlurTargetTopMargin()
+    }
+
+    private fun scheduleMainSearchLayoutSync() {
+        cancelMainSearchLayoutSync()
+        val menu = binding.mainAppbar
+        val searchView = menu.getSearchView()
+        val needsExtraSettle = mainSearchOpenedFromExpanded
+        val settleMs = MAIN_SEARCH_LAYOUT_SETTLE_MS +
+            if (needsExtraSettle) TX_SEARCH_CONTENT_OFFSET_ANIM_MS else 0L
+        applyMainSearchListTopPadding(mainSearchMinListTopPaddingPx())
+        scheduleMainSearchChromeLayoutListener()
+        menu.post { applySearchModeListTopPadding() }
+        menu.postDelayed({ if (isSearchOpen) clearMainSearchScrollContentTranslation() }, TX_SEARCH_CONTENT_OFFSET_ANIM_MS)
+        menu.postDelayed(mainSearchLayoutSyncRunnable, settleMs)
+        searchView?.postDelayed(mainSearchRefineRunnable, settleMs + 80L)
+        menu.postDelayed({
+            if (isFinishing || isDestroyed || !isSearchOpen) return@postDelayed
+            applySearchModeListTopPadding()
+        }, settleMs + TX_SEARCH_CONTENT_OFFSET_ANIM_MS)
     }
 
     /**
@@ -524,12 +769,10 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
      */
     private fun applyLiveRecentsTopPaddingFromAppBarOffset() {
         if (isFinishing || isDestroyed) return
-        val menu = binding.mainMenu
-        if (menu.requireCustomToolbar().isSearchExpanded) return
-        if ((binding.conversationsList.adapter as? ConversationsAdapter)?.isActionModeActive() == true) return
+        if (isSearchOpen) return
         if (isSearchResumeInProgress) return
         val insetPx = mainMenuListTopInsetForCollapsePx()
-        syncBlurTargetTopMargin(insetPx)
+        syncBlurTargetTopMarginForAppBar()
         val conv = binding.conversationsList
         val topPad = insetPx.coerceAtLeast(0)
         if (conv.paddingTop != topPad) {
@@ -542,25 +785,33 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
      * resume while still allowing the large-title expanded chrome (scales with [mainMenuLastAppBarVerticalOffset]).
      */
     private fun maxTrustedListTopInsetPx(): Int {
-        val menu = binding.mainMenu
+        val menu = binding.mainAppbar
         val slack = mainMenuListTopInsetSlackPx()
         val minSearchListTop = resources.getDimensionPixelSize(R.dimen.nest_bouncy_content_padding_top)
-        if (menu.requireCustomToolbar().isSearchExpanded) {
-            return maxOf(menu.height + slack, minSearchListTop + slack)
+        if (isSearchOpen) {
+            val menuLoc = IntArray(2)
+            menu.getLocationOnScreen(menuLoc)
+            val searchChromeInset = (mainSearchChromeBottomOnScreenPx() - menuLoc[1]).coerceAtLeast(0)
+            return maxOf(
+                searchChromeInset + slack,
+                minSearchListTop + slack,
+                getCollapsedAppBarHeightPx() + slack,
+                menu.height + slack,
+            )
         }
         return mainMenuListTopInsetForCollapsePx() + slack
     }
 
     /**
      * Top padding for [R.id.conversations_list]: distance from the list’s top edge to the bottom of
-     * [R.id.main_menu] on screen. Using [View.getHeight] alone double-counts with CoordinatorLayout /
+     * [R.id.main_appbar] on screen. Using [View.getHeight] alone double-counts with CoordinatorLayout /
      * negative [R.id.blur_target] margin and produced a large empty band under the title.
      *
      * Geometry is only applied when it matches about one app bar height; stale [View.getLocationOnScreen]
      * values right after [onResume] (before the coordinator and blur negative margin settle) used to
      * pass the old `height * 3` bound and pushed the list down by a large fraction of the screen.
      *
-     * Screens that use [com.goodwy.commons.views.MySearchMenu] over a [eightbitlab.com.blurview.BlurTarget]
+     * Screens that use [com.android.common.view.MAppBarLayout] over a [eightbitlab.com.blurview.BlurTarget]
      * must wire the same CoordinatorLayout scrolling as [R.layout.activity_main]: set
      * `app:layout_behavior="@string/appbar_scrolling_view_behavior"` on the blur target and on the
      * nested scrolling child (see [R.layout.activity_message_bubble_picker], [R.layout.activity_settings]).
@@ -572,11 +823,11 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
      * Distance from the list’s top edge to the bottom of visible toolbar/title chrome on screen.
      */
     private fun recentsListTopPaddingPx(list: View): Int {
-        val menu = binding.mainMenu
-        val toolbar = menu.requireCustomToolbar()
+        val menu = binding.mainAppbar
         val minSearchListTop = resources.getDimensionPixelSize(R.dimen.nest_bouncy_content_padding_top)
         val collapseInset = mainMenuListTopInsetForCollapsePx()
-        if (toolbar.isSearchExpanded) {
+        if (isSearchOpen) {
+            mainSearchListTopPaddingPx(list).takeIf { it >= 0 }?.let { return it }
             if (
                 list.visibility != View.VISIBLE ||
                 menu.visibility != View.VISIBLE ||
@@ -593,8 +844,7 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
             return maxOf(collapseInset, chromeInset.coerceAtMost(maxTrustInset), minSearchListTop)
         }
         if (
-            menu.isActionModeToolbarVisible() ||
-            isConversationListSelectionModeActive() ||
+            isActionModeToolbarVisible() ||
             mainMenuLastAppBarVerticalOffset < 0
         ) {
             return collapseInset
@@ -639,28 +889,32 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
      */
     private fun capRecentsListTopPaddingPx(rawInset: Int): Int {
         if (rawInset <= 0) return 0
-        val menu = binding.mainMenu
+        val menu = binding.mainAppbar
         if (!menu.isLaidOut || menu.height <= 0) return 0
+        if (isSearchOpen) {
+            val minSearchListTop = resources.getDimensionPixelSize(R.dimen.nest_bouncy_content_padding_top)
+            return maxOf(rawInset, minSearchListTop)
+        }
         return minOf(rawInset, maxTrustedListTopInsetPx())
     }
 
     /** Padding to apply now, or -1 when the app bar is not measured yet (caller should post and retry). */
     private fun resolveRecentsListTopPaddingPx(rawInset: Int): Int {
-        val menu = binding.mainMenu
+        val menu = binding.mainAppbar
         if (!menu.isAttachedToWindow || !menu.isLaidOut || menu.height <= 0) return -1
         val capped = capRecentsListTopPaddingPx(rawInset)
         if (capped > 0) return capped
-        return if (menu.requireCustomToolbar().isSearchExpanded) {
+        return if (isSearchOpen) {
             resources.getDimensionPixelSize(R.dimen.nest_bouncy_content_padding_top)
         } else {
-            menu.getCollapsedHeightPx().coerceAtLeast(0)
+            getCollapsedAppBarHeightPx()
         }
     }
 
     /** Normal list: offset curve (stable across resume remeasure). Search: screen geometry. */
     private fun recentsListTopInsetForLayoutSync(recentsList: MyRecyclerView): Int {
-        val menu = binding.mainMenu
-        return if (menu.requireCustomToolbar().isSearchExpanded) {
+        val menu = binding.mainAppbar
+        return if (isSearchOpen) {
             recentsListTopPaddingPx(recentsList)
         } else {
             mainMenuListTopInsetForCollapsePx()
@@ -669,7 +923,25 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
 
     /** Re-apply when the app bar finishes layout (e.g. after unlockCollapsing); based on txDial MainActivityRecents (no dialpad in Messages). */
     private fun applyFinalRecentsListTopPadding(recentsList: MyRecyclerView) {
-        val menu = binding.mainMenu
+        if (isActionModeToolbarVisible()) {
+            val topPad = getCollapsedAppBarHeightPx()
+            recentsList.updatePadding(top = topPad)
+            logRecentsListTopPadding("applyFinal(actionMode topPad=$topPad)", recentsList)
+            return
+        }
+        if (isSearchOpen) {
+            val topPad = mainSearchListTopPaddingPx(recentsList)
+            if (topPad >= 0) {
+                applyMainSearchListTopPadding(topPad)
+                logRecentsListTopPadding("applyFinal(search cached topPad=$topPad)", recentsList)
+                return
+            }
+            applyMainSearchListTopPadding(mainSearchMinListTopPaddingPx())
+            scheduleMainSearchChromeLayoutListener()
+            alignMainSearchListTopPadding()
+            return
+        }
+        val menu = binding.mainAppbar
         if (!menu.isAttachedToWindow || !menu.isLaidOut || menu.height <= 0) {
             menu.post {
                 if (!isFinishing && !isDestroyed) {
@@ -713,14 +985,13 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         applyFinalRecentsListTopPadding(conv)
         applyFinalRecentsListTopPadding(searchRv)
         if (binding.searchHolder.childCount > 0) {
-            val listForHolderInset = if (binding.mainMenu.requireCustomToolbar().isSearchExpanded) {
-                if (binding.searchResultsList.visibility == View.VISIBLE) binding.searchResultsList
-                else binding.conversationsList
+            val holderTop = if (isSearchOpen) {
+                mainSearchListTopPaddingPx().takeIf { it >= 0 }
+                    ?: mainSearchMinListTopPaddingPx()
             } else {
-                binding.conversationsList
+                capRecentsListTopPaddingPx(listTopInsetPx(binding.conversationsList))
             }
-            val inset = capRecentsListTopPaddingPx(listTopInsetPx(listForHolderInset))
-            binding.searchHolder.getChildAt(0)!!.updatePadding(top = inset)
+            binding.searchHolder.getChildAt(0)!!.updatePadding(top = holderTop)
         }
         val mainMenuHeight = getMainMenuHeightWithFallback()
         logRecentsListTopPadding(
@@ -737,7 +1008,7 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         if (getMainMenuHeightWithFallback() == 0) {
             binding.root.post { apply() }
         }
-        findViewById<View>(R.id.main_menu)?.post { apply() }
+        findViewById<View>(R.id.main_appbar)?.post { apply() }
     }
 
     fun requestTopInsetSync() {
@@ -749,105 +1020,77 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
             if (getMainMenuHeightWithFallback() == 0) {
                 binding.root.post { apply() }
             }
-            findViewById<View>(R.id.main_menu)?.post { apply() }
+            findViewById<View>(R.id.main_appbar)?.post { apply() }
         }
     }
 
-    override fun getActionModeToolbar(): com.goodwy.commons.views.CustomActionModeToolbar =
-        binding.mainMenu.getActionModeToolbar()
+    override fun getActionModeToolbar(): CustomActionModeToolbar = binding.actionModeToolbar
+
+    /**
+     * After pause/resume the host toolbar layer can disagree with adapter selection state (orphaned
+     * action bar or wrong height), which also confuses CollapsingToolbarLayout scrims. Reconcile —
+     * but only when the visible state actually differs from the adapter's selection state, so the
+     * AppBarLayout's user-driven collapse offset is preserved on a plain resume.
+     */
+    private fun syncMainMenuActionModeToolbarWithAdapter() {
+        val inSelectionMode = isConversationListSelectionModeActive()
+        val toolbarVisible = isActionModeToolbarVisible()
+        when {
+            inSelectionMode && !toolbarVisible -> showActionModeToolbar()
+            !inSelectionMode && toolbarVisible -> hideActionModeToolbar()
+        }
+    }
 
     override fun showActionModeToolbar() {
-        captureMainMenuAppBarOffsetBeforeActionMode()
-        // showActionModeToolbar() locks the current (expanded) height for later restoration.
-        // After that, override to collapsed height so the action-mode bar is compact and
-        // scheduleSyncMainMenuTopBlurGeometry re-aligns blurTarget + list padding to the shorter bar.
-        binding.mainMenu.showActionModeToolbar()
-        val collapsedH = binding.mainMenu.getCollapsedHeightPx()
-        if (collapsedH > 0) {
-            binding.mainMenu.updateLayoutParams<ViewGroup.LayoutParams> { height = collapsedH }
-        }
+        binding.mainAppbar.visibility = View.GONE
+        binding.actionModeToolbar.visibility = View.VISIBLE
+        binding.mVerticalSideFrameTop.visibility = View.GONE
         binding.conversationsFab.beGone()
+        syncBlurTargetScrollingBehaviorForActionMode()
+        syncBlurTargetTopMarginForAppBar()
+        syncActionModeListTopPadding()
         binding.root.post {
-            applyActionModeRippleToolbarForConversations()
+            applyActionModeRippleToolbarForActiveAdapter()
             applyActionModeListBottomInset(true)
-            scheduleSyncMainMenuTopBlurGeometry()
             refreshActionModeToolbarBlur()
+            binding.mainCoordinator.requestLayout()
         }
     }
 
     override fun hideActionModeToolbar() {
-        binding.mainMenu.hideActionModeToolbar()
+        binding.actionModeToolbar.visibility = View.GONE
+        binding.mainAppbar.visibility = View.VISIBLE
+        binding.mVerticalSideFrameTop.visibility = View.VISIBLE
         binding.actionModeRippleToolbar.visibility = View.GONE
         binding.conversationsFab.beVisible()
         applyActionModeListBottomInset(false)
         isStartActionMode = false
-        syncMainMenuExpandedWithListScrollAfterActionMode()
-    }
-
-    private fun captureMainMenuAppBarOffsetBeforeActionMode() {
-        val menu = binding.mainMenu
-        if (menu.requireCustomToolbar().isSearchExpanded) {
-            mainMenuAppBarOffsetBeforeActionMode = null
-            return
+        binding.mainAppbar.dismissCollapse()
+        mainMenuLastAppBarVerticalOffset = 0
+        applyToolbarSearchModeChrome(inSearch = isSearchOpen)
+        applyToolbarExpandedFromConversationListScroll(animated = false)
+        syncBlurTargetScrollingBehaviorForActionMode()
+        syncBlurTargetTopMarginForAppBar()
+        syncTopSideFrameHeight()
+        applyLiveRecentsTopPaddingFromAppBarOffset()
+        binding.mainCoordinator.requestLayout()
+        binding.mainCoordinator.post {
+            setupVerticalSideFrameBlur()
+            applyLiveRecentsTopPaddingFromAppBarOffset()
+            if (config.changeColourTopBar) scrollChange() else setMainMenuTransparentBackground()
+            requestTopInsetSync()
         }
-        val fromBehavior = readAppBarLayoutBehaviorTopOffset(menu)
-        mainMenuAppBarOffsetBeforeActionMode =
-            minOf(fromBehavior, mainMenuLastAppBarVerticalOffset).coerceAtMost(0)
     }
 
-    private fun readAppBarLayoutBehaviorTopOffset(appBar: AppBarLayout): Int {
-        val lp = appBar.layoutParams as? CoordinatorLayout.LayoutParams ?: return 0
-        val behavior = lp.behavior as? AppBarLayout.Behavior ?: return 0
-        return behavior.topAndBottomOffset
-    }
-
-    /**
-     * [com.goodwy.commons.views.MySearchMenu.showActionModeToolbar] hides the collapsing title container, so the
-     * app bar loses its scroll-linked offset and snaps to expanded when the CAB closes. Restore expansion from
-     * the saved [AppBarLayout.Behavior] offset (preferred) and list / nested scroll as fallback.
-     */
-    private fun syncMainMenuExpandedWithListScrollAfterActionMode() {
-        val menu = binding.mainMenu
-        val savedOffset = mainMenuAppBarOffsetBeforeActionMode
-        mainMenuAppBarOffsetBeforeActionMode = null
-        fun applySync() {
-            if (isFinishing || isDestroyed) return
-            try {
-                if (menu.requireCustomToolbar().isSearchExpanded) {
-                    // CAB toggles [MenuSearchBinding.searchBarContainer]; while search is active the bar should stay
-                    // short and locked like [setupOptionsMenu] search expand — re-apply so chrome does not snap wrong.
-                    menu.binding.collapsingTitle.visibility = View.GONE
-                    menu.collapseAndLockCollapsing()
-                    menu.setExpanded(false, false)
-                    if (config.changeColourTopBar) scrollChange()
-                    else {
-                        setMainMenuTransparentBackground()
-                        menu.requireCustomToolbar().updateSearchColors()
-                    }
-                    return
-                }
-                val scroll = scrollOffsetForMainToolbarSync()
-                val shouldCollapse = when (savedOffset) {
-                    null -> scroll > 0
-                    else -> savedOffset < 0 || scroll > 0
-                }
-                menu.setExpanded(!shouldCollapse, false)
-                if (config.changeColourTopBar) scrollChange()
-                else {
-                    setMainMenuTransparentBackground()
-                    menu.requireCustomToolbar().updateSearchColors()
-                }
-            } finally {
-                if (!isFinishing && !isDestroyed) {
-                    // Single pass: [requestTopInsetSync] runs inside [scheduleSyncMainMenuTopBlurGeometry] to avoid
-                    // double posted list padding + blur work (reduced flash).
-                    scheduleSyncMainMenuTopBlurGeometry()
-                }
-            }
+    /** Keep list content aligned with visible top chrome (ManageQuickTextsActivity / txDial pattern). */
+    private fun syncActionModeListTopPadding() {
+        val topPad = if (isActionModeToolbarVisible()) {
+            getCollapsedAppBarHeightPx()
+        } else {
+            mainMenuListTopInsetForCollapsePx()
         }
-        // Run synchronously: if we [menu.post], the full [searchBarContainer] paints one frame at default
-        // expansion before [setExpanded] — visible flash after resume + exit selection.
-        applySync()
+        binding.conversationsList.updatePadding(top = topPad)
+        binding.searchResultsList.updatePadding(top = topPad)
     }
 
     private fun scrollOffsetForMainToolbarSync(): Int {
@@ -866,34 +1109,17 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
     }
 
     private fun applyToolbarExpandedFromConversationListScroll(animated: Boolean) {
-        val menu = binding.mainMenu
+        val menu = binding.mainAppbar
         val scroll = conversationListScrollOffsetOnly()
         val shouldExpand = scroll == 0 && mainMenuLastAppBarVerticalOffset >= 0
         menu.setExpanded(shouldExpand, animated)
-        menu.binding.collapsingTitle.visibility = View.VISIBLE
-    }
-
-    private fun exitMainMenuSearchMode() {
-        val menu = binding.mainMenu
-        val toolbar = menu.requireCustomToolbar()
-        val wasInSearch = toolbar.isSearchExpanded || isSearchOpen
-        if (!wasInSearch) return
-        isSearchResumeInProgress = false
-        if (toolbar.isSearchExpanded) {
-            toolbar.collapseSearch()
-        }
-        menu.unlockCollapsing()
-        applyToolbarExpandedFromConversationListScroll(animated = false)
-        isSearchOpen = false
-        fadeOutSearch()
-        scheduleSyncMainMenuTopBlurGeometry()
-        menu.post { requestTopInsetSync() }
+        applyToolbarSearchModeChrome(inSearch = false)
     }
 
     /**
      * Bottom [MRippleToolBar] for [ConversationsAdapter] selection (txDial MainActivity pattern).
      */
-    private fun applyActionModeRippleToolbarForConversations() {
+    private fun applyActionModeRippleToolbarForActiveAdapter() {
         val blurTarget = findViewById<eightbitlab.com.blurview.BlurTarget>(R.id.mainBlurTarget) ?: return
         val adapter = binding.conversationsList.adapter as? ConversationsAdapter ?: return
         if (!adapter.isActionModeActive()) {
@@ -918,7 +1144,7 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
 
     fun refreshActionModeRippleToolbarIfNeeded() {
         if (isDestroyed || isFinishing) return
-        applyActionModeRippleToolbarForConversations()
+        applyActionModeRippleToolbarForActiveAdapter()
         applyActionModeListBottomInset(binding.actionModeRippleToolbar.visibility == View.VISIBLE)
     }
 
@@ -942,80 +1168,241 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
 
     override fun getBlurTargetView() = binding.mainBlurTarget
 
-    private fun endMainMenuSearchMode() {
-        exitMainMenuSearchMode()
+    protected open fun mainOverflowMenuRes(): Int = R.menu.menu_main
+
+    /** txDial [MainActivity.setupOptionsMenu]: MAppBarLayout + MActionBar + MSearchView wiring. */
+    protected open fun setupOptionsMenu() {
+        val appBar = binding.mainAppbar
+        val actionBar = appBar.getActionBarView()
+        val searchView = appBar.getSearchView()
+        val pillBlurTarget = binding.blurTarget
+
+        clearMainAppBarScrims()
+        appBar.setBackArrowDisabled()
+        appBar.setTitle(getString(R.string.messages))
+
+        appBar.addOnOffsetChangedListener(AppBarLayout.OnOffsetChangedListener { layout, verticalOffset ->
+            if (!isSearchOpen) return@OnOffsetChangedListener
+            val totalScrollRange = layout.totalScrollRange
+            if (totalScrollRange > 0 && verticalOffset > -totalScrollRange) {
+                layout.setExpanded(false, false)
+            }
+        })
+
+        actionBar?.bindBlurTarget(this, pillBlurTarget)
+        actionBar?.setPosition("right")
+        actionBar?.inflateMenu(R.menu.action_menu_main)
+        actionBar?.setSearchView(searchView, R.id.search)
+        // Do NOT use MActionBar.setPopupForMoreItem(): internal MPopup never gets setBlurTarget().
+        actionBar?.setOnMenuItemClickListener { item -> handleToolbarMenuItemClick(item) }
+
+        searchView?.let {
+            it.bindBlurTarget(this, pillBlurTarget, 0)
+            setupCustomSearch(it)
+            prewarmSearchViewLayout(it)
+        }
+        binding.actionModeToolbar.bindBlurTarget(this, pillBlurTarget)
+        applyToolbarSearchModeChrome(isSearchOpen)
     }
 
-    private fun setupOptionsMenu() {
-        binding.apply {
-            val menu = mainMenu
-            val toolbar = menu.requireCustomToolbar()
-            toolbar.inflateMenu(R.menu.action_menu_main)
-            updateMenuItemColors(toolbar.menu)
-            toolbar.updateSearchColors()
-
-            toolbar.setOnSearchExpandListener {
-                menuHeightAnimator?.cancel()
-                menu.collapseAndLockCollapsing()
-                menu.binding.collapsingTitle.visibility = View.GONE
-                isSearchOpen = true
-                isSearchResumeInProgress = false
-                menu.post { requestTopInsetSync() }
-            }
-            toolbar.setOnSearchBackClickListener {
-                exitMainMenuSearchMode()
-            }
-            toolbar.setOnSearchTextChangedListener { s ->
-                val text = s ?: ""
-                searchQuery = text
-                if (text.isNotEmpty()) {
-                    if (searchHolder.alpha < 1f) {
-                        searchHolder.fadeIn()
-                    }
-                } else {
-                    fadeOutSearch()
-                }
-                searchTextChanged(text)
-                if (isSearchAlwaysShow) toolbar.setSearchText("")
-            }
-
-            toolbar.setOnMenuItemClickListener { menuItem ->
-                handleToolbarMenuItemClick(menuItem)
-            }
-            toolbar.bindBlurTarget(this@MainActivity, blurTarget)
-            menu.getActionModeToolbar()
-                .bindBlurTarget(this@MainActivity, blurTarget)
-            toolbar.setPopupForMoreItem(
-                R.id.more,
-                R.menu.menu_main,
-                mainBlurTarget,
-                object : MenuItem.OnMenuItemClickListener {
-                    override fun onMenuItemClick(item: MenuItem): Boolean {
-                        return handleToolbarMenuItemClick(item)
-                    }
-                },
-            )
-            toolbar.invalidateMenu()
-
-            toolbar.setSearchText("")
+    private fun clearMainAppBarScrims() {
+        val transparent = ColorDrawable(Color.TRANSPARENT)
+        binding.mainAppbar.apply {
+            background = null
+            setBackgroundColor(Color.TRANSPARENT)
+            elevation = 0f
+            stateListAnimator = null
+            setLiftOnScrollColor(null)
         }
+        binding.actionModeToolbar.setBackgroundColor(Color.TRANSPARENT)
+        for (i in 0 until binding.mainAppbar.childCount) {
+            val child = binding.mainAppbar.getChildAt(i)
+            if (child is CollapsingToolbarLayout) {
+                child.background = null
+                child.contentScrim = transparent
+                child.statusBarScrim = transparent
+            }
+        }
+    }
+
+    private fun prewarmSearchViewLayout(searchView: MSearchView) {
+        searchView.visibility = View.INVISIBLE
+        searchView.viewTreeObserver.addOnGlobalLayoutListener(
+            object : ViewTreeObserver.OnGlobalLayoutListener {
+                override fun onGlobalLayout() {
+                    if (searchView.width <= 0) return
+                    searchView.viewTreeObserver.removeOnGlobalLayoutListener(this)
+                    searchView.visibility = View.GONE
+                }
+            },
+        )
+    }
+
+    private fun setupCustomSearch(searchView: MSearchView) {
+        val existing = searchView.onStateListener
+        searchView.setOnStateListener(object : MSearchView.OnSearchStateListener {
+            override fun onState(state: Int) {
+                when (state) {
+                    MSearchView.SEARCH_START -> {
+                        val menu = binding.mainAppbar
+                        val range = menu.totalScrollRange
+                        mainSearchOpenedFromExpanded =
+                            range > 0 && -mainMenuLastAppBarVerticalOffset < range
+                        mainSearchListTopInsetPx = -1
+                        mainSearchAlignAttempts = 0
+                        isSearchOpen = true
+                        isSearchResumeInProgress = false
+                        cancelMainSearchLayoutSync()
+                        clearMainSearchChromeLayoutListener()
+                        menu.forceKeepCollapse()
+                        menu.setExpanded(false, false)
+                        applyToolbarSearchModeChrome(inSearch = true)
+                        binding.conversationsNestedScroll.scrollTo(0, 0)
+                        menu.post {
+                            existing?.onState(MSearchView.SEARCH_START)
+                            dispatchCurrentToolbarSearchQuery()
+                            scheduleMainSearchLayoutSync()
+                        }
+                    }
+                    MSearchView.SEARCH_END -> {
+                        isSearchOpen = false
+                        searchQuery = ""
+                        fadeOutSearch()
+                    }
+                }
+                if (state != MSearchView.SEARCH_START) {
+                    existing?.onState(state)
+                }
+                if (state == MSearchView.SEARCH_END) {
+                    onToolbarSearchEnded()
+                }
+            }
+
+            override fun onSearchTextChanged(newText: String?) {
+                val text = newText.orEmpty()
+                if (isToolbarSearchActive()) {
+                    dispatchToolbarSearchQuery(text)
+                }
+                existing?.onSearchTextChanged(text)
+            }
+        })
+
+        searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
+            override fun onQueryTextSubmit(query: String?): Boolean {
+                val text = query.orEmpty()
+                if (isToolbarSearchActive()) {
+                    dispatchToolbarSearchQuery(text)
+                }
+                return true
+            }
+
+            override fun onQueryTextChange(newText: String?): Boolean {
+                val text = newText.orEmpty()
+                if (isToolbarSearchActive()) {
+                    dispatchToolbarSearchQuery(text)
+                }
+                return true
+            }
+        })
+    }
+
+    private fun isToolbarSearchActive(): Boolean {
+        if (isSearchOpen) return true
+        return binding.mainAppbar.getSearchView()?.visibility == View.VISIBLE
+    }
+
+    private fun dispatchCurrentToolbarSearchQuery() {
+        val searchView = binding.mainAppbar.getSearchView() ?: return
+        val editText = searchView.findViewById<EditText>(com.android.common.R.id.et_search_text)
+        dispatchToolbarSearchQuery(editText?.text?.toString().orEmpty())
+    }
+
+    private fun dispatchToolbarSearchQuery(text: String) {
+        searchQuery = text
+        if (text.isNotEmpty()) {
+            if (binding.searchHolder.alpha < 1f) {
+                binding.searchHolder.fadeIn()
+            }
+        } else {
+            fadeOutSearch()
+        }
+        searchTextChanged(text)
+    }
+
+    private fun onToolbarSearchEnded() {
+        isSearchResumeInProgress = false
+        mainSearchListTopInsetPx = -1
+        mainSearchOpenedFromExpanded = false
+        mainSearchAlignAttempts = 0
+        cancelMainSearchLayoutSync()
+        clearMainSearchChromeLayoutListener()
+        clearMainSearchScrollContentTranslation()
+        binding.mainAppbar.dismissCollapse()
+        mainMenuLastAppBarVerticalOffset = 0
+        applyToolbarExpandedFromConversationListScroll(animated = false)
+        applyToolbarSearchModeChrome(inSearch = false)
+        applyLiveRecentsTopPaddingFromAppBarOffset()
+        scheduleSyncMainMenuTopBlurGeometry()
+        binding.mainAppbar.post { requestTopInsetSync() }
+    }
+
+    /** Hide large title while [MSearchView] is open. */
+    private fun applyToolbarSearchModeChrome(inSearch: Boolean) {
+        binding.mainAppbar.findViewById<View>(com.android.common.R.id.m_app_bar_title)?.visibility =
+            if (inSearch) View.INVISIBLE else View.VISIBLE
+    }
+
+    private fun openMSearchView() {
+        val actionBar = binding.mainAppbar.getActionBarView() ?: return
+        val searchView = binding.mainAppbar.getSearchView() ?: return
+        if (searchView.visibility == View.VISIBLE) return
+        actionBar.visibility = View.GONE
+        searchView.visibility = View.VISIBLE
+        searchView.startSearch()
+    }
+
+    private fun closeMSearchView() {
+        val searchView = binding.mainAppbar.getSearchView() ?: return
+        if (searchView.visibility != View.VISIBLE) {
+            isSearchOpen = false
+            searchQuery = ""
+            return
+        }
+        searchView.searchEnd()
+    }
+
+    private fun isMSearchOpen(): Boolean =
+        binding.mainAppbar.getSearchView()?.visibility == View.VISIBLE
+
+    /**
+     * Shows [mainOverflowMenuRes] via [showMPopupMenu] (txDial [showMoreActionsPopup]).
+     * Do not use [com.android.common.view.MActionBar.setPopupForMoreItem].
+     */
+    private fun showMoreActionsPopup() {
+        val actionBar = binding.mainAppbar.getActionBarView() ?: return
+        val blurTarget = findViewById<BlurTarget>(R.id.mainBlurTarget) ?: return
+        val menu = MenuBuilder(this)
+        menuInflater.inflate(mainOverflowMenuRes(), menu)
+        showMPopupMenu(
+            context = this,
+            anchor = actionBar,
+            menu = menu,
+            gravity = Gravity.END,
+            blurTarget = blurTarget,
+            listener = { item -> handleToolbarMenuItemClick(item) },
+        )
     }
 
     private fun handleToolbarMenuItemClick(menuItem: MenuItem): Boolean {
         when (menuItem.itemId) {
-            R.id.search -> {
-                if (!binding.mainMenu.requireCustomToolbar().isSearchExpanded) {
-                    menuHeightAnimator?.cancel()
-                    binding.mainMenu.collapseAndLockCollapsing()
-                    binding.mainMenu.requireCustomToolbar().expandSearch()
-                    binding.mainMenu.binding.collapsingTitle.visibility = View.GONE
-                    isSearchOpen = true
-                    binding.mainMenu.post { requestTopInsetSync() }
-                }
+            R.id.search -> return false
+            R.id.more -> {
+                showMoreActionsPopup()
+                return true
             }
             R.id.select_conversations -> {
-                if (binding.mainMenu.requireCustomToolbar().isSearchExpanded) {
-                    endMainMenuSearchMode()
+                if (isSearchOpen || isMSearchOpen()) {
+                    closeMSearchView()
                 }
                 getOrCreateConversationsAdapter().startActMode()
                 isStartActionMode = true
@@ -1041,7 +1428,7 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
             }
             R.id.blocked_list -> {
                 hideKeyboard()
-                binding.mainMenu.closeSearch()
+                if (isSearchOpen || isMSearchOpen()) closeMSearchView()
                 Intent(this, MessagingBlockedItemsActivity::class.java).apply {
                     putExtra(APP_ICON_IDS, getAppIconIDs())
                     putExtra(APP_LAUNCHER_NAME, getAppLauncherName())
@@ -1052,11 +1439,11 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
                     startActivity(this)
                 }
             }
-//            R.id.private_space -> {
-//                hideKeyboard()
-//                binding.mainMenu.closeSearch()
-//                launchPrivateSpace()
-//            }
+            R.id.private_space -> {
+                hideKeyboard()
+                if (isSearchOpen || isMSearchOpen()) closeMSearchView()
+                launchPrivateSpace()
+            }
 //            R.id.sim_card_message -> {}
             R.id.settings -> launchSettings()
 //            R.id.about -> launchAbout()
@@ -1065,122 +1452,8 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         return true
     }
 
-    private fun setupSearch(menu: Menu) {
-        updateMenuItemColors(menu)
-        val searchManager = getSystemService(SEARCH_SERVICE) as SearchManager
-        mSearchMenuItem = menu.findItem(R.id.search)
-        mSearchView = (mSearchMenuItem!!.actionView as SearchView).apply {
-            val textColor = getProperTextColor()
-            findViewById<TextView>(androidx.appcompat.R.id.search_src_text).apply {
-                setTextColor(textColor)
-                setHintTextColor(textColor)
-                // Reduce left padding to a small value
-                val smallPadding = resources.getDimensionPixelSize(com.goodwy.commons.R.dimen.small_margin)
-                setPadding(smallPadding, paddingTop, paddingRight, paddingBottom)
-            }
-            findViewById<ImageView>(androidx.appcompat.R.id.search_close_btn).apply {
-                setImageResource(com.goodwy.commons.R.drawable.ic_clear_round)
-                setColorFilter(textColor)
-            }
-            findViewById<View>(androidx.appcompat.R.id.search_plate)?.apply { // search underline
-                background.setColorFilter(Color.TRANSPARENT, PorterDuff.Mode.MULTIPLY)
-                // Reduce left padding on the search plate to a small value
-                val smallPadding = resources.getDimensionPixelSize(com.goodwy.commons.R.dimen.small_margin)
-                setPadding(smallPadding, paddingTop, paddingRight, paddingBottom)
-            }
-            setIconifiedByDefault(false)
-            findViewById<ImageView>(androidx.appcompat.R.id.search_mag_icon).apply {
-                setColorFilter(textColor)
-            }
-
-            setSearchableInfo(searchManager.getSearchableInfo(componentName))
-            isSubmitButtonEnabled = false
-            queryHint = getString(R.string.search)
-            setOnQueryTextListener(object : SearchView.OnQueryTextListener {
-                override fun onQueryTextSubmit(query: String) = false
-
-                override fun onQueryTextChange(newText: String): Boolean {
-                    if (isSearchOpen) {
-                        searchQuery = newText
-                        if (newText.isNotEmpty()) {
-                            if (binding.searchHolder.alpha < 1f) {
-                                binding.searchHolder.fadeIn()
-                            }
-                        } else {
-                            fadeOutSearch()
-                        }
-                        searchTextChanged(newText)
-                    }
-                    return true
-                }
-            })
-        }
-
-        @Suppress("DEPRECATION")
-        MenuItemCompat.setOnActionExpandListener(mSearchMenuItem, object : MenuItemCompat.OnActionExpandListener {
-            override fun onMenuItemActionExpand(item: MenuItem?): Boolean {
-                isSearchOpen = true
-
-                // Animate search bar appearance with smooth translation (slide in from right)
-                mSearchView?.let { searchView ->
-                    searchView.post {
-                        // Get the parent toolbar width for smooth slide-in
-                        val toolbar = binding.mainMenu.requireCustomToolbar()
-                        val slideDistance = toolbar.width.toFloat()
-
-                        // Start from right side
-                        searchView.translationX = slideDistance
-                        searchView.alpha = 0f
-
-                        // Animate to center with smooth deceleration
-                        searchView.animate()
-                            .translationX(0f)
-                            .alpha(1f)
-                            .setDuration(350)
-                            .setInterpolator(android.view.animation.DecelerateInterpolator(1.5f))
-                            .start()
-                    }
-                }
-
-                return true
-            }
-
-            override fun onMenuItemActionCollapse(item: MenuItem?): Boolean {
-                if (isSearchOpen) {
-                    fadeOutSearch()
-                }
-
-                isSearchOpen = false
-
-                scheduleSyncMainMenuTopBlurGeometry()
-
-                // Animate search bar disappearance with smooth translation (slide out to right)
-                mSearchView?.let { searchView ->
-                    val toolbar = binding.mainMenu.requireCustomToolbar()
-                    val slideDistance = toolbar.width.toFloat()
-
-                    searchView.animate()
-                        .translationX(slideDistance)
-                        .alpha(0f)
-                        .setDuration(300)
-                        .setInterpolator(android.view.animation.AccelerateInterpolator(1.2f))
-                        .withEndAction {
-                            searchView.translationX = 0f
-                            searchView.alpha = 1f
-                        }
-                        .start()
-                } ?: run {
-                    // binding.mainDialpadButton.beVisible()
-                }
-
-                return true
-            }
-        })
-    }
-
-    protected open fun refreshMenuItemsAndTitle() {
-        binding.mainMenu.applyLargeTitleOnly(getString(R.string.messages))
-        binding.mainMenu.requireCustomToolbar().invalidateMenu()
+    protected open fun refreshMenuItems() {
+        binding.mainAppbar.setTitle(getString(R.string.messages))
     }
 
     private fun showBlockedNumbers() {
@@ -1229,7 +1502,7 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
                 if (!isFinishing && !isDestroyed) {
                     if (setConversationPinScope(cipher)) {
                         initMessenger()
-                        refreshMenuItemsAndTitle()
+                        refreshMenuItems()
                     } else {
                         toast(com.goodwy.commons.R.string.unknown_error_occurred)
                     }
@@ -1241,7 +1514,7 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
     protected open fun closeSecureBox() {
         setConversationPinScope(0)
         initMessenger()
-        refreshMenuItemsAndTitle()
+        refreshMenuItems()
     }
 
     protected open fun handleTwoFingerSwipeDown() {
@@ -1315,7 +1588,11 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
 
                 val speechToText =  Objects.requireNonNull(res)[0]
                 if (speechToText.isNotEmpty()) {
-                    binding.mainMenu.requireCustomToolbar().setSearchText(speechToText)
+                    openMSearchView()
+                    binding.mainAppbar.getSearchView()
+                        ?.findViewById<EditText>(com.android.common.R.id.et_search_text)
+                        ?.setText(speechToText)
+                    dispatchToolbarSearchQuery(speechToText)
                 }
             }
         }
@@ -1326,178 +1603,68 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         window.statusBarColor = Color.TRANSPARENT
     }
 
-    private fun setMainMenuHeight(height: Int?, animated: Boolean = true) {
-        binding.mainMenu.apply {
-            if (height != 0) {
-                beVisible()
-            }
-
-            val actualCurrentHeight = if (this.height > 0) this.height else {
-                if (layoutParams.height > 0 && layoutParams.height != ViewGroup.LayoutParams.WRAP_CONTENT) {
-                    layoutParams.height
-                } else {
-                    -1
-                }
-            }
-
-            if (currentMenuHeight == -1 && actualCurrentHeight > 0) {
-                currentMenuHeight = actualCurrentHeight
-            }
-
-            if (height == null) {
-                menuHeightAnimator?.cancel()
-
-                // Toolbar search uses collapseAndLockCollapsing() (fixed small height). Animating toward
-                // [fullMenuHeight] overwrites that lock, resizes blur margin every frame, and re-runs
-                // list inset sync — content jumps after ~300ms or the next onResume (e.g. IME).
-                if (requireCustomToolbar().isSearchExpanded) {
-                    val h = this.height.takeIf { it > 0 } ?: this.measuredHeight.takeIf { it > 0 }
-                        ?: if (layoutParams.height > 0 && layoutParams.height != ViewGroup.LayoutParams.WRAP_CONTENT) {
-                            layoutParams.height
-                        } else {
-                            0
-                        }
-                    if (h > 0) {
-                        currentMenuHeight = h
-                        syncTopSideFrameHeight(h)
-                    }
-                    return
-                }
-
-                if (animated && fullMenuHeight > 0) {
-                    val menuView = this
-                    val startHeight = if (currentMenuHeight > 0) currentMenuHeight else actualCurrentHeight.takeIf { it > 0 } ?: 0
-                    val targetHeight = fullMenuHeight
-
-                    if (startHeight != targetHeight) {
-                        menuHeightAnimator = android.animation.ValueAnimator.ofInt(startHeight, targetHeight).apply {
-                            duration = 300
-                            interpolator = android.view.animation.DecelerateInterpolator(1.5f)
-                            addUpdateListener { animator ->
-                                val animatedHeight = animator.animatedValue as Int
-                                currentMenuHeight = animatedHeight
-                                menuView.updateLayoutParams<ViewGroup.LayoutParams> {
-                                    this.height = animatedHeight.coerceAtLeast(0)
-                                }
-                                syncTopSideFrameHeight(animatedHeight)
-                            }
-                            addListener(object : android.animation.AnimatorListenerAdapter() {
-                                override fun onAnimationEnd(animation: android.animation.Animator) {
-                                    menuView.post {
-                                        menuView.updateLayoutParams<ViewGroup.LayoutParams> {
-                                            this.height = ViewGroup.LayoutParams.WRAP_CONTENT
-                                        }
-                                        menuView.post {
-                                            if (menuView.height > 0) {
-                                                fullMenuHeight = menuView.height
-                                                currentMenuHeight = fullMenuHeight
-                                                syncTopSideFrameHeight(fullMenuHeight)
-                                            }
-                                        }
-                                    }
-                                }
-                            })
-                            start()
-                        }
-                    } else {
-                        updateLayoutParams<ViewGroup.LayoutParams> {
-                            this.height = ViewGroup.LayoutParams.WRAP_CONTENT
-                        }
-                        post {
-                            if (this.height > 0) {
-                                fullMenuHeight = this.height
-                                currentMenuHeight = fullMenuHeight
-                                syncTopSideFrameHeight(fullMenuHeight)
-                            }
-                        }
-                    }
-                } else {
-                    updateLayoutParams<ViewGroup.LayoutParams> {
-                        this.height = ViewGroup.LayoutParams.WRAP_CONTENT
-                    }
-                    post {
-                        if (this.height > 0) {
-                            fullMenuHeight = this.height
-                            currentMenuHeight = fullMenuHeight
-                            syncTopSideFrameHeight(fullMenuHeight)
-                        }
-                    }
-                }
-                return
-            }
-
-            val targetHeight = height
-
-            if (currentMenuHeight == targetHeight && currentMenuHeight >= 0) {
-                return
-            }
-
-            menuHeightAnimator?.cancel()
-
-            if (animated && targetHeight > 0) {
-                val menuView = this
-                val startHeight = if (currentMenuHeight > 0) currentMenuHeight else actualCurrentHeight.takeIf { it > 0 } ?: targetHeight
-                menuHeightAnimator = android.animation.ValueAnimator.ofInt(startHeight, targetHeight).apply {
-                    duration = 300
-                    interpolator = android.view.animation.DecelerateInterpolator(1.5f)
-                    addUpdateListener { animator ->
-                        val animatedHeight = animator.animatedValue as Int
-                        currentMenuHeight = animatedHeight
-                        menuView.updateLayoutParams<ViewGroup.LayoutParams> {
-                            this.height = animatedHeight.coerceAtLeast(0)
-                        }
-                        syncTopSideFrameHeight(animatedHeight)
-                    }
-                    addListener(object : android.animation.AnimatorListenerAdapter() {
-                        override fun onAnimationEnd(animation: android.animation.Animator) {
-                            currentMenuHeight = targetHeight
-                            syncTopSideFrameHeight(targetHeight)
-                        }
-                    })
-                    start()
-                }
-            } else {
-                updateLayoutParams<ViewGroup.LayoutParams> {
-                    this.height = targetHeight
-                }
-                currentMenuHeight = targetHeight
-                syncTopSideFrameHeight(targetHeight)
-
-                if (targetHeight == 0) {
-                    beGone()
-                }
-            }
+    private fun syncTopSideFrameHeight() {
+        if (isActionModeToolbarVisible()) {
+            return
         }
-    }
-
-    private fun syncTopSideFrameHeight(height: Int) {
-        if (height < 0) return
-        syncTopSideFrameHeightForMenu(binding.mVerticalSideFrameTop, binding.mainMenu, height)
+        val collapsed = getCollapsedAppBarHeightPx()
+        val feather = resources.getDimensionPixelSize(R.dimen.tx_my_search_menu_top_blur_feather)
+        binding.mVerticalSideFrameTop.updateLayoutParams<ViewGroup.LayoutParams> {
+            height = collapsed + maxOf(0, feather)
+        }
         binding.blurTarget.invalidate()
-        // Skip updating the blur target's top margin while a search-expanded resume is settling.
-        // Changing it mid-resume repositions list geometry, causing requestTopInsetSync to read a
-        // stale value instead of the stable pre-pause position.
         if (!isSearchResumeInProgress) {
-            syncBlurTargetTopMargin(height)
+            syncBlurTargetTopMarginForAppBar()
             syncRecentsTopInsetWithToolbar()
         }
-//        binding.mainMenu.post { refreshMainToolbarBlur() }
     }
 
-    private fun syncBlurTargetTopMargin(menuHeight: Int) {
-        if (menuHeight < 0) return
-        val menu = binding.mainMenu
-        val visibleHeight = if (menu.isLaidOut && menu.height > 0 && !menu.requireCustomToolbar().isSearchExpanded) {
-            mainMenuListTopInsetForCollapsePx()
-        } else {
-            menuHeight
+    /**
+     * [AppBarLayout.ScrollingViewBehavior] pins [R.id.blur_target] below [R.id.main_appbar] even when
+     * the bar is [View.GONE], leaving a large empty gap. Drop the behavior during action mode (txDial dialpad pattern).
+     */
+    private fun syncBlurTargetScrollingBehaviorForActionMode() {
+        val inActionMode = isActionModeToolbarVisible()
+        val lp = binding.blurTarget.layoutParams as? CoordinatorLayout.LayoutParams ?: return
+        if (inActionMode) {
+            if (blurTargetScrollingBehavior == null) {
+                blurTargetScrollingBehavior = lp.behavior
+            }
+            if (lp.behavior != null) {
+                lp.behavior = null
+                binding.blurTarget.layoutParams = lp
+            }
+        } else if (lp.behavior == null) {
+            lp.behavior = blurTargetScrollingBehavior ?: ScrollingViewBehavior()
+            blurTargetScrollingBehavior = lp.behavior
+            binding.blurTarget.layoutParams = lp
         }
-        val targetTopMargin = -visibleHeight
+    }
+
+    /**
+     * [R.id.blurTarget] negative top margin must be cleared whenever the app bar is hidden for action mode;
+     * otherwise MVSideFrame shows a dark strip at the top (txDial [MainActivity.syncBlurTargetTopMarginForAppBar]).
+     */
+    private fun syncBlurTargetTopMarginForAppBar() {
+        val targetTopMargin = when {
+            isSearchOpen -> {
+                val insetPx = mainSearchListTopPaddingPx().takeIf { it >= 0 }
+                    ?: mainSearchMinListTopPaddingPx()
+                -insetPx
+            }
+            isActionModeToolbarVisible() -> 0
+            binding.mainAppbar.visibility == View.VISIBLE -> -mainMenuListTopInsetForCollapsePx()
+            else -> 0
+        }
         binding.blurTarget.updateLayoutParams<ViewGroup.MarginLayoutParams> {
             if (topMargin != targetTopMargin) {
                 topMargin = targetTopMargin
             }
         }
+    }
+
+    private fun syncBlurTargetTopMargin() {
+        syncBlurTargetTopMarginForAppBar()
     }
 
     private fun setupVerticalSideFrameBlur() {
@@ -1513,7 +1680,7 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         fun bindOverscrollSync(recyclerView: MyRecyclerView?) {
             recyclerView ?: return
             recyclerView.onOverscrollTranslationChanged = { translationY ->
-                binding.mainMenu.translationY = translationY * mainMenuOverscrollFactor
+                binding.mainAppbar.translationY = translationY * mainMenuOverscrollFactor
             }
             // Belt-and-suspenders: if list snap-back completes without a final callback, reset the app bar.
             recyclerView.setOnTouchListener { _, event ->
@@ -1521,7 +1688,7 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
                     MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                         recyclerView.post {
                             if (recyclerView.translationY == 0f) {
-                                binding.mainMenu.translationY = 0f
+                                binding.mainAppbar.translationY = 0f
                             }
                         }
                     }
@@ -1543,23 +1710,30 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
             onOverscrollTranslationChanged = null
             setOnTouchListener(null)
         }
-        binding.mainMenu.translationY = 0f
+        binding.mainAppbar.translationY = 0f
+    }
+
+    private var mainLastScrollOffsetForStatusBar = -1
+
+    private fun onMainListScrolled(scrollOffset: Int) {
+        setMainMenuTransparentBackground()
+        binding.mVerticalSideFrameTop.update()
+        if (!config.changeColourTopBar) return
+        if (scrollOffset == 0 || mainLastScrollOffsetForStatusBar == 0) {
+            val useSurfaceColor = isDynamicTheme() && !isSystemInDarkMode()
+            val color = if (scrollOffset > 0) {
+                getColoredMaterialStatusBarColor()
+            } else {
+                getRequiredStatusBarColor(useSurfaceColor)
+            }
+            window.setSystemBarsAppearance(color)
+        }
+        mainLastScrollOffsetForStatusBar = scrollOffset
     }
 
     private fun scrollChange() {
         scrollingView = binding.conversationsList
-        val scrollingViewOffset = scrollingView?.computeVerticalScrollOffset() ?: 0
-        val useSurfaceColor = isDynamicTheme() && !isSystemInDarkMode()
-        val backgroundColor = if (useSurfaceColor) getSurfaceColor() else getProperBackgroundColor()
-        val statusBarColor = if (config.changeColourTopBar) getRequiredStatusBarColor(useSurfaceColor) else backgroundColor
-        binding.mainMenu.updateColors(statusBarColor, scrollingViewOffset)
-        setMainMenuTransparentBackground()
-        binding.mainMenu.requireCustomToolbar().updateSearchColors()
-        setupSearchMenuScrollListener(
-            scrollingView = binding.conversationsList,
-            searchMenu = binding.mainMenu,
-            surfaceColor = useSurfaceColor
-        )
+        onMainListScrolled(scrollOffsetForMainToolbarSync())
     }
 
     private fun makeSystemBarsToTransparent() {
@@ -1616,20 +1790,16 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         window.decorView.setBackgroundColor(backgroundColor)
     }
 
-    /** After updateColors, restore transparent app bar so blur/glass shows (txDial MainActivity pattern). */
+    /** Restore transparent app bar so blur/glass shows (txDial MainActivity pattern). */
     private fun setMainMenuTransparentBackground() {
-        binding.mainMenu.setBackgroundColor(Color.TRANSPARENT)
-        binding.mainMenu.binding.searchBarContainer.setBackgroundColor(Color.TRANSPARENT)
+        clearMainAppBarScrims()
     }
 
-    /** Root, blur host, lists, and [MySearchMenu] chrome — used from [onCreate] before first draw and in [onResume]. */
+    /** Root, blur host, lists, and top app bar chrome — used from [onCreate] before first draw and in [onResume]. */
     private fun applyMainScreenBackgroundAndTopChrome() {
-        binding.mainMenu.updateColors(
-            background = getStartRequiredStatusBarColor(),
-            scrollOffset = scrollingView?.computeVerticalScrollOffset() ?: 0,
-        )
-        setMainMenuTransparentBackground()
-        binding.mainMenu.requireCustomToolbar().updateSearchColors()
+        val useSurfaceColor = isDynamicTheme() && !isSystemInDarkMode()
+        window.setSystemBarsAppearance(getStartRequiredStatusBarColor())
+        clearMainAppBarScrims()
 
         val backgroundColor = mainContentBackgroundColor()
         window.setBackgroundDrawable(ColorDrawable(backgroundColor))
@@ -2132,8 +2302,7 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
     }
 
     private fun searchTextChanged(text: String, forceUpdate: Boolean = false) {
-        val customToolbar = binding.mainMenu.requireCustomToolbar()
-        if (isSearchAlwaysShow && !customToolbar.isSearchExpanded && !forceUpdate) {
+        if (isSearchAlwaysShow && !isSearchOpen && !forceUpdate) {
             return
         }
 
@@ -2162,8 +2331,11 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
             binding.searchPlaceholderImg.beVisible()
             binding.searchResultsList.beGone()
         }
-        if (isSearchAlwaysShow)
-            binding.mainMenu.requireCustomToolbar().setSearchText("")
+        if (isSearchAlwaysShow) {
+            binding.mainAppbar.getSearchView()
+                ?.findViewById<EditText>(com.android.common.R.id.et_search_text)
+                ?.setText("")
+        }
     }
 
     private fun showSearchResults(
