@@ -88,7 +88,7 @@
             android:layout_height="@dimen/tx_dialog_btn_margin_top"
             android:src="@drawable/ic_cmn_contact_add"
             android:layout_gravity="center_vertical"
-            android:backgroundTint="@color/tx_title_text"
+            android:tint="@color/tx_title_text"
             android:contentDescription="@string/search_contacts"
             android:visibility="visible"/>
 
