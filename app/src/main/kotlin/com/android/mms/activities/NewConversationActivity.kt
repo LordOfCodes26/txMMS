@@ -1179,7 +1179,8 @@ class NewConversationActivity : SimpleActivity() {
                 com.goodwy.commons.R.string.no_access_to_contacts
             }
 
-            binding.noContactsPlaceholder.text = getString(placeholderText)
+//            binding.noContactsPlaceholder.text = getString(placeholderText)
+            binding.noContactsPlaceholder.text = ""
         }
 
         val currAdapter = binding.contactsList.adapter
