@@ -1767,14 +1767,18 @@ class NewConversationActivity : SimpleActivity() {
     }
 
     private fun launchContactPicker() {
-        handlePermission(PERMISSION_READ_CONTACTS) { granted ->
-            if (granted) {
-                hideKeyboard()
-                startActivityForResult(Intent(this, ContactPickerActivity::class.java), REQUEST_CODE_CONTACT_PICKER)
-            } else {
-                toast(com.goodwy.commons.R.string.no_contacts_permission, length = Toast.LENGTH_LONG)
-            }
+        // Start the picker immediately; it handles READ_CONTACTS itself. Do not gate on
+        // handlePermission or hideKeyboard here — both delay the activity transition.
+        try {
+            startActivityForResult(
+                Intent(this, ContactPickerActivity::class.java),
+                REQUEST_CODE_CONTACT_PICKER,
+            )
+        } catch (e: Exception) {
+            showErrorToast(e)
+            return
         }
+        window.decorView.post { hideKeyboard() }
     }
 
     private fun launchActivityForResult(intent: Intent, requestCode: Int) {

@@ -148,6 +148,7 @@ class ContactPickerActivity : SimpleActivity() {
      * content back on [MSearchView.SEARCH_END] and re-entry must wait before measuring list inset.
      */
     private var contactPickerSearchContentOffsetUnsettled = false
+    private val contactPickerDeferredInitRunnable = Runnable { finishContactPickerDeferredInit() }
 
     private fun perfLog(message: String) {
         if (CONTACT_PICKER_PERF_LOG) {
@@ -233,6 +234,31 @@ class ContactPickerActivity : SimpleActivity() {
         makeSystemBarsToTransparent()
         applyContactPickerWindowSurfaces()
         initComponent()
+        setupContactPickerBackNavigationEssential()
+        contactPickerAppbar?.setTitle(getString(R.string.select_contacts))
+        // Blur chrome, search prewarm, and contact loading run after the first frame so the
+        // activity window can appear without blocking on cache I/O or bindBlurTarget work.
+        window.decorView.post(contactPickerDeferredInitRunnable)
+    }
+
+    /** Back handling only — enough to dismiss the screen before deferred chrome init runs. */
+    private fun setupContactPickerBackNavigationEssential() {
+        contactPickerAppbar?.getBackArrow()?.setOnMenuItemClickListener { menuItem ->
+            if (menuItem.itemId == com.android.common.R.id.back_arrow) {
+                if (isSearchOpen) {
+                    contactPickerAppbar?.getSearchView()?.searchEnd()
+                } else {
+                    finish()
+                }
+                true
+            } else {
+                false
+            }
+        }
+    }
+
+    private fun finishContactPickerDeferredInit() {
+        if (isFinishing || isDestroyed) return
         setupContactPickerTopAppBar()
         setupNestBouncyScroll()
         initMVSideFrames()
@@ -241,6 +267,7 @@ class ContactPickerActivity : SimpleActivity() {
             syncFilterBarTranslation()
             findViewById<MVSideFrame>(R.id.m_vertical_side_frame_top)?.update()
         }
+        contactPickerAppbar?.getSearchView()?.let { prewarmContactPickerSearchViewLayout(it) }
         findViewById<View>(R.id.nest_scroll).post {
             contactPickerAppbar?.dismissCollapse()
             contactPickerAppBarVerticalOffset = 0
@@ -248,10 +275,23 @@ class ContactPickerActivity : SimpleActivity() {
             syncContactPickerListTopPadding()
             refreshSideFrameBlurAndInsets()
         }
-
         if (checkContactsPermission()) {
             loadContacts()
         }
+    }
+
+    /** One layout pass for [MSearchView] before the user opens search (MainActivity pattern). */
+    private fun prewarmContactPickerSearchViewLayout(searchView: MSearchView) {
+        searchView.visibility = View.INVISIBLE
+        searchView.viewTreeObserver.addOnGlobalLayoutListener(
+            object : ViewTreeObserver.OnGlobalLayoutListener {
+                override fun onGlobalLayout() {
+                    if (searchView.width <= 0) return
+                    searchView.viewTreeObserver.removeOnGlobalLayoutListener(this)
+                    searchView.visibility = View.GONE
+                }
+            },
+        )
     }
 
     private fun initTheme() {
@@ -329,6 +369,7 @@ class ContactPickerActivity : SimpleActivity() {
     }
 
     override fun onDestroy() {
+        window.decorView.removeCallbacks(contactPickerDeferredInitRunnable)
         clearContactPickerFilterBarInsetListener()
         contactRecyclerView?.onOverscrollTranslationChanged = null
         contactsCursor?.takeIf { !it.isClosed }?.close()
@@ -1285,8 +1326,7 @@ class ContactPickerActivity : SimpleActivity() {
      * so stale data (deleted / renamed contacts) is corrected within the same open.  The cache is
      * only rewritten when the fresh result differs from what was cached, keeping file I/O minimal.
      *
-     * @param skipInitialCacheRead When true the cache was already read and displayed synchronously
-     *   by [loadContacts] on the UI thread — skip Step 1 to avoid a redundant second read/update.
+     * @param skipInitialCacheRead When true, skip Step 1 (cache read + immediate adapter update).
      */
     private fun startBrowseContactsLoadFromDb(
         requestGeneration: Int = ++contactListGeneration,
@@ -1667,30 +1707,10 @@ class ContactPickerActivity : SimpleActivity() {
 
         // First chunk from DB (SIM/phone-storage phones); private entries merge on that first chunk.
         if (searchString.trim().isEmpty()) {
-            // Read cache synchronously on the UI thread so contacts appear instantly when switching
-            // back from the call-log tab — same stale-while-revalidate behaviour as first open,
-            // but without the brief blank flash caused by clearing the adapter before the BG thread
-            // can post the cached result.
-            val cached = if (CONTACTS_CACHE_READ_ENABLED) readContactsFromCache() else null
-            if (cached != null) {
-                allContacts.addAll(cached)
-                appendKeyIndicesForRange(0, cached)
-                cached.forEachIndexed { i, c ->
-                    if (alreadySelectedContactIds.contains(contactNumberKey(c.contactId, c.phoneNumber))) selectedPositions.add(i)
-                }
-                filteredContacts.addAll(allContacts)
-                hasMoreContacts = true
-                isLoadingMore = true
-                contactAdapter?.setContactModeItems(ArrayList(filteredContacts), buildFilteredSelectedIndicesForAdapter())
-                hideContactsLetterFastScroller()
-                updateConfirmTabEnable()
-                // Tell startBrowseContactsLoadFromDb to skip its own Step 1 cache read since we
-                // already displayed the cache here — avoids a redundant file read + adapter update.
-                startBrowseContactsLoadFromDb(skipInitialCacheRead = true)
-            } else {
-                contactAdapter?.setContactModeItems(emptyList(), emptySet())
-                startBrowseContactsLoadFromDb(skipInitialCacheRead = false)
-            }
+            // Never read the contacts cache on the main thread — large caches blocked activity launch.
+            // startBrowseContactsLoadFromDb shows cached rows from a background read, then revalidates.
+            contactAdapter?.setContactModeItems(emptyList(), emptySet())
+            startBrowseContactsLoadFromDb(skipInitialCacheRead = false)
         } else {
             contactAdapter?.setContactModeItems(emptyList(), emptySet())
             searchListByQuery(searchString)
