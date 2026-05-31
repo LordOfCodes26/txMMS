@@ -156,6 +156,7 @@ class NewConversationActivity : SimpleActivity() {
 
         window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE)
         binding.newConversationAddress.hint = getString(R.string.recipients_hint)
+        setupRecipientEditorKeyboardOnFocus()
         //binding.newConversationAddress.getAddressBookButton().setColorFilter(com.goodwy.commons.R.color.bw_000)
 
         setupMessagingEdgeToEdge()
@@ -725,11 +726,30 @@ class NewConversationActivity : SimpleActivity() {
         return othersPhrase
     }
 
+    /**
+     * [hideKeyboard] sets [WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN]; restore an
+     * allowed IME state and show the keyboard whenever the recipients field is focused.
+     */
+    private fun setupRecipientEditorKeyboardOnFocus() {
+        binding.newConversationAddress.getEditText().setOnFocusChangeListener { _, hasFocus ->
+            if (hasFocus) {
+                showRecipientKeyboard()
+            }
+        }
+    }
+
+    private fun showRecipientKeyboard() {
+        window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE)
+        val recipientEditText = binding.newConversationAddress.getEditText()
+        recipientEditText.post { showKeyboard(recipientEditText) }
+    }
+
     /** After [updateNewConversationTitle] locks the app bar, show the nested scroll and focus the chip field. */
     private fun revealNewConversationScrollContentAfterAppBar() {
         binding.nestScroll.post {
             binding.nestScroll.beVisible()
             binding.newConversationAddress.requestEditTextFocus()
+            showRecipientKeyboard()
         }
     }
 

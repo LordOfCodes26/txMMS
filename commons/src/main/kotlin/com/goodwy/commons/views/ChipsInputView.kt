@@ -362,7 +362,7 @@ class ChipsInputView @JvmOverloads constructor(
         }
     }
 
-//    fun getEditText(): MyEditText = editText
+    fun getEditText(): MyEditText = editText
 //    fun getClearButton(): ImageView = clearButton
     fun getAddressBookButton(): ImageView = addressBookButton
 //    fun getSpeechToTextButton(): ImageView = speechToTextButton
