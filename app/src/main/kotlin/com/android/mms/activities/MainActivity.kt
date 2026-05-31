@@ -1439,11 +1439,11 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
                     startActivity(this)
                 }
             }
-            R.id.private_space -> {
-                hideKeyboard()
-                if (isSearchOpen || isMSearchOpen()) closeMSearchView()
-                launchPrivateSpace()
-            }
+//            R.id.private_space -> {
+//                hideKeyboard()
+//                if (isSearchOpen || isMSearchOpen()) closeMSearchView()
+//                launchPrivateSpace()
+//            }
 //            R.id.sim_card_message -> {}
             R.id.settings -> launchSettings()
 //            R.id.about -> launchAbout()
