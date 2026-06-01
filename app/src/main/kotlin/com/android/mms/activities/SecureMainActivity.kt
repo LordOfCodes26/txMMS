@@ -3,12 +3,14 @@ package com.android.mms.activities
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Bundle
+import android.widget.FrameLayout
 import androidx.appcompat.content.res.AppCompatResources
 import com.android.mms.R
 import com.android.mms.extensions.config
 import com.android.mms.extensions.setConversationPinScope
 import com.goodwy.commons.extensions.beGone
 import com.goodwy.commons.extensions.beVisibleIf
+import com.goodwy.commons.extensions.getProperBackgroundColor
 import com.goodwy.commons.extensions.toast
 
 /**
@@ -21,22 +23,74 @@ class SecureMainActivity : MainActivity() {
         const val EXTRA_CIPHER_NUMBER = "cipher_number"
         /** Set when [MainActivity.launchPrivateSpace] starts this screen; allows [finish] to reveal Main without restarting it. */
         const val EXTRA_LAUNCHED_FROM_MAIN_ACTIVITY = "launched_from_main_activity"
+        const val EXTRA_PRIVATE_ENTRY_AUTH_FIRST = "PRIVATE_ENTRY_AUTH_FIRST"
         private const val DEFAULT_CIPHER_NUMBER = 1
+        private const val REQUEST_PRIVATE_ENTRY_AUTH = 1139
+        private const val STATE_SECURE_MAIN_INIT = "SECURE_MAIN_INIT"
+        private const val PRIVATE_SPACE_AUTH_ACTIVITY = "com.yft.settings.privacy.PrivateSpaceAuthActivity"
     }
 
     private var launchedFromMainActivity = false
+    private var cipherNumber = DEFAULT_CIPHER_NUMBER
+    private var secureMainContentInitialized = false
+    private var deferInitialMessageLoad = false
+
+    override fun shouldDeferInitialMessageLoad(): Boolean = deferInitialMessageLoad
 
     override fun onCreate(savedInstanceState: Bundle?) {
         launchedFromMainActivity = intent.getBooleanExtra(EXTRA_LAUNCHED_FROM_MAIN_ACTIVITY, false)
-        val cipherNumber = intent.getIntExtra(EXTRA_CIPHER_NUMBER, DEFAULT_CIPHER_NUMBER).coerceAtLeast(1)
-        if (!setConversationPinScope(cipherNumber)) {
+        cipherNumber = intent.getIntExtra(EXTRA_CIPHER_NUMBER, DEFAULT_CIPHER_NUMBER).coerceAtLeast(1)
+
+        val mainRestored = savedInstanceState?.getBoolean(STATE_SECURE_MAIN_INIT, false) == true
+        val authFirst = intent.getBooleanExtra(EXTRA_PRIVATE_ENTRY_AUTH_FIRST, false)
+            && cipherNumber == DEFAULT_CIPHER_NUMBER
+            && !mainRestored
+        deferInitialMessageLoad = authFirst
+
+        if (authFirst) {
             super.onCreate(savedInstanceState)
+            val holder = FrameLayout(this)
+            holder.setBackgroundColor(getProperBackgroundColor())
+            setContentView(holder)
+            authPrivateSpace()
+            return
+        }
+        initSecureMainContent()
+        super.onCreate(savedInstanceState)
+    }
+
+    private fun authPrivateSpace() {
+        val intent = Intent().setClassName("com.android.settings", PRIVATE_SPACE_AUTH_ACTIVITY)
+        startActivityForResult(intent, REQUEST_PRIVATE_ENTRY_AUTH)
+    }
+
+    private fun initSecureMainContent() {
+        if (!setConversationPinScope(cipherNumber)) {
             toast(com.goodwy.commons.R.string.unknown_error_occurred)
             finish()
             return
         }
-        super.onCreate(savedInstanceState)
         setupSecureLockPlaceholder()
+        secureMainContentInitialized = true
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putBoolean(STATE_SECURE_MAIN_INIT, secureMainContentInitialized)
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, resultData: Intent?) {
+        if (requestCode == REQUEST_PRIVATE_ENTRY_AUTH) {
+            if (resultCode == RESULT_OK) {
+                deferInitialMessageLoad = false
+                initSecureMainContent()
+                loadInitialMessagesIfEnabled()
+            } else {
+                finish()
+            }
+            return
+        }
+        super.onActivityResult(requestCode, resultCode, resultData)
     }
 
     private fun setupSecureLockPlaceholder() {

@@ -194,12 +194,7 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         checkWhatsNewDialog()
         storeStateVariables()
 
-        checkAndDeleteOldRecycleBinMessages()
-        clearAllMessagesIfNeeded {
-            loadMessages()
-        }
-
-        unreadCountHash = getUnreadCountsByThread() as HashMap<Long, Int>
+        loadInitialMessagesIfEnabled()
 
         binding.conversationsList.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
@@ -1511,6 +1506,17 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         }
     }
 
+    protected open fun shouldDeferInitialMessageLoad(): Boolean = false
+
+    protected fun loadInitialMessagesIfEnabled() {
+        if (shouldDeferInitialMessageLoad()) return
+        checkAndDeleteOldRecycleBinMessages()
+        clearAllMessagesIfNeeded {
+            loadMessages()
+        }
+        unreadCountHash = getUnreadCountsByThread() as HashMap<Long, Int>
+    }
+
     protected open fun closeSecureBox() {
         setConversationPinScope(0)
         initMessenger()
@@ -1527,6 +1533,7 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
             Intent(this, SecureMainActivity::class.java).apply {
                 putExtra(SecureMainActivity.EXTRA_CIPHER_NUMBER, 1)
                 putExtra(SecureMainActivity.EXTRA_LAUNCHED_FROM_MAIN_ACTIVITY, true)
+                putExtra(SecureMainActivity.EXTRA_PRIVATE_ENTRY_AUTH_FIRST, true)
             },
         )
     }
