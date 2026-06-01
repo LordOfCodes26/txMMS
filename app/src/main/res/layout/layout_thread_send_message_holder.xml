@@ -282,7 +282,7 @@
                         android:layout_height="match_parent"
                         android:layout_gravity="center"
                         android:alpha="0.9"
-                        android:background="@drawable/ic_cmn_sim1"
+                        android:src="@drawable/ic_cmn_sim"
                         android:contentDescription="@null" />
 
                     <TextView
