@@ -15,7 +15,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
-import android.widget.LinearLayout
 import androidx.annotation.RequiresPermission
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -50,10 +49,18 @@ class ExpandedMessageFragment : Fragment() {
     private var onMessageTextChanged: ((String) -> Unit)? = null
     private var onSendMessage: (() -> Unit)? = null
     private var onMinimize: (() -> Unit)? = null
+    private var onSpeechToText: (() -> Unit)? = null
+    private var hasAddressForSend: (() -> Boolean)? = null
+    private var hasReadyAttachments: (() -> Boolean)? = null
     private var isCountdownActive = false
+    private var isSpeechToTextAvailable = false
 
     private var currentSIMCardIndex = 0
     private val availableSIMCards = ArrayList<SIMCard>()
+
+    private enum class ComposeSendMode { SEND, SPEECH, DISABLED }
+
+    private var appliedComposeSendMode: ComposeSendMode? = null
 
     companion object {
         private const val ARG_MESSAGE_TEXT = "message_text"
@@ -210,7 +217,7 @@ class ExpandedMessageFragment : Fragment() {
                 override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
                 override fun afterTextChanged(s: Editable?) {
                     onMessageTextChanged?.invoke(s?.toString() ?: "")
-                    updateSendButtonAvailability()
+                    checkSendMessageAvailability()
                     
                     // Update character counter
                     val messageString = if (activity.config.useSimpleCharacters) {
@@ -252,33 +259,9 @@ class ExpandedMessageFragment : Fragment() {
             com.android.mms.R.id.expandedThreadSendMessageCountdownCompact
         )?.beGone()
         
-        // Setup send button click handlers
-        val sendClickListener = {
-            if (activity.config.messageSendDelay > 0 && !isCountdownActive) {
-                startSendMessageCountdown()
-            } else {
-                onSendMessage?.invoke()
-                if (activity.config.soundOnOutGoingMessages) {
-                    val audioManager = activity.getSystemService(android.content.Context.AUDIO_SERVICE) as AudioManager
-                    audioManager.playSoundEffect(AudioManager.FX_KEYPRESS_SPACEBAR)
-                }
-            }
-        }
-        
-        binding.expandedThreadSendMessageWrapper.apply {
-            isClickable = false
-            setOnClickListener { sendClickListener() }
-        }
-        
-        binding.topDetailsCompactExpanded.findViewById<android.widget.LinearLayout>(
-            com.android.mms.R.id.expandedThreadSendMessageWrapperCompact
-        )?.apply {
-            isClickable = false
-            setOnClickListener { sendClickListener() }
-        }
-
         // Update send button availability
-        updateSendButtonAvailability()
+        applySendConfigurationToView()
+        checkSendMessageAvailability()
         getCurrentSIMCardIndex()
         updateAvailableMessageCountForCurrentSim()
     }
@@ -373,6 +356,63 @@ class ExpandedMessageFragment : Fragment() {
 
     fun setOnMinimizeListener(listener: () -> Unit) {
         onMinimize = listener
+    }
+
+    fun setupSendConfiguration(
+        isSpeechToTextAvailable: Boolean = false,
+        hasAddressForSend: (() -> Boolean)? = null,
+        hasReadyAttachments: (() -> Boolean)? = null,
+        onSpeechToText: (() -> Unit)? = null,
+    ) {
+        this.isSpeechToTextAvailable = isSpeechToTextAvailable
+        this.hasAddressForSend = hasAddressForSend
+        this.hasReadyAttachments = hasReadyAttachments
+        this.onSpeechToText = onSpeechToText
+        applySendConfigurationToView()
+        checkSendMessageAvailability()
+    }
+    private fun applySendConfigurationToView() {
+        val binding = _binding ?: return
+
+        val speechLongClick = if (isSpeechToTextAvailable) {
+            View.OnLongClickListener {
+                onSpeechToText?.invoke()
+                true
+            }
+        } else {
+            null
+        }
+        binding.expandedThreadSendMessage.setOnLongClickListener(speechLongClick)
+        binding.topDetailsCompactExpanded.findViewById<ImageView>(
+            R.id.expandedThreadSendMessageCompact
+        )?.setOnLongClickListener(speechLongClick)
+
+//        checkSendMessageAvailability()
+    }
+
+    fun checkSendMessageAvailability() {
+        if (_binding == null) return
+
+        val hasReadyAttachments = hasReadyAttachments?.invoke() == true
+        val hasText = binding.expandedThreadTypeMessage.text?.isNotEmpty() == true
+        val hasContent = hasText || hasReadyAttachments
+
+        val requiresAddress = hasAddressForSend != null
+        val hasAddress = hasAddressForSend?.invoke() ?: true
+        val canSend = hasContent && hasAddress
+
+        val newMode = when {
+            canSend -> ComposeSendMode.SEND
+            isSpeechToTextAvailable && (!requiresAddress || hasAddress) -> ComposeSendMode.SPEECH
+            else -> ComposeSendMode.DISABLED
+        }
+
+        if (newMode != appliedComposeSendMode) {
+            appliedComposeSendMode = newMode
+            applyComposeSendMode(newMode)
+        }
+
+        updateSendButtonDrawable()
     }
 
     fun updateThreadTitle(
@@ -495,20 +535,76 @@ class ExpandedMessageFragment : Fragment() {
         }
     }
 
-    private fun updateSendButtonAvailability() {
-        val hasText = binding.expandedThreadTypeMessage.text?.isNotEmpty() == true
-        binding.expandedThreadSendMessageWrapper.apply {
-            isEnabled = hasText
-            isClickable = hasText
-            alpha = if (hasText) 1f else 0.4f
+    private fun applyComposeSendMode(mode: ComposeSendMode) {
+        val activity = activity ?: return
+        val sendClickListener = {
+            if (activity.config.messageSendDelay > 0 && !isCountdownActive) {
+                startSendMessageCountdown()
+            } else {
+                onSendMessage?.invoke()
+                if (activity.config.soundOnOutGoingMessages) {
+                    val audioManager = activity.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+                    audioManager.playSoundEffect(AudioManager.FX_KEYPRESS_SPACEBAR)
+                }
+            }
         }
-        binding.topDetailsCompactExpanded.findViewById<LinearLayout>(
+
+        binding.expandedThreadSendMessageWrapper.apply {
+            when (mode) {
+                ComposeSendMode.SEND -> {
+                    isEnabled = true
+                    isClickable = true
+                    alpha = 1f
+                    setOnClickListener { sendClickListener() }
+                }
+                ComposeSendMode.SPEECH -> {
+                    isEnabled = true
+                    isClickable = true
+                    alpha = 1f
+                    setOnClickListener { onSpeechToText?.invoke() }
+                }
+                ComposeSendMode.DISABLED -> {
+                    isEnabled = false
+                    isClickable = false
+                    alpha = 0.4f
+                    setOnClickListener(null)
+                }
+            }
+        }
+
+        binding.topDetailsCompactExpanded.findViewById<View>(
             R.id.expandedThreadSendMessageWrapperCompact
         )?.apply {
-            isEnabled = hasText
-            isClickable = hasText
-            alpha = if (hasText) 1f else 0.4f
+            when (mode) {
+                ComposeSendMode.SEND -> {
+                    isEnabled = true
+                    isClickable = true
+                    alpha = 1f
+                    setOnClickListener { sendClickListener() }
+                }
+                ComposeSendMode.SPEECH -> {
+                    isEnabled = true
+                    isClickable = true
+                    alpha = 1f
+                    setOnClickListener { onSpeechToText?.invoke() }
+                }
+                ComposeSendMode.DISABLED -> {
+                    isEnabled = false
+                    isClickable = false
+                    alpha = 0.4f
+                    setOnClickListener(null)
+                }
+            }
         }
+    }
+
+    private fun updateSendButtonDrawable() {
+        val activity = activity ?: return
+        val sendIconTint = activity.getProperTextColor()
+        binding.expandedThreadSendMessage.applyColorFilter(sendIconTint)
+        binding.topDetailsCompactExpanded.findViewById<ImageView>(
+            R.id.expandedThreadSendMessageCompact
+        )?.applyColorFilter(sendIconTint)
     }
     
     private fun startSendMessageCountdown() {
@@ -594,6 +690,7 @@ class ExpandedMessageFragment : Fragment() {
             expandedThreadSendMessageCountdown.beGone()
             expandedThreadSendMessage.beVisible()
             threadAvailableMessageCount.beVisible()
+            checkSendMessageAvailability()
         }
         
         val compactCountdown = binding.topDetailsCompactExpanded.findViewById<CircularCountdown>(

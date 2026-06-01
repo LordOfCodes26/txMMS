@@ -2040,6 +2040,16 @@ class NewConversationActivity : SimpleActivity() {
             hideExpandedMessageFragment()
         }
 
+        expandedMessageFragment?.setupSendConfiguration(
+            isSpeechToTextAvailable = isSpeechToTextAvailable,
+            hasAddressForSend = { hasRecipientAddress() },
+            hasReadyAttachments = {
+                val selections = messageHolderHelper?.getAttachmentSelections() ?: emptyList()
+                selections.isNotEmpty() && !selections.any { it.isPending }
+            },
+            onSpeechToText = { speechToText() },
+        )
+
         expandedMessageFragment?.let { fragment ->
             // Same visibility pattern as [ThreadActivity.showExpandedMessageFragment]: fragment host is a
             // sibling of the main coordinator (see activity_new_conversation.xml), and the compose strip

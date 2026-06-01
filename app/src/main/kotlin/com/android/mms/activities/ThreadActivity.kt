@@ -3017,6 +3017,15 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             hideExpandedMessageFragment()
         }
 
+        expandedMessageFragment?.setupSendConfiguration(
+            isSpeechToTextAvailable = isSpeechToTextAvailable,
+            hasReadyAttachments = {
+                val selections = messageHolderHelper?.getAttachmentSelections() ?: emptyList()
+                selections.isNotEmpty() && !selections.any { it.isPending }
+            },
+            onSpeechToText = { speechToText() },
+        )
+
         // Update fragment thread title after fragment is created
         expandedMessageFragment?.let { fragment ->
             // Set up lifecycle observer BEFORE committing transaction to ensure it catches the lifecycle events
