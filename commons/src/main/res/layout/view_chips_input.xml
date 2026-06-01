@@ -72,23 +72,23 @@
 
     <!-- Buttons at top right - clickable=false so touches pass through to edit text below -->
     <LinearLayout
-        android:layout_width="@dimen/tx_common_icon_size"
-        android:layout_height="@dimen/tx_common_icon_size"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
         android:layout_gravity="end|center"
         android:orientation="horizontal"
         android:gravity="center"
         android:layout_marginEnd="@dimen/small_margin"
-        android:background="@drawable/ripple_all_corners_56dp"
         android:clickable="false"
         android:focusable="false">
 
         <com.android.common.view.MImageButton
             android:id="@+id/chips_address_book_button"
-            android:layout_width="@dimen/tx_dialog_btn_margin_top"
-            android:layout_height="@dimen/tx_dialog_btn_margin_top"
+            android:layout_width="@dimen/tx_common_icon_size"
+            android:layout_height="@dimen/tx_common_icon_size"
             android:src="@drawable/ic_cmn_contact_add"
             android:layout_gravity="center_vertical"
             android:tint="@color/tx_title_text"
+            android:padding="@dimen/small_margin"
             android:contentDescription="@string/search_contacts"
             android:visibility="visible"/>
 
