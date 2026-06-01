@@ -57,7 +57,7 @@
             android:textSize="@dimen/small_text_size"
             android:visibility="gone"
             android:translationZ="4dp"
-            app:layout_constraintBottom_toTopOf="@+id/expandedThreadSendMessageWrapper"
+            app:layout_constraintTop_toBottomOf="@+id/expandedThreadSendMessageWrapper"
             app:layout_constraintEnd_toEndOf="@+id/expandedThreadSendMessageWrapper"
             app:layout_constraintStart_toStartOf="@+id/expandedThreadSendMessageWrapper"
             tools:ignore="HardcodedText"
