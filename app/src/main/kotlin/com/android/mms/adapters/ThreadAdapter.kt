@@ -118,6 +118,7 @@ import com.android.mms.helpers.getLocaleDateFormatPatternMonthDay
 import com.android.mms.helpers.resolveSimIconTint
 import com.behaviorule.arturdumchev.library.setHeight
 import com.goodwy.commons.helpers.DARK_GREY
+import com.goodwy.commons.views.enableItemDividers
 import eightbitlab.com.blurview.BlurTarget
 import java.util.Locale
 import kotlin.math.abs
@@ -654,17 +655,19 @@ class ThreadAdapter(
         }
     }
 
+    @SuppressLint("RestrictedApi")
     private fun showLinkPopupMenu(context: Context, url: String, view: View) {
-        val menu = MenuBuilder(context)
+        var dividerGroupId = 0
+        val menu = MenuBuilder(context).apply { enableItemDividers() }
         val text = url.toUri().schemeSpecificPart
         val (title, icon) = getActionTitleAndIcon(url)
 
         // Use only 24dp icons
-        menu.add(1, 0, 0, text).setIcon(R.drawable.ic_empty)
-        menu.add(1, 1, 1, title).setIcon(icon)
-        if (title == com.goodwy.commons.R.string.call) menu.add(1, 2, 2, com.goodwy.strings.R.string.message).setIcon(R.drawable.ic_comment)
-        menu.add(1, 4, 4, com.goodwy.commons.R.string.share).setIcon(com.goodwy.commons.R.drawable.ic_ios_share)
-        menu.add(1, 5, 5, com.goodwy.commons.R.string.copy).setIcon(com.goodwy.commons.R.drawable.ic_copy_vector)
+        menu.add(dividerGroupId++, 0, 0, text).setIcon(R.drawable.ic_empty)
+        menu.add(dividerGroupId++, 1, 1, title).setIcon(icon)
+        if (title == com.goodwy.commons.R.string.call) menu.add(dividerGroupId++, 2, 2, com.goodwy.strings.R.string.message).setIcon(R.drawable.ic_comment)
+        menu.add(dividerGroupId++, 4, 4, com.goodwy.commons.R.string.share).setIcon(com.goodwy.commons.R.drawable.ic_ios_share)
+        menu.add(dividerGroupId, 5, 5, com.goodwy.commons.R.string.copy).setIcon(com.goodwy.commons.R.drawable.ic_copy_vector)
 
         val blurTarget = activity.findViewById<eightbitlab.com.blurview.BlurTarget>(com.android.mms.R.id.mainBlurTarget)
         showMPopupMenu(
@@ -673,6 +676,7 @@ class ThreadAdapter(
             menu = menu,
             gravity = Gravity.START,
             blurTarget = blurTarget,
+            showGroupDividers = true,
             listener = MenuItem.OnMenuItemClickListener { item ->
                 when (item.itemId) {
                     0 -> activity.copyToClipboard(text)

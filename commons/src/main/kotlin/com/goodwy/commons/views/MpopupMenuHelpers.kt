@@ -1,5 +1,6 @@
 package com.goodwy.commons.views
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
 import android.os.Build
@@ -7,8 +8,12 @@ import android.view.Gravity
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import android.view.ViewGroup
 import android.view.ViewTreeObserver
+import android.widget.ListView
 import android.widget.PopupWindow
+import androidx.appcompat.view.menu.MenuBuilder
+import androidx.core.content.ContextCompat
 import com.android.common.view.MPopup
 import com.goodwy.commons.R
 import eightbitlab.com.blurview.BlurTarget
@@ -17,6 +22,7 @@ import eightbitlab.com.blurview.BlurTarget
 const val MPOPUP_USE_DEFAULT_END_INSET = Int.MIN_VALUE
 
 /** Shows [MPopup] with optional blur and toolbar-style end inset. */
+@SuppressLint("RestrictedApi")
 fun showMPopupMenu(
     context: Context,
     anchor: View,
@@ -29,8 +35,12 @@ fun showMPopupMenu(
     blurTarget: BlurTarget? = null,
     horizontalEndInsetPx: Int = MPOPUP_USE_DEFAULT_END_INSET,
     showIcons: Boolean = false,
+    showGroupDividers: Boolean = false,
     listener: MenuItem.OnMenuItemClickListener?,
 ) {
+    if (showGroupDividers && menu is MenuBuilder){
+        menu.isGroupDividerEnabled = true
+    }
     val popupDelegate = MPopup(
         context,
         anchor,
@@ -62,9 +72,38 @@ fun showMPopupMenu(
     clearMpopupAnchorOffset(popupDelegate)
     popupDelegate.show()
 
+    if (showGroupDividers) {
+        applyMPopupMenuListDividers(popupDelegate, context)
+    }
+
     if (wantToolbarOffset && activity != null) {
         applyMpopupAnchorAdjustments(popupDelegate, activity, endInset, pullUp)
     }
+}
+
+@SuppressLint("RestrictedApi")
+fun MenuBuilder.enableItemDividers() {
+    setGroupDividerEnabled(true)
+}
+
+private fun applyMPopupMenuListDividers(popup: MPopup,context: Context) {
+    runCatching {
+        val contentView = getMpopupPopupWindow(popup)?.contentView ?: return
+        val listView = findMenuListView(contentView) ?: return
+        val divider = ContextCompat.getDrawable(context, R.drawable.divider_settings) ?: return
+        listView.divider = divider
+        listView.dividerHeight = context.resources.getDimensionPixelSize(R.dimen.one_dp)
+    }
+}
+
+private fun findMenuListView(view: View): ListView? {
+    if (view is ListView) return view
+    if (view is ViewGroup) {
+        for (i in 0 until view.childCount) {
+            findMenuListView(view.getChildAt(i))?.let { return it }
+        }
+    }
+    return null
 }
 
 private fun resolveHorizontalEndInsetPx(
