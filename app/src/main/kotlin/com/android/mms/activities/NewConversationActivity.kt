@@ -64,6 +64,7 @@ import com.android.mms.models.Events
 import com.android.mms.models.SIMCard
 import com.android.mms.BuildConfig
 import com.android.mms.dialogs.SelectSIMDialog
+import com.android.mms.dialogs.SelectSimDialogAnchorPlacement
 import com.android.mms.helpers.MessageHolderHelper
 import com.android.mms.models.Draft
 import com.android.mms.models.DraftStoredAttachment
@@ -2023,14 +2024,14 @@ class NewConversationActivity : SimpleActivity() {
             binding.messageHolder.threadTypeMessage.setText(text)
         }
 
-        expandedMessageFragment?.setOnSendMessageListener {
+        expandedMessageFragment?.setOnSendMessageListener { subscriptionId ->
             val text = expandedMessageFragment?.getMessageText() ?: ""
             binding.messageHolder.threadTypeMessage.setText(text)
             hideExpandedMessageFragment()
             // Get the message text and attachments, then send
             val messageText = binding.messageHolder.threadTypeMessage.text?.toString() ?: ""
             val attachments = messageHolderHelper?.buildMessageAttachments() ?: emptyList()
-            val subscriptionId = messageHolderHelper?.getSubscriptionIdForNumbers(emptyList())
+//            val subscriptionId = messageHolderHelper?.getSubscriptionIdForNumbers(emptyList())
             sendMessageAndNavigate(messageText, subscriptionId, attachments)
         }
 
@@ -2048,6 +2049,13 @@ class NewConversationActivity : SimpleActivity() {
                 selections.isNotEmpty() && !selections.any { it.isPending }
             },
             onSpeechToText = { speechToText() },
+            resolveSubscriptionForSend = { anchorView, onSubId ->
+                messageHolderHelper?.resolveSubscriptionForSend(
+                    anchorView = anchorView,
+                    anchorPlacement = SelectSimDialogAnchorPlacement.BOTTOM_RIGHT_OF_ANCHOR,
+                    onSubId
+                ) ?: onSubId(SmsManager.getDefaultSmsSubscriptionId())
+            }
         )
 
         expandedMessageFragment?.let { fragment ->
@@ -2201,7 +2209,12 @@ class NewConversationActivity : SimpleActivity() {
                 binding.messageHolder.threadSelectSimIconHolder.setOnClickListener {
 
                     val blurTarget = this.findViewById<BlurTarget>(R.id.mainBlurTarget)
-                    SelectSIMDialog(this, blurTarget, anchorView = binding.messageHolder.threadSendMessage) { _, selectedHandleIndex ->
+                    SelectSIMDialog(
+                        activity = this,
+                        blurTarget = blurTarget?.takeIf { it.isShown },
+                        anchorView = binding.messageHolder.threadSendMessageActionWrapper,
+                        anchorPlacement = SelectSimDialogAnchorPlacement.TOP_RIGHT_OF_ANCHOR
+                    ) { _, selectedHandleIndex ->
 
                         //                    binding.messageHolder.simPopupPicker.beVisible()
                         currentSIMCardIndex = selectedHandleIndex

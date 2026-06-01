@@ -22,6 +22,7 @@ import kotlin.math.max
 import androidx.fragment.app.Fragment
 import com.android.mms.R
 import com.android.mms.databinding.FragmentExpandedMessageBinding
+import com.android.mms.emoji.RepeatListener
 import com.android.mms.extensions.config
 import com.android.mms.extensions.getTextSizeMessage
 import com.android.mms.extensions.indexOfFirstOrNull
@@ -47,11 +48,12 @@ class ExpandedMessageFragment : Fragment() {
     
     private var messageText: String = ""
     private var onMessageTextChanged: ((String) -> Unit)? = null
-    private var onSendMessage: (() -> Unit)? = null
+    private var onSendMessage: ((subscriptionId: Int) -> Unit)? = null
     private var onMinimize: (() -> Unit)? = null
     private var onSpeechToText: (() -> Unit)? = null
     private var hasAddressForSend: (() -> Boolean)? = null
     private var hasReadyAttachments: (() -> Boolean)? = null
+    private var resolveSubscriptionForSend: ((anchorView: View, onSubId: (Int) -> Unit) -> Unit)? = null
     private var isCountdownActive = false
     private var isSpeechToTextAvailable = false
 
@@ -350,9 +352,13 @@ class ExpandedMessageFragment : Fragment() {
         onMessageTextChanged = listener
     }
 
-    fun setOnSendMessageListener(listener: () -> Unit) {
+    fun setOnSendMessageListener(listener: (subscriptionId: Int) -> Unit) {
         onSendMessage = listener
     }
+
+//    fun setOnSendMessageListener(listener: () -> Unit) {
+//        onSendMessage = listener
+//    }
 
     fun setOnMinimizeListener(listener: () -> Unit) {
         onMinimize = listener
@@ -363,11 +369,13 @@ class ExpandedMessageFragment : Fragment() {
         hasAddressForSend: (() -> Boolean)? = null,
         hasReadyAttachments: (() -> Boolean)? = null,
         onSpeechToText: (() -> Unit)? = null,
+        resolveSubscriptionForSend: ((anchorView: View, onSubId: (Int) -> Unit) -> Unit)? = null
     ) {
         this.isSpeechToTextAvailable = isSpeechToTextAvailable
         this.hasAddressForSend = hasAddressForSend
         this.hasReadyAttachments = hasReadyAttachments
         this.onSpeechToText = onSpeechToText
+        this.resolveSubscriptionForSend = resolveSubscriptionForSend
         applySendConfigurationToView()
         checkSendMessageAvailability()
     }
@@ -536,65 +544,86 @@ class ExpandedMessageFragment : Fragment() {
     }
 
     private fun applyComposeSendMode(mode: ComposeSendMode) {
+        val largeSendButton = binding.expandedThreadSendMessage
+        val compactSendButton = binding.topDetailsCompactExpanded.findViewById<ImageView>(R.id.expandedThreadSendMessageCompact)
+
+        largeSendButton.apply {
+            when (mode) {
+                ComposeSendMode.SEND -> {
+                    isEnabled = true
+                    isClickable = true
+                    alpha = 1f
+                    contentDescription = getString(R.string.sending)
+                    setOnClickListener { onSendButtonClicked(this) }
+                }
+                ComposeSendMode.SPEECH -> {
+                    isEnabled = true
+                    isClickable = true
+                    alpha = 1f
+                    contentDescription = getString(com.goodwy.strings.R.string.voice_input)
+                    setOnClickListener { onSpeechToText?.invoke() }
+                }
+                ComposeSendMode.DISABLED -> {
+                    isEnabled = false
+                    isClickable = false
+                    alpha = 0.4f
+                    setOnClickListener(null)
+                }
+            }
+        }
+
+        compactSendButton.apply {
+            when (mode) {
+                ComposeSendMode.SEND -> {
+                    isEnabled = true
+                    isClickable = true
+                    alpha = 1f
+                    contentDescription = getString(R.string.sending)
+                    setOnClickListener { onSendButtonClicked(this) }
+                }
+                ComposeSendMode.SPEECH -> {
+                    isEnabled = true
+                    isClickable = true
+                    alpha = 1f
+                    contentDescription = getString(com.goodwy.strings.R.string.voice_input)
+                    setOnClickListener { onSpeechToText?.invoke() }
+                }
+                ComposeSendMode.DISABLED -> {
+                    isEnabled = false
+                    isClickable = false
+                    alpha = 0.4f
+                    setOnClickListener(null)
+                }
+            }
+        }
+        binding.expandedThreadSendMessageWrapper.apply {
+            isClickable = false
+            setOnClickListener(null)
+        }
+        binding.topDetailsCompactExpanded.findViewById<View>(R.id.expandedThreadSendMessageWrapperCompact).apply {
+            isClickable = false
+            setOnClickListener(null)
+        }
+    }
+
+    private fun onSendButtonClicked(anchorView: View) {
         val activity = activity ?: return
-        val sendClickListener = {
-            if (activity.config.messageSendDelay > 0 && !isCountdownActive) {
-                startSendMessageCountdown()
+        val proceedWithSubscription = { subscriptionId: Int ->
+            if (activity.config.messageSendDelay > 0 && !isCountdownActive){
+                startSendMessageCountdown(subscriptionId)
             } else {
-                onSendMessage?.invoke()
+                onSendMessage?.invoke(subscriptionId)
                 if (activity.config.soundOnOutGoingMessages) {
                     val audioManager = activity.getSystemService(Context.AUDIO_SERVICE) as AudioManager
                     audioManager.playSoundEffect(AudioManager.FX_KEYPRESS_SPACEBAR)
                 }
             }
         }
-
-        binding.expandedThreadSendMessageWrapper.apply {
-            when (mode) {
-                ComposeSendMode.SEND -> {
-                    isEnabled = true
-                    isClickable = true
-                    alpha = 1f
-                    setOnClickListener { sendClickListener() }
-                }
-                ComposeSendMode.SPEECH -> {
-                    isEnabled = true
-                    isClickable = true
-                    alpha = 1f
-                    setOnClickListener { onSpeechToText?.invoke() }
-                }
-                ComposeSendMode.DISABLED -> {
-                    isEnabled = false
-                    isClickable = false
-                    alpha = 0.4f
-                    setOnClickListener(null)
-                }
-            }
-        }
-
-        binding.topDetailsCompactExpanded.findViewById<View>(
-            R.id.expandedThreadSendMessageWrapperCompact
-        )?.apply {
-            when (mode) {
-                ComposeSendMode.SEND -> {
-                    isEnabled = true
-                    isClickable = true
-                    alpha = 1f
-                    setOnClickListener { sendClickListener() }
-                }
-                ComposeSendMode.SPEECH -> {
-                    isEnabled = true
-                    isClickable = true
-                    alpha = 1f
-                    setOnClickListener { onSpeechToText?.invoke() }
-                }
-                ComposeSendMode.DISABLED -> {
-                    isEnabled = false
-                    isClickable = false
-                    alpha = 0.4f
-                    setOnClickListener(null)
-                }
-            }
+        val resolver = resolveSubscriptionForSend
+        if (resolver != null) {
+            resolver(anchorView, proceedWithSubscription)
+        } else {
+            proceedWithSubscription(SmsManager.getDefaultSmsSubscriptionId())
         }
     }
 
@@ -607,13 +636,13 @@ class ExpandedMessageFragment : Fragment() {
         )?.applyColorFilter(sendIconTint)
     }
     
-    private fun startSendMessageCountdown() {
+    private fun startSendMessageCountdown(subscriptionId: Int) {
         if (isCountdownActive) return
         
         val activity = requireActivity()
         val delaySeconds = activity.config.messageSendDelay
         if (delaySeconds <= 0) {
-            onSendMessage?.invoke()
+            onSendMessage?.invoke(subscriptionId)
             return
         }
 
@@ -642,7 +671,7 @@ class ExpandedMessageFragment : Fragment() {
                         override fun onFinish(newCycle: Boolean, cycleCount: Int) {
                             isCountdownActive = false
                             hideCountdown()
-                            onSendMessage?.invoke()
+                            onSendMessage?.invoke(subscriptionId)
                             if (activity.config.soundOnOutGoingMessages) {
                                 val audioManager = activity.getSystemService(Context.AUDIO_SERVICE) as AudioManager
                                 audioManager.playSoundEffect(AudioManager.FX_KEYPRESS_SPACEBAR)
@@ -653,7 +682,7 @@ class ExpandedMessageFragment : Fragment() {
             } catch (e: Exception) {
                 isCountdownActive = false
                 hideCountdown()
-                onSendMessage?.invoke()
+                onSendMessage?.invoke(subscriptionId)
             }
         }
         
@@ -676,7 +705,22 @@ class ExpandedMessageFragment : Fragment() {
                 }
             }
             try {
-                create(0, delaySeconds, CircularCountdown.TYPE_SECOND).start()
+                create(0, delaySeconds, CircularCountdown.TYPE_SECOND)
+                    .listener(object : CircularListener {
+                        override fun onTick(progress: Int) {}
+
+                        override fun onFinish(newCycle: Boolean, cycleCount: Int) {
+                            if (!isCountdownActive) return
+                            isCountdownActive = false
+                            hideCountdown()
+                            onSendMessage?.invoke(subscriptionId)
+                            if (activity.config.soundOnOutGoingMessages) {
+                                val audioManager = activity.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+                                audioManager.playSoundEffect(AudioManager.FX_KEYPRESS_SPACEBAR)
+                            }
+                        }
+                    })
+                    .start()
             } catch (e: Exception) {}
         }
     }

@@ -11,6 +11,7 @@ import android.telephony.SmsMessage
 import android.text.InputType
 import android.util.TypedValue
 import android.view.KeyEvent
+import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import android.widget.Toast
@@ -24,6 +25,7 @@ import com.android.mms.activities.SimpleActivity
 import com.android.mms.adapters.AttachmentsAdapter
 import com.android.mms.databinding.LayoutThreadSendMessageHolderBinding
 import com.android.mms.dialogs.SelectSIMDialog
+import com.android.mms.dialogs.SelectSimDialogAnchorPlacement
 import com.android.mms.emoji.Ch350EmojiBootstrap
 import com.android.mms.emoji.ChatPaneEmoji
 import com.android.mms.emoji.RepeatListener
@@ -550,19 +552,38 @@ class MessageHolderHelper(
             threadSendMessageCountdown.setOnClickListener(null)
             threadSendMessageCountdown.beGone()
             threadSendMessage.beVisible()
-            threadSendMessageCountdown.beVisible()
         }
     }
     // added by sun
     // when use multi sim, show dialog sim select
     // ----->
     @SuppressLint("MissingPermission")
-    private fun resolveSubscriptionThen(onSubId: (Int) -> Unit) {
+    fun resolveSubscriptionForSend(
+        anchorView: View,
+        anchorPlacement: SelectSimDialogAnchorPlacement = SelectSimDialogAnchorPlacement.TOP_RIGHT_OF_ANCHOR,
+        onSubId: (Int) -> Unit
+    ) {
+        resolveSubscriptionThen(anchorView, anchorPlacement, onSubId)
+    }
+    private fun findSimDialogBlurTarget(): BlurTarget? {
+        val target = activity.findViewById<BlurTarget>(R.id.mainBlurTarget)
+        return target?.takeIf { it.isShown }
+    }
+    @SuppressLint("MissingPermission")
+    private fun resolveSubscriptionThen(
+        anchorView: View = binding.threadSendMessageActionWrapper,
+        anchorPlacement: SelectSimDialogAnchorPlacement = SelectSimDialogAnchorPlacement.TOP_RIGHT_OF_ANCHOR,
+        onSubId: (Int) -> Unit
+    ) {
         val subs = activity.subscriptionManagerCompat().activeSubscriptionInfoList
         val defaultSmsSubscriptionId = SmsManager.getDefaultSmsSubscriptionId()
         if (!subs.isNullOrEmpty() && subs.size > 1 && defaultSmsSubscriptionId < 0) {       // when muti sim and always check sms in system setting
-            val blurTarget = activity.findViewById<BlurTarget>(R.id.mainBlurTarget)
-            SelectSIMDialog(activity as SimpleActivity, blurTarget, anchorView = binding.threadSendMessage) { simCard, _ ->
+            SelectSIMDialog(
+                activity = activity as SimpleActivity,
+                blurTarget = findSimDialogBlurTarget(),
+                anchorView = anchorView,
+                anchorPlacement = anchorPlacement
+            ) { simCard, _ ->
                 onSubId(simCard.subscriptionId)
             }
 
@@ -573,7 +594,9 @@ class MessageHolderHelper(
                 subs?.size == 2 -> defaultSmsSubscriptionId
                 else ->getSubscriptionId()
             }
-            subId?.let { onSubId(it) }
+            val resolvedSubId = subId?.takeIf { it >= 0 } ?: getSubscriptionId()?.takeIf { it >= 0 } ?: defaultSmsSubscriptionId.takeIf { it >= 0 }
+            if (resolvedSubId != null)
+                onSubId(resolvedSubId)
         }
     }
     private fun pickSimAndSendOrSendDirect() {

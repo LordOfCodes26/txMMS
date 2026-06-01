@@ -75,6 +75,7 @@ import com.android.mms.dialogs.showScheduleDateTimePicker
 import com.android.mms.extensions.*
 import com.android.mms.extensions.getDisplayNumberWithoutCountryCode
 import com.android.mms.dialogs.SelectSIMDialog
+import com.android.mms.dialogs.SelectSimDialogAnchorPlacement
 import com.android.mms.helpers.*
 import com.android.mms.messaging.*
 import com.android.mms.models.*
@@ -2008,7 +2009,11 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             if (availableSIMCards.isNotEmpty()) {
                 binding.messageHolder.threadSelectSimIconHolder.setOnClickListener {
                     val blurTarget = this.findViewById<BlurTarget>(R.id.mainBlurTarget)
-                    SelectSIMDialog(this, blurTarget, anchorView = binding.messageHolder.threadSendMessage) { _, selectedHandleIndex ->
+                    SelectSIMDialog(
+                        activity = this,
+                        blurTarget = blurTarget,
+                        anchorView = binding.messageHolder.threadSendMessageActionWrapper
+                    ) { _, selectedHandleIndex ->
                         currentSIMCardIndex = selectedHandleIndex
                         val currentSIMCard = availableSIMCards[currentSIMCardIndex]
                         @SuppressLint("SetTextI18n")
@@ -3000,15 +3005,17 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             binding.messageHolder.threadTypeMessage.setText(text)
         }
 
-        expandedMessageFragment?.setOnSendMessageListener {
+        expandedMessageFragment?.setOnSendMessageListener { subscriptionId ->
             val text = expandedMessageFragment?.getMessageText() ?: ""
             binding.messageHolder.threadTypeMessage.setText(text)
             hideExpandedMessageFragment()
-            val blurTarget = this.findViewById<BlurTarget>(R.id.mainBlurTarget)
-            SelectSIMDialog(this, blurTarget, anchorView = binding.messageHolder.threadSendMessage) { _, selectedHandleIndex ->
-                this.config.currentSIMCardIndex = selectedHandleIndex
-                sendMessage()
-            }
+            val attachments = messageHolderHelper?.buildMessageAttachments() ?: emptyList()
+            sendMessageWithHelper(text, subscriptionId, attachments)
+//            val blurTarget = this.findViewById<BlurTarget>(R.id.mainBlurTarget)
+//            SelectSIMDialog(this, blurTarget, anchorView = binding.messageHolder.threadSendMessage) { _, selectedHandleIndex ->
+//                this.config.currentSIMCardIndex = selectedHandleIndex
+//                sendMessage()
+//            }
         }
 
         expandedMessageFragment?.setOnMinimizeListener {
@@ -3024,6 +3031,14 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                 selections.isNotEmpty() && !selections.any { it.isPending }
             },
             onSpeechToText = { speechToText() },
+            resolveSubscriptionForSend = { anchorView, onSubId ->
+                messageHolderHelper?.resolveSubscriptionForSend(
+                    anchorView = anchorView,
+                    anchorPlacement = SelectSimDialogAnchorPlacement. BOTTOM_RIGHT_OF_ANCHOR,
+                    onSubId
+                ) ?: onSubId(SmsManager.getDefaultSmsSubscriptionId())
+            }
+
         )
 
         // Update fragment thread title after fragment is created
