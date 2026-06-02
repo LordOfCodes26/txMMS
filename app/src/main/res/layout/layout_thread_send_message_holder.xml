@@ -330,21 +330,6 @@
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 
-    <RelativeLayout
-        android:id="@+id/sim_popup_picker"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        app:layout_constraintBottom_toTopOf="@+id/threadSendMessageWrapper"
-        app:layout_constraintEnd_toStartOf="@+id/threadSendMessageWrapper"
-        android:visibility="gone">
-        <include
-            layout="@layout/sim_popup"
-            android:layout_width="180dp"
-            android:layout_height="80dp"
-            android:layout_marginEnd="-25dp"
-            android:layout_marginBottom="15dp"/>
-    </RelativeLayout>
-
     <androidx.constraintlayout.widget.Barrier
         android:id="@+id/message_compose_bottom_barrier"
         android:layout_width="wrap_content"
@@ -376,16 +361,13 @@
         android:layout_height="wrap_content"
         android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.0"
-        app:layout_constraintStart_toStartOf="parent"
-        android:layout_marginTop="16dp">
+        app:layout_constraintHorizontal_bias="0.0">
 
         <include
             android:id="@+id/attachment_picker"
             layout="@layout/layout_attachment_picker_small"
             android:layout_width="match_parent"
-            android:layout_height="@dimen/app_lock_view_max_size" />
+            android:layout_height="match_parent" />
 
     </RelativeLayout>
 
