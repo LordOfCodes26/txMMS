@@ -302,25 +302,24 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         binding.root.post {
             syncMainMenuActionModeToolbarWithAdapter()
             if (isActionModeToolbarVisible()) {
-                binding.mVerticalSideFrameTop.visibility = View.GONE
                 syncBlurTargetScrollingBehaviorForActionMode()
                 syncBlurTargetTopMarginForAppBar()
                 syncActionModeListTopPadding()
+                refreshActionModeTopBlurChrome()
             } else {
-                binding.mVerticalSideFrameTop.visibility = View.VISIBLE
                 setupVerticalSideFrameBlur()
                 binding.mVerticalSideFrameTop.update()
             }
         }
 
         val selectionMode = (binding.conversationsList.adapter as? ConversationsAdapter)?.isActionModeActive() == true
+        refreshSideFrameBlurAndInsets()
         if (!selectionMode) {
             binding.mainAppbar.post {
                 clearMainAppBarScrims()
                 syncTopSideFrameHeight()
                 requestTopInsetSync()
             }
-            refreshSideFrameBlurAndInsets()
             if (isSearchOpen) {
                 mainSearchListTopInsetPx = -1
                 binding.mainAppbar.postDelayed({
@@ -329,6 +328,8 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
                     scheduleMainSearchLayoutSync()
                 }, 150L)
             }
+        } else {
+            binding.root.post { refreshActionModeTopBlurChrome() }
         }
 
         (binding.searchResultsList.adapter as? SearchResultsAdapter)?.scheduleGroupedTodayTimeRefresh()
@@ -764,6 +765,7 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
      */
     private fun applyLiveRecentsTopPaddingFromAppBarOffset() {
         if (isFinishing || isDestroyed) return
+        if (isActionModeToolbarVisible()) return
         if (isSearchOpen) return
         if (isSearchResumeInProgress) return
         val insetPx = mainMenuListTopInsetForCollapsePx()
@@ -1039,11 +1041,11 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
     override fun showActionModeToolbar() {
         binding.mainAppbar.visibility = View.GONE
         binding.actionModeToolbar.visibility = View.VISIBLE
-        binding.mVerticalSideFrameTop.visibility = View.GONE
         binding.conversationsFab.beGone()
         syncBlurTargetScrollingBehaviorForActionMode()
         syncBlurTargetTopMarginForAppBar()
         syncActionModeListTopPadding()
+        refreshActionModeTopBlurChrome()
         binding.root.post {
             applyActionModeRippleToolbarForActiveAdapter()
             applyActionModeListBottomInset(true)
@@ -1055,7 +1057,6 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
     override fun hideActionModeToolbar() {
         binding.actionModeToolbar.visibility = View.GONE
         binding.mainAppbar.visibility = View.VISIBLE
-        binding.mVerticalSideFrameTop.visibility = View.VISIBLE
         binding.actionModeRippleToolbar.visibility = View.GONE
         binding.conversationsFab.beVisible()
         applyActionModeListBottomInset(false)
@@ -1612,6 +1613,7 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
 
     private fun syncTopSideFrameHeight() {
         if (isActionModeToolbarVisible()) {
+            refreshActionModeTopBlurChrome()
             return
         }
         val collapsed = getCollapsedAppBarHeightPx()
@@ -1623,6 +1625,29 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         if (!isSearchResumeInProgress) {
             syncBlurTargetTopMarginForAppBar()
             syncRecentsTopInsetWithToolbar()
+        }
+    }
+
+    /**
+     * Selection-mode blur only (txDial [MainActivity.showActionModeToolbar]): keep [blurTarget] top margin at 0
+     * so list padding is unchanged; re-bind [MVSideFrame] + [actionModeToolbar] instead of hiding the top frame.
+     */
+    private fun refreshActionModeTopBlurChrome() {
+        val toolbar = binding.actionModeToolbar
+        toolbar.post {
+            if (isFinishing || isDestroyed || !isActionModeToolbarVisible()) return@post
+            val h = toolbar.height.takeIf { it > 0 }
+                ?: toolbar.measuredHeight.takeIf { it > 0 }
+                ?: getCollapsedAppBarHeightPx()
+            val feather = resources.getDimensionPixelSize(R.dimen.tx_my_search_menu_top_blur_feather)
+            binding.mVerticalSideFrameTop.updateLayoutParams<ViewGroup.LayoutParams> {
+                val newHeight = h + maxOf(0, feather)
+                if (height != newHeight) height = newHeight
+            }
+            binding.blurTarget.invalidate()
+            refreshActionModeToolbarBlur()
+            setupVerticalSideFrameBlur()
+            binding.mVerticalSideFrameTop.update()
         }
     }
 
@@ -1649,8 +1674,8 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
     }
 
     /**
-     * [R.id.blurTarget] negative top margin must be cleared whenever the app bar is hidden for action mode;
-     * otherwise MVSideFrame shows a dark strip at the top (txDial [MainActivity.syncBlurTargetTopMarginForAppBar]).
+     * [R.id.blurTarget] negative top margin applies only while [main_appbar] is shown; action mode
+     * keeps margin 0 (txDial [syncBlurTargetTopMarginForAppBar]) so list top padding stays correct.
      */
     private fun syncBlurTargetTopMarginForAppBar() {
         val targetTopMargin = when {
