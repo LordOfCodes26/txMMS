@@ -592,6 +592,7 @@
         <item name="android:textSize">@dimen/tx_small_text</item>
         <item name="android:textColor">@color/tx_cardview_summary</item>
         <item name="android:gravity">end</item>
+        <item name="android:alpha">1</item>
         <item name="android:textAlignment">viewEnd</item>
     </style>
 

@@ -23,7 +23,7 @@ import com.goodwy.commons.models.contacts.LocalContact
 import com.goodwy.commons.models.contacts.PosterEntity
 import java.util.concurrent.Executors
 
-@Database(entities = [LocalContact::class, Group::class, ContactPoster::class, PosterEntity::class, AvatarStyleEntity::class], version = 7, exportSchema = true)
+@Database(entities = [LocalContact::class, Group::class, ContactPoster::class, PosterEntity::class, AvatarStyleEntity::class], version = 10, exportSchema = true)
 @TypeConverters(Converters::class)
 abstract class ContactsDatabase : RoomDatabase() {
 
@@ -57,6 +57,9 @@ abstract class ContactsDatabase : RoomDatabase() {
                             .addMigrations(MIGRATION_4_5)
                             .addMigrations(MIGRATION_5_6)
                             .addMigrations(MIGRATION_6_7)
+                            .addMigrations(MIGRATION_7_8)
+                            .addMigrations(MIGRATION_8_9)
+                            .addMigrations(MIGRATION_9_10)
                             .build()
                     }
                 }
@@ -176,6 +179,169 @@ abstract class ContactsDatabase : RoomDatabase() {
                         )
                     """.trimIndent())
                     execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_avatar_style_configs_contact_id ON avatar_style_configs(contact_id)")
+                }
+            }
+        }
+
+        private val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.apply {
+                    execSQL(
+                        """
+                        CREATE TABLE IF NOT EXISTS `contacts_new` (
+                            `id` INTEGER PRIMARY KEY AUTOINCREMENT,
+                            `prefix` TEXT NOT NULL,
+                            `first_name` TEXT NOT NULL,
+                            `middle_name` TEXT NOT NULL,
+                            `surname` TEXT NOT NULL,
+                            `suffix` TEXT NOT NULL,
+                            `nickname` TEXT NOT NULL,
+                            `photo` BLOB,
+                            `photo_uri` TEXT NOT NULL,
+                            `phone_numbers` TEXT NOT NULL,
+                            `emails` TEXT NOT NULL,
+                            `events` TEXT NOT NULL,
+                            `starred` INTEGER NOT NULL,
+                            `addresses` TEXT NOT NULL,
+                            `notes` TEXT NOT NULL,
+                            `groups` TEXT NOT NULL,
+                            `company` TEXT NOT NULL,
+                            `job_position` TEXT NOT NULL,
+                            `relations` TEXT NOT NULL,
+                            `ims` TEXT NOT NULL,
+                            `ringtone` TEXT
+                        )
+                        """.trimIndent()
+                    )
+                    execSQL(
+                        """
+                        INSERT INTO `contacts_new` (
+                            `id`, `prefix`, `first_name`, `middle_name`, `surname`, `suffix`, `nickname`,
+                            `photo`, `photo_uri`, `phone_numbers`, `emails`, `events`, `starred`,
+                            `addresses`, `notes`, `groups`, `company`, `job_position`,
+                            `relations`, `ims`, `ringtone`
+                        )
+                        SELECT
+                            `id`, `prefix`, `first_name`, `middle_name`, `surname`, `suffix`, `nickname`,
+                            `photo`, `photo_uri`, `phone_numbers`, `emails`, `events`, `starred`,
+                            `addresses`, `notes`, `groups`, `company`, `job_position`,
+                            `relations`, `ims`, `ringtone`
+                        FROM `contacts`
+                        """.trimIndent()
+                    )
+                    execSQL("DROP TABLE `contacts`")
+                    execSQL("ALTER TABLE `contacts_new` RENAME TO `contacts`")
+                    execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_contacts_id` ON `contacts` (`id`)")
+                }
+            }
+        }
+
+        /**
+         * Fixes 7->8 migration that used NOT NULL on [LocalContact.id]; Room expects nullable `id`
+         * for `@PrimaryKey(autoGenerate = true) var id: Int?`.
+         */
+        private val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.apply {
+                    execSQL(
+                        """
+                        CREATE TABLE IF NOT EXISTS `contacts_new` (
+                            `id` INTEGER PRIMARY KEY AUTOINCREMENT,
+                            `prefix` TEXT NOT NULL,
+                            `first_name` TEXT NOT NULL,
+                            `middle_name` TEXT NOT NULL,
+                            `surname` TEXT NOT NULL,
+                            `suffix` TEXT NOT NULL,
+                            `nickname` TEXT NOT NULL,
+                            `photo` BLOB,
+                            `photo_uri` TEXT NOT NULL,
+                            `phone_numbers` TEXT NOT NULL,
+                            `emails` TEXT NOT NULL,
+                            `events` TEXT NOT NULL,
+                            `starred` INTEGER NOT NULL,
+                            `addresses` TEXT NOT NULL,
+                            `notes` TEXT NOT NULL,
+                            `groups` TEXT NOT NULL,
+                            `company` TEXT NOT NULL,
+                            `job_position` TEXT NOT NULL,
+                            `relations` TEXT NOT NULL,
+                            `ims` TEXT NOT NULL,
+                            `ringtone` TEXT
+                        )
+                        """.trimIndent()
+                    )
+                    execSQL(
+                        """
+                        INSERT INTO `contacts_new` (
+                            `id`, `prefix`, `first_name`, `middle_name`, `surname`, `suffix`, `nickname`,
+                            `photo`, `photo_uri`, `phone_numbers`, `emails`, `events`, `starred`,
+                            `addresses`, `notes`, `groups`, `company`, `job_position`,
+                            `relations`, `ims`, `ringtone`
+                        )
+                        SELECT
+                            `id`, `prefix`, `first_name`, `middle_name`, `surname`, `suffix`, `nickname`,
+                            `photo`, `photo_uri`, `phone_numbers`, `emails`, `events`, `starred`,
+                            `addresses`, `notes`, `groups`, `company`, `job_position`,
+                            `relations`, `ims`, `ringtone`
+                        FROM `contacts`
+                        """.trimIndent()
+                    )
+                    execSQL("DROP TABLE `contacts`")
+                    execSQL("ALTER TABLE `contacts_new` RENAME TO `contacts`")
+                    execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_contacts_id` ON `contacts` (`id`)")
+                }
+            }
+        }
+
+        /** Drops local `relations` column; relations are no longer stored in Room. */
+        private val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.apply {
+                    execSQL(
+                        """
+                        CREATE TABLE IF NOT EXISTS `contacts_new` (
+                            `id` INTEGER PRIMARY KEY AUTOINCREMENT,
+                            `prefix` TEXT NOT NULL,
+                            `first_name` TEXT NOT NULL,
+                            `middle_name` TEXT NOT NULL,
+                            `surname` TEXT NOT NULL,
+                            `suffix` TEXT NOT NULL,
+                            `nickname` TEXT NOT NULL,
+                            `photo` BLOB,
+                            `photo_uri` TEXT NOT NULL,
+                            `phone_numbers` TEXT NOT NULL,
+                            `emails` TEXT NOT NULL,
+                            `events` TEXT NOT NULL,
+                            `starred` INTEGER NOT NULL,
+                            `addresses` TEXT NOT NULL,
+                            `notes` TEXT NOT NULL,
+                            `groups` TEXT NOT NULL,
+                            `company` TEXT NOT NULL,
+                            `job_position` TEXT NOT NULL,
+                            `ims` TEXT NOT NULL,
+                            `ringtone` TEXT
+                        )
+                        """.trimIndent()
+                    )
+                    execSQL(
+                        """
+                        INSERT INTO `contacts_new` (
+                            `id`, `prefix`, `first_name`, `middle_name`, `surname`, `suffix`, `nickname`,
+                            `photo`, `photo_uri`, `phone_numbers`, `emails`, `events`, `starred`,
+                            `addresses`, `notes`, `groups`, `company`, `job_position`,
+                            `ims`, `ringtone`
+                        )
+                        SELECT
+                            `id`, `prefix`, `first_name`, `middle_name`, `surname`, `suffix`, `nickname`,
+                            `photo`, `photo_uri`, `phone_numbers`, `emails`, `events`, `starred`,
+                            `addresses`, `notes`, `groups`, `company`, `job_position`,
+                            `ims`, `ringtone`
+                        FROM `contacts`
+                        """.trimIndent()
+                    )
+                    execSQL("DROP TABLE `contacts`")
+                    execSQL("ALTER TABLE `contacts_new` RENAME TO `contacts`")
+                    execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_contacts_id` ON `contacts` (`id`)")
                 }
             }
         }

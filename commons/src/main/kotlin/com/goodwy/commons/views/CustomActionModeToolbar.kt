@@ -2,10 +2,12 @@ package com.goodwy.commons.views
 
 import android.app.Activity
 import android.content.Context
-import androidx.annotation.ColorInt
 import android.content.res.ColorStateList
 import android.graphics.drawable.Drawable
 import android.util.AttributeSet
+import android.util.SparseArray
+import android.view.ViewGroup
+import android.widget.ImageView
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.Menu
@@ -13,13 +15,14 @@ import android.view.MenuInflater
 import android.view.MenuItem
 import android.view.View
 import android.widget.LinearLayout
+import androidx.annotation.ColorInt
 import androidx.appcompat.view.menu.MenuBuilder
 import androidx.core.content.ContextCompat
+import com.android.common.view.MActionBar
 import com.android.common.view.MPopup
 import java.lang.reflect.Method
 import com.goodwy.commons.R
 import com.goodwy.commons.databinding.CustomActionModeToolbarBinding
-import com.android.common.view.MActionBar
 import com.goodwy.commons.extensions.applyColorFilter
 import com.goodwy.commons.extensions.getContrastColor
 import com.goodwy.commons.extensions.getProperTextColor
@@ -108,9 +111,12 @@ class CustomActionModeToolbar @JvmOverloads constructor(
     // Navigation (back) icon when using MActionBar - store for getter and color updates
     private var navigationIconDrawable: Drawable? = null
 
+    /** Blur target for overflow popups and the MActionBar pills; set via [bindBlurTarget]. */
+    private var boundBlurTarget: BlurTarget? = null
+
     private fun navigationActionBarView(): View? = binding?.root?.findViewById(R.id.navigationIconView)
 
-    private fun navigationMActionBar(): MActionBar? = binding?.navigationIconView as? MActionBar
+    private fun navigationMActionBar(): MActionBar? = navigationActionBarView() as? MActionBar
 
     private fun actionMActionBar(): MActionBar? = binding?.actionbar as? MActionBar
 
@@ -312,18 +318,21 @@ class CustomActionModeToolbar @JvmOverloads constructor(
     fun getActionBar(): View? = menuActionBarView()
 
     /**
-     * Binds [BlurTarget] on both navigation (back) and action [MActionBar] pills — same contract as
-     * [CustomToolbar.bindBlurTarget].
+     * Binds [BlurTarget] on both navigation and action [MActionBar] pills (same contract as
+     * [MActionBar.bindBlurTarget]). The target is also reused as the blur source for the
+     * overflow [MPopup] shown by this toolbar.
      */
     fun bindBlurTarget(activity: Activity, blurTarget: BlurTarget) {
+        boundBlurTarget = blurTarget
         navigationMActionBar()?.bindBlurTarget(activity, blurTarget)
         actionMActionBar()?.bindBlurTarget(activity, blurTarget)
     }
 
     /**
-     * Binds blur target with optional overlay tint (`0` keeps each bar's current resolved overlay).
+     * Binds blur target with optional overlay tint (`0` keeps each bar’s current resolved overlay).
      */
     fun bindBlurTarget(activity: Activity, blurTarget: BlurTarget, @ColorInt overlayColor: Int) {
+        boundBlurTarget = blurTarget
         val nav = navigationMActionBar()
         val action = actionMActionBar()
         if (overlayColor != 0) {
@@ -403,7 +412,9 @@ class CustomActionModeToolbar @JvmOverloads constructor(
         itemClickHandler: MenuItem.OnMenuItemClickListener
     ): MPopup? {
         val activity = context as? Activity ?: return null
-        val blurTarget = activity.findViewById<BlurTarget>(R.id.mainBlurTarget) ?: return null
+        val blurTarget = boundBlurTarget
+            ?: activity.findViewById<BlurTarget>(R.id.mainBlurTarget)
+            ?: return null
         overflowMPopup?.dismiss()
         val popup = MPopup(activity, anchor, Gravity.END)
         val targetMenu = mPopupMenuField(popup) ?: return null
@@ -553,28 +564,85 @@ class CustomActionModeToolbar @JvmOverloads constructor(
     /**
      * Updates the select all button icon based on selection state.
      * If all items are selected, shows a checkmark icon; otherwise shows select all icon.
-     * 
+     * When [hasSelection] is false, the icon is fully transparent but keeps its size so the
+     * action bar layout does not collapse.
+     *
      * @param menuItemId The menu item ID for the select all button
      * @param allSelected True if all items are selected, false otherwise
+     * @param hasSelection True if at least one item is selected; when false the icon is transparent
      */
-    fun updateSelectAllButtonIcon(menuItemId: Int, allSelected: Boolean) {
-        val menu = if (hasInflatedActionBarMenu) menuActionBarMenu() ?: _action_menu else _menu
-        val menuItem = menu?.findItem(menuItemId) ?: return
-
-        val iconRes = if (allSelected) {
-            com.android.common.R.drawable.ic_cmn_multi_unselect
+    fun updateSelectAllButtonIcon(menuItemId: Int, allSelected: Boolean, hasSelection: Boolean = true) {
+        val visibleIconRes = if (allSelected) {
+            com.android.common.R.drawable.ic_cmn_multi_check
         } else {
-            com.android.common.R.drawable.ic_cmn_select_none
+            com.android.common.R.drawable.ic_cmn_multi_check
+        }
+        val barIconRes = if (hasSelection) {
+            visibleIconRes
+        } else {
+            R.drawable.ic_action_mode_select_all_placeholder
         }
 
-        val icon = ContextCompat.getDrawable(context, iconRes)
-        icon?.let {
-            if (cachedTextColor == -1) {
-                cachedTextColor = context.getProperTextColor()
+        fun applyToItem(menuItem: MenuItem) {
+            menuItem.isVisible = true
+            val icon = ContextCompat.getDrawable(context, barIconRes)?.mutate() ?: return
+            if (hasSelection) {
+                if (cachedTextColor == -1) {
+                    cachedTextColor = context.getProperTextColor()
+                }
+                icon.applyColorFilter(cachedTextColor)
             }
-            it.applyColorFilter(cachedTextColor)
-            menuItem.icon = it
-            invalidateMenu()
+            menuItem.icon = icon
+        }
+
+        // Menu model (used by [updateMenuDisplay] sync).
+        _action_menu?.findItem(menuItemId)?.let { applyToItem(it) }
+        menuActionBarMenu()?.findItem(menuItemId)?.let { applyToItem(it) }
+        _menu?.findItem(menuItemId)?.let { applyToItem(it) }
+
+        // MActionBar renders icons via [setMenuItemIcon], not MenuItem.icon — that is what the user sees.
+        applySelectAllIconToMActionBar(menuItemId, barIconRes, hasSelection)
+        invalidateMenu()
+    }
+
+    private fun applySelectAllIconToMActionBar(menuItemId: Int, @androidx.annotation.DrawableRes iconRes: Int, hasSelection: Boolean) {
+        val actionBar = actionMActionBar() ?: return
+        val apply = {
+            actionBar.setMenuItemIcon(menuItemId, iconRes)
+            if (hasSelection) {
+                if (cachedTextColor == -1) {
+                    cachedTextColor = context.getProperTextColor()
+                }
+                actionBar.setMenuItemIconTint(menuItemId, cachedTextColor)
+            }
+            setMActionBarMenuItemGlyphAlpha(menuItemId, if (hasSelection) 1f else 0f)
+        }
+        apply()
+        actionBar.post { apply() }
+    }
+
+    /** MActionBar keeps per-item icon views in [menuItemIconViews]; alpha only affects the glyph, not the pill. */
+    private fun setMActionBarMenuItemGlyphAlpha(menuItemId: Int, alpha: Float) {
+        val actionBar = actionMActionBar() ?: return
+        runCatching {
+            val field = actionBar.javaClass.getDeclaredField("menuItemIconViews")
+            field.isAccessible = true
+            val container = when (val views = field.get(actionBar)) {
+                is SparseArray<*> -> views.get(menuItemId) as? android.view.View
+                is Map<*, *> -> views[menuItemId] as? android.view.View
+                else -> null
+            } ?: return
+            container.forEachImageView { it.alpha = alpha }
+        }
+    }
+
+    private fun android.view.View.forEachImageView(action: (ImageView) -> Unit) {
+        if (this is ImageView) {
+            action(this)
+        } else if (this is ViewGroup) {
+            for (i in 0 until childCount) {
+                getChildAt(i).forEachImageView(action)
+            }
         }
     }
 
@@ -605,6 +673,10 @@ class CustomActionModeToolbar @JvmOverloads constructor(
                         liveItem.isCheckable = sourceItem.isCheckable
                         liveItem.isChecked = sourceItem.isChecked
                         liveItem.title = sourceItem.title
+                        sourceItem.icon?.let { sourceIcon ->
+                            val copy = sourceIcon.constantState?.newDrawable()?.mutate() ?: sourceIcon.mutate()
+                            liveItem.icon = copy
+                        }
                     }
                 }
 
@@ -718,5 +790,6 @@ class CustomActionModeToolbar @JvmOverloads constructor(
 
         cachedTextColor = -1
         menuNeedsUpdate = false
+        boundBlurTarget = null
     }
 }

@@ -2102,10 +2102,6 @@ fun Context.areMultipleSIMsAvailable(): Boolean {
 fun Context.getPackageDrawable(packageName: String): Drawable {
     return resources.getDrawable(
         when (packageName) {
-            TELEGRAM_PACKAGE -> R.drawable.ic_telegram_vector
-            SIGNAL_PACKAGE -> R.drawable.ic_signal_vector
-            WHATSAPP_PACKAGE -> R.drawable.ic_whatsapp_vector
-            VIBER_PACKAGE -> R.drawable.ic_viber_vector
             else -> R.drawable.ic_threema_vector
         }, theme
     )

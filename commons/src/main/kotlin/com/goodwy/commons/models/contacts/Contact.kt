@@ -36,8 +36,6 @@ data class Contact(
     var notes: String= "",
     var groups: ArrayList<Group> = ArrayList(),
     var organization: Organization = Organization("",""),
-    var websites: ArrayList<String> = ArrayList(),
-    var relations: ArrayList<ContactRelation> = ArrayList(),
     var IMs: ArrayList<IM> = ArrayList(),
     var mimetype: String = "",
     var ringtone: String? = ""
@@ -395,9 +393,7 @@ data class Contact(
             photo = photoToUse,
             notes = "",
             groups = ArrayList(),
-            websites = ArrayList(),
             organization = Organization("", ""),
-            relations= ArrayList(),
             IMs = ArrayList(),
             ringtone = ""
         ).toString()
@@ -521,6 +517,11 @@ data class Contact(
         try {
             val contactsHelper = ContactsHelper(context)
             val accountType = contactsHelper.getContactSourceType(source)
+            val slotFromTelephony = context.resolveSimSlotNumber1BasedFromTelephony(source, accountType)
+            if (slotFromTelephony > 0) {
+                return slotFromTelephony
+            }
+
             val allSources = contactsHelper.getDeviceContactSources()
             
             // Filter only SIM card sources
@@ -592,24 +593,47 @@ data class Contact(
         return 0
     }
 
-    /** Short label for contact lists, e.g. "SIM 1" / "SIM 2" / "SIM"; null if not stored on a SIM. */
+    /**
+     * Short label for contact lists: subscription / SIM display name (same as system SIM name) when
+     * available, otherwise "SIM 1" / "SIM 2" / "SIM". Null if not stored on a SIM.
+     */
     fun getSimListLabel(context: Context): String? {
         if (!isFromSimCard(context)) return null
-        return when (val idx = getSimCardIndex(context)) {
+        val contactsHelper = ContactsHelper(context)
+        val accountType = contactsHelper.getContactSourceType(source)
+        // Always resolve from SubscriptionManager / SubscriptionInfo — [ContactsHelper.getDeviceContactSources]
+        // caches [ContactSource.publicName] for the process lifetime, so it would not track SIM renames in settings.
+        val labelCandidate = context.resolveSimAccountDisplayName(source, accountType).trim()
+        val slotFallback = when (getSimCardIndex(context)) {
             1 -> context.getString(com.goodwy.commons.R.string.contact_list_sim_slot, 1)
             2 -> context.getString(com.goodwy.commons.R.string.contact_list_sim_slot, 2)
             else -> context.getString(com.goodwy.commons.R.string.contact_list_sim)
         }
+        return if (labelCandidate.isNotBlank() && labelCandidate != source) labelCandidate else slotFallback
     }
 
-    /** Drawable for SIM slot in lists (ic_cmn_sim1 / ic_cmn_sim2 / ic_cmn_sim); null if not on a SIM. */
+    /** Drawable for SIM slot in lists (ic_cmn_sim1 / ic_cmn_sim2); null if not on a SIM. Slot follows telephony first ([resolveSimSlotNumber1BasedFromTelephony]). */
     fun getSimListLabelDrawableRes(context: Context): Int? {
         if (!isFromSimCard(context)) return null
-        return when (getSimCardIndex(context)) {
-            1 -> com.android.common.R.drawable.ic_cmn_sim1
-            2 -> com.android.common.R.drawable.ic_cmn_sim2
+        val slot = getSimCardIndex(context)
+        return when {
+            slot == 1 -> com.android.common.R.drawable.ic_cmn_sim1
+            slot == 2 -> com.android.common.R.drawable.ic_cmn_sim2
+            slot > 2 -> com.android.common.R.drawable.ic_cmn_sim2
             else -> com.android.common.R.drawable.ic_cmn_sim1
         }
+    }
+
+    /**
+     * System SIM highlight color ([android.telephony.SubscriptionInfo.getIconTint]) for list SIM icons;
+     * null if unavailable — callers typically fall back to slot-based app colors.
+     * Always resolves from live [android.telephony.SubscriptionManager] data (not cached contact sources).
+     */
+    fun getSimListIconTint(context: Context): Int? {
+        if (!isFromSimCard(context)) return null
+        val accountType = ContactsHelper(context).getContactSourceType(source)
+        context.resolveSimAccountIconTint(source, accountType)?.let { return it }
+        return context.resolveSimAccountIconTintForSimCardIndex(getSimCardIndex(context))
     }
 
     fun getSignatureKey() = photoUri.ifEmpty { hashCode() }
@@ -648,14 +672,6 @@ data class Contact(
             contactToText = contactToText + organization.company + "\n"
         } else if (organization.jobPosition.isNotEmpty()) {
             contactToText = contactToText + organization.jobPosition + "\n"
-        }
-
-        if (websites.isNotEmpty()) websites.forEach {
-            contactToText = contactToText + it + "\n"
-        }
-
-        if (relations.isNotEmpty()) relations.forEach {
-            contactToText = contactToText + context.getRelationTypeText(it.type, it.label) + " " + it.name + "\n"
         }
 
         if (IMs.isNotEmpty()) IMs.forEach {

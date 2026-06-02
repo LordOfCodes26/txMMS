@@ -6,7 +6,6 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
 import android.content.res.ColorStateList
-import android.graphics.PorterDuff
 import android.graphics.drawable.Drawable
 import android.util.AttributeSet
 import android.view.ViewGroup
@@ -19,20 +18,16 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.animation.DecelerateInterpolator
 import android.view.inputmethod.InputMethodManager
-import android.widget.EditText
 import android.widget.LinearLayout
 import androidx.annotation.ColorInt
 import androidx.core.view.isVisible
 import androidx.appcompat.view.menu.MenuBuilder
-import androidx.core.widget.TextViewCompat
 import com.android.common.view.MActionBar
 import com.goodwy.commons.R
 import com.goodwy.commons.databinding.CustomToolbarBinding
 import com.goodwy.commons.extensions.getProperPrimaryColor
 import com.goodwy.commons.extensions.getProperTextColor
-import com.goodwy.commons.extensions.getProperTextCursorColor
 import com.goodwy.commons.extensions.getSearchFieldCursorColor
-import com.goodwy.commons.extensions.isNightDisplay
 import com.goodwy.commons.extensions.onTextChangeListener
 import eightbitlab.com.blurview.BlurTarget
 import java.lang.reflect.Method
@@ -263,7 +258,7 @@ class CustomToolbar @JvmOverloads constructor(
 
     private fun getCursorColor(): Int {
         if (cachedCursorColor == null) {
-            cachedCursorColor = context.getProperTextCursorColor()
+            cachedCursorColor = context.getSearchFieldCursorColor()
         }
         return cachedCursorColor!!
     }
@@ -337,22 +332,6 @@ class CustomToolbar @JvmOverloads constructor(
             if (showClear) com.android.common.R.drawable.ic_cmn_circle_close_fill else 0,
             0
         )
-        applySearchFieldCompoundDrawableTint(queryView)
-    }
-
-    // added by sun
-    // for when dark mode, change color to icon
-    private fun applySearchFieldCompoundDrawableTint(queryView: EditText) {
-        if (queryView.context.isNightDisplay()) {
-            TextViewCompat.setCompoundDrawableTintList(
-                queryView,
-                ColorStateList.valueOf(queryView.context.getColor(R.color.white))
-            )
-            TextViewCompat.setCompoundDrawableTintMode(queryView, PorterDuff.Mode.SRC_IN)
-        } else {
-            TextViewCompat.setCompoundDrawableTintList(queryView, null)
-            TextViewCompat.setCompoundDrawableTintMode(queryView, null)
-        }
     }
 
     private fun bindActionBarMenuListener() {
@@ -671,8 +650,6 @@ class CustomToolbar @JvmOverloads constructor(
 
         binding.actionBarSearch.searchBackButton.imageTintList =
             ColorStateList.valueOf(textColor)
-        // added by sun
-        updateSearchClearIconVisibility(binding.actionBarSearch.searchEditText.text?.toString().orEmpty())
     }
 
     fun setNavigationContentDescription(resId: Int) {

@@ -285,13 +285,14 @@ abstract class MyRecyclerViewAdapter(
     protected open fun updateSelectAllButtonIconIfAvailable(selectableItemCount: Int, selectedCount: Int) {
         // Try to find select all menu item by title
         val allSelected = selectableItemCount > 0 && selectedCount == selectableItemCount
+        val hasSelection = selectedCount > 0
         actBarToolbar?.actionMenu?.let { menu ->
             for (i in 0 until menu.size()) {
                 val item = menu.getItem(i)
                 if (item?.title?.toString()?.contains("select", ignoreCase = true) == true ||
                     item?.title?.toString()?.contains("全选", ignoreCase = false) == true ||
                     item?.title?.toString()?.contains("전체", ignoreCase = false) == true) {
-                    actBarToolbar?.updateSelectAllButtonIcon(item.itemId, allSelected)
+                    actBarToolbar?.updateSelectAllButtonIcon(item.itemId, allSelected, hasSelection)
                     break
                 }
             }

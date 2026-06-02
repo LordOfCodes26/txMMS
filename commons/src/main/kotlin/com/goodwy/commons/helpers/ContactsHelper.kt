@@ -3,6 +3,7 @@ package com.goodwy.commons.helpers
 import android.accounts.AccountManager
 import android.annotation.SuppressLint
 import android.content.*
+import android.database.Cursor
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
@@ -23,13 +24,94 @@ import androidx.core.net.toUri
 import androidx.core.graphics.scale
 import java.util.LinkedHashSet
 import com.goodwy.commons.helpers.getQuestionMarks
+import kotlin.math.max
 
 class ContactsHelper(val context: Context) {
     companion object {
         private val contactSourcesCache = mutableMapOf<String, LinkedHashSet<ContactSource>>()
+
+        /** Min distinct contacts before showing bulk favorite progress UI (list + select-contacts flow). */
+        const val FAVORITES_BULK_PROGRESS_UI_MIN = 15
+
+        /** SIM ADN phonebooks support at most this many phone numbers per contact entry. */
+        const val SIM_MAX_PHONE_NUMBERS = 2
+
+        /** Throttle high-frequency contact transfer progress toasts. */
+        fun shouldReportContactTransferProgress(current: Int, total: Int): Boolean {
+            if (total <= 0) return false
+            if (current <= 1 || current >= total) return true
+            if (total < 40) return true
+            val step = max(1, total / 80)
+            return current % step == 0
+        }
     }
 
     private val BATCH_SIZE = 50
+
+    /** Icc ADN can briefly fail right after RawContact insert; retry off the UI thread only. */
+    fun insertIccAdnForSimRawContactWithRetries(
+        accountName: String,
+        accountType: String,
+        number: String,
+        displayName: String,
+        logContext: String,
+        showProgressToasts: Boolean = true,
+        toastOnSuccess: Boolean = true,
+    ): Boolean {
+        val maxAttempts = 3
+        repeat(maxAttempts) { attempt ->
+            if (context.tryInsertIccAdnForSimContact(
+                    accountName = accountName,
+                    accountType = accountType,
+                    number = number,
+                    displayName = displayName,
+                    logContext = "$logContext attempt=${attempt + 1}",
+                )
+            ) {
+                if (showProgressToasts && toastOnSuccess) {
+                    context.toast(R.string.sim_adn_progress_writing_ok)
+                }
+                return true
+            }
+            if (attempt < maxAttempts - 1) {
+                if (showProgressToasts) {
+                    context.toast(
+                        context.getString(R.string.sim_adn_progress_retry_wait, attempt + 1, maxAttempts),
+                    )
+                }
+                if (!isOnMainThread()) {
+                    try {
+                        Thread.sleep(400L * (attempt + 1))
+                    } catch (_: InterruptedException) {
+                        return false
+                    }
+                }
+            }
+        }
+        return false
+    }
+
+    /**
+     * After merging duplicate SIM contacts, ensures the SIM ADN phonebook holds exactly one
+     * entry for [contact]. Removes all extra duplicate ADN rows (by row ID first, then by
+     * selection+re-insert as fallback). Called on the *keeper* contact after the merge
+     * ContactsContract operations are complete.
+     */
+    fun deduplicateSimAdnForMerge(contact: Contact) {
+        val accountType = getContactSourceType(contact.source)
+        if (!isSimAccountTypeForPersistence(accountType)) return
+        val phone = contact.phoneNumbers.firstOrNull()?.value ?: return
+        context.deduplicateIccAdnForMerge(
+            accountName = contact.source,
+            accountType = accountType,
+            phoneNumber = phone,
+            displayName = contact.getNameToDisplay(),
+            logContext = "mergeDedup rawId=${contact.id}",
+        )
+    }
+
+    /** Max operations per [ContentResolver.applyBatch] — stay below provider limits / TransactionTooLarge. */
+    private val MAX_PROVIDER_BATCH_OPS = 450
     private var displayContactSources = ArrayList<String>()
 
     fun getContacts(
@@ -37,7 +119,14 @@ class ContactsHelper(val context: Context) {
         gettingDuplicates: Boolean = false,
         ignoredContactSources: HashSet<String> = HashSet(),
         showOnlyContactsWithNumbers: Boolean = context.baseConfig.showOnlyContactsWithNumbers,
-        loadExtendedFields: Boolean = true, // Set to false for list views to skip addresses, events, notes, websites, relations
+        loadExtendedFields: Boolean = true, // Set to false for list views to skip addresses, events, notes
+        /** When false, skips group membership queries/assignment (large win for pickers that do not show groups). */
+        assignContactGroups: Boolean = true,
+        /**
+         * When false, skips duplicate collapsing even if merge-duplicates is enabled in settings
+         * (faster load for pickers; row count may exceed the merged main list).
+         */
+        mergeDuplicates: Boolean = true,
         callback: (ArrayList<Contact>) -> Unit
     ) {
         ensureBackgroundThread {
@@ -72,7 +161,7 @@ class ContactsHelper(val context: Context) {
                 }
             }
 
-            if (context.baseConfig.mergeDuplicateContacts && ignoredContactSources.isEmpty() && !getAll) {
+            if (mergeDuplicates && context.baseConfig.mergeDuplicateContacts && ignoredContactSources.isEmpty() && !getAll) {
                 // Optimize duplicate merging: filter and group in single pass
                 // Optimize: Use HashSet for O(1) lookup instead of O(n) contains
                 val displaySourcesSet = displayContactSources.toHashSet()
@@ -118,14 +207,16 @@ class ContactsHelper(val context: Context) {
             }
 
             // groups are obtained with contactID, not rawID, so assign them to proper contacts like this
-            // Cache stored groups and use map for O(1) lookup instead of firstOrNull
-            val storedGroups = getStoredGroupsSync()
-            val groups = getContactGroups(storedGroups)
-            val contactIdToContactMap = resultContacts.associateBy { it.contactId }
-            val groupsSize = groups.size
-            for (i in 0 until groupsSize) {
-                val key = groups.keyAt(i)
-                contactIdToContactMap[key]?.groups = groups.valueAt(i)
+            if (assignContactGroups) {
+                // Cache stored groups and use map for O(1) lookup instead of firstOrNull
+                val storedGroups = getStoredGroupsSync()
+                val groups = getContactGroups(storedGroups)
+                val contactIdToContactMap = resultContacts.associateBy { it.contactId }
+                val groupsSize = groups.size
+                for (i in 0 until groupsSize) {
+                    val key = groups.keyAt(i)
+                    contactIdToContactMap[key]?.groups = groups.valueAt(i)
+                }
             }
 
             Contact.sorting = SORT_BY_FULL_NAME
@@ -136,9 +227,8 @@ class ContactsHelper(val context: Context) {
             System.setProperty("java.util.Arrays.useLegacyMergeSort", "true") //https://stackoverflow.com/questions/11441666/java-error-comparison-method-violates-its-general-contract
             resultContacts.sort()
 
-            Handler(Looper.getMainLooper()).post {
-                callback(resultContacts)
-            }
+            val mainHandler = Handler(Looper.getMainLooper())
+            mainHandler.post { callback(resultContacts) }
         }
     }
 
@@ -161,9 +251,6 @@ class ContactsHelper(val context: Context) {
             val name = cursor.getStringValue(RawContacts.ACCOUNT_NAME) ?: ""
             val type = cursor.getStringValue(RawContacts.ACCOUNT_TYPE) ?: ""
             var publicName = name
-            if (type == TELEGRAM_PACKAGE) {
-                publicName = context.getString(R.string.telegram)
-            }
 
             val source = ContactSource(name, type, publicName)
             sources.add(source)
@@ -244,14 +331,7 @@ class ContactsHelper(val context: Context) {
                     val familyName = cursor.getStringValue(CommonDataKinds.StructuredName.FAMILY_NAME) ?: ""
                     suffix = cursor.getStringValue(CommonDataKinds.StructuredName.SUFFIX) ?: ""
                     
-                    // Optimize: Combine name parts without creating intermediate list
-                    val nameBuilder = StringBuilder()
-                    if (prefix.isNotEmpty()) nameBuilder.append(prefix).append(" ")
-                    if (givenName.isNotEmpty()) nameBuilder.append(givenName).append(" ")
-                    if (middleName.isNotEmpty()) nameBuilder.append(middleName).append(" ")
-                    if (familyName.isNotEmpty()) nameBuilder.append(familyName).append(" ")
-                    if (suffix.isNotEmpty()) nameBuilder.append(suffix).append(" ")
-                    name = nameBuilder.trim().toString()
+                    name = composeStructuredRowDisplayName(cursor, prefix, givenName, middleName, familyName, suffix)
                     // Clear other name fields since we're using single name
                     prefix = ""
                     middleName = ""
@@ -293,14 +373,12 @@ class ContactsHelper(val context: Context) {
                 val notes = ""
                 val groups = ArrayList<Group>()
                 val organization = Organization("", "")
-                val websites = ArrayList<String>()
-                val relations = ArrayList<ContactRelation>()
                 val ims = ArrayList<IM>()
                 val contact = Contact(
                     id, prefix, name, middleName, surname, suffix, nickname,
                     photoUri, numbers, emails, addresses, events, accountName,
                     starred, contactId, thumbnailUri, null, notes, groups, organization,
-                    websites, relations, ims, mimetype, ringtone
+                    ims, mimetype, ringtone
                 )
 
                 contacts.put(id, contact)
@@ -370,7 +448,7 @@ class ContactsHelper(val context: Context) {
                                 info.photoUri, ArrayList(), ArrayList(), ArrayList(), ArrayList(),
                                 accountName, info.starred, contactId, info.thumbnailUri,
                                 null, "", ArrayList(), Organization("", ""),
-                                ArrayList(), ArrayList(), ArrayList(),
+                                ArrayList(),
                                 CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE, info.ringtone
                             )
                         )
@@ -450,10 +528,18 @@ class ContactsHelper(val context: Context) {
             applySparseArrayToContacts(getAddresses()) { contact, addresses -> contact.addresses = addresses }
             applySparseArrayToContacts(getEvents()) { contact, events -> contact.events = events }
             applySparseArrayToContacts(getNotes()) { contact, note -> contact.notes = note }
-            applySparseArrayToContacts(getWebsites()) { contact, websites -> contact.websites = websites }
-            applySparseArrayToContacts(getRelations()) { contact, relations -> contact.relations = relations }
         }
     }
+
+    /** Legacy provider types we no longer surface map to [CommonDataKinds.Phone.TYPE_OTHER] (mobile/home/work/other/custom model). */
+    private fun normalizedPhoneTypeForAppModel(type: Int): Int =
+        when (type) {
+            CommonDataKinds.Phone.TYPE_MAIN,
+            CommonDataKinds.Phone.TYPE_FAX_WORK,
+            CommonDataKinds.Phone.TYPE_FAX_HOME,
+            CommonDataKinds.Phone.TYPE_PAGER -> CommonDataKinds.Phone.TYPE_OTHER
+            else -> type
+        }
 
     private fun getPhoneNumbers(contactId: Int? = null): SparseArray<ArrayList<PhoneNumber>> {
         val phoneNumbers = SparseArray<ArrayList<PhoneNumber>>()
@@ -474,7 +560,7 @@ class ContactsHelper(val context: Context) {
             val id = cursor.getIntValue(Data.RAW_CONTACT_ID)
             val number = cursor.getStringValue(CommonDataKinds.Phone.NUMBER) ?: return@queryCursor
             val normalizedNumber = cursor.getStringValue(CommonDataKinds.Phone.NORMALIZED_NUMBER) ?: number.normalizePhoneNumber()
-            val type = cursor.getIntValue(CommonDataKinds.Phone.TYPE)
+            val type = normalizedPhoneTypeForAppModel(cursor.getIntValue(CommonDataKinds.Phone.TYPE))
             val label = cursor.getStringValue(CommonDataKinds.Phone.LABEL) ?: ""
             val isPrimary = cursor.getIntValue(CommonDataKinds.Phone.IS_PRIMARY) != 0
 
@@ -599,13 +685,15 @@ class ContactsHelper(val context: Context) {
             val id = cursor.getIntValue(Data.RAW_CONTACT_ID)
             val startDate = cursor.getStringValue(CommonDataKinds.Event.START_DATE) ?: ""
             val type = cursor.getIntValue(CommonDataKinds.Event.TYPE)
-            val label = cursor.getStringValue(CommonDataKinds.Event.LABEL) ?: ""
+            if (type != CommonDataKinds.Event.TYPE_BIRTHDAY || startDate.isBlank()) {
+                return@queryCursor
+            }
 
             if (events[id] == null) {
                 events.put(id, ArrayList())
             }
 
-            events[id]!!.add(Event(startDate, type, label))
+            events[id]!!.add(Event(startDate, CommonDataKinds.Event.TYPE_BIRTHDAY, ""))
         }
 
         return events
@@ -657,196 +745,6 @@ class ContactsHelper(val context: Context) {
 
         return organizations
     }
-
-    private fun getWebsites(contactId: Int? = null): SparseArray<ArrayList<String>> {
-        val websites = SparseArray<ArrayList<String>>()
-        val uri = Data.CONTENT_URI
-        val projection = arrayOf(
-            Data.RAW_CONTACT_ID,
-            CommonDataKinds.Website.URL
-        )
-
-        val selection = getSourcesSelection(true, contactId != null)
-        val selectionArgs = getSourcesSelectionArgs(CommonDataKinds.Website.CONTENT_ITEM_TYPE, contactId)
-
-        context.queryCursor(uri, projection, selection, selectionArgs, showErrors = true) { cursor ->
-            val id = cursor.getIntValue(Data.RAW_CONTACT_ID)
-            val url = cursor.getStringValue(CommonDataKinds.Website.URL) ?: return@queryCursor
-
-            if (websites[id] == null) {
-                websites.put(id, ArrayList())
-            }
-
-            websites[id]!!.add(url)
-        }
-
-        return websites
-    }
-
-    private fun getRelations(contactId: Int? = null): SparseArray<ArrayList<ContactRelation>> {
-        val relations = SparseArray<ArrayList<ContactRelation>>()
-        val uri = Data.CONTENT_URI
-        val projection = arrayOf(
-            Data.RAW_CONTACT_ID,
-            CommonDataKinds.Relation.NAME,
-            CommonDataKinds.Relation.TYPE,
-            CommonDataKinds.Relation.LABEL
-        )
-
-        val selection = getSourcesSelection(true, contactId != null)
-        val selectionArgs = getSourcesSelectionArgs(CommonDataKinds.Relation.CONTENT_ITEM_TYPE, contactId)
-
-        context.queryCursor(uri, projection, selection, selectionArgs, showErrors = true) { cursor ->
-            val id: Int = cursor.getIntValue(Data.RAW_CONTACT_ID)
-            val name: String = cursor.getStringValue(CommonDataKinds.Relation.NAME) ?: return@queryCursor
-            val type: Int = cursor.getIntValue(CommonDataKinds.Relation.TYPE)
-            val label: String = cursor.getStringValue(CommonDataKinds.Relation.LABEL) ?: ""
-
-            val (editType, editLabel) = getRelationEditTypeLabelFromAndroidTypeLabel(type, label)
-
-            if (relations[id] == null) {
-                relations.put(id, ArrayList())
-            }
-
-            relations[id]!!.add(ContactRelation(name.trim(), editType, editLabel.trim()))
-        }
-        return relations
-    }
-
-    private fun getRelationEditTypeLabelFromAndroidTypeLabel(type: Int, label: String): Pair<Int, String> {
-        if (type != ContactRelation.TYPE_CUSTOM) {
-            return Pair(type, "")
-        } else {
-            val detectType = when (label.trim().lowercase()) {
-                "" -> ContactRelation.TYPE_CUSTOM
-                context.getString(R.string.relation_label_assistant) -> ContactRelation.TYPE_ASSISTANT
-                context.getString(R.string.relation_label_brother) -> ContactRelation.TYPE_BROTHER
-                context.getString(R.string.relation_label_child) -> ContactRelation.TYPE_CHILD
-                context.getString(R.string.relation_label_domestic_partner) -> ContactRelation.TYPE_DOMESTIC_PARTNER
-                context.getString(R.string.relation_label_father) -> ContactRelation.TYPE_FATHER
-                context.getString(R.string.relation_label_friend) -> ContactRelation.TYPE_FRIEND
-                context.getString(R.string.relation_label_manager) -> ContactRelation.TYPE_MANAGER
-                context.getString(R.string.relation_label_mother) -> ContactRelation.TYPE_MOTHER
-                context.getString(R.string.relation_label_parent) -> ContactRelation.TYPE_PARENT
-                context.getString(R.string.relation_label_partner) -> ContactRelation.TYPE_PARTNER
-                context.getString(R.string.relation_label_referred_by) -> ContactRelation.TYPE_REFERRED_BY
-                context.getString(R.string.relation_label_relative) -> ContactRelation.TYPE_RELATIVE
-                context.getString(R.string.relation_label_sister) -> ContactRelation.TYPE_SISTER
-                context.getString(R.string.relation_label_spouse) -> ContactRelation.TYPE_SPOUSE
-                context.getString(R.string.relation_label_contact) -> ContactRelation.TYPE_CONTACT
-                context.getString(R.string.relation_label_acquaintance) -> ContactRelation.TYPE_ACQUAINTANCE
-                context.getString(R.string.relation_label_met) -> ContactRelation.TYPE_MET
-                context.getString(R.string.relation_label_co_worker) -> ContactRelation.TYPE_CO_WORKER
-                context.getString(R.string.relation_label_colleague) -> ContactRelation.TYPE_COLLEAGUE
-                context.getString(R.string.relation_label_co_resident) -> ContactRelation.TYPE_CO_RESIDENT
-                context.getString(R.string.relation_label_neighbor) -> ContactRelation.TYPE_NEIGHBOR
-                context.getString(R.string.relation_label_sibling) -> ContactRelation.TYPE_SIBLING
-                context.getString(R.string.relation_label_kin) -> ContactRelation.TYPE_KIN
-                context.getString(R.string.relation_label_kin_alt) -> ContactRelation.TYPE_KIN
-                context.getString(R.string.relation_label_muse) -> ContactRelation.TYPE_MUSE
-                context.getString(R.string.relation_label_crush) -> ContactRelation.TYPE_CRUSH
-                context.getString(R.string.relation_label_date) -> ContactRelation.TYPE_DATE
-                context.getString(R.string.relation_label_sweetheart) -> ContactRelation.TYPE_SWEETHEART
-                context.getString(R.string.relation_label_agent) -> ContactRelation.TYPE_AGENT
-                context.getString(R.string.relation_label_emergency) -> ContactRelation.TYPE_EMERGENCY
-                context.getString(R.string.relation_label_me) -> ContactRelation.TYPE_ME
-                context.getString(R.string.relation_label_superior) -> ContactRelation.TYPE_SUPERIOR
-                context.getString(R.string.relation_label_subordinate) -> ContactRelation.TYPE_SUBORDINATE
-                context.getString(R.string.relation_label_husband) -> ContactRelation.TYPE_HUSBAND
-                context.getString(R.string.relation_label_wife) -> ContactRelation.TYPE_WIFE
-                context.getString(R.string.relation_label_son) -> ContactRelation.TYPE_SON
-                context.getString(R.string.relation_label_daughter) -> ContactRelation.TYPE_DAUGHTER
-                context.getString(R.string.relation_label_grandparent) -> ContactRelation.TYPE_GRANDPARENT
-                context.getString(R.string.relation_label_grandfather) -> ContactRelation.TYPE_GRANDFATHER
-                context.getString(R.string.relation_label_grandmother) -> ContactRelation.TYPE_GRANDMOTHER
-                context.getString(R.string.relation_label_grandchild) -> ContactRelation.TYPE_GRANDCHILD
-                context.getString(R.string.relation_label_grandson) -> ContactRelation.TYPE_GRANDSON
-                context.getString(R.string.relation_label_granddaughter) -> ContactRelation.TYPE_GRANDDAUGHTER
-                context.getString(R.string.relation_label_uncle) -> ContactRelation.TYPE_UNCLE
-                context.getString(R.string.relation_label_aunt) -> ContactRelation.TYPE_AUNT
-                context.getString(R.string.relation_label_nephew) -> ContactRelation.TYPE_NEPHEW
-                context.getString(R.string.relation_label_niece) -> ContactRelation.TYPE_NIECE
-                context.getString(R.string.relation_label_father_in_law) -> ContactRelation.TYPE_FATHER_IN_LAW
-                context.getString(R.string.relation_label_mother_in_law) -> ContactRelation.TYPE_MOTHER_IN_LAW
-                context.getString(R.string.relation_label_son_in_law) -> ContactRelation.TYPE_SON_IN_LAW
-                context.getString(R.string.relation_label_daughter_in_law) -> ContactRelation.TYPE_DAUGHTER_IN_LAW
-                context.getString(R.string.relation_label_brother_in_law) -> ContactRelation.TYPE_BROTHER_IN_LAW
-                context.getString(R.string.relation_label_sister_in_law) -> ContactRelation.TYPE_SISTER_IN_LAW
-                else -> ContactRelation.TYPE_CUSTOM
-            }
-            return if (detectType == ContactRelation.TYPE_CUSTOM)
-                Pair(detectType, label)
-            else
-                Pair(detectType, "")
-        }
-    }
-
-    private fun getRelationAndroidTypeLabelFromEditTypeLabel(type: Int, label: String): Pair<Int, String> {
-        return when (type) {
-            ContactRelation.TYPE_CUSTOM -> Pair(ContactRelation.TYPE_CUSTOM, label.trim())
-            ContactRelation.TYPE_ASSISTANT -> Pair(ContactRelation.TYPE_ASSISTANT, "")
-            ContactRelation.TYPE_BROTHER -> Pair(ContactRelation.TYPE_BROTHER, "")
-            ContactRelation.TYPE_CHILD -> Pair(ContactRelation.TYPE_CHILD, "")
-            ContactRelation.TYPE_DOMESTIC_PARTNER -> Pair(ContactRelation.TYPE_DOMESTIC_PARTNER, "")
-            ContactRelation.TYPE_FATHER -> Pair(ContactRelation.TYPE_FATHER, "")
-            ContactRelation.TYPE_FRIEND -> Pair(ContactRelation.TYPE_FRIEND, "")
-            ContactRelation.TYPE_MANAGER -> Pair(ContactRelation.TYPE_MANAGER, "")
-            ContactRelation.TYPE_MOTHER -> Pair(ContactRelation.TYPE_MOTHER, "")
-            ContactRelation.TYPE_PARENT -> Pair(ContactRelation.TYPE_PARENT, "")
-            ContactRelation.TYPE_PARTNER -> Pair(ContactRelation.TYPE_PARTNER, "")
-            ContactRelation.TYPE_REFERRED_BY -> Pair(ContactRelation.TYPE_REFERRED_BY, "")
-            ContactRelation.TYPE_RELATIVE -> Pair(ContactRelation.TYPE_RELATIVE, "")
-            ContactRelation.TYPE_SISTER -> Pair(ContactRelation.TYPE_SISTER, "")
-            ContactRelation.TYPE_SPOUSE -> Pair(ContactRelation.TYPE_SPOUSE, "")
-
-            // Relation types defined in vCard 4.0
-            ContactRelation.TYPE_CONTACT -> Pair(ContactRelation.TYPE_CUSTOM, context.getString(R.string.relation_label_contact))
-            ContactRelation.TYPE_ACQUAINTANCE -> Pair(ContactRelation.TYPE_CUSTOM, context.getString(R.string.relation_label_acquaintance))
-            // ContactRelation.TYPE_FRIEND -> Pair(ContactRelation.TYPE_CUSTOM, context.getString(R.string.relation_label_friend))
-            ContactRelation.TYPE_MET -> Pair(ContactRelation.TYPE_CUSTOM, context.getString(R.string.relation_label_met))
-            ContactRelation.TYPE_CO_WORKER -> Pair(ContactRelation.TYPE_CUSTOM, context.getString(R.string.relation_label_co_worker))
-            ContactRelation.TYPE_COLLEAGUE -> Pair(ContactRelation.TYPE_CUSTOM, context.getString(R.string.relation_label_colleague))
-            ContactRelation.TYPE_CO_RESIDENT -> Pair(ContactRelation.TYPE_CUSTOM, context.getString(R.string.relation_label_co_resident))
-            ContactRelation.TYPE_NEIGHBOR -> Pair(ContactRelation.TYPE_CUSTOM, context.getString(R.string.relation_label_neighbor))
-            // ContactRelation.TYPE_CHILD -> Pair(ContactRelation.TYPE_CUSTOM, context.getString(R.string.relation_label_child))
-            // ContactRelation.TYPE_PARENT -> Pair(ContactRelation.TYPE_CUSTOM, context.getString(R.string.relation_label_parent))
-            ContactRelation.TYPE_SIBLING -> Pair(ContactRelation.TYPE_CUSTOM, context.getString(R.string.relation_label_sibling))
-            // ContactRelation.TYPE_SPOUSE -> Pair(ContactRelation.TYPE_CUSTOM, context.getString(R.string.relation_label_spouse))
-            ContactRelation.TYPE_KIN -> Pair(ContactRelation.TYPE_CUSTOM, context.getString(R.string.relation_label_kin))
-            ContactRelation.TYPE_MUSE -> Pair(ContactRelation.TYPE_CUSTOM, context.getString(R.string.relation_label_muse))
-            ContactRelation.TYPE_CRUSH -> Pair(ContactRelation.TYPE_CUSTOM, context.getString(R.string.relation_label_crush))
-            ContactRelation.TYPE_DATE -> Pair(ContactRelation.TYPE_CUSTOM, context.getString(R.string.relation_label_date))
-            ContactRelation.TYPE_SWEETHEART -> Pair(ContactRelation.TYPE_CUSTOM, context.getString(R.string.relation_label_sweetheart))
-            ContactRelation.TYPE_ME -> Pair(ContactRelation.TYPE_CUSTOM, context.getString(R.string.relation_label_me))
-            ContactRelation.TYPE_AGENT -> Pair(ContactRelation.TYPE_CUSTOM, context.getString(R.string.relation_label_agent))
-            ContactRelation.TYPE_EMERGENCY -> Pair(ContactRelation.TYPE_CUSTOM, context.getString(R.string.relation_label_emergency))
-
-            ContactRelation.TYPE_SUPERIOR -> Pair(ContactRelation.TYPE_CUSTOM, context.getString(R.string.relation_label_superior))
-            ContactRelation.TYPE_SUBORDINATE -> Pair(ContactRelation.TYPE_CUSTOM, context.getString(R.string.relation_label_subordinate))
-            ContactRelation.TYPE_HUSBAND -> Pair(ContactRelation.TYPE_CUSTOM, context.getString(R.string.relation_label_husband))
-            ContactRelation.TYPE_WIFE -> Pair(ContactRelation.TYPE_CUSTOM, context.getString(R.string.relation_label_wife))
-            ContactRelation.TYPE_SON -> Pair(ContactRelation.TYPE_CUSTOM, context.getString(R.string.relation_label_son))
-            ContactRelation.TYPE_DAUGHTER -> Pair(ContactRelation.TYPE_CUSTOM, context.getString(R.string.relation_label_daughter))
-            ContactRelation.TYPE_GRANDPARENT -> Pair(ContactRelation.TYPE_CUSTOM, context.getString(R.string.relation_label_grandparent))
-            ContactRelation.TYPE_GRANDFATHER -> Pair(ContactRelation.TYPE_CUSTOM, context.getString(R.string.relation_label_grandfather))
-            ContactRelation.TYPE_GRANDMOTHER -> Pair(ContactRelation.TYPE_CUSTOM, context.getString(R.string.relation_label_grandmother))
-            ContactRelation.TYPE_GRANDCHILD -> Pair(ContactRelation.TYPE_CUSTOM, context.getString(R.string.relation_label_grandchild))
-            ContactRelation.TYPE_GRANDSON -> Pair(ContactRelation.TYPE_CUSTOM, context.getString(R.string.relation_label_grandson))
-            ContactRelation.TYPE_GRANDDAUGHTER -> Pair(ContactRelation.TYPE_CUSTOM, context.getString(R.string.relation_label_granddaughter))
-            ContactRelation.TYPE_UNCLE -> Pair(ContactRelation.TYPE_CUSTOM, context.getString(R.string.relation_label_uncle))
-            ContactRelation.TYPE_AUNT -> Pair(ContactRelation.TYPE_CUSTOM, context.getString(R.string.relation_label_aunt))
-            ContactRelation.TYPE_NEPHEW -> Pair(ContactRelation.TYPE_CUSTOM, context.getString(R.string.relation_label_nephew))
-            ContactRelation.TYPE_NIECE -> Pair(ContactRelation.TYPE_CUSTOM, context.getString(R.string.relation_label_niece))
-            ContactRelation.TYPE_FATHER_IN_LAW -> Pair(ContactRelation.TYPE_CUSTOM, context.getString(R.string.relation_label_father_in_law))
-            ContactRelation.TYPE_MOTHER_IN_LAW -> Pair(ContactRelation.TYPE_CUSTOM, context.getString(R.string.relation_label_mother_in_law))
-            ContactRelation.TYPE_SON_IN_LAW -> Pair(ContactRelation.TYPE_CUSTOM, context.getString(R.string.relation_label_son_in_law))
-            ContactRelation.TYPE_DAUGHTER_IN_LAW -> Pair(ContactRelation.TYPE_CUSTOM, context.getString(R.string.relation_label_daughter_in_law))
-            ContactRelation.TYPE_BROTHER_IN_LAW -> Pair(ContactRelation.TYPE_CUSTOM, context.getString(R.string.relation_label_brother_in_law))
-            ContactRelation.TYPE_SISTER_IN_LAW -> Pair(ContactRelation.TYPE_CUSTOM, context.getString(R.string.relation_label_sister_in_law))
-
-            else -> Pair(ContactRelation.TYPE_CUSTOM, label.trim())
-        }
-    } // getRelationAndroidTypeLabelFromEditTypeLabel()
 
     private fun getContactGroups(storedGroups: ArrayList<Group>, contactId: Int? = null): SparseArray<ArrayList<Group>> {
         val groups = SparseArray<ArrayList<Group>>()
@@ -947,7 +845,9 @@ class ContactsHelper(val context: Context) {
         val projection = arrayOf(
             Groups._ID,
             Groups.TITLE,
-            Groups.SYSTEM_ID
+            Groups.SYSTEM_ID,
+            Groups.ACCOUNT_NAME,
+            Groups.ACCOUNT_TYPE,
         )
 
         val selection = "${Groups.AUTO_ADD} = ? AND ${Groups.FAVORITES} = ?"
@@ -956,6 +856,13 @@ class ContactsHelper(val context: Context) {
         // Optimize: Use HashSet for O(1) lookup instead of O(n) map.contains
         val seenTitles = HashSet<String>()
         context.queryCursor(uri, projection, selection, selectionArgs, showErrors = true) { cursor ->
+            val accountName = cursor.getStringValue(Groups.ACCOUNT_NAME) ?: ""
+            val accountType = cursor.getStringValue(Groups.ACCOUNT_TYPE) ?: ""
+            // Local phone storage groups only (same account as [createNewGroup] with empty name/type).
+            if (accountName.isNotEmpty() || accountType.isNotEmpty()) {
+                return@queryCursor
+            }
+
             val id = cursor.getLongValue(Groups._ID)
             val title = cursor.getStringValue(Groups.TITLE) ?: return@queryCursor
 
@@ -1093,8 +1000,6 @@ class ContactsHelper(val context: Context) {
         val events       = getEvents(rawContactId)[rawContactId]       ?: ArrayList()
         val notes        = getNotes(rawContactId)[rawContactId]        ?: ""
         val organization = getOrganizations(rawContactId)[rawContactId] ?: Organization("", "")
-        val websites     = getWebsites(rawContactId)[rawContactId]     ?: ArrayList()
-        val relations    = getRelations(rawContactId)[rawContactId]    ?: ArrayList()
         val storedGroups = getStoredGroupsSync()
         val groups       = getContactGroups(storedGroups, contactId)[contactId] ?: ArrayList()
 
@@ -1102,7 +1007,7 @@ class ContactsHelper(val context: Context) {
             rawContactId, "", displayName, "", "", "", "",
             photoUri, phoneNumbers, emails, addresses, events, accountName,
             starred, contactId, thumbnailUri, null, notes, groups, organization,
-            websites, relations, ArrayList(),
+            ArrayList(),
             CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE, ringtone
         )
     }
@@ -1170,14 +1075,7 @@ class ContactsHelper(val context: Context) {
                     val familyName = cursor.getStringValue(CommonDataKinds.StructuredName.FAMILY_NAME) ?: ""
                     suffix = cursor.getStringValue(CommonDataKinds.StructuredName.SUFFIX) ?: ""
                     
-                    // Optimize: Combine name parts without creating intermediate list
-                    val nameBuilder = StringBuilder()
-                    if (prefix.isNotEmpty()) nameBuilder.append(prefix).append(" ")
-                    if (givenName.isNotEmpty()) nameBuilder.append(givenName).append(" ")
-                    if (middleName.isNotEmpty()) nameBuilder.append(middleName).append(" ")
-                    if (familyName.isNotEmpty()) nameBuilder.append(familyName).append(" ")
-                    if (suffix.isNotEmpty()) nameBuilder.append(suffix).append(" ")
-                    name = nameBuilder.trim().toString()
+                    name = composeStructuredRowDisplayName(cursor, prefix, givenName, middleName, familyName, suffix)
                     // Clear other name fields since we're using single name
                     prefix = ""
                     middleName = ""
@@ -1199,14 +1097,12 @@ class ContactsHelper(val context: Context) {
                 val groups = getContactGroups(storedGroups, contactId)[contactId] ?: ArrayList()
                 val thumbnailUri = cursor.getStringValue(CommonDataKinds.StructuredName.PHOTO_THUMBNAIL_URI) ?: ""
                 val organization = getOrganizations(id)[id] ?: Organization("", "")
-                val websites = getWebsites(id)[id] ?: ArrayList()
-                val relations = getRelations(id)[id] ?: ArrayList<ContactRelation>()
                 val ims = ArrayList<IM>() // IMs removed - always empty
                 return Contact(
                     id, prefix, name, middleName, surname, suffix, nickname,
                     photoUri, number, emails, addresses, events, accountName, starred,
                     contactId, thumbnailUri, null, notes, groups, organization,
-                    websites, relations, ims, mimetype, ringtone
+                    ims, mimetype, ringtone
                 )
             }
         }
@@ -1334,6 +1230,20 @@ class ContactsHelper(val context: Context) {
         }
     }
 
+    /**
+     * Returns a copy of contact sources if [getDeviceContactSources] has already populated the
+     * in-memory cache; otherwise null. Safe to call on the main thread when the cache is warm
+     * (avoids a background hop for dialogs that open repeatedly).
+     */
+    fun peekCachedContactSources(): ArrayList<ContactSource>? {
+        if (!context.hasPermission(PERMISSION_READ_CONTACTS)) {
+            return null
+        }
+        val cacheKey = "contact_sources_${context.baseConfig.wasLocalAccountInitialized}"
+        val cachedSources = contactSourcesCache[cacheKey] ?: return null
+        return ArrayList(cachedSources.map { it.copy() })
+    }
+
     fun getContactSources(callback: (ArrayList<ContactSource>) -> Unit) {
         ensureBackgroundThread {
             callback(getContactSourcesSync())
@@ -1348,9 +1258,6 @@ class ContactsHelper(val context: Context) {
     fun getSaveableContactSources(callback: (ArrayList<ContactSource>) -> Unit) {
         ensureBackgroundThread {
             val ignoredTypes = arrayListOf(
-                SIGNAL_PACKAGE,
-                TELEGRAM_PACKAGE,
-                WHATSAPP_PACKAGE,
                 THREEMA_PACKAGE
             )
 
@@ -1393,7 +1300,8 @@ class ContactsHelper(val context: Context) {
                 if (isSimOrPhoneStorage(account.name, account.type)) {
                     val accountKey = "${account.name}|${account.type}"
                     if (seenAccountKeys.add(accountKey)) {
-                        sources.add(ContactSource(account.name, account.type, account.name))
+                        val public = context.resolveSimAccountDisplayName(account.name, account.type)
+                        sources.add(ContactSource(account.name, account.type, public))
                     }
                 }
             }
@@ -1418,7 +1326,8 @@ class ContactsHelper(val context: Context) {
                     if (isSimCard) {
                         val accountKey = "${account.name}|${account.type}"
                         if (!existingAccountKeys.contains(accountKey)) {
-                            sources.add(account)
+                            val public = context.resolveSimAccountDisplayName(account.name, account.type)
+                            sources.add(ContactSource(account.name, account.type, public))
                         }
                     }
                 }
@@ -1436,6 +1345,7 @@ class ContactsHelper(val context: Context) {
 
     fun clearContactSourcesCache() {
         contactSourcesCache.clear()
+        cachedContactSourcesMap = null
     }
 
     // make sure the local Phone contact source is initialized and available
@@ -1456,9 +1366,9 @@ class ContactsHelper(val context: Context) {
         }
     }
 
-    // Cache contact sources map for O(1) lookup instead of O(n) firstOrNull
+    // Cache: RawContacts account name -> type (phone storage + SIM accounts from [getDeviceContactSources]).
     private var cachedContactSourcesMap: Map<String, String>? = null
-    
+
     fun getContactSourceType(accountName: String): String {
         if (cachedContactSourcesMap == null) {
             cachedContactSourcesMap = getDeviceContactSources().associateBy({ it.name }, { it.type })
@@ -1475,6 +1385,7 @@ class ContactsHelper(val context: Context) {
         CommonDataKinds.StructuredName.MIDDLE_NAME,
         CommonDataKinds.StructuredName.FAMILY_NAME,
         CommonDataKinds.StructuredName.SUFFIX,
+        CommonDataKinds.StructuredName.DISPLAY_NAME,
         CommonDataKinds.StructuredName.PHOTO_URI,
         CommonDataKinds.StructuredName.PHOTO_THUMBNAIL_URI,
         CommonDataKinds.StructuredName.STARRED,
@@ -1510,251 +1421,308 @@ class ContactsHelper(val context: Context) {
         return 0
     }
 
-    fun updateContact(contact: Contact, photoUpdateStatus: Int): Boolean {
-        context.toast(R.string.updating)
+    fun updateContact(contact: Contact, photoUpdateStatus: Int, showUpdatingToast: Boolean = true): Boolean {
+        if (showUpdatingToast) {
+            context.toast(R.string.updating)
+        }
+
+        var accountType = getContactSourceType(contact.source)
+        if (accountType.isEmpty() && contact.source.isNotEmpty()) {
+            clearContactSourcesCache()
+            accountType = getContactSourceType(contact.source)
+        }
+        val isSimDestination = isSimAccountTypeForPersistence(accountType)
+        val previousSimSnapshot = if (isSimDestination && contact.id != 0) {
+            getContactWithId(contact.id)
+        } else {
+            null
+        }
 
         try {
+            if (isSimDestination) {
+                android.util.Log.d(
+                    "SimContactSave",
+                    "updateContact: SIM path rawId=${contact.id} contactId=${contact.contactId} accountName=${contact.source} accountType=$accountType",
+                )
+            }
             android.util.Log.d(
                 "ContactPhotoSave",
                 "updateContact start rawId=${contact.id} contactId=${contact.contactId} photoUpdateStatus=$photoUpdateStatus photoUri=${contact.photoUri.take(120)}"
             )
             logContactPhotoState("before_applyBatch", contact.id, contact.contactId)
             val operations = ArrayList<ContentProviderOperation>()
-            ContentProviderOperation.newUpdate(Data.CONTENT_URI).apply {
-                val selection = "${Data.RAW_CONTACT_ID} = ? AND ${Data.MIMETYPE} = ?"
-                val selectionArgs = arrayOf(contact.id.toString(), contact.mimetype)
-                withSelection(selection, selectionArgs)
-                // Use single name field - store in GIVEN_NAME, clear other name fields
-                withValue(CommonDataKinds.StructuredName.PREFIX, "")
-                withValue(CommonDataKinds.StructuredName.GIVEN_NAME, contact.firstName) // firstName property stores the single name
-                withValue(CommonDataKinds.StructuredName.MIDDLE_NAME, "")
-                withValue(CommonDataKinds.StructuredName.FAMILY_NAME, "")
-                withValue(CommonDataKinds.StructuredName.SUFFIX, "")
-                operations.add(build())
-            }
-
-            // delete nickname
-
-            // Nickname removed - always delete any existing nickname
-            ContentProviderOperation.newDelete(Data.CONTENT_URI).apply {
-                val selection = "${Data.RAW_CONTACT_ID} = ? AND ${Data.MIMETYPE} = ? "
-                val selectionArgs = arrayOf(contact.id.toString(), CommonDataKinds.Nickname.CONTENT_ITEM_TYPE)
-                withSelection(selection, selectionArgs)
-                operations.add(build())
-            }
-
-            // delete phone numbers
-            ContentProviderOperation.newDelete(Data.CONTENT_URI).apply {
-                val selection = "${Data.RAW_CONTACT_ID} = ? AND ${Data.MIMETYPE} = ? "
-                val selectionArgs = arrayOf(contact.id.toString(), CommonDataKinds.Phone.CONTENT_ITEM_TYPE)
-                withSelection(selection, selectionArgs)
-                operations.add(build())
-            }
-
-            // add phone numbers
-            contact.phoneNumbers.forEach {
-                ContentProviderOperation.newInsert(Data.CONTENT_URI).apply {
-                    withValue(Data.RAW_CONTACT_ID, contact.id)
-                    withValue(Data.MIMETYPE, CommonDataKinds.Phone.CONTENT_ITEM_TYPE)
-                    withValue(CommonDataKinds.Phone.NUMBER, it.value)
-                    withValue(CommonDataKinds.Phone.NORMALIZED_NUMBER, it.normalizedNumber)
-                    withValue(CommonDataKinds.Phone.TYPE, it.type)
-                    withValue(CommonDataKinds.Phone.LABEL, it.label)
-                    withValue(CommonDataKinds.Phone.IS_PRIMARY, it.isPrimary)
-                    operations.add(build())
-                }
-            }
-
-            // delete emails
-            ContentProviderOperation.newDelete(Data.CONTENT_URI).apply {
-                val selection = "${Data.RAW_CONTACT_ID} = ? AND ${Data.MIMETYPE} = ? "
-                val selectionArgs = arrayOf(contact.id.toString(), CommonDataKinds.Email.CONTENT_ITEM_TYPE)
-                withSelection(selection, selectionArgs)
-                operations.add(build())
-            }
-
-            // add emails
-            contact.emails.forEach {
-                ContentProviderOperation.newInsert(Data.CONTENT_URI).apply {
-                    withValue(Data.RAW_CONTACT_ID, contact.id)
-                    withValue(Data.MIMETYPE, CommonDataKinds.Email.CONTENT_ITEM_TYPE)
-                    withValue(CommonDataKinds.Email.DATA, it.value)
-                    withValue(CommonDataKinds.Email.TYPE, it.type)
-                    withValue(CommonDataKinds.Email.LABEL, it.label)
-                    operations.add(build())
-                }
-            }
-
-            // delete addresses
-            ContentProviderOperation.newDelete(Data.CONTENT_URI).apply {
-                val selection = "${Data.RAW_CONTACT_ID} = ? AND ${Data.MIMETYPE} = ? "
-                val selectionArgs = arrayOf(contact.id.toString(), CommonDataKinds.StructuredPostal.CONTENT_ITEM_TYPE)
-                withSelection(selection, selectionArgs)
-                operations.add(build())
-            }
-
-            // add addresses
-            contact.addresses.forEach {
-                ContentProviderOperation.newInsert(Data.CONTENT_URI).apply {
-                    withValue(Data.RAW_CONTACT_ID, contact.id)
-                    withValue(Data.MIMETYPE, CommonDataKinds.StructuredPostal.CONTENT_ITEM_TYPE)
-                    withValue(CommonDataKinds.StructuredPostal.FORMATTED_ADDRESS, it.value)
-                    withValue(CommonDataKinds.StructuredPostal.COUNTRY, it.country)
-                    withValue(CommonDataKinds.StructuredPostal.REGION, it.region)
-                    withValue(CommonDataKinds.StructuredPostal.CITY, it.city)
-                    withValue(CommonDataKinds.StructuredPostal.POSTCODE, it.postcode)
-                    withValue(CommonDataKinds.StructuredPostal.POBOX, it.pobox)
-                    withValue(CommonDataKinds.StructuredPostal.STREET, it.street)
-                    withValue(CommonDataKinds.StructuredPostal.NEIGHBORHOOD, it.neighborhood)
-                    withValue(CommonDataKinds.StructuredPostal.TYPE, it.type)
-                    withValue(CommonDataKinds.StructuredPostal.LABEL, it.label)
-                    operations.add(build())
-                }
-            }
-
-            // delete events
-            ContentProviderOperation.newDelete(Data.CONTENT_URI).apply {
-                val selection = "${Data.RAW_CONTACT_ID} = ? AND ${Data.MIMETYPE} = ? "
-                val selectionArgs = arrayOf(contact.id.toString(), CommonDataKinds.Event.CONTENT_ITEM_TYPE)
-                withSelection(selection, selectionArgs)
-                operations.add(build())
-            }
-
-            // add events
-            contact.events.forEach {
-                ContentProviderOperation.newInsert(Data.CONTENT_URI).apply {
-                    withValue(Data.RAW_CONTACT_ID, contact.id)
-                    withValue(Data.MIMETYPE, CommonDataKinds.Event.CONTENT_ITEM_TYPE)
-                    withValue(CommonDataKinds.Event.START_DATE, it.value)
-                    withValue(CommonDataKinds.Event.TYPE, it.type)
-                    withValue(CommonDataKinds.Event.LABEL, it.label)
-                    operations.add(build())
-                }
-            }
-
-            // delete notes
-            ContentProviderOperation.newDelete(Data.CONTENT_URI).apply {
-                val selection = "${Data.RAW_CONTACT_ID} = ? AND ${Data.MIMETYPE} = ? "
-                val selectionArgs = arrayOf(contact.id.toString(), CommonDataKinds.Note.CONTENT_ITEM_TYPE)
-                withSelection(selection, selectionArgs)
-                operations.add(build())
-            }
-
-            // add notes
-            ContentProviderOperation.newInsert(Data.CONTENT_URI).apply {
-                withValue(Data.RAW_CONTACT_ID, contact.id)
-                withValue(Data.MIMETYPE, CommonDataKinds.Note.CONTENT_ITEM_TYPE)
-                withValue(CommonDataKinds.Note.NOTE, contact.notes)
-                operations.add(build())
-            }
-
-            // delete organization
-            ContentProviderOperation.newDelete(Data.CONTENT_URI).apply {
-                val selection = "${Data.RAW_CONTACT_ID} = ? AND ${Data.MIMETYPE} = ? "
-                val selectionArgs = arrayOf(contact.id.toString(), CommonDataKinds.Organization.CONTENT_ITEM_TYPE)
-                withSelection(selection, selectionArgs)
-                operations.add(build())
-            }
-
-            // add organization
-            if (contact.organization.isNotEmpty()) {
-                ContentProviderOperation.newInsert(Data.CONTENT_URI).apply {
-                    withValue(Data.RAW_CONTACT_ID, contact.id)
-                    withValue(Data.MIMETYPE, CommonDataKinds.Organization.CONTENT_ITEM_TYPE)
-                    withValue(CommonDataKinds.Organization.COMPANY, contact.organization.company)
-                    withValue(CommonDataKinds.Organization.TYPE, DEFAULT_ORGANIZATION_TYPE)
-                    withValue(CommonDataKinds.Organization.TITLE, contact.organization.jobPosition)
-                    withValue(CommonDataKinds.Organization.TYPE, DEFAULT_ORGANIZATION_TYPE)
-                    operations.add(build())
-                }
-            }
-
-            // delete websites
-            ContentProviderOperation.newDelete(Data.CONTENT_URI).apply {
-                val selection = "${Data.RAW_CONTACT_ID} = ? AND ${Data.MIMETYPE} = ? "
-                val selectionArgs = arrayOf(contact.id.toString(), CommonDataKinds.Website.CONTENT_ITEM_TYPE)
-                withSelection(selection, selectionArgs)
-                operations.add(build())
-            }
-
-            // add websites
-            contact.websites.forEach {
-                ContentProviderOperation.newInsert(Data.CONTENT_URI).apply {
-                    withValue(Data.RAW_CONTACT_ID, contact.id)
-                    withValue(Data.MIMETYPE, CommonDataKinds.Website.CONTENT_ITEM_TYPE)
-                    withValue(CommonDataKinds.Website.URL, it)
-                    withValue(CommonDataKinds.Website.TYPE, DEFAULT_WEBSITE_TYPE)
-                    operations.add(build())
-                }
-            }
-
-            // delete relations
-            ContentProviderOperation.newDelete(Data.CONTENT_URI).apply {
-                val selection = "${Data.RAW_CONTACT_ID} = ? AND ${Data.MIMETYPE} = ? "
-                val selectionArgs = arrayOf(contact.id.toString(), CommonDataKinds.Relation.CONTENT_ITEM_TYPE)
-                withSelection(selection, selectionArgs)
-                operations.add(build())
-            }
-
-            // add relations
-            contact.relations.forEach {
-                ContentProviderOperation.newInsert(Data.CONTENT_URI).apply {
-                    withValue(Data.RAW_CONTACT_ID, contact.id)
-                    withValue(Data.MIMETYPE, CommonDataKinds.Relation.CONTENT_ITEM_TYPE)
-                    val (type, label) = getRelationAndroidTypeLabelFromEditTypeLabel(it.type, it.label)
-                    withValue(CommonDataKinds.Relation.NAME, it.name)
-                    withValue(CommonDataKinds.Relation.TYPE, type)
-                    withValue(CommonDataKinds.Relation.LABEL, label)
-                    operations.add(build())
-                }
-            }
-
-            // delete groups
-            val relevantGroupIDs = getStoredGroupsSync().map { it.id }
-            if (relevantGroupIDs.isNotEmpty()) {
-                val IDsString = TextUtils.join(",", relevantGroupIDs)
-                ContentProviderOperation.newDelete(Data.CONTENT_URI).apply {
-                    val selection = "${Data.CONTACT_ID} = ? AND ${Data.MIMETYPE} = ? AND ${Data.DATA1} IN ($IDsString)"
-                    val selectionArgs = arrayOf(contact.contactId.toString(), CommonDataKinds.GroupMembership.CONTENT_ITEM_TYPE)
-                    withSelection(selection, selectionArgs)
-                    operations.add(build())
-                }
-            }
-
-            // add groups
-            contact.groups.forEach {
-                ContentProviderOperation.newInsert(Data.CONTENT_URI).apply {
-                    withValue(Data.RAW_CONTACT_ID, contact.id)
-                    withValue(Data.MIMETYPE, CommonDataKinds.GroupMembership.CONTENT_ITEM_TYPE)
-                    withValue(CommonDataKinds.GroupMembership.GROUP_ROW_ID, it.id)
-                    operations.add(build())
-                }
-            }
-
-            // favorite, ringtone
-            try {
-                val uri = Uri.withAppendedPath(Contacts.CONTENT_URI, contact.contactId.toString())
-                val contentValues = ContentValues(2)
-                contentValues.put(Contacts.STARRED, contact.starred)
-                contentValues.put(Contacts.CUSTOM_RINGTONE, contact.ringtone)
-                context.contentResolver.update(uri, contentValues, null, null)
-            } catch (e: Exception) {
-                context.showErrorToast(e)
-            }
-
-            // photo
-            when (photoUpdateStatus) {
-                PHOTO_ADDED, PHOTO_CHANGED -> addPhoto(contact, operations)
-                PHOTO_REMOVED -> removePhoto(contact, operations)
-            }
-
+            appendUpdateContactOperations(contact, photoUpdateStatus, operations)
             context.contentResolver.applyBatch(AUTHORITY, operations)
             logContactPhotoState("after_applyBatch", contact.id, contact.contactId)
+            if (previousSimSnapshot != null) {
+                context.toast(R.string.sim_adn_progress_updating_card)
+                val adnOk = context.tryUpdateIccAdnAfterSimContactEdit(
+                    accountName = contact.source,
+                    accountType = accountType,
+                    previousPrimaryNumber = previousSimSnapshot.phoneNumbers.firstOrNull()?.value ?: "",
+                    previousDisplayName = previousSimSnapshot.getNameToDisplay(),
+                    newPrimaryNumber = contact.phoneNumbers.firstOrNull()?.value ?: "",
+                    newDisplayName = contact.getNameToDisplay(),
+                    logContext = "updateContact rawId=${contact.id}",
+                )
+                if (adnOk) {
+                    context.toast(R.string.sim_adn_progress_writing_ok)
+                } else {
+                    context.toast(R.string.sim_adn_write_failed)
+                    SimAdnPendingSync.enqueueAfterAdnFailure(
+                        context,
+                        SimAdnPendingEntry(
+                            rawContactId = contact.id,
+                            accountName = contact.source,
+                            accountType = accountType,
+                            number = contact.phoneNumbers.firstOrNull()?.value ?: "",
+                            displayName = contact.getNameToDisplay(),
+                            previousNumber = previousSimSnapshot.phoneNumbers.firstOrNull()?.value,
+                            previousDisplayName = previousSimSnapshot.getNameToDisplay(),
+                        ),
+                    )
+                }
+            }
             return true
         } catch (e: Exception) {
             android.util.Log.e("ContactPhotoSave", "updateContact failed rawId=${contact.id} contactId=${contact.contactId}", e)
             context.showErrorToast(e)
             return false
+        }
+    }
+
+    /**
+     * Applies [appendUpdateContactOperations] for many contacts, grouping several contacts into each
+     * [ContentResolver.applyBatch] where possible (faster than one batch per contact).
+     */
+    fun updateContactsBatch(
+        contacts: List<Contact>,
+        photoUpdateStatus: Int,
+        showUpdatingToast: Boolean = false,
+        onProgress: ((persistedCount: Int, totalCount: Int) -> Unit)? = null
+    ): Boolean {
+        if (contacts.isEmpty()) {
+            onProgress?.invoke(0, 0)
+            return true
+        }
+        if (showUpdatingToast) {
+            context.toast(R.string.updating)
+        }
+        return try {
+            val batch = ArrayList<ContentProviderOperation>()
+            val total = contacts.size
+            var contactsFullyWritten = 0
+            var contactsInCurrentBatch = 0
+            contacts.forEach { contact ->
+                val contactOps = ArrayList<ContentProviderOperation>()
+                appendUpdateContactOperations(contact, photoUpdateStatus, contactOps)
+                if (contactOps.size > MAX_PROVIDER_BATCH_OPS) {
+                    if (batch.isNotEmpty()) {
+                        context.contentResolver.applyBatch(AUTHORITY, batch)
+                        contactsFullyWritten += contactsInCurrentBatch
+                        contactsInCurrentBatch = 0
+                        batch.clear()
+                        onProgress?.invoke(contactsFullyWritten, total)
+                    }
+                    context.contentResolver.applyBatch(AUTHORITY, contactOps)
+                    contactsFullyWritten++
+                    onProgress?.invoke(contactsFullyWritten, total)
+                    return@forEach
+                }
+                if (batch.isNotEmpty() && batch.size + contactOps.size > MAX_PROVIDER_BATCH_OPS) {
+                    context.contentResolver.applyBatch(AUTHORITY, batch)
+                    contactsFullyWritten += contactsInCurrentBatch
+                    contactsInCurrentBatch = 0
+                    batch.clear()
+                    onProgress?.invoke(contactsFullyWritten, total)
+                }
+                batch.addAll(contactOps)
+                contactsInCurrentBatch++
+            }
+            if (batch.isNotEmpty()) {
+                context.contentResolver.applyBatch(AUTHORITY, batch)
+                contactsFullyWritten += contactsInCurrentBatch
+            }
+            onProgress?.invoke(contactsFullyWritten, total)
+            true
+        } catch (e: Exception) {
+            context.showErrorToast(e)
+            false
+        }
+    }
+
+    private fun appendUpdateContactOperations(
+        contact: Contact,
+        photoUpdateStatus: Int,
+        operations: ArrayList<ContentProviderOperation>,
+    ) {
+        ContentProviderOperation.newUpdate(Data.CONTENT_URI).apply {
+            val selection = "${Data.RAW_CONTACT_ID} = ? AND ${Data.MIMETYPE} = ?"
+            val selectionArgs = arrayOf(contact.id.toString(), contact.mimetype)
+            withSelection(selection, selectionArgs)
+            // Use single name field - store in GIVEN_NAME, clear other name fields
+            withValue(CommonDataKinds.StructuredName.PREFIX, "")
+            withValue(CommonDataKinds.StructuredName.GIVEN_NAME, contact.firstName) // firstName property stores the single name
+            withValue(CommonDataKinds.StructuredName.DISPLAY_NAME, contact.getNameToDisplay())
+            withValue(CommonDataKinds.StructuredName.MIDDLE_NAME, "")
+            withValue(CommonDataKinds.StructuredName.FAMILY_NAME, "")
+            withValue(CommonDataKinds.StructuredName.SUFFIX, "")
+            operations.add(build())
+        }
+
+        // Nickname removed - always delete any existing nickname
+        ContentProviderOperation.newDelete(Data.CONTENT_URI).apply {
+            val selection = "${Data.RAW_CONTACT_ID} = ? AND ${Data.MIMETYPE} = ? "
+            val selectionArgs = arrayOf(contact.id.toString(), CommonDataKinds.Nickname.CONTENT_ITEM_TYPE)
+            withSelection(selection, selectionArgs)
+            operations.add(build())
+        }
+
+        ContentProviderOperation.newDelete(Data.CONTENT_URI).apply {
+            val selection = "${Data.RAW_CONTACT_ID} = ? AND ${Data.MIMETYPE} = ? "
+            val selectionArgs = arrayOf(contact.id.toString(), CommonDataKinds.Phone.CONTENT_ITEM_TYPE)
+            withSelection(selection, selectionArgs)
+            operations.add(build())
+        }
+
+        contact.phoneNumbers.forEach {
+            ContentProviderOperation.newInsert(Data.CONTENT_URI).apply {
+                withValue(Data.RAW_CONTACT_ID, contact.id)
+                withValue(Data.MIMETYPE, CommonDataKinds.Phone.CONTENT_ITEM_TYPE)
+                withValue(CommonDataKinds.Phone.NUMBER, it.value)
+                withValue(CommonDataKinds.Phone.NORMALIZED_NUMBER, it.normalizedNumber)
+                withValue(CommonDataKinds.Phone.TYPE, it.type)
+                withValue(CommonDataKinds.Phone.LABEL, it.label)
+                withValue(CommonDataKinds.Phone.IS_PRIMARY, it.isPrimary)
+                operations.add(build())
+            }
+        }
+
+        ContentProviderOperation.newDelete(Data.CONTENT_URI).apply {
+            val selection = "${Data.RAW_CONTACT_ID} = ? AND ${Data.MIMETYPE} = ? "
+            val selectionArgs = arrayOf(contact.id.toString(), CommonDataKinds.Email.CONTENT_ITEM_TYPE)
+            withSelection(selection, selectionArgs)
+            operations.add(build())
+        }
+
+        contact.emails.forEach {
+            ContentProviderOperation.newInsert(Data.CONTENT_URI).apply {
+                withValue(Data.RAW_CONTACT_ID, contact.id)
+                withValue(Data.MIMETYPE, CommonDataKinds.Email.CONTENT_ITEM_TYPE)
+                withValue(CommonDataKinds.Email.DATA, it.value)
+                withValue(CommonDataKinds.Email.TYPE, it.type)
+                withValue(CommonDataKinds.Email.LABEL, it.label)
+                operations.add(build())
+            }
+        }
+
+        ContentProviderOperation.newDelete(Data.CONTENT_URI).apply {
+            val selection = "${Data.RAW_CONTACT_ID} = ? AND ${Data.MIMETYPE} = ? "
+            val selectionArgs = arrayOf(contact.id.toString(), CommonDataKinds.StructuredPostal.CONTENT_ITEM_TYPE)
+            withSelection(selection, selectionArgs)
+            operations.add(build())
+        }
+
+        contact.addresses.forEach {
+            ContentProviderOperation.newInsert(Data.CONTENT_URI).apply {
+                withValue(Data.RAW_CONTACT_ID, contact.id)
+                withValue(Data.MIMETYPE, CommonDataKinds.StructuredPostal.CONTENT_ITEM_TYPE)
+                withValue(CommonDataKinds.StructuredPostal.FORMATTED_ADDRESS, it.value)
+                withValue(CommonDataKinds.StructuredPostal.COUNTRY, it.country)
+                withValue(CommonDataKinds.StructuredPostal.REGION, it.region)
+                withValue(CommonDataKinds.StructuredPostal.CITY, it.city)
+                withValue(CommonDataKinds.StructuredPostal.POSTCODE, it.postcode)
+                withValue(CommonDataKinds.StructuredPostal.POBOX, it.pobox)
+                withValue(CommonDataKinds.StructuredPostal.STREET, it.street)
+                withValue(CommonDataKinds.StructuredPostal.NEIGHBORHOOD, it.neighborhood)
+                withValue(CommonDataKinds.StructuredPostal.TYPE, it.type)
+                withValue(CommonDataKinds.StructuredPostal.LABEL, it.label)
+                operations.add(build())
+            }
+        }
+
+        ContentProviderOperation.newDelete(Data.CONTENT_URI).apply {
+            val selection = "${Data.RAW_CONTACT_ID} = ? AND ${Data.MIMETYPE} = ? "
+            val selectionArgs = arrayOf(contact.id.toString(), CommonDataKinds.Event.CONTENT_ITEM_TYPE)
+            withSelection(selection, selectionArgs)
+            operations.add(build())
+        }
+
+        contact.events
+            .filter { it.type == CommonDataKinds.Event.TYPE_BIRTHDAY }
+            .take(1)
+            .forEach {
+                ContentProviderOperation.newInsert(Data.CONTENT_URI).apply {
+                    withValue(Data.RAW_CONTACT_ID, contact.id)
+                    withValue(Data.MIMETYPE, CommonDataKinds.Event.CONTENT_ITEM_TYPE)
+                    withValue(CommonDataKinds.Event.START_DATE, it.value)
+                    withValue(CommonDataKinds.Event.TYPE, CommonDataKinds.Event.TYPE_BIRTHDAY)
+                    withValue(CommonDataKinds.Event.LABEL, "")
+                    operations.add(build())
+                }
+            }
+
+        ContentProviderOperation.newDelete(Data.CONTENT_URI).apply {
+            val selection = "${Data.RAW_CONTACT_ID} = ? AND ${Data.MIMETYPE} = ? "
+            val selectionArgs = arrayOf(contact.id.toString(), CommonDataKinds.Note.CONTENT_ITEM_TYPE)
+            withSelection(selection, selectionArgs)
+            operations.add(build())
+        }
+
+        ContentProviderOperation.newInsert(Data.CONTENT_URI).apply {
+            withValue(Data.RAW_CONTACT_ID, contact.id)
+            withValue(Data.MIMETYPE, CommonDataKinds.Note.CONTENT_ITEM_TYPE)
+            withValue(CommonDataKinds.Note.NOTE, contact.notes)
+            operations.add(build())
+        }
+
+        ContentProviderOperation.newDelete(Data.CONTENT_URI).apply {
+            val selection = "${Data.RAW_CONTACT_ID} = ? AND ${Data.MIMETYPE} = ? "
+            val selectionArgs = arrayOf(contact.id.toString(), CommonDataKinds.Organization.CONTENT_ITEM_TYPE)
+            withSelection(selection, selectionArgs)
+            operations.add(build())
+        }
+
+        if (contact.organization.isNotEmpty()) {
+            ContentProviderOperation.newInsert(Data.CONTENT_URI).apply {
+                withValue(Data.RAW_CONTACT_ID, contact.id)
+                withValue(Data.MIMETYPE, CommonDataKinds.Organization.CONTENT_ITEM_TYPE)
+                withValue(CommonDataKinds.Organization.COMPANY, contact.organization.company)
+                withValue(CommonDataKinds.Organization.TYPE, DEFAULT_ORGANIZATION_TYPE)
+                withValue(CommonDataKinds.Organization.TITLE, contact.organization.jobPosition)
+                withValue(CommonDataKinds.Organization.TYPE, DEFAULT_ORGANIZATION_TYPE)
+                operations.add(build())
+            }
+        }
+
+        // Drop all group memberships for this raw contact, then re-insert (device + app DB groups only
+        // in [contact.groups] after [getStoredGroupsSync] / merge filtering).
+        ContentProviderOperation.newDelete(Data.CONTENT_URI).apply {
+            val selection = "${Data.RAW_CONTACT_ID} = ? AND ${Data.MIMETYPE} = ?"
+            val selectionArgs = arrayOf(contact.id.toString(), CommonDataKinds.GroupMembership.CONTENT_ITEM_TYPE)
+            withSelection(selection, selectionArgs)
+            operations.add(build())
+        }
+
+        contact.groups.forEach {
+            val groupRowId = it.id ?: return@forEach
+            ContentProviderOperation.newInsert(Data.CONTENT_URI).apply {
+                withValue(Data.RAW_CONTACT_ID, contact.id)
+                withValue(Data.MIMETYPE, CommonDataKinds.GroupMembership.CONTENT_ITEM_TYPE)
+                withValue(CommonDataKinds.GroupMembership.GROUP_ROW_ID, groupRowId)
+                operations.add(build())
+            }
+        }
+
+        ContentProviderOperation.newUpdate(Uri.withAppendedPath(Contacts.CONTENT_URI, contact.contactId.toString())).apply {
+            withValue(Contacts.STARRED, contact.starred)
+            withValue(Contacts.CUSTOM_RINGTONE, contact.ringtone)
+            operations.add(build())
+        }
+
+        when (photoUpdateStatus) {
+            PHOTO_ADDED, PHOTO_CHANGED -> addPhoto(contact, operations)
+            PHOTO_REMOVED -> removePhoto(contact, operations)
         }
     }
 
@@ -1890,10 +1858,18 @@ class ContactsHelper(val context: Context) {
         }
     }
 
-    fun insertContact(contact: Contact): Boolean {
+    /**
+     * @param showSimAdnProgressToasts When false, skips SIM write/retry/success/fail toasts (batch copy/move/export).
+     */
+    fun insertContact(contact: Contact, showSimAdnProgressToasts: Boolean = true): Boolean {
         try {
             val operations = ArrayList<ContentProviderOperation>()
-            val accountType = getContactSourceType(contact.source)
+            var accountType = getContactSourceType(contact.source)
+            if (accountType.isEmpty() && contact.source.isNotEmpty()) {
+                clearContactSourcesCache()
+                accountType = getContactSourceType(contact.source)
+            }
+            val isSimDestination = isSimAccountTypeForPersistence(accountType)
             ContentProviderOperation.newInsert(RawContacts.CONTENT_URI).apply {
                 if (accountType.isEmpty()) {
                     withValue(RawContacts.ACCOUNT_NAME, null)
@@ -1905,16 +1881,24 @@ class ContactsHelper(val context: Context) {
                 operations.add(build())
             }
 
-            // names - use single name field
+            // names — SIM only supports a single display string + numbers; skip other data rows below.
             ContentProviderOperation.newInsert(Data.CONTENT_URI).apply {
                 withValueBackReference(Data.RAW_CONTACT_ID, 0)
                 withValue(Data.MIMETYPE, CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE)
-                // Store single name in GIVEN_NAME, clear other name fields
                 withValue(CommonDataKinds.StructuredName.PREFIX, "")
-                withValue(CommonDataKinds.StructuredName.GIVEN_NAME, contact.firstName)
-                withValue(CommonDataKinds.StructuredName.MIDDLE_NAME, "")
-                withValue(CommonDataKinds.StructuredName.FAMILY_NAME, "")
-                withValue(CommonDataKinds.StructuredName.SUFFIX, "")
+                if (isSimDestination) {
+                    val simDisplay = contact.getNameToDisplay()
+                    withValue(CommonDataKinds.StructuredName.GIVEN_NAME, simDisplay)
+                    withValue(CommonDataKinds.StructuredName.DISPLAY_NAME, simDisplay)
+                    withValue(CommonDataKinds.StructuredName.MIDDLE_NAME, "")
+                    withValue(CommonDataKinds.StructuredName.FAMILY_NAME, "")
+                    withValue(CommonDataKinds.StructuredName.SUFFIX, "")
+                } else {
+                    withValue(CommonDataKinds.StructuredName.GIVEN_NAME, contact.firstName)
+                    withValue(CommonDataKinds.StructuredName.MIDDLE_NAME, "")
+                    withValue(CommonDataKinds.StructuredName.FAMILY_NAME, "")
+                    withValue(CommonDataKinds.StructuredName.SUFFIX, "")
+                }
                 operations.add(build())
             }
 
@@ -1934,139 +1918,154 @@ class ContactsHelper(val context: Context) {
                 }
             }
 
-            // emails
-            contact.emails.forEach {
+            if (!isSimDestination) {
+                // emails
+                contact.emails.forEach {
+                    ContentProviderOperation.newInsert(Data.CONTENT_URI).apply {
+                        withValueBackReference(Data.RAW_CONTACT_ID, 0)
+                        withValue(Data.MIMETYPE, CommonDataKinds.Email.CONTENT_ITEM_TYPE)
+                        withValue(CommonDataKinds.Email.DATA, it.value)
+                        withValue(CommonDataKinds.Email.TYPE, it.type)
+                        withValue(CommonDataKinds.Email.LABEL, it.label)
+                        operations.add(build())
+                    }
+                }
+
+                // addresses
+                contact.addresses.forEach {
+                    ContentProviderOperation.newInsert(Data.CONTENT_URI).apply {
+                        withValueBackReference(Data.RAW_CONTACT_ID, 0)
+                        withValue(Data.MIMETYPE, CommonDataKinds.StructuredPostal.CONTENT_ITEM_TYPE)
+                        withValue(CommonDataKinds.StructuredPostal.FORMATTED_ADDRESS, it.value)
+                        withValue(CommonDataKinds.StructuredPostal.COUNTRY, it.country)
+                        withValue(CommonDataKinds.StructuredPostal.REGION, it.region)
+                        withValue(CommonDataKinds.StructuredPostal.CITY, it.city)
+                        withValue(CommonDataKinds.StructuredPostal.POSTCODE, it.postcode)
+                        withValue(CommonDataKinds.StructuredPostal.POBOX, it.pobox)
+                        withValue(CommonDataKinds.StructuredPostal.STREET, it.street)
+                        withValue(CommonDataKinds.StructuredPostal.NEIGHBORHOOD, it.neighborhood)
+                        withValue(CommonDataKinds.StructuredPostal.TYPE, it.type)
+                        withValue(CommonDataKinds.StructuredPostal.LABEL, it.label)
+                        operations.add(build())
+                    }
+                }
+
+                // events
+                contact.events
+                    .filter { it.type == CommonDataKinds.Event.TYPE_BIRTHDAY }
+                    .take(1)
+                    .forEach {
+                    ContentProviderOperation.newInsert(Data.CONTENT_URI).apply {
+                        withValueBackReference(Data.RAW_CONTACT_ID, 0)
+                        withValue(Data.MIMETYPE, CommonDataKinds.Event.CONTENT_ITEM_TYPE)
+                        withValue(CommonDataKinds.Event.START_DATE, it.value)
+                        withValue(CommonDataKinds.Event.TYPE, CommonDataKinds.Event.TYPE_BIRTHDAY)
+                        withValue(CommonDataKinds.Event.LABEL, "")
+                        operations.add(build())
+                    }
+                }
+
+                // notes
                 ContentProviderOperation.newInsert(Data.CONTENT_URI).apply {
                     withValueBackReference(Data.RAW_CONTACT_ID, 0)
-                    withValue(Data.MIMETYPE, CommonDataKinds.Email.CONTENT_ITEM_TYPE)
-                    withValue(CommonDataKinds.Email.DATA, it.value)
-                    withValue(CommonDataKinds.Email.TYPE, it.type)
-                    withValue(CommonDataKinds.Email.LABEL, it.label)
+                    withValue(Data.MIMETYPE, CommonDataKinds.Note.CONTENT_ITEM_TYPE)
+                    withValue(CommonDataKinds.Note.NOTE, contact.notes)
                     operations.add(build())
                 }
-            }
 
-            // addresses
-            contact.addresses.forEach {
-                ContentProviderOperation.newInsert(Data.CONTENT_URI).apply {
-                    withValueBackReference(Data.RAW_CONTACT_ID, 0)
-                    withValue(Data.MIMETYPE, CommonDataKinds.StructuredPostal.CONTENT_ITEM_TYPE)
-                    withValue(CommonDataKinds.StructuredPostal.FORMATTED_ADDRESS, it.value)
-                    withValue(CommonDataKinds.StructuredPostal.COUNTRY, it.country)
-                    withValue(CommonDataKinds.StructuredPostal.REGION, it.region)
-                    withValue(CommonDataKinds.StructuredPostal.CITY, it.city)
-                    withValue(CommonDataKinds.StructuredPostal.POSTCODE, it.postcode)
-                    withValue(CommonDataKinds.StructuredPostal.POBOX, it.pobox)
-                    withValue(CommonDataKinds.StructuredPostal.STREET, it.street)
-                    withValue(CommonDataKinds.StructuredPostal.NEIGHBORHOOD, it.neighborhood)
-                    withValue(CommonDataKinds.StructuredPostal.TYPE, it.type)
-                    withValue(CommonDataKinds.StructuredPostal.LABEL, it.label)
-                    operations.add(build())
+                // organization
+                if (contact.organization.isNotEmpty()) {
+                    ContentProviderOperation.newInsert(Data.CONTENT_URI).apply {
+                        withValueBackReference(Data.RAW_CONTACT_ID, 0)
+                        withValue(Data.MIMETYPE, CommonDataKinds.Organization.CONTENT_ITEM_TYPE)
+                        withValue(CommonDataKinds.Organization.COMPANY, contact.organization.company)
+                        withValue(CommonDataKinds.Organization.TYPE, DEFAULT_ORGANIZATION_TYPE)
+                        withValue(CommonDataKinds.Organization.TITLE, contact.organization.jobPosition)
+                        withValue(CommonDataKinds.Organization.TYPE, DEFAULT_ORGANIZATION_TYPE)
+                        operations.add(build())
+                    }
                 }
-            }
 
-            // events
-            contact.events.forEach {
-                ContentProviderOperation.newInsert(Data.CONTENT_URI).apply {
-                    withValueBackReference(Data.RAW_CONTACT_ID, 0)
-                    withValue(Data.MIMETYPE, CommonDataKinds.Event.CONTENT_ITEM_TYPE)
-                    withValue(CommonDataKinds.Event.START_DATE, it.value)
-                    withValue(CommonDataKinds.Event.TYPE, it.type)
-                    withValue(CommonDataKinds.Event.LABEL, it.label)
-                    operations.add(build())
-                }
-            }
-
-            // notes
-            ContentProviderOperation.newInsert(Data.CONTENT_URI).apply {
-                withValueBackReference(Data.RAW_CONTACT_ID, 0)
-                withValue(Data.MIMETYPE, CommonDataKinds.Note.CONTENT_ITEM_TYPE)
-                withValue(CommonDataKinds.Note.NOTE, contact.notes)
-                operations.add(build())
-            }
-
-            // organization
-            if (contact.organization.isNotEmpty()) {
-                ContentProviderOperation.newInsert(Data.CONTENT_URI).apply {
-                    withValueBackReference(Data.RAW_CONTACT_ID, 0)
-                    withValue(Data.MIMETYPE, CommonDataKinds.Organization.CONTENT_ITEM_TYPE)
-                    withValue(CommonDataKinds.Organization.COMPANY, contact.organization.company)
-                    withValue(CommonDataKinds.Organization.TYPE, DEFAULT_ORGANIZATION_TYPE)
-                    withValue(CommonDataKinds.Organization.TITLE, contact.organization.jobPosition)
-                    withValue(CommonDataKinds.Organization.TYPE, DEFAULT_ORGANIZATION_TYPE)
-                    operations.add(build())
-                }
-            }
-
-            // websites
-            contact.websites.forEach {
-                ContentProviderOperation.newInsert(Data.CONTENT_URI).apply {
-                    withValueBackReference(Data.RAW_CONTACT_ID, 0)
-                    withValue(Data.MIMETYPE, CommonDataKinds.Website.CONTENT_ITEM_TYPE)
-                    withValue(CommonDataKinds.Website.URL, it)
-                    withValue(CommonDataKinds.Website.TYPE, DEFAULT_WEBSITE_TYPE)
-                    operations.add(build())
-                }
-            }
-
-            // relations
-            contact.relations.forEach {
-                ContentProviderOperation.newInsert(Data.CONTENT_URI).apply {
-                    withValueBackReference(Data.RAW_CONTACT_ID, 0)
-                    withValue(Data.MIMETYPE, CommonDataKinds.Relation.CONTENT_ITEM_TYPE)
-                    val (type, label) = getRelationAndroidTypeLabelFromEditTypeLabel(it.type, it.label)
-                    withValue(CommonDataKinds.Relation.NAME, it.name)
-                    withValue(CommonDataKinds.Relation.TYPE, type)
-                    withValue(CommonDataKinds.Relation.LABEL, label)
-                    operations.add(build())
-                }
-            }
-
-            // groups
-            contact.groups.forEach {
-                ContentProviderOperation.newInsert(Data.CONTENT_URI).apply {
-                    withValueBackReference(Data.RAW_CONTACT_ID, 0)
-                    withValue(Data.MIMETYPE, CommonDataKinds.GroupMembership.CONTENT_ITEM_TYPE)
-                    withValue(CommonDataKinds.GroupMembership.GROUP_ROW_ID, it.id)
-                    operations.add(build())
+                // groups
+                contact.groups.forEach {
+                    ContentProviderOperation.newInsert(Data.CONTENT_URI).apply {
+                        withValueBackReference(Data.RAW_CONTACT_ID, 0)
+                        withValue(Data.MIMETYPE, CommonDataKinds.GroupMembership.CONTENT_ITEM_TYPE)
+                        withValue(CommonDataKinds.GroupMembership.GROUP_ROW_ID, it.id)
+                        operations.add(build())
+                    }
                 }
             }
 
             // photo (inspired by https://gist.github.com/slightfoot/5985900)
             var fullSizePhotoData: ByteArray? = null
-            if (contact.photoUri.isNotEmpty()) {
+            if (!isSimDestination && contact.photoUri.isNotEmpty()) {
                 val photoUri = contact.photoUri.toUri()
                 fullSizePhotoData = context.contentResolver.openInputStream(photoUri)?.readBytes()
             }
 
             val results = context.contentResolver.applyBatch(AUTHORITY, operations)
+            val rawId = ContentUris.parseId(results[0].uri!!)
 
-            // storing contacts on some devices seems to be messed up and they move on Phone instead, or disappear completely
-            // try storing a lighter contact version with this oldschool version too just so it wont disappear, future edits work well
-            if (getContactSourceType(contact.source).contains(".sim")) {
-                val simUri = "content://icc/adn".toUri()
-                ContentValues().apply {
-                    put("number", contact.phoneNumbers.firstOrNull()?.value ?: "")
-                    put("tag", contact.getNameToDisplay())
-                    context.contentResolver.insert(simUri, this)
+            // Also persist to SIM ADN (IccPhonebookProvider); subscription-scoped for dual-SIM.
+            if (isSimDestination) {
+                android.util.Log.d(
+                    "SimContactSave",
+                    "insertContact: applyBatch OK isSimDestination=true rawId=$rawId accountName=${contact.source} accountType=$accountType",
+                )
+                if (showSimAdnProgressToasts) {
+                    context.toast(R.string.sim_adn_progress_writing)
+                }
+                val adnOk = insertIccAdnForSimRawContactWithRetries(
+                    accountName = contact.source,
+                    accountType = accountType,
+                    number = contact.phoneNumbers.firstOrNull()?.value ?: "",
+                    displayName = contact.getNameToDisplay(),
+                    logContext = "insertContact rawId=$rawId",
+                    showProgressToasts = showSimAdnProgressToasts,
+                    toastOnSuccess = showSimAdnProgressToasts,
+                )
+                if (!adnOk) {
+                    if (showSimAdnProgressToasts) {
+                        context.toast(R.string.sim_adn_write_failed)
+                    }
+                    try {
+                        val deleted = context.contentResolver.delete(
+                            ContentUris.withAppendedId(RawContacts.CONTENT_URI, rawId),
+                            null,
+                            null,
+                        )
+                        android.util.Log.w(
+                            "SimContactSave",
+                            "insertContact: SIM ADN failed after retries; removed orphan rawContact rawId=$rawId deletedRows=$deleted",
+                        )
+                    } catch (e: Exception) {
+                        android.util.Log.e(
+                            "SimContactSave",
+                            "insertContact: SIM ADN failed and rollback delete threw rawId=$rawId",
+                            e,
+                        )
+                    }
+                    return false
                 }
             }
 
             // fullsize photo
-            val rawId = ContentUris.parseId(results[0].uri!!)
             contact.id = rawId.toInt()
-            if (contact.photoUri.isNotEmpty() && fullSizePhotoData != null) {
+            if (!isSimDestination && contact.photoUri.isNotEmpty() && fullSizePhotoData != null) {
                 addFullSizePhoto(rawId, fullSizePhotoData)
             }
 
             // favorite, ringtone
-            val userId = getRealContactId(rawId)
-            if (userId != 0) {
-                val uri = Uri.withAppendedPath(Contacts.CONTENT_URI, userId.toString())
-                val contentValues = ContentValues(2)
-                contentValues.put(Contacts.STARRED, contact.starred)
-                contentValues.put(Contacts.CUSTOM_RINGTONE, contact.ringtone)
-                context.contentResolver.update(uri, contentValues, null, null)
+            if (!isSimDestination) {
+                val userId = getRealContactId(rawId)
+                if (userId != 0) {
+                    val uri = Uri.withAppendedPath(Contacts.CONTENT_URI, userId.toString())
+                    val contentValues = ContentValues(2)
+                    contentValues.put(Contacts.STARRED, contact.starred)
+                    contentValues.put(Contacts.CUSTOM_RINGTONE, contact.ringtone)
+                    context.contentResolver.update(uri, contentValues, null, null)
+                }
             }
 
             return true
@@ -2075,10 +2074,6 @@ class ContactsHelper(val context: Context) {
             return false
         }
     }
-
-    /** Used by the host app batch contact import (VCF). */
-    fun mapRelationEditTypeToProviderTypeLabel(type: Int, label: String): Pair<Int, String> =
-        getRelationAndroidTypeLabelFromEditTypeLabel(type, label)
 
     /** Used by the host app batch contact import (VCF). */
     fun getAggregateContactIdForRawContact(rawContactId: Long): Int = getRealContactId(rawContactId)
@@ -2170,13 +2165,16 @@ class ContactsHelper(val context: Context) {
             }
 
             // events
-            contact.events.forEach {
+            contact.events
+                .filter { it.type == CommonDataKinds.Event.TYPE_BIRTHDAY }
+                .take(1)
+                .forEach {
                 ContentProviderOperation.newInsert(Data.CONTENT_URI).apply {
                     withValueBackReference(Data.RAW_CONTACT_ID, 0)
                     withValue(Data.MIMETYPE, CommonDataKinds.Event.CONTENT_ITEM_TYPE)
                     withValue(CommonDataKinds.Event.START_DATE, it.value)
-                    withValue(CommonDataKinds.Event.TYPE, it.type)
-                    withValue(CommonDataKinds.Event.LABEL, it.label)
+                    withValue(CommonDataKinds.Event.TYPE, CommonDataKinds.Event.TYPE_BIRTHDAY)
+                    withValue(CommonDataKinds.Event.LABEL, "")
                     operations.add(build())
                 }
             }
@@ -2197,30 +2195,6 @@ class ContactsHelper(val context: Context) {
                     withValue(CommonDataKinds.Organization.COMPANY, contact.organization.company)
                     withValue(CommonDataKinds.Organization.TYPE, DEFAULT_ORGANIZATION_TYPE)
                     withValue(CommonDataKinds.Organization.TITLE, contact.organization.jobPosition)
-                    operations.add(build())
-                }
-            }
-
-            // websites
-            contact.websites.forEach {
-                ContentProviderOperation.newInsert(Data.CONTENT_URI).apply {
-                    withValueBackReference(Data.RAW_CONTACT_ID, 0)
-                    withValue(Data.MIMETYPE, CommonDataKinds.Website.CONTENT_ITEM_TYPE)
-                    withValue(CommonDataKinds.Website.URL, it)
-                    withValue(CommonDataKinds.Website.TYPE, DEFAULT_WEBSITE_TYPE)
-                    operations.add(build())
-                }
-            }
-
-            // relations
-            contact.relations.forEach {
-                ContentProviderOperation.newInsert(Data.CONTENT_URI).apply {
-                    withValueBackReference(Data.RAW_CONTACT_ID, 0)
-                    withValue(Data.MIMETYPE, CommonDataKinds.Relation.CONTENT_ITEM_TYPE)
-                    val (type, label) = getRelationAndroidTypeLabelFromEditTypeLabel(it.type, it.label)
-                    withValue(CommonDataKinds.Relation.NAME, it.name)
-                    withValue(CommonDataKinds.Relation.TYPE, type)
-                    withValue(CommonDataKinds.Relation.LABEL, label)
                     operations.add(build())
                 }
             }
@@ -2288,38 +2262,108 @@ class ContactsHelper(val context: Context) {
         return ""
     }
 
-    fun addFavorites(contacts: ArrayList<Contact>, callback: (() -> Unit)? = null) {
+    fun addFavorites(
+        contacts: ArrayList<Contact>,
+        callback: (() -> Unit)? = null,
+        onProgress: ((done: Int, total: Int) -> Unit)? = null
+    ) {
         ensureBackgroundThread {
             if (context.hasContactPermissions()) {
-                toggleFavorites(contacts, true, callback)
+                toggleFavorites(contacts, true, callback, onProgress)
+            } else {
+                callback?.invoke()
             }
         }
     }
 
-    fun removeFavorites(contacts: ArrayList<Contact>, callback: (() -> Unit)? = null) {
+    fun removeFavorites(
+        contacts: ArrayList<Contact>,
+        callback: (() -> Unit)? = null,
+        onProgress: ((done: Int, total: Int) -> Unit)? = null
+    ) {
         ensureBackgroundThread {
             if (context.hasContactPermissions()) {
-                toggleFavorites(contacts, false, callback)
+                toggleFavorites(contacts, false, callback, onProgress)
+            } else {
+                callback?.invoke()
             }
         }
     }
 
-    private fun toggleFavorites(contacts: ArrayList<Contact>, addToFavorites: Boolean, callback: (() -> Unit)? = null) {
+    /**
+     * Applies add and/or remove favorite updates sequentially on the **current** thread (no [ensureBackgroundThread]).
+     * Use from a worker thread for a single progress stream (e.g. select-contacts add+remove).
+     */
+    fun applyFavoriteBulkChanges(
+        addToFavorites: ArrayList<Contact>?,
+        removeFromFavorites: ArrayList<Contact>?,
+        onProgress: ((done: Int, total: Int) -> Unit)? = null
+    ) {
+        val addList = addToFavorites?.distinctBy { it.contactId } ?: emptyList()
+        val removeList = removeFromFavorites?.distinctBy { it.contactId } ?: emptyList()
+        val grandTotal = addList.size + removeList.size
+        if (grandTotal == 0 || !context.hasContactPermissions()) {
+            return
+        }
+        onProgress?.invoke(0, grandTotal)
+        val addSize = addList.size
+        if (addList.isNotEmpty()) {
+            toggleFavorites(ArrayList(addList), true, null, onProgress = { d, _ ->
+                onProgress?.invoke(d, grandTotal)
+            })
+        }
+        if (removeList.isNotEmpty()) {
+            toggleFavorites(ArrayList(removeList), false, null, onProgress = { d, _ ->
+                onProgress?.invoke(addSize + d, grandTotal)
+            })
+        }
+    }
+
+    /** Fewer [applyBatch] round trips than [BATCH_SIZE] — star/unstar is one update op per contact. */
+    private fun toggleFavorites(
+        contacts: ArrayList<Contact>,
+        addToFavorites: Boolean,
+        callback: (() -> Unit)? = null,
+        onProgress: ((done: Int, total: Int) -> Unit)? = null
+    ) {
         try {
+            val list = contacts.distinctBy { it.contactId }
+            val total = list.size
+            if (total == 0) {
+                onProgress?.invoke(0, 0)
+                callback?.invoke()
+                return
+            }
+            onProgress?.invoke(0, total)
             val operations = ArrayList<ContentProviderOperation>()
-            contacts.map { it.contactId.toString() }.forEach {
-                val uri = Uri.withAppendedPath(Contacts.CONTENT_URI, it)
-                ContentProviderOperation.newUpdate(uri).apply {
-                    withValue(Contacts.STARRED, if (addToFavorites) 1 else 0)
-                    operations.add(build())
-                }
-
-                if (operations.size % BATCH_SIZE == 0) {
+            val flushBatch = {
+                if (operations.isNotEmpty()) {
                     context.contentResolver.applyBatch(AUTHORITY, operations)
                     operations.clear()
                 }
             }
-            context.contentResolver.applyBatch(AUTHORITY, operations)
+            val starredValue = if (addToFavorites) 1 else 0
+            // Progress was only reported when hitting MAX_PROVIDER_BATCH_OPS (e.g. 450), so batches
+            // smaller than that never updated the UI until the end — show ~15 steps for any total.
+            val progressStep = (total / 15).coerceAtLeast(1)
+            var processed = 0
+            list.forEach { contact ->
+                val uri = Uri.withAppendedPath(Contacts.CONTENT_URI, contact.contactId.toString())
+                ContentProviderOperation.newUpdate(uri).apply {
+                    withValue(Contacts.STARRED, starredValue)
+                    operations.add(build())
+                }
+                processed++
+                if (processed % progressStep == 0 || processed == total) {
+                    onProgress?.invoke(processed, total)
+                }
+                if (operations.size >= MAX_PROVIDER_BATCH_OPS) {
+                    flushBatch()
+                    onProgress?.invoke(processed, total)
+                }
+            }
+            flushBatch()
+            onProgress?.invoke(total, total)
             callback?.invoke()
         } catch (e: Exception) {
             context.showErrorToast(e)
@@ -2361,10 +2405,20 @@ class ContactsHelper(val context: Context) {
     }
 
     fun moveContacts(contacts: ArrayList<Contact>, destinationSource: String, callback: (success: Boolean, movedCount: Int) -> Unit) {
-        moveContacts(contacts, destinationSource, null, callback)
+        moveContacts(contacts, destinationSource, null, null, callback)
     }
 
     fun moveContacts(contacts: ArrayList<Contact>, destinationSource: String, progressCallback: ((current: Int, total: Int) -> Unit)?, callback: (success: Boolean, movedCount: Int) -> Unit) {
+        moveContacts(contacts, destinationSource, progressCallback, null, callback)
+    }
+
+    fun moveContacts(
+        contacts: ArrayList<Contact>,
+        destinationSource: String,
+        progressCallback: ((current: Int, total: Int) -> Unit)?,
+        onContactProgress: ((current: Int, total: Int, contactLabel: String) -> Unit)?,
+        callback: (success: Boolean, movedCount: Int) -> Unit
+    ) {
         ensureBackgroundThread {
             val handler = Handler(Looper.getMainLooper())
             
@@ -2375,6 +2429,9 @@ class ContactsHelper(val context: Context) {
                 return@ensureBackgroundThread
             }
 
+            val destAccountType = getContactSourceType(destinationSource)
+            val destIsSim = isSimAccountTypeForPersistence(destAccountType)
+
             val totalContacts = contacts.size
             var movedCount = 0
             var failedCount = 0
@@ -2384,14 +2441,32 @@ class ContactsHelper(val context: Context) {
 
             try {
                 var currentIndex = 0
-                
+                var processedCount = 0
+
+                if (totalContacts > 0 && onContactProgress != null) {
+                    handler.post {
+                        onContactProgress(0, totalContacts, "")
+                    }
+                }
+
                 while (currentIndex < totalContacts) {
                     val batchEnd = minOf(currentIndex + BATCH_SIZE, totalContacts)
                     val batch = contacts.subList(currentIndex, batchEnd)
                     
                     batch.forEach { contact ->
+                        processedCount++
                         // Get full contact data before copying
                         val fullContact = getContactWithId(contact.id)
+                        val labelForProgress = fullContact?.getNameToDisplay()?.ifBlank {
+                            fullContact.phoneNumbers.firstOrNull()?.value
+                        }?.ifBlank { "…" } ?: "…"
+
+                        if (onContactProgress != null && shouldReportContactTransferProgress(processedCount, totalContacts)) {
+                            handler.post {
+                                onContactProgress(processedCount, totalContacts, labelForProgress)
+                            }
+                        }
+
                         if (fullContact == null) {
                             failedCount++
                             return@forEach
@@ -2403,9 +2478,14 @@ class ContactsHelper(val context: Context) {
                         newContact.id = 0 // Reset ID for new contact
                         newContact.contactId = 0
 
-                        // Insert contact to new location
-                        val insertSuccess = insertContact(newContact)
-                        
+                        // SIM ADN only supports up to 2 phone numbers per entry.
+                        if (destIsSim && newContact.phoneNumbers.size > SIM_MAX_PHONE_NUMBERS) {
+                            newContact.phoneNumbers = ArrayList(newContact.phoneNumbers.take(SIM_MAX_PHONE_NUMBERS))
+                        }
+
+                        // Insert contact to new location (no per-contact SIM toasts; host shows one summary)
+                        val insertSuccess = insertContact(newContact, showSimAdnProgressToasts = false)
+
                         if (insertSuccess) {
                             // Store original contact for deletion after all copies succeed
                             contactsToDelete.add(fullContact)
@@ -2454,6 +2534,7 @@ class ContactsHelper(val context: Context) {
         contacts: ArrayList<Contact>,
         destinationSource: String,
         progressCallback: ((current: Int, total: Int) -> Unit)? = null,
+        onContactProgress: ((current: Int, total: Int, contactLabel: String) -> Unit)? = null,
         callback: (success: Boolean, copiedCount: Int) -> Unit
     ) {
         ensureBackgroundThread {
@@ -2466,6 +2547,9 @@ class ContactsHelper(val context: Context) {
                 return@ensureBackgroundThread
             }
 
+            val destAccountType = getContactSourceType(destinationSource)
+            val destIsSim = isSimAccountTypeForPersistence(destAccountType)
+
             val totalContacts = contacts.size
             var copiedCount = 0
             val BATCH_SIZE = 10
@@ -2473,13 +2557,31 @@ class ContactsHelper(val context: Context) {
 
             try {
                 var currentIndex = 0
+                var processedCount = 0
+
+                if (totalContacts > 0 && onContactProgress != null) {
+                    handler.post {
+                        onContactProgress(0, totalContacts, "")
+                    }
+                }
 
                 while (currentIndex < totalContacts) {
                     val batchEnd = minOf(currentIndex + BATCH_SIZE, totalContacts)
                     val batch = contacts.subList(currentIndex, batchEnd)
 
                     batch.forEach { contact ->
+                        processedCount++
                         val fullContact = getContactWithId(contact.id)
+                        val labelForProgress = fullContact?.getNameToDisplay()?.ifBlank {
+                            fullContact.phoneNumbers.firstOrNull()?.value
+                        }?.ifBlank { "…" } ?: "…"
+
+                        if (onContactProgress != null && shouldReportContactTransferProgress(processedCount, totalContacts)) {
+                            handler.post {
+                                onContactProgress(processedCount, totalContacts, labelForProgress)
+                            }
+                        }
+
                         if (fullContact == null) {
                             return@forEach
                         }
@@ -2489,7 +2591,12 @@ class ContactsHelper(val context: Context) {
                         newContact.id = 0
                         newContact.contactId = 0
 
-                        if (insertContact(newContact)) {
+                        // SIM ADN only supports up to 2 phone numbers per entry.
+                        if (destIsSim && newContact.phoneNumbers.size > SIM_MAX_PHONE_NUMBERS) {
+                            newContact.phoneNumbers = ArrayList(newContact.phoneNumbers.take(SIM_MAX_PHONE_NUMBERS))
+                        }
+
+                        if (insertContact(newContact, showSimAdnProgressToasts = false)) {
                             copiedCount++
                         }
                     }
@@ -2524,7 +2631,7 @@ class ContactsHelper(val context: Context) {
         val allSources = getDeviceContactSources()
         val currentSourceType = getContactSourceType(contact.source)
         val currentSourceName = contact.source
-        val isCurrentSim = currentSourceType.contains(".sim") || currentSourceType.contains("icc")
+        val isCurrentSim = isSimAccountTypeForPersistence(currentSourceType)
         val isCurrentPhoneStorage = (currentSourceName.isEmpty() && currentSourceType.isEmpty()) ||
             (currentSourceName.lowercase(Locale.getDefault()) == "phone" && currentSourceType.isEmpty())
         
@@ -2567,11 +2674,26 @@ class ContactsHelper(val context: Context) {
         contacts: ArrayList<Contact>,
         onProgress: ((deleted: Int, total: Int) -> Unit)? = null
     ): Boolean {
+        // SIM ADN cleanup is centralised in [deleteRawContactIds] so every delete path
+        // (single contact, bulk foreground service, edit-and-move) purges the physical SIM.
         val contactIds = contacts.map { it.id.toLong() }.filter { it > 0 }
         return deleteRawContactIds(contactIds, onProgress)
     }
 
-    /** Deletes raw contacts by [android.provider.ContactsContract.RawContacts] row ids (same as [Contact.id]). */
+    /**
+     * Deletes raw contacts by [android.provider.ContactsContract.RawContacts] row ids (same as [Contact.id]).
+     *
+     * Before removing rows from `ContactsContract`, this also purges the matching ADN entries
+     * from the physical SIM card. Without this step the platform re-syncs the old ADN entries
+     * back into `ContactsContract` the next time the SIM is inserted, undoing the delete.
+     *
+     * Two strategies are used (in order):
+     *  1. **MediaTek path** — read `index_in_sim` + `indicate_phone_sim` from the `RawContacts`
+     *     row and call `delete(simUri, "index = $indexInSim", null)` on the subscription-scoped
+     *     PBR/ADN URI. Mirrors DialContact's `SimDeleteProcessor`.
+     *  2. **Phone-number fallback** — for AOSP devices without those MTK columns, search the
+     *     ICC provider for a row whose normalised `number` matches the contact's first phone.
+     */
     fun deleteRawContactIds(
         rawContactIds: List<Long>,
         onProgress: ((deleted: Int, total: Int) -> Unit)? = null
@@ -2589,6 +2711,10 @@ class ContactsHelper(val context: Context) {
                 onProgress?.invoke(0, total)
                 return true
             }
+
+            // SIM ADN purge MUST happen before the RawContacts delete: we need to read
+            // [account, index_in_sim, phone number] from the row, which disappears after.
+            purgeSimAdnEntriesBeforeRawContactsDelete(contactIds)
 
             onProgress?.invoke(0, total)
 
@@ -2608,6 +2734,187 @@ class ContactsHelper(val context: Context) {
         } catch (e: Exception) {
             context.showErrorToast(e)
             false
+        }
+    }
+
+    /**
+     * Internal: load `[account, MediaTek SIM metadata]` for each raw contact id, then call
+     * [Context.tryDeleteIccAdnByMtkSimIndex] (preferred) or [Context.tryDeleteIccAdnForSimContact]
+     * (phone-number fallback) so the SIM card itself loses the corresponding ADN entries.
+     *
+     * If neither strategy succeeds for a row, the metadata (incl. number+name+SIM index) is
+     * captured into [SimAdnPendingDeleteSync] so we can retry on the next SIM-ready broadcast.
+     * Without that retry, the platform's automatic `IccProvider → ContactsContract` resync
+     * would re-create the contact when the user reinserts the SIM, defeating the delete.
+     */
+    private fun purgeSimAdnEntriesBeforeRawContactsDelete(rawContactIds: List<Long>) {
+        if (rawContactIds.isEmpty()) return
+        val simRows = loadSimRawContactDeleteMetadata(rawContactIds)
+        if (simRows.isEmpty()) return
+
+        simRows.forEach { meta ->
+            // Number + name read up-front so retry-on-reinsert still has them after the
+            // RawContacts row is gone. Empty when no Phone/Name data row exists, in which
+            // case we lean on the MTK index.
+            val firstNumber = loadFirstPhoneNumberForRawContactId(meta.rawContactId)
+            val displayName = loadDisplayNameForRawContactId(meta.rawContactId)
+
+            // Strategy 1: MediaTek-style delete by index_in_sim + subId. Most reliable.
+            val mtkOk = meta.indexInSim > 0 && meta.mtkSubId > 0 &&
+                context.tryDeleteIccAdnByMtkSimIndex(
+                    mtkSubId = meta.mtkSubId,
+                    indexInSim = meta.indexInSim,
+                    accountName = meta.accountName,
+                    accountType = meta.accountType,
+                    logContext = "deleteRawContactIds rawId=${meta.rawContactId}",
+                )
+            if (mtkOk) return@forEach
+
+            // Strategy 2: AOSP-friendly fallback — look up the phone number, then search the ADN.
+            val aospOk = (firstNumber.isNotEmpty() || displayName.isNotEmpty()) &&
+                context.tryDeleteIccAdnForSimContact(
+                    accountName = meta.accountName,
+                    accountType = meta.accountType,
+                    phoneNumber = firstNumber,
+                    displayName = displayName,
+                    logContext = "deleteRawContactIds rawId=${meta.rawContactId} fallback",
+                )
+            if (aospOk) return@forEach
+
+            // Both immediate strategies failed: queue the entry so the next SIM-ready
+            // broadcast (or the next foreground sync poke) retries while we still have all
+            // the metadata. Will be a no-op when there's nothing addressable.
+            SimAdnPendingDeleteSync.enqueueAfterAdnDeleteFailure(
+                context,
+                SimAdnPendingDeleteEntry(
+                    rawContactId = meta.rawContactId.toInt(),
+                    accountName = meta.accountName,
+                    accountType = meta.accountType,
+                    mtkSubId = meta.mtkSubId,
+                    indexInSim = meta.indexInSim,
+                    normalizedNumber = normalizeIccDialableNumber(firstNumber),
+                    displayName = displayName,
+                ),
+            )
+        }
+    }
+
+    private data class SimRawContactMeta(
+        val rawContactId: Long,
+        val accountName: String,
+        val accountType: String,
+        val indexInSim: Int,
+        val mtkSubId: Int,
+    )
+
+    /** Returns metadata for the SIM-backed entries among [rawContactIds]; non-SIM rows are skipped. */
+    private fun loadSimRawContactDeleteMetadata(rawContactIds: List<Long>): List<SimRawContactMeta> {
+        val out = ArrayList<SimRawContactMeta>(rawContactIds.size)
+        val placeholders = getQuestionMarks(rawContactIds.size)
+        val selection = "${RawContacts._ID} IN ($placeholders)"
+        val args = rawContactIds.map { it.toString() }.toTypedArray()
+
+        // First attempt: include MediaTek SIM columns. AOSP devices throw IllegalArgumentException
+        // for unknown columns; we silently fall back to the basic projection in that case.
+        val mtkProjection = arrayOf(
+            RawContacts._ID,
+            RawContacts.ACCOUNT_NAME,
+            RawContacts.ACCOUNT_TYPE,
+            "index_in_sim",
+            "indicate_phone_sim",
+        )
+        try {
+            context.contentResolver.query(RawContacts.CONTENT_URI, mtkProjection, selection, args, null)?.use { c ->
+                val idIdx = c.getColumnIndexOrThrow(RawContacts._ID)
+                val nameIdx = c.getColumnIndex(RawContacts.ACCOUNT_NAME)
+                val typeIdx = c.getColumnIndex(RawContacts.ACCOUNT_TYPE)
+                val indexIdx = c.getColumnIndex("index_in_sim")
+                val subIdIdx = c.getColumnIndex("indicate_phone_sim")
+                while (c.moveToNext()) {
+                    val accountType = if (typeIdx >= 0) c.getString(typeIdx) ?: "" else ""
+                    if (!isSimAccountTypeForPersistence(accountType)) continue
+                    out.add(
+                        SimRawContactMeta(
+                            rawContactId = c.getLong(idIdx),
+                            accountName = if (nameIdx >= 0) c.getString(nameIdx) ?: "" else "",
+                            accountType = accountType,
+                            indexInSim = if (indexIdx >= 0) c.getInt(indexIdx) else 0,
+                            mtkSubId = if (subIdIdx >= 0) c.getInt(subIdIdx) else 0,
+                        )
+                    )
+                }
+            }
+            // MTK projection succeeded (even if zero rows matched); skip the AOSP fallback.
+            return out
+        } catch (e: Exception) {
+            android.util.Log.d(
+                "SimContactSave",
+                "loadSimRawContactDeleteMetadata: MTK projection failed, falling back to AOSP — ${e.javaClass.simpleName}",
+            )
+        }
+
+        // Fallback projection (AOSP without MediaTek SIM columns).
+        val basicProjection = arrayOf(
+            RawContacts._ID,
+            RawContacts.ACCOUNT_NAME,
+            RawContacts.ACCOUNT_TYPE,
+        )
+        try {
+            context.contentResolver.query(RawContacts.CONTENT_URI, basicProjection, selection, args, null)?.use { c ->
+                val idIdx = c.getColumnIndexOrThrow(RawContacts._ID)
+                val nameIdx = c.getColumnIndex(RawContacts.ACCOUNT_NAME)
+                val typeIdx = c.getColumnIndex(RawContacts.ACCOUNT_TYPE)
+                while (c.moveToNext()) {
+                    val accountType = if (typeIdx >= 0) c.getString(typeIdx) ?: "" else ""
+                    if (!isSimAccountTypeForPersistence(accountType)) continue
+                    out.add(
+                        SimRawContactMeta(
+                            rawContactId = c.getLong(idIdx),
+                            accountName = if (nameIdx >= 0) c.getString(nameIdx) ?: "" else "",
+                            accountType = accountType,
+                            indexInSim = 0,
+                            mtkSubId = 0,
+                        )
+                    )
+                }
+            }
+        } catch (e: Exception) {
+            android.util.Log.w("SimContactSave", "loadSimRawContactDeleteMetadata basic query failed", e)
+        }
+        return out
+    }
+
+    /** Read the first phone number for a raw contact id (for the AOSP ADN-search fallback). */
+    private fun loadFirstPhoneNumberForRawContactId(rawContactId: Long): String {
+        return try {
+            context.contentResolver.query(
+                Data.CONTENT_URI,
+                arrayOf(CommonDataKinds.Phone.NUMBER),
+                "${Data.RAW_CONTACT_ID} = ? AND ${Data.MIMETYPE} = ?",
+                arrayOf(rawContactId.toString(), CommonDataKinds.Phone.CONTENT_ITEM_TYPE),
+                null,
+            )?.use { c ->
+                if (c.moveToFirst()) c.getString(0) ?: "" else ""
+            } ?: ""
+        } catch (_: Exception) {
+            ""
+        }
+    }
+
+    /** Read the display name for a raw contact id (used by the ADN-search fallback's tag match). */
+    private fun loadDisplayNameForRawContactId(rawContactId: Long): String {
+        return try {
+            context.contentResolver.query(
+                Data.CONTENT_URI,
+                arrayOf(CommonDataKinds.StructuredName.DISPLAY_NAME),
+                "${Data.RAW_CONTACT_ID} = ? AND ${Data.MIMETYPE} = ?",
+                arrayOf(rawContactId.toString(), CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE),
+                null,
+            )?.use { c ->
+                if (c.moveToFirst()) c.getString(0) ?: "" else ""
+            } ?: ""
+        } catch (_: Exception) {
+            ""
         }
     }
 
@@ -2735,14 +3042,7 @@ class ContactsHelper(val context: Context) {
                     val familyName = cursor.getStringValue(CommonDataKinds.StructuredName.FAMILY_NAME) ?: ""
                     suffix = cursor.getStringValue(CommonDataKinds.StructuredName.SUFFIX) ?: ""
                     
-                    // Optimize: Combine name parts without creating intermediate list
-                    val nameBuilder = StringBuilder()
-                    if (prefix.isNotEmpty()) nameBuilder.append(prefix).append(" ")
-                    if (givenName.isNotEmpty()) nameBuilder.append(givenName).append(" ")
-                    if (middleName.isNotEmpty()) nameBuilder.append(middleName).append(" ")
-                    if (familyName.isNotEmpty()) nameBuilder.append(familyName).append(" ")
-                    if (suffix.isNotEmpty()) nameBuilder.append(suffix).append(" ")
-                    name = nameBuilder.trim().toString()
+                    name = composeStructuredRowDisplayName(cursor, prefix, givenName, middleName, familyName, suffix)
                     // Clear other name fields since we're using single name
                     prefix = ""
                     middleName = ""
@@ -2770,14 +3070,12 @@ class ContactsHelper(val context: Context) {
                 val notes = ""
                 val groups = ArrayList<Group>()
                 val organization = Organization("", "")
-                val websites = ArrayList<String>()
-                val relations = ArrayList<ContactRelation>()
                 val ims = ArrayList<IM>()
                 val contact = Contact(
                     id, prefix, name, middleName, surname, suffix, nickname,
                     photoUri, numbers, emails, addresses, events, accountName,
                     starred, contactId, thumbnailUri, null, notes, groups, organization,
-                    websites, relations, ims, mimetype, ringtone
+                    ims, mimetype, ringtone
                 )
 
                 contacts.put(id, contact)
@@ -2805,5 +3103,60 @@ class ContactsHelper(val context: Context) {
         for (i in 0 until contactsSize) {
             contacts.valueAt(i).nickname = ""
         }
+    }
+
+    /**
+     * Prefer [CommonDataKinds.StructuredName.DISPLAY_NAME] when the provider stored it (SIM/USIM
+     * sync often keeps the full ADN string there while splitting [GIVEN_NAME]/[FAMILY_NAME] and
+     * dropping spaces).
+     */
+    private fun composeStructuredRowDisplayName(
+        cursor: Cursor,
+        prefix: String,
+        givenName: String,
+        middleName: String,
+        familyName: String,
+        suffix: String,
+    ): String {
+        val idx = cursor.getColumnIndex(CommonDataKinds.StructuredName.DISPLAY_NAME)
+        if (idx >= 0) {
+            val direct = cursor.getString(idx)?.trim().orEmpty()
+            if (direct.isNotEmpty()) return direct
+        }
+        return buildDisplayName(prefix, givenName, middleName, familyName, suffix)
+    }
+
+    /**
+     * Builds a display name string from structured name components, using Eastern order
+     * (family+given, no space) for Korean/CJK scripts and Western order otherwise.
+     */
+    private fun buildDisplayName(
+        prefix: String, givenName: String, middleName: String,
+        familyName: String, suffix: String
+    ): String {
+        val eastern = familyName.isNotBlank() && givenName.isNotBlank() &&
+            (isEasternScript(familyName) || isEasternScript(givenName))
+        return if (eastern) {
+            listOf(prefix, familyName + givenName, middleName, suffix)
+                .filter { it.isNotBlank() }.joinToString(" ").trim()
+        } else {
+            val sb = StringBuilder()
+            if (prefix.isNotEmpty()) sb.append(prefix).append(" ")
+            if (givenName.isNotEmpty()) sb.append(givenName).append(" ")
+            if (middleName.isNotEmpty()) sb.append(middleName).append(" ")
+            if (familyName.isNotEmpty()) sb.append(familyName).append(" ")
+            if (suffix.isNotEmpty()) sb.append(suffix).append(" ")
+            sb.trim().toString()
+        }
+    }
+
+    private fun isEasternScript(s: String): Boolean = s.any { c ->
+        c in '\uAC00'..'\uD7AF' ||  // Hangul syllables
+        c in '\u1100'..'\u11FF' ||  // Hangul Jamo
+        c in '\u3130'..'\u318F' ||  // Hangul Compatibility Jamo (ㄱ–ㅣ)
+        c in '\uA960'..'\uA97F' ||  // Hangul Jamo Extended-A
+        c in '\uD7B0'..'\uD7FF' ||  // Hangul Jamo Extended-B
+        c in '\u4E00'..'\u9FFF' ||  // CJK unified ideographs
+        c in '\u3400'..'\u4DBF'     // CJK extension A
     }
 }

@@ -60,9 +60,12 @@ class LocalContactsHelper(val context: Context) {
     }
 
     fun toggleFavorites(ids: Array<Int>, addToFavorites: Boolean) {
+        if (ids.isEmpty()) {
+            return
+        }
         val isStarred = if (addToFavorites) 1 else 0
-        ids.forEach {
-            context.contactsDB.updateStarred(isStarred, it)
+        ids.toList().distinct().chunked(500).forEach { chunk ->
+            context.contactsDB.updateStarredForIds(isStarred, chunk)
         }
     }
 
@@ -120,8 +123,6 @@ class LocalContactsHelper(val context: Context) {
             notes = localContact.notes
             groups = storedGroups.filter { localContact.groups.contains(it.id) } as ArrayList<Group>
             organization = Organization(localContact.company, localContact.jobPosition)
-            websites = localContact.websites
-            relations = localContact.relations
             IMs = localContact.IMs
             ringtone = localContact.ringtone
         }
@@ -152,8 +153,6 @@ class LocalContactsHelper(val context: Context) {
             groups = contact.groups.map { it.id }.toMutableList() as ArrayList<Long>
             company = contact.organization.company
             jobPosition = contact.organization.jobPosition
-            websites = contact.websites
-            relations = contact.relations
             IMs = contact.IMs
             ringtone = contact.ringtone
         }

@@ -36,7 +36,7 @@ fun Context.getEmptyContact(): Contact {
     val organization = Organization("", "")
     return Contact(
         0, "", "", "", "", "", "", "", ArrayList(), ArrayList(), ArrayList(), ArrayList(), originalContactSource, 0, 0, "",
-        null, "", ArrayList(), organization, ArrayList(), ArrayList(), ArrayList(), DEFAULT_MIMETYPE, null
+        null, "", ArrayList(), organization, ArrayList(), DEFAULT_MIMETYPE, null
     )
 }
 
@@ -45,21 +45,6 @@ fun Context.sendAddressIntent(address: String) {
     val uri = "geo:0,0?q=$location".toUri()
 
     Intent(Intent.ACTION_VIEW, uri).apply {
-        launchActivityIntent(this)
-    }
-}
-
-fun Context.openWebsiteIntent(url: String) {
-    val website = if (url.startsWith("http")) {
-        url
-    } else if (url.contains("://")) {
-        url
-    } else {
-        "https://$url"
-    }
-
-    Intent(Intent.ACTION_VIEW).apply {
-        data = website.toUri()
         launchActivityIntent(this)
     }
 }
@@ -153,13 +138,11 @@ fun Context.getPublicContactSource(source: String, callback: (String) -> Unit) {
             ContactsHelper(this).getContactSources {
                 var newSource = source
                 for (contactSource in it) {
-                    if (contactSource.name == source && contactSource.type == TELEGRAM_PACKAGE) {
-                        newSource = getString(R.string.telegram)
-                        break
-                    } else if (contactSource.name == source && contactSource.type == VIBER_PACKAGE) {
-                        newSource = getString(R.string.viber)
-                        break
+                    if (contactSource.name != source) {
+                        continue
                     }
+                    newSource = contactSource.publicName.ifBlank { source }
+                    break
                 }
                 Handler(Looper.getMainLooper()).post {
                     callback(newSource)
@@ -173,18 +156,13 @@ fun Context.getPublicContactSourceSync(source: String, contactSources: ArrayList
     return when (source) {
         SMT_PRIVATE -> getString(R.string.phone_storage_hidden)
         else -> {
-            var newSource = source
             for (contactSource in contactSources) {
-                if (contactSource.name == source && contactSource.type == TELEGRAM_PACKAGE) {
-                    newSource = getString(R.string.telegram)
-                    break
-                } else if (contactSource.name == source && contactSource.type == VIBER_PACKAGE) {
-                    newSource = getString(R.string.viber)
-                    break
+                if (contactSource.name != source) {
+                    continue
                 }
+                return contactSource.publicName.ifBlank { source }
             }
-
-            return newSource
+            return source
         }
     }
 }

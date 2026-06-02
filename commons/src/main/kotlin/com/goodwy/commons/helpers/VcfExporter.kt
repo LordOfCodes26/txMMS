@@ -201,10 +201,6 @@ class VcfExporter {
                     card.titles.add(Title(contact.organization.jobPosition))
                 }
 
-                contact.websites.forEach {
-                    card.addUrl(it)
-                }
-
                 if (contact.thumbnailUri.isNotEmpty()) {
                     val photoByteArray = MediaStore.Images.Media.getBitmap(activity.contentResolver, contact.thumbnailUri.toUri()).getByteArray()
                     val photo = Photo(photoByteArray, ImageType.JPEG)
@@ -239,29 +235,29 @@ class VcfExporter {
     }
 
     private fun getPhoneNumberTypeLabel(type: Int, label: String) = when (type) {
-        Phone.TYPE_MOBILE -> CELL
-        Phone.TYPE_HOME -> HOME
-        Phone.TYPE_WORK -> WORK
-        Phone.TYPE_MAIN -> PREF
-        Phone.TYPE_FAX_WORK -> WORK_FAX
-        Phone.TYPE_FAX_HOME -> HOME_FAX
-        Phone.TYPE_PAGER -> PAGER
-        Phone.TYPE_OTHER -> OTHER
+//        Phone.TYPE_MOBILE -> CELL
+//        Phone.TYPE_HOME -> HOME
+//        Phone.TYPE_WORK -> WORK
+//        Phone.TYPE_MAIN -> PREF
+//        Phone.TYPE_FAX_WORK -> WORK_FAX
+//        Phone.TYPE_FAX_HOME -> HOME_FAX
+//        Phone.TYPE_PAGER -> PAGER
+//        Phone.TYPE_OTHER -> OTHER
         else -> label
     }
 
     private fun getEmailTypeLabel(type: Int, label: String) = when (type) {
-        CommonDataKinds.Email.TYPE_HOME -> HOME
-        CommonDataKinds.Email.TYPE_WORK -> WORK
-        CommonDataKinds.Email.TYPE_MOBILE -> MOBILE
-        CommonDataKinds.Email.TYPE_OTHER -> OTHER
+//        CommonDataKinds.Email.TYPE_HOME -> HOME
+//        CommonDataKinds.Email.TYPE_WORK -> WORK
+//        CommonDataKinds.Email.TYPE_MOBILE -> MOBILE
+//        CommonDataKinds.Email.TYPE_OTHER -> OTHER
         else -> label
     }
 
     private fun getAddressTypeLabel(type: Int, label: String) = when (type) {
-        StructuredPostal.TYPE_HOME -> HOME
-        StructuredPostal.TYPE_WORK -> WORK
-        StructuredPostal.TYPE_OTHER -> OTHER
+//        StructuredPostal.TYPE_HOME -> HOME
+//        StructuredPostal.TYPE_WORK -> WORK
+//        StructuredPostal.TYPE_OTHER -> OTHER
         else -> label
     }
 

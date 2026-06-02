@@ -5,7 +5,6 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.goodwy.commons.models.PhoneNumber
 import com.goodwy.commons.models.contacts.Address
-import com.goodwy.commons.models.contacts.ContactRelation
 import com.goodwy.commons.models.contacts.Email
 import com.goodwy.commons.models.contacts.Event
 import com.goodwy.commons.models.contacts.IM
@@ -21,7 +20,6 @@ class Converters {
     private val addressType = object : TypeToken<List<Address>>() {}.type
     private val eventType = object : TypeToken<List<Event>>() {}.type
     private val imType = object : TypeToken<List<IM>>() {}.type
-    private val relationType = object : TypeToken<List<ContactRelation>>() {}.type
 
     @TypeConverter
     fun jsonToStringList(value: String): ArrayList<String> = gson.fromJson(value, stringType)
@@ -99,13 +97,5 @@ class Converters {
 
     @TypeConverter
     fun iMsListToJson(list: ArrayList<IM>): String = gson.toJson(list)
-
-    @TypeConverter
-    fun jsonToRelationList(value: String): ArrayList<ContactRelation> {
-        return (gson.fromJson<ArrayList<ContactRelation>>(value, relationType) ?: ArrayList())
-    }
-
-    @TypeConverter
-    fun relationListToJson(list: ArrayList<ContactRelation>): String = gson.toJson(list)
 
 }

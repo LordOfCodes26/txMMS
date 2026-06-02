@@ -54,7 +54,6 @@
     <ID>CyclomaticComplexMethod:RenamePatternTab.kt$RenamePatternTab$override fun dialogConfirmed(useMediaFileExtension: Boolean, callback: (success: Boolean) -&gt; Unit)</ID>
     <ID>CyclomaticComplexMethod:RenameSimpleTab.kt$RenameSimpleTab$override fun dialogConfirmed(useMediaFileExtension: Boolean, callback: (success: Boolean) -&gt; Unit)</ID>
     <ID>CyclomaticComplexMethod:SimpleContactsHelper.kt$SimpleContactsHelper$private fun getContactNames(favoritesOnly: Boolean): List&lt;SimpleContact&gt;</ID>
-    <ID>CyclomaticComplexMethod:VcfExporter.kt$VcfExporter$fun exportContacts( activity: BaseSimpleActivity, outputStream: OutputStream?, contacts: ArrayList&lt;Contact&gt;, showExportingToast: Boolean, callback: (result: ExportResult) -&gt; Unit )</ID>
     <ID>EmptyCatchBlock:Context-storage.kt${ }</ID>
     <ID>EmptyCatchBlock:Context-styling.kt${ }</ID>
     <ID>EmptyCatchBlock:Context.kt${ }</ID>
@@ -281,7 +280,6 @@
     <ID>LongMethod:StoragePickerDialog.kt$StoragePickerDialog$private fun initDialog()</ID>
     <ID>LongMethod:String.kt$fun String.getMimeType(): String</ID>
     <ID>LongMethod:Theme.kt$@Composable internal fun Theme( theme: Theme = systemDefaultMaterialYou(), content: @Composable () -&gt; Unit, )</ID>
-    <ID>LongMethod:VcfExporter.kt$VcfExporter$fun exportContacts( activity: BaseSimpleActivity, outputStream: OutputStream?, contacts: ArrayList&lt;Contact&gt;, showExportingToast: Boolean, callback: (result: ExportResult) -&gt; Unit )</ID>
     <ID>LongMethod:WritePermissionDialog.kt$@Composable fun WritePermissionAlertDialog( alertDialogState: AlertDialogState, writePermissionDialogMode: WritePermissionDialog.WritePermissionDialogMode, modifier: Modifier = Modifier, callback: () -&gt; Unit, onCancelCallback: () -&gt; Unit )</ID>
     <ID>LongParameterList:AboutScreen.kt$( onRateUsClick: () -&gt; Unit, onInviteClick: () -&gt; Unit, onContributorsClick: () -&gt; Unit, showRateUs: Boolean, showInvite: Boolean, showDonate: Boolean, onDonateClick: () -&gt; Unit, )</ID>
     <ID>LongParameterList:AboutScreen.kt$( showMoreApps: Boolean, onMoreAppsClick: () -&gt; Unit, onWebsiteClick: () -&gt; Unit, showWebsite: Boolean, showPrivacyPolicy: Boolean, onPrivacyPolicyClick: () -&gt; Unit, onLicenseClick: () -&gt; Unit, version: String, onVersionClick: () -&gt; Unit, )</ID>
@@ -1192,7 +1190,6 @@
     <ID>MagicNumber:SystemUIController.kt$AndroidSystemUiController$29</ID>
     <ID>MagicNumber:SystemUIController.kt$SystemUiController$0.5f</ID>
     <ID>MagicNumber:UpgradeToProDialog.kt$0.2f</ID>
-    <ID>MagicNumber:VcfExporter.kt$VcfExporter$1900</ID>
     <ID>MagicNumber:WhatsNewDialog.kt$14</ID>
     <ID>MagicNumber:WhatsNewDialog.kt$3</ID>
     <ID>MagicNumber:WritePermissionDialog.kt$0.9f</ID>
@@ -1600,8 +1597,6 @@
     <ID>MaxLineLength:Theme.kt$Theme.Companion$textColorInt = if (isSPlus()) colorResource(R.color.you_neutral_text_color).toArgb() else (if (isInDarkThemeAndSurfaceIsNotLitWell()) Color.White else Color.Black).toArgb()</ID>
     <ID>MaxLineLength:ThemeExtensions.kt$fun</ID>
     <ID>MaxLineLength:UpgradeToProDialog.kt$UpgradeToProDialog$activity</ID>
-    <ID>MaxLineLength:VcfExporter.kt$VcfExporter$val</ID>
-    <ID>MaxLineLength:VcfExporter.kt$VcfExporter$val photoByteArray = MediaStore.Images.Media.getBitmap(activity.contentResolver, Uri.parse(contact.thumbnailUri)).getByteArray()</ID>
     <ID>MaxLineLength:View.kt$fun View.performHapticFeedback()</ID>
     <ID>MaxLineLength:Window.kt$decorView.systemUiVisibility = decorView.systemUiVisibility.removeBit(View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR)</ID>
     <ID>MaxLineLength:WritePermissionDialog.kt$.</ID>
@@ -1641,7 +1636,6 @@
     <ID>NestedBlockDepth:MyRecyclerView.kt$MyRecyclerView$override fun dispatchTouchEvent(ev: MotionEvent): Boolean</ID>
     <ID>NestedBlockDepth:MyRecyclerView.kt$MyRecyclerView$override fun onScrollChanged(l: Int, t: Int, oldl: Int, oldt: Int)</ID>
     <ID>NestedBlockDepth:SelectAlarmSoundDialog.kt$SelectAlarmSoundDialog$private fun alarmClicked(alarmSound: AlarmSound)</ID>
-    <ID>NestedBlockDepth:VcfExporter.kt$VcfExporter$fun exportContacts( activity: BaseSimpleActivity, outputStream: OutputStream?, contacts: ArrayList&lt;Contact&gt;, showExportingToast: Boolean, callback: (result: ExportResult) -&gt; Unit )</ID>
     <ID>PackageNaming:AlertDialogState.kt$package com.goodwy.commons.compose.alert_dialog</ID>
     <ID>PackageNaming:AlertDialogsExtensions.kt$package com.goodwy.commons.compose.alert_dialog</ID>
     <ID>PackageNaming:BottomSheetDialogState.kt$package com.goodwy.commons.compose.bottom_sheet</ID>
@@ -1724,7 +1718,6 @@
     <ID>TooGenericExceptionCaught:RenameSimpleTab.kt$RenameSimpleTab$e: Exception</ID>
     <ID>TooGenericExceptionCaught:SelectAlarmSoundDialog.kt$SelectAlarmSoundDialog$e: Exception</ID>
     <ID>TooGenericExceptionCaught:String.kt$e: Exception</ID>
-    <ID>TooGenericExceptionCaught:VcfExporter.kt$VcfExporter$e: Exception</ID>
     <ID>TooGenericExceptionThrown:AppLockAdapter.kt$AppLockAdapter$throw RuntimeException("Only 3 tabs allowed")</ID>
     <ID>TooGenericExceptionThrown:BottomActionMenuParser.kt$BottomActionMenuParser$throw RuntimeException("Expecting menu, got $tagName")</ID>
     <ID>TooGenericExceptionThrown:LineColorPickerDialog.kt$LineColorPickerDialog$throw RuntimeException("Invalid color id $index")</ID>
@@ -2022,7 +2015,6 @@
     <ID>WildcardImport:Theme.kt$import androidx.compose.material3.*</ID>
     <ID>WildcardImport:Theme.kt$import androidx.compose.runtime.*</ID>
     <ID>WildcardImport:UpgradeToProDialog.kt$import com.goodwy.commons.compose.alert_dialog.*</ID>
-    <ID>WildcardImport:VcfExporter.kt$import ezvcard.property.*</ID>
     <ID>WildcardImport:WhatsNewDialog.kt$import com.goodwy.commons.compose.alert_dialog.*</ID>
     <ID>WildcardImport:WritePermissionDialog.kt$import androidx.compose.foundation.layout.*</ID>
   </CurrentIssues>

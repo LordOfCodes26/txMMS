@@ -9,7 +9,6 @@ import androidx.appcompat.widget.AppCompatEditText
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.DrawableCompat
 import com.goodwy.commons.R
-import com.goodwy.commons.compose.theme.Theme
 import com.goodwy.commons.extensions.adjustAlpha
 import com.goodwy.commons.extensions.baseConfig
 import com.goodwy.commons.extensions.getColoredDrawableWithColor
@@ -25,6 +24,7 @@ open class MyEditText : AppCompatEditText {
 
     constructor(context: Context, attrs: AttributeSet, defStyle: Int) : super(context, attrs, defStyle)
 
+    @SuppressLint("DiscouragedPrivateApi")
     fun setColors(textColor: Int, accentColor: Int, backgroundColor: Int) {
         // TODO HIDE
        // background?.mutate()?.applyColorFilter(accentColor)

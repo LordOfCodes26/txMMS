@@ -4,11 +4,11 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.res.ColorStateList
 import android.util.AttributeSet
-import androidx.appcompat.widget.AppCompatCheckBox
-import com.android.common.view.MCheckBox
+import com.android.common.view.MCycleCheckBox
 import com.goodwy.commons.extensions.adjustAlpha
 
-open class MyAppCompatCheckbox : MCheckBox {
+/** Themed checkbox used across settings and dialogs; uses the same control as the contact list ([MCycleCheckBox]). */
+open class MyAppCompatCheckbox : MCycleCheckBox {
     constructor(context: Context) : super(context)
 
     constructor(context: Context, attrs: AttributeSet) : super(context, attrs)

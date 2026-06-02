@@ -70,6 +70,20 @@
     <string name="value_cannot_be_empty">Value cannot be empty</string>
     <string name="create_new_contact">Create new contact</string>
     <string name="add_to_existing_contact">Add to an existing contact</string>
+    <string name="sim_migration_exceeds_free_slots">Only %1$d free slot(s) on this SIM (%2$d of %3$d used), but you selected %4$d contacts. Some may not save. Continue?</string>
+    <string name="sim_migration_may_exceed_heuristic_capacity">This SIM already has about %1$d contact(s). Many cards hold roughly %2$d; copying or moving %3$d may exceed the limit. Continue anyway?</string>
+    <string name="sim_adn_progress_writing">Writing to SIM card…</string>
+    <string name="sim_adn_progress_writing_ok">Saved to SIM card</string>
+    <string name="sim_adn_progress_retry_wait">SIM write failed, retrying (%1$d of %2$d)…</string>
+    <string name="sim_adn_progress_updating_card">Updating SIM card…</string>
+    <string name="sim_adn_write_failed">Could not write to SIM card</string>
+    <string name="sim_max_phone_numbers">SIM contacts can only have %d phone number(s).</string>
+    <string name="sim_adn_progress_queued">Queued SIM sync (%1$d): %2$s</string>
+    <string name="sim_adn_progress_sync_start">Syncing %1$d pending change(s) to SIM…</string>
+    <string name="sim_adn_progress_sync_done">SIM sync: %1$d ok, %2$d still pending</string>
+    <string name="sim_adn_delete_queued">Queued SIM delete (%1$d): %2$s</string>
+    <string name="sim_adn_delete_sync_start">Retrying %1$d SIM delete(s)…</string>
+    <string name="sim_adn_delete_sync_done">SIM delete: %1$d ok, %2$d still pending</string>
     <string name="app_corrupt">App Corrupt</string>
     <string name="disclaimer">Disclaimer</string>
     <string name="take_photo">Take photo</string>
@@ -964,6 +978,8 @@
     <string name="donate_new">Hello,&lt;br&gt;&lt;br&gt;hope you are enjoying the app. It contains no ads and we aren\'t collecting your data either, please support its development by purchasing &lt;a href=https://play.google.com/store/apps/details?id=org.fossify.thankyou&gt;Fossify Thank You&lt;/a&gt;. You will also have all app features including color customization unlocked.&lt;br&gt;&lt;br&gt;Thank you!</string>
     <string name="donate_short">Support us by purchasing &lt;a href=https://play.google.com/store/apps/details?id=org.fossify.thankyou&gt;Fossify Thank You&lt;/a&gt; please, it will also unlock all app features including color customization.</string>
     <string name="purchase">Purchase</string>
+    <string name="restore_purchase">Restore purchases</string>
+    <string name="billing_subscriptions">Subscriptions</string>
     <string name="update_thank_you">Please update Fossify Thank You to the latest version</string>
     <string name="before_asking_question_read_faq">Before you ask a question, please check the app settings and read the Frequently Asked Questions first. Maybe the solution is there.</string>
     <string name="make_sure_latest">Also make sure that you are using the latest app version.</string>

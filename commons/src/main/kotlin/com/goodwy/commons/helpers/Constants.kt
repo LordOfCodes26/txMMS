@@ -164,7 +164,6 @@ const val WAS_INITIAL_UPGRADE_TO_PRO_SHOWN = "was_initial_upgrade_to_pro_shown"
 const val WAS_APP_ICON_CUSTOMIZATION_WARNING_SHOWN = "was_app_icon_customization_warning_shown"
 const val APP_SIDELOADING_STATUS = "app_sideloading_status"
 const val DATE_FORMAT = "date_format"
-/** One-shot migration: [DATE_FORMAT_ONE] corrected to [DATE_FORMAT_FIFTEEN] when system order is month-first. */
 const val DATE_FORMAT_ORDER_MIGRATED_V1 = "date_format_order_migrated_v1"
 const val WAS_OTG_HANDLED = "was_otg_handled_2"
 const val WAS_UPGRADED_FROM_FREE_SHOWN = "was_upgraded_from_free_shown"
@@ -227,8 +226,8 @@ const val OVERFLOW_ICON = "overflow_icon"
 const val SCREEN_SLIDE_ANIMATION = "Screen_slide_animation"
 const val MATERIAL_DESIGN3 = "material_design3"
 const val BOTTOM_NAVIGATION_BAR = "bottom_navigation_bar"
-const val TRANSPARENT_NAVI_BAR = "transparent_navi_bar"
 const val APP_RECOMMENDATION_DIALOG_COUNT = "app_recommendation_dialog_count"
+const val TRANSPARENT_NAVI_BAR = "transparent_navi_bar"
 const val USE_RELATIVE_DATE = "use_relative_date"
 const val COLOR_SIM_ICON = "color_sim_icons"
 const val OPEN_SEARCH = "open_search"
@@ -284,19 +283,6 @@ const val SUBSCRIPTION_YEAR_ID_LIST_RU = "subscription_year_id_list_ru"
 
 // contact grid view constants
 const val CONTACTS_GRID_MAX_COLUMNS_COUNT = 10
-
-// phone number/email types
-const val CELL = "CELL"
-const val WORK = "WORK"
-const val HOME = "HOME"
-const val OTHER = "OTHER"
-const val PREF = "PREF"
-const val MAIN = "MAIN"
-const val FAX = "FAX"
-const val WORK_FAX = "WORK;FAX"
-const val HOME_FAX = "HOME;FAX"
-const val PAGER = "PAGER"
-const val MOBILE = "MOBILE"
 
 // IMs not supported by Ez-vcard
 const val HANGOUTS = "Hangouts"
@@ -526,6 +512,8 @@ val extensionsSupportingEXIF: Array<String>
 const val DATE_FORMAT_ONE = "dd.MM.yyyy"
 const val DATE_FORMAT_TWO = "dd/MM/yyyy"
 const val DATE_FORMAT_THREE = "MM/dd/yyyy"
+/** Month-first short date (distinct from [DATE_FORMAT_THREE]); used when inferring format from system date order. */
+const val DATE_FORMAT_FIFTEEN = "M/d/yyyy"
 const val DATE_FORMAT_FOUR = "yyyy-MM-dd"
 const val DATE_FORMAT_FIVE = "d MMMM yyyy"
 const val DATE_FORMAT_SIX = "MMMM d yyyy"
@@ -537,8 +525,6 @@ const val DATE_FORMAT_ELEVEN = "yy-MM-dd"
 const val DATE_FORMAT_TWELVE = "yyMMdd"
 const val DATE_FORMAT_THIRTEEN = "yy.MM.dd"
 const val DATE_FORMAT_FOURTEEN = "yy/MM/dd"
-/** Month before day with dots (mirrors [DATE_FORMAT_ONE] but US-style order). */
-const val DATE_FORMAT_FIFTEEN = "MM.dd.yyyy"
 
 const val TIME_FORMAT_12 = "hh:mm a"
 const val TIME_FORMAT_24 = "HH:mm"
@@ -737,7 +723,6 @@ fun getDateFormatsWithYear() = arrayListOf(
     DATE_FORMAT_TWELVE,
     DATE_FORMAT_THIRTEEN,
     DATE_FORMAT_FOURTEEN,
-    DATE_FORMAT_FIFTEEN,
 )
 
 val normalizeRegex = "\\p{InCombiningDiacriticalMarks}+".toRegex()
@@ -828,12 +813,10 @@ const val SHOW_NOTES_FIELD = 512
 const val SHOW_ORGANIZATION_FIELD = 1024
 const val SHOW_GROUPS_FIELD = 2048
 const val SHOW_CONTACT_SOURCE_FIELD = 4096
-const val SHOW_WEBSITES_FIELD = 8192
 const val SHOW_NICKNAME_FIELD = 16384
 const val SHOW_IMS_FIELD = 32768
 const val SHOW_RINGTONE_FIELD = 65536
 const val SHOW_MESSENGERS_ACTIONS_FIELD = 131072
-const val SHOW_RELATIONS_FIELD = 262144
 
 // IMs
 const val PROTOCOL_TEAMS = 103 // ContactsContract.Im.PROTOCOL_SKYPE
@@ -860,8 +843,6 @@ const val DEFAULT_PHONE_NUMBER_TYPE = ContactsContract.CommonDataKinds.Phone.TYP
 const val DEFAULT_ADDRESS_TYPE = ContactsContract.CommonDataKinds.StructuredPostal.TYPE_HOME
 const val DEFAULT_EVENT_TYPE = ContactsContract.CommonDataKinds.Event.TYPE_BIRTHDAY
 const val DEFAULT_ORGANIZATION_TYPE = ContactsContract.CommonDataKinds.Organization.TYPE_WORK
-const val DEFAULT_WEBSITE_TYPE = ContactsContract.CommonDataKinds.Website.TYPE_HOMEPAGE
-const val DEFAULT_RELATION_TYPE = ContactsContract.CommonDataKinds.Relation.TYPE_FRIEND
 const val DEFAULT_IM_TYPE = PROTOCOL_TELEGRAM
 const val DEFAULT_MIMETYPE = ContactsContract.CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE
 
@@ -880,10 +861,6 @@ const val CONTACT_THUMBNAILS_SIZE_LARGE = 2
 const val CONTACT_THUMBNAILS_SIZE_EXTRA_LARGE = 3
 
 // apps with special handling
-const val TELEGRAM_PACKAGE = "org.telegram.messenger"
-const val SIGNAL_PACKAGE = "org.thoughtcrime.securesms"
-const val WHATSAPP_PACKAGE = "com.whatsapp"
-const val VIBER_PACKAGE = "com.viber.voip"
 const val THREEMA_PACKAGE = "ch.threema.app"
 
 const val SOCIAL_VOICE_CALL = 0
@@ -918,8 +895,6 @@ fun getEmptyLocalContact() = LocalContact(
     ArrayList(),
     "",
     "",
-    ArrayList(),
-    ArrayList(),
     ArrayList(),
     null
 )

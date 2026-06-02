@@ -173,11 +173,7 @@ private fun Long.formatDateOrTimeGregorian(
         }
 
         if (!hideTimeOnOtherDays) {
-            // changed by sun
-            // 2025.6.31, 12:12:31 is not correct
-            // 2025.6.31 12:12:31 is correct
-//            format += ", ${timeFormat}"
-            format += " ${timeFormat}"
+            format += ", ${timeFormat}"
         }
 
         DateFormat.format(format, cal).toString()
@@ -212,11 +208,7 @@ private fun Long.formatDateOrTimeShamsi(
         if (!hideTimeOnOtherDays) {
             // Add time
             val timePart = formatTime(context, timeFormat)
-            // changed by sun
-            // 2025.6.31, 12:12:31 is not correct
-            // 2025.6.31 12:12:31 is correct
-//            return "$datePart, $timePart"
-            return "$datePart $timePart"
+            return "$datePart, $timePart"
         } else {
             return datePart
         }

@@ -190,35 +190,35 @@ fun String.highlightTextPart(textToHighlight: String, color: Int, highlightAll: 
         query = textToHighlight
         startIndex = indexOf(query, 0, true)
     }
-    var useNormalizedFallback = false
-    if (startIndex < 0) {
-        query = textToHighlight
-        startIndex = normalizedSource.indexOf(query, 0, true)
-        useNormalizedFallback = true
-    }
-    val indexes = ArrayList<Int>()
-    while (startIndex >= 0) {
-        if (startIndex != -1) {
-            indexes.add(startIndex)
+    val highlightRanges = ArrayList<Pair<Int, Int>>()
+    if (startIndex >= 0) {
+        var idx = startIndex
+        while (idx >= 0) {
+            val end = (idx + query.length).coerceAtMost(length)
+            highlightRanges.add(idx to end)
+            if (!highlightAll) break
+            idx = indexOf(query, idx + query.length, true)
         }
-
-        startIndex = if (useNormalizedFallback) {
-            normalizedSource.indexOf(query, startIndex + query.length, true)
-        } else {
-            indexOf(query, startIndex + query.length, true)
-        }
-        if (!highlightAll) {
-            break
+    } else if (normalizedSource.contains(nfcQuery, ignoreCase = true) || normalizedSource.contains(textToHighlight, ignoreCase = true)) {
+        // Old path used indices from [normalizedSource] on the original [SpannableString] — lengths diverge when
+        // diacritics differ, so spans were wrong or empty. Search the actual display string for painting.
+        try {
+            val pattern = Pattern.compile(Pattern.quote(nfcQuery), Pattern.CASE_INSENSITIVE or Pattern.UNICODE_CASE)
+            val matcher = pattern.matcher(this)
+            while (matcher.find()) {
+                highlightRanges.add(matcher.start() to matcher.end())
+                if (!highlightAll) break
+            }
+        } catch (_: Exception) {
         }
     }
 
     // handle cases when we search for 643, but in reality the string contains it like 6-43
-    if (ignoreCharsBetweenDigits && indexes.isEmpty()) {
+    if (ignoreCharsBetweenDigits && highlightRanges.isEmpty()) {
         try {
             val regex = TextUtils.join("(\\D*)", query.toCharArray().toTypedArray())
             val pattern = Pattern.compile(regex)
-            val target = if (useNormalizedFallback) normalizedSource else this
-            val result = pattern.matcher(target)
+            val result = pattern.matcher(this)
             if (result.find()) {
                 spannableString.setSpan(ForegroundColorSpan(color), result.start(), result.end(), Spannable.SPAN_EXCLUSIVE_INCLUSIVE)
             }
@@ -228,10 +228,9 @@ fun String.highlightTextPart(textToHighlight: String, color: Int, highlightAll: 
         return spannableString
     }
 
-    indexes.forEach {
-        val endIndex = Math.min(it + query.length, length)
+    highlightRanges.forEach { (start, end) ->
         try {
-            spannableString.setSpan(ForegroundColorSpan(color), it, endIndex, Spannable.SPAN_EXCLUSIVE_INCLUSIVE)
+            spannableString.setSpan(ForegroundColorSpan(color), start, end, Spannable.SPAN_EXCLUSIVE_INCLUSIVE)
         } catch (_: IndexOutOfBoundsException) {
         }
     }
