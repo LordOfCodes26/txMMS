@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.view.Menu
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.content.ContextCompat
 import com.goodwy.commons.activities.BaseSimpleActivity
 import com.goodwy.commons.adapters.MyRecyclerViewAdapter
 import com.goodwy.commons.extensions.beVisibleIf
@@ -20,6 +21,7 @@ import com.android.mms.R
 import com.android.mms.activities.ManageQuickTextsActivity
 import com.android.mms.databinding.ItemManageQuickTextBinding
 import com.android.mms.extensions.config
+import com.goodwy.commons.extensions.applyColorFilter
 import com.goodwy.commons.R as CommonsR
 
 class ManageQuickTextsAdapter(
@@ -42,8 +44,24 @@ class ManageQuickTextsAdapter(
     }
 
     override fun updateSelectAllButtonIconIfAvailable(selectableItemCount: Int, selectedCount: Int) {
-        super.updateSelectAllButtonIconIfAvailable(selectableItemCount, selectedCount)
+//        super.updateSelectAllButtonIconIfAvailable(selectableItemCount, selectedCount)
+        val allSelected = selectableItemCount > 0 && selectedCount == selectableItemCount
+        updateQuickTextsSelectAllIcon(allSelected)
         (activity as? ManageQuickTextsActivity)?.refreshActionModeRippleToolbarIfNeeded()
+    }
+
+    private fun updateQuickTextsSelectAllIcon(allSelected: Boolean) {
+        val toolbar = actBarToolbar ?: return
+        val actionBar = toolbar.findViewById<View>(com.goodwy.commons.R.id.actionbar) ?: return
+        val iconRes = if (allSelected) {
+             R.drawable.ic_empty
+        } else {
+            com.android.common.R.drawable.ic_cmn_multi_check
+        }
+        runCatching {
+            actionBar.javaClass.getMethod("setMenuItemIcon", Int::class.javaPrimitiveType, Int::class.javaPrimitiveType)
+                .invoke(actionBar, R.id.cab_select_all, iconRes)
+        }
     }
 
     override fun actionItemPressed(id: Int) {
