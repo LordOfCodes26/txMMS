@@ -1,5 +1,7 @@
 package com.android.mms.activities
 
+import android.animation.AnimatorListenerAdapter
+import android.animation.ValueAnimator
 import android.annotation.SuppressLint
 import android.app.role.RoleManager
 import android.content.ActivityNotFoundException
@@ -82,6 +84,7 @@ import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
 import java.util.*
 import java.util.concurrent.atomic.AtomicInteger
+import kotlin.math.roundToInt
 import kotlin.text.toFloat
 
 open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
@@ -99,6 +102,7 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         /** txCommon [MAppBarLayout] scroll-content offset animation when search opens from expanded. */
         private const val TX_SEARCH_CONTENT_OFFSET_ANIM_MS = 300L
         private const val MAIN_SEARCH_LAYOUT_SETTLE_MS = 320L
+        private const val TOP_INSET_SYNC_DURATION_MS = 480L
     }
 
     override var isSearchBarEnabled = true
@@ -149,6 +153,8 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
     /** Saved [ScrollingViewBehavior] while action mode clears app-bar coupling from [R.id.blur_target]. */
     private var blurTargetScrollingBehavior: CoordinatorLayout.Behavior<View>? = null
 
+    private var topOffsetsAnimator: ValueAnimator? = null
+
     /** Mirrors [AppBarLayout] offset (0 expanded, negative collapsed); kept in sync while the bar is on screen. */
     private var mainMenuLastAppBarVerticalOffset: Int = 0
 
@@ -174,7 +180,6 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         binding.mainAppbar.addOnOffsetChangedListener { _, verticalOffset ->
             mainMenuLastAppBarVerticalOffset = verticalOffset
             binding.mVerticalSideFrameTop.update()
-            applyLiveRecentsTopPaddingFromAppBarOffset()
         }
         initTheme()
         setupTwoFingerSwipeGesture()
@@ -232,7 +237,8 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
             clearMainAppBarScrims()
             setupMainMenuSpringSync()
             refreshSideFrameBlurAndInsets()
-            applyLiveRecentsTopPaddingFromAppBarOffset()
+            syncBlurTargetTopMarginForAppBar()
+            requestTopInsetSync()
             if (config.changeColourTopBar) scrollChange()
         }
     }
@@ -406,6 +412,8 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
     override fun onDestroy() {
         cancelMainSearchLayoutSync()
         clearMainSearchChromeLayoutListener()
+        topOffsetsAnimator?.cancel()
+        topOffsetsAnimator = null
         super.onDestroy()
         clearMainMenuSpringSync()
         config.needRestart = false
@@ -759,22 +767,14 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         }, settleMs + TX_SEARCH_CONTENT_OFFSET_ANIM_MS)
     }
 
-    /**
-     * While the app bar scrolls, keep blur negative margin and list [paddingTop] tied to the same visible chrome
-     * height so content is not left under the large title when the bar is collapsed.
-     */
-    private fun applyLiveRecentsTopPaddingFromAppBarOffset() {
-        if (isFinishing || isDestroyed) return
-        if (isActionModeToolbarVisible()) return
-        if (isSearchOpen) return
-        if (isSearchResumeInProgress) return
-        val insetPx = mainMenuListTopInsetForCollapsePx()
-        syncBlurTargetTopMarginForAppBar()
-        val conv = binding.conversationsList
-        val topPad = insetPx.coerceAtLeast(0)
-        if (conv.paddingTop != topPad) {
-            conv.updatePadding(top = topPad)
+    /** Fixed conversation-list top inset (txDial [recentsListTopPaddingPx]); CoordinatorLayout handles collapse motion. */
+    private fun conversationsListTopPaddingPx(): Int {
+        val dimen = if (isActionModeToolbarVisible()) {
+            R.dimen.conversations_list_top_padding_action_mode
+        } else {
+            R.dimen.conversations_list_top_padding
         }
+        return resources.getDimensionPixelSize(dimen)
     }
 
     /**
@@ -908,21 +908,21 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         }
     }
 
-    /** Normal list: offset curve (stable across resume remeasure). Search: screen geometry. */
+    /** Normal list: fixed dimen (txDial). Search: screen geometry. */
     private fun recentsListTopInsetForLayoutSync(recentsList: MyRecyclerView): Int {
-        val menu = binding.mainAppbar
         return if (isSearchOpen) {
             recentsListTopPaddingPx(recentsList)
         } else {
-            mainMenuListTopInsetForCollapsePx()
+            conversationsListTopPaddingPx()
         }
     }
 
     /** Re-apply when the app bar finishes layout (e.g. after unlockCollapsing); based on txDial MainActivityRecents (no dialpad in Messages). */
     private fun applyFinalRecentsListTopPadding(recentsList: MyRecyclerView) {
         if (isActionModeToolbarVisible()) {
-            val topPad = getCollapsedAppBarHeightPx()
+            val topPad = conversationsListTopPaddingPx()
             recentsList.updatePadding(top = topPad)
+            recentsList.translationY = 0f
             logRecentsListTopPadding("applyFinal(actionMode topPad=$topPad)", recentsList)
             return
         }
@@ -938,86 +938,122 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
             alignMainSearchListTopPadding()
             return
         }
-        val menu = binding.mainAppbar
-        if (!menu.isAttachedToWindow || !menu.isLaidOut || menu.height <= 0) {
-            menu.post {
-                if (!isFinishing && !isDestroyed) {
-                    applyFinalRecentsListTopPadding(recentsList)
-                }
-            }
-            return
+        val topPad = conversationsListTopPaddingPx()
+        recentsList.updatePadding(top = topPad)
+        recentsList.translationY = 0f
+        logRecentsListTopPadding("applyFinal(topPad=$topPad)", recentsList)
+    }
+
+    private fun targetConversationsListTopPaddingPx(): Int {
+        if (isSearchOpen) {
+            return mainSearchListTopPaddingPx(binding.conversationsList).takeIf { it >= 0 }
+                ?: mainSearchMinListTopPaddingPx()
         }
-        val rawInset = recentsListTopInsetForLayoutSync(recentsList)
-        val topPad = resolveRecentsListTopPaddingPx(rawInset)
-        if (topPad >= 0) {
-            val maxAllowed = maxTrustedListTopInsetPx()
-            val clamped = minOf(topPad, maxAllowed).coerceAtLeast(0)
-            recentsList.updatePadding(top = clamped)
-            logRecentsListTopPadding("applyFinal(immediate topPad=$clamped raw=$rawInset)", recentsList)
-            return
-        }
-        menu.post {
-            if (isFinishing || isDestroyed) return@post
-            val retryInset = recentsListTopInsetForLayoutSync(recentsList)
-            val retryTop = resolveRecentsListTopPaddingPx(retryInset)
-            if (retryTop >= 0) {
-                val maxAllowed = maxTrustedListTopInsetPx()
-                val clamped = minOf(retryTop, maxAllowed).coerceAtLeast(0)
-                recentsList.updatePadding(top = clamped)
-                logRecentsListTopPadding("applyFinal(posted topPad=$clamped raw=$retryInset)", recentsList)
-            } else {
-                logRecentsListTopPadding("applyFinal(posted inset still 0)", recentsList)
-            }
-        }
+        return conversationsListTopPaddingPx()
     }
 
     private fun animateTopOffsets(duration: Long) {
-        if (duration > 0L) {
+        val recentsList = binding.conversationsList as MyRecyclerView
+        val searchRv = binding.searchResultsList as MyRecyclerView
+        val targetRecentsListTopPadding = targetConversationsListTopPaddingPx()
+
+        topOffsetsAnimator?.cancel()
+
+        if (duration <= 0L) {
+            var changed = false
+            if (recentsList.paddingTop != targetRecentsListTopPadding || recentsList.translationY != 0f) {
+                recentsList.updatePadding(top = targetRecentsListTopPadding)
+                recentsList.translationY = 0f
+                changed = true
+            }
+            applyFinalRecentsListTopPadding(searchRv)
+            if (binding.searchHolder.childCount > 0) {
+                val holderTop = if (isSearchOpen) {
+                    mainSearchListTopPaddingPx().takeIf { it >= 0 }
+                        ?: mainSearchMinListTopPaddingPx()
+                } else {
+                    conversationsListTopPaddingPx()
+                }
+                binding.searchHolder.getChildAt(0)!!.updatePadding(top = holderTop)
+            }
+            topOffsetsAnimator = null
+            if (changed) {
+                logRecentsListTopPadding(
+                    "animateTopOffsets snap targetTopPad=$targetRecentsListTopPadding",
+                    recentsList,
+                )
+            }
             return
         }
-        val conv = binding.conversationsList as MyRecyclerView
-        val searchRv = binding.searchResultsList as MyRecyclerView
-        // Search mode: [listTopInsetPx] uses max(geometry, nest_bouncy_content_padding_top)
-        // so list padding clears the visible search row despite locked short AppBar height.
-        applyFinalRecentsListTopPadding(conv)
-        applyFinalRecentsListTopPadding(searchRv)
-        if (binding.searchHolder.childCount > 0) {
-            val holderTop = if (isSearchOpen) {
-                mainSearchListTopPaddingPx().takeIf { it >= 0 }
-                    ?: mainSearchMinListTopPaddingPx()
-            } else {
-                capRecentsListTopPaddingPx(listTopInsetPx(binding.conversationsList))
-            }
-            binding.searchHolder.getChildAt(0)!!.updatePadding(top = holderTop)
+
+        val currentTopPadding = recentsList.paddingTop
+        val currentTranslationY = recentsList.translationY
+        if (currentTopPadding != targetRecentsListTopPadding) {
+            recentsList.updatePadding(top = targetRecentsListTopPadding)
+            recentsList.translationY = currentTranslationY + (currentTopPadding - targetRecentsListTopPadding).toFloat()
         }
-        val mainMenuHeight = getMainMenuHeightWithFallback()
         logRecentsListTopPadding(
-            "animateTopOffsets snap targetTopPad=${mainMenuHeight}px mainMenuHAtCall=${mainMenuHeight}px",
-            conv,
+            "animateTopOffsets animateStart duration=$duration targetTopPad=$targetRecentsListTopPadding wasTopPad=$currentTopPadding",
+            recentsList,
         )
+
+        val startTranslationY = recentsList.translationY
+        if (kotlin.math.abs(startTranslationY) < 0.5f) {
+            recentsList.translationY = 0f
+            applyFinalRecentsListTopPadding(recentsList)
+            applyFinalRecentsListTopPadding(searchRv)
+            return
+        }
+
+        topOffsetsAnimator = ValueAnimator.ofFloat(0f, 1f).apply {
+            this.duration = duration
+            interpolator = android.view.animation.AccelerateDecelerateInterpolator()
+            addUpdateListener { animator ->
+                val fraction = animator.animatedValue as Float
+                recentsList.translationY = lerpFloat(startTranslationY, 0f, fraction)
+            }
+            addListener(object : AnimatorListenerAdapter() {
+                override fun onAnimationEnd(animation: android.animation.Animator) {
+                    recentsList.translationY = 0f
+                    applyFinalRecentsListTopPadding(recentsList)
+                    applyFinalRecentsListTopPadding(searchRv)
+                    topOffsetsAnimator = null
+                }
+
+                override fun onAnimationCancel(animation: android.animation.Animator) {
+                    recentsList.translationY = 0f
+                    applyFinalRecentsListTopPadding(recentsList)
+                    applyFinalRecentsListTopPadding(searchRv)
+                    topOffsetsAnimator = null
+                }
+            })
+            start()
+        }
     }
+
+    private fun lerpFloat(start: Float, end: Float, fraction: Float): Float =
+        start + (end - start) * fraction
 
     private fun syncRecentsTopInsetWithToolbar() {
-        fun apply() {
-            animateTopOffsets(duration = 0L)
-        }
-        apply()
-        if (getMainMenuHeightWithFallback() == 0) {
-            binding.root.post { apply() }
-        }
-        findViewById<View>(R.id.main_appbar)?.post { apply() }
+        runTopInsetSyncOnce(duration = 0L)
     }
 
-    fun requestTopInsetSync() {
+    fun requestTopInsetSync(animate: Boolean = false, duration: Long = TOP_INSET_SYNC_DURATION_MS) {
+        val insetDuration = if (animate) duration else 0L
+        runTopInsetSyncOnce(duration = insetDuration)
+    }
+
+    /** Runs [animateTopOffsets] at most twice when the app bar is not measured yet (txDial [runTopInsetSyncOnce]). */
+    private fun runTopInsetSyncOnce(duration: Long) {
         binding.root.post {
-            fun apply() {
-                animateTopOffsets(duration = 0L)
+            fun applyInsets() {
+                animateTopOffsets(duration)
             }
-            apply()
-            if (getMainMenuHeightWithFallback() == 0) {
-                binding.root.post { apply() }
+            applyInsets()
+            val menu = binding.mainAppbar
+            if (!menu.isLaidOut || menu.height <= 0) {
+                menu.post { applyInsets() }
             }
-            findViewById<View>(R.id.main_appbar)?.post { apply() }
         }
     }
 
@@ -1068,11 +1104,9 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         syncBlurTargetScrollingBehaviorForActionMode()
         syncBlurTargetTopMarginForAppBar()
         syncTopSideFrameHeight()
-        applyLiveRecentsTopPaddingFromAppBarOffset()
         binding.mainCoordinator.requestLayout()
         binding.mainCoordinator.post {
             setupVerticalSideFrameBlur()
-            applyLiveRecentsTopPaddingFromAppBarOffset()
             if (config.changeColourTopBar) scrollChange() else setMainMenuTransparentBackground()
             requestTopInsetSync()
         }
@@ -1337,7 +1371,7 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         mainMenuLastAppBarVerticalOffset = 0
         applyToolbarExpandedFromConversationListScroll(animated = false)
         applyToolbarSearchModeChrome(inSearch = false)
-        applyLiveRecentsTopPaddingFromAppBarOffset()
+        syncBlurTargetTopMarginForAppBar()
         scheduleSyncMainMenuTopBlurGeometry()
         binding.mainAppbar.post { requestTopInsetSync() }
     }
@@ -1685,7 +1719,8 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
                 -insetPx
             }
             isActionModeToolbarVisible() -> 0
-            binding.mainAppbar.visibility == View.VISIBLE -> -mainMenuListTopInsetForCollapsePx()
+            binding.mainAppbar.visibility == View.VISIBLE ->
+                resources.getDimensionPixelSize(R.dimen.main_app_bar_blur_offset)
             else -> 0
         }
         binding.blurTarget.updateLayoutParams<ViewGroup.MarginLayoutParams> {
@@ -1710,22 +1745,8 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
 
     private fun setupMainMenuSpringSync() {
         fun bindOverscrollSync(recyclerView: MyRecyclerView?) {
-            recyclerView ?: return
-            recyclerView.onOverscrollTranslationChanged = { translationY ->
+            recyclerView?.onOverscrollTranslationChanged = { translationY ->
                 binding.mainAppbar.translationY = translationY * mainMenuOverscrollFactor
-            }
-            // Belt-and-suspenders: if list snap-back completes without a final callback, reset the app bar.
-            recyclerView.setOnTouchListener { _, event ->
-                when (event.action) {
-                    MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                        recyclerView.post {
-                            if (recyclerView.translationY == 0f) {
-                                binding.mainAppbar.translationY = 0f
-                            }
-                        }
-                    }
-                }
-                false
             }
         }
 
@@ -1734,14 +1755,8 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
     }
 
     private fun clearMainMenuSpringSync() {
-        (binding.conversationsList as? MyRecyclerView)?.apply {
-            onOverscrollTranslationChanged = null
-            setOnTouchListener(null)
-        }
-        (binding.searchResultsList as? MyRecyclerView)?.apply {
-            onOverscrollTranslationChanged = null
-            setOnTouchListener(null)
-        }
+        (binding.conversationsList as? MyRecyclerView)?.onOverscrollTranslationChanged = null
+        (binding.searchResultsList as? MyRecyclerView)?.onOverscrollTranslationChanged = null
         binding.mainAppbar.translationY = 0f
     }
 

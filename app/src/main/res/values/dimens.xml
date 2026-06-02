@@ -59,6 +59,11 @@
     <dimen name="tx_my_search_menu_top_blur_feather">32dp</dimen>
 
     <dimen name="nest_bouncy_content_padding_top">128dp</dimen>
+
+    <!-- txDial: fixed list inset + blur stack offset (CoordinatorLayout drives collapse; do not animate padding per frame). -->
+    <dimen name="main_app_bar_blur_offset">-118dp</dimen>
+    <dimen name="conversations_list_top_padding">120dp</dimen>
+    <dimen name="conversations_list_top_padding_action_mode">85dp</dimen>
     <dimen name="custom_topbar_top">34dp</dimen>
     <dimen name="padding_vertical_badge">3dp</dimen>
     <dimen name="padding_horizontal_badge">6dp</dimen>
