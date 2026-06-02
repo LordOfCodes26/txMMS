@@ -82,15 +82,22 @@ class SecureMainActivity : MainActivity() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, resultData: Intent?) {
         if (requestCode == REQUEST_PRIVATE_ENTRY_AUTH) {
             if (resultCode == RESULT_OK) {
-                deferInitialMessageLoad = false
-                initSecureMainContent()
-                loadInitialMessagesIfEnabled()
+                completePrivateEntryAuth()
             } else {
                 finish()
             }
             return
         }
         super.onActivityResult(requestCode, resultCode, resultData)
+    }
+
+    /** Restores the conversation list UI after [PrivateSpaceAuthActivity] (placeholder replaced [binding.root]). */
+    private fun completePrivateEntryAuth() {
+        deferInitialMessageLoad = false
+        initSecureMainContent()
+        setContentView(binding.root)
+        refreshMenuItems()
+        loadInitialMessagesIfEnabled()
     }
 
     private fun setupSecureLockPlaceholder() {
