@@ -226,7 +226,7 @@ class ConversationsAdapter(
             val isPinPrivateSpaceMode = activity.config.selectedConversationPin == PRIVATE_SPACE_CONVERSATION_PIN
             findItem(R.id.cab_encrypt_conversations)?.isVisible = isPinZeroMode
             findItem(R.id.cab_decrypt_conversations)?.isVisible = !isPinZeroMode && !isPinPrivateSpaceMode
-            checkPinBtnVisibility(this)
+            checkPinBtnVisibility(this, selectedItems)
             findItem(R.id.cab_private_space_add)?.isVisible = isPinZeroMode || isPinPrivateSpaceMode
             findItem(R.id.cab_private_space_delete)?.isVisible = isPinPrivateSpaceMode
 
@@ -897,13 +897,17 @@ class ConversationsAdapter(
         refreshConversationsAndFinishActMode()
     }
 
-    private fun checkPinBtnVisibility(menu: Menu) {
+    private fun checkPinBtnVisibility(menu: Menu, selectedConversations: ArrayList<Conversation>) {
         val pinnedConversations = activity.config.pinnedConversations
-        val selectedConversations = getSelectedItems()
-        menu.findItem(R.id.cab_pin_conversation)?.isVisible =
-            !selectedConversations.any { !pinnedConversations.contains(it.threadId.toString()) }
-        menu.findItem(R.id.cab_unpin_conversation)?.isVisible =
-            selectedConversations.any { pinnedConversations.contains(it.threadId.toString()) }
+        if (!selectedConversations.any { !pinnedConversations.contains(it.threadId.toString()) }){
+            menu.findItem(R.id.cab_unpin_conversation)?.isVisible = true
+            menu.findItem(R.id.cab_pin_conversation)?.isVisible = false
+        }
+        else {
+            menu.findItem(R.id.cab_unpin_conversation)?.isVisible = false
+            menu.findItem(R.id.cab_pin_conversation)?.isVisible = true
+        }
+
     }
 
     private fun refreshConversationsAndFinishActMode() {
