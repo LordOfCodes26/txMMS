@@ -227,7 +227,7 @@ class ConversationsAdapter(
             findItem(R.id.cab_encrypt_conversations)?.isVisible = isPinZeroMode
             findItem(R.id.cab_decrypt_conversations)?.isVisible = !isPinZeroMode && !isPinPrivateSpaceMode
             checkPinBtnVisibility(this, selectedItems)
-            findItem(R.id.cab_private_space_add)?.isVisible = isPinZeroMode || isPinPrivateSpaceMode
+            findItem(R.id.cab_private_space_add)?.isVisible = isPinZeroMode
             findItem(R.id.cab_private_space_delete)?.isVisible = isPinPrivateSpaceMode
 
             findItem(R.id.cab_ripple_message_conversion)?.isVisible = false
