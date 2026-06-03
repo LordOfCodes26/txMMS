@@ -114,6 +114,7 @@ class ConversationsAdapter(
         binding.conversationFrameSelect.apply {
             isLongClickable = true
             setOnLongClickListener {
+                if (actModeCallback.isSelectable) return@setOnLongClickListener false
                 showConversationActionsDialog(conversation, this)
                 true
             }

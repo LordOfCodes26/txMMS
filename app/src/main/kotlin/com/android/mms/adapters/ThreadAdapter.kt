@@ -449,6 +449,8 @@ class ThreadAdapter(
         }
         if (item is Message) {
             holder.itemView.setOnLongClickListener {
+                // if select mode return
+                if (actModeCallback.isSelectable) return@setOnLongClickListener false
                 showPopupMenu(item, it)
                 true
             }
