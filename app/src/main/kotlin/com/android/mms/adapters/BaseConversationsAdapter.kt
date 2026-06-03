@@ -328,6 +328,8 @@ abstract class BaseConversationsAdapter(
                         ConversationListItem.SECTION_YESTERDAY -> activity.getString(R.string.yesterday)
                         else -> activity.getString(R.string.previous)
                     }
+//                    if (position == 0)
+//                        text =  "고정"
                 }
                 val params = holder.itemView.layoutParams as? RecyclerView.LayoutParams
                 params?.bottomMargin = 0
@@ -427,14 +429,20 @@ abstract class BaseConversationsAdapter(
             if (conversation.unreadCount > 0) {
                 conversationDraft.beVisible()
                 // Provider map can miss threads the local DB still counts as unread; never show "null".
-                ensureBackgroundThread {
-                    val count = unreadCountHash[conversation.threadId] ?: conversation.unreadCount
-                    val szCount = when {
-                        count > MAX_UNREAD_BADGE_COUNT -> "$MAX_UNREAD_BADGE_COUNT+"
-                        else -> count.toString()
-                    }
-                    conversationDraft.text = szCount
+//                ensureBackgroundThread {
+//                    val count = unreadCountHash[conversation.threadId] ?: conversation.unreadCount
+//                    val szCount = when {
+//                        count > MAX_UNREAD_BADGE_COUNT -> "$MAX_UNREAD_BADGE_COUNT+"
+//                        else -> count.toString()
+//                    }
+//                    conversationDraft.text = szCount
+//                }
+                val count = unreadCountHash[conversation.threadId] ?: conversation.unreadCount
+                val szCount = when {
+                    count > MAX_UNREAD_BADGE_COUNT -> "$MAX_UNREAD_BADGE_COUNT+"
+                    else -> count.toString()
                 }
+                conversationDraft.text = szCount
             }
 
             // Sent/received type icon (txDial item_recents_type logic): sent = ic_cmn_out, received = ic_cmn_in, draft/other = nothing (lastMessageType set on background when loading list)
