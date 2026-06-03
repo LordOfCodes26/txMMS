@@ -45,6 +45,7 @@
                             android:clipToPadding="false"
                             android:layoutAnimation="@anim/layout_animation"
                             android:paddingTop="@dimen/tx_nest_bouncy_content_padding_top"
+                            android:paddingBottom="@dimen/scroll_number_picker_item_height"
                             android:scrollbars="none"
                             app:layoutManager="com.goodwy.commons.views.MyLinearLayoutManager" />
 

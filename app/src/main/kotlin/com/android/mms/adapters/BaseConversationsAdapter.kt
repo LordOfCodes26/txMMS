@@ -329,22 +329,25 @@ abstract class BaseConversationsAdapter(
                         else -> activity.getString(R.string.previous)
                     }
 //                    if (position == 0)
-//                        text =  "고정"
+//                        text =  resources.getString(R.string.pin_conversation)
                 }
                 val params = holder.itemView.layoutParams as? RecyclerView.LayoutParams
                 params?.bottomMargin = 0
             }
             is ConversationListItem.ConversationItem -> {
                 val conversation = item.conversation
-                if (position == currentList.lastIndex) {
-                    val params = holder.itemView.layoutParams as RecyclerView.LayoutParams
-                    params.bottomMargin = activity.resources.getDimension(com.goodwy.commons.R.dimen.shortcut_size).toInt()
-                    holder.itemView.layoutParams = params
-                } else {
+                // why delete
+                // if changed lastIndex, between item created space as 64dp
+                // so deleted by sun
+//                if (position == currentList.lastIndex) {
+//                    val params = holder.itemView.layoutParams as RecyclerView.LayoutParams
+//                    params.bottomMargin = activity.resources.getDimension(com.goodwy.commons.R.dimen.shortcut_size).toInt()
+//                    holder.itemView.layoutParams = params
+//                } else {
                     val params = holder.itemView.layoutParams as RecyclerView.LayoutParams
                     params.bottomMargin = 0
                     holder.itemView.layoutParams = params
-                }
+//                }
                 holder.bindView(
                     item,
                     allowSingleClick = true,
