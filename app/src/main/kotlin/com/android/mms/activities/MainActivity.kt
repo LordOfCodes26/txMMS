@@ -4,7 +4,6 @@ import android.animation.AnimatorListenerAdapter
 import android.animation.ValueAnimator
 import android.annotation.SuppressLint
 import android.app.role.RoleManager
-import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.pm.ShortcutInfo
 import android.content.pm.ShortcutManager
@@ -15,8 +14,6 @@ import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.Icon
 import android.graphics.drawable.LayerDrawable
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.util.Log
 import android.provider.Telephony
 import android.speech.RecognizerIntent
@@ -28,7 +25,6 @@ import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.view.ViewTreeObserver
-import androidx.activity.result.contract.ActivityResultContracts
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.content.res.AppCompatResources
@@ -46,6 +42,8 @@ import android.widget.EditText
 import com.google.android.material.appbar.AppBarLayout
 import com.google.android.material.appbar.AppBarLayout.ScrollingViewBehavior
 import com.google.android.material.appbar.CollapsingToolbarLayout
+import com.android.common.dialogs.MSecretBoxDialog
+import com.android.common.interfaces.OnSecretBoxClickListener
 import com.android.common.view.MSearchView
 import com.android.common.view.MVSideFrame
 import com.goodwy.commons.views.showMPopupMenu
@@ -90,9 +88,6 @@ import kotlin.text.toFloat
 open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
     companion object {
         private const val TAG = "MessagesMainActivity"
-        private const val SECRET_BOX_PACKAGE = "chonha.get.secret.number"
-        private const val SECRET_NUMBER_EXTRA = "secret_number"
-        private const val INVALID_CIPHER = -1
         private const val MIN_SWIPE_DISTANCE = 50f
 
         /** CAB menu for the main conversation list ([R.menu.cab_action_menu_select]): select-all only; delete stays on the bottom ripple. */
@@ -1494,28 +1489,11 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         initMessenger()
     }
 
-    private fun getSecretNumberFromResult(data: Intent?): Int? {
-        if (data == null) return null
-        val asInt = data.getIntExtra(SECRET_NUMBER_EXTRA, INVALID_CIPHER)
-        if (asInt > INVALID_CIPHER) return asInt
-        val asString = data.getStringExtra(SECRET_NUMBER_EXTRA)
-        return asString?.toIntOrNull()?.takeIf { it >= 0 }
+    private fun parseCipherFromSecretCode(secretCode: String): Int? {
+        return secretCode.toIntOrNull()?.plus(2)?.takeIf { it >= 1 }
     }
 
-    private val startSecretBoxForUnlock = registerForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        isLaunchingSecretBox = false
-        if (result.resultCode != RESULT_OK) {
-            pendingThreadIdsToEncrypt = null
-            return@registerForActivityResult
-        }
-
-        val cipher = getSecretNumberFromResult(result.data) ?: run {
-            pendingThreadIdsToEncrypt = null
-            return@registerForActivityResult
-        }
-
+    private fun applySecretBoxCipher(cipher: Int) {
         val pendingThreadIds = pendingThreadIdsToEncrypt
         pendingThreadIdsToEncrypt = null
         if (pendingThreadIds != null) {
@@ -1528,9 +1506,10 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
                 updateConversationPins(pendingThreadIds, cipher)
             }
         } else {
-            Handler(Looper.getMainLooper()).post {
+            runOnUiThread {
                 if (!isFinishing && !isDestroyed) {
                     if (setConversationPinScope(cipher)) {
+                        onSecretBoxCipherApplied(cipher)
                         initMessenger()
                         refreshMenuItems()
                     } else {
@@ -1540,6 +1519,9 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
             }
         }
     }
+
+    /** Called after [MSecretBoxDialog] confirms a cipher and pin scope is applied (no pending encrypt). */
+    protected open fun onSecretBoxCipherApplied(cipher: Int) {}
 
     protected open fun shouldDeferInitialMessageLoad(): Boolean = false
 
@@ -1599,13 +1581,27 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
     }
 
     protected fun launchSecretBoxForUnlock() {
-        try {
-            isLaunchingSecretBox = true
-            startSecretBoxForUnlock.launch(Intent(SECRET_BOX_PACKAGE))
-        } catch (_: ActivityNotFoundException) {
+        val blurTarget = findViewById<BlurTarget>(R.id.mainBlurTarget) ?: return
+        isLaunchingSecretBox = true
+        var confirmed = false
+        val dialog = MSecretBoxDialog(this, OnSecretBoxClickListener { secretCode ->
+            confirmed = true
             isLaunchingSecretBox = false
-            toast(R.string.secret_box_app_not_found)
+            val cipher = parseCipherFromSecretCode(secretCode) ?: run {
+                pendingThreadIdsToEncrypt = null
+                toast(com.goodwy.commons.R.string.unknown_error_occurred)
+                return@OnSecretBoxClickListener
+            }
+            applySecretBoxCipher(cipher)
+        })
+        dialog.bindBlurTarget(blurTarget)
+        dialog.setOnDismissListener {
+            isLaunchingSecretBox = false
+            if (!confirmed) {
+                pendingThreadIdsToEncrypt = null
+            }
         }
+        dialog.show()
     }
 
     fun requestEncryptConversations(threadIds: LongArray) {

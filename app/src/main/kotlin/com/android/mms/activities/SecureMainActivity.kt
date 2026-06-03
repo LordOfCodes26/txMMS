@@ -1,21 +1,17 @@
 package com.android.mms.activities
 
-import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Bundle
 import android.widget.FrameLayout
-import androidx.appcompat.content.res.AppCompatResources
 import com.android.mms.R
 import com.android.mms.extensions.config
 import com.android.mms.extensions.setConversationPinScope
-import com.goodwy.commons.extensions.beGone
-import com.goodwy.commons.extensions.beVisibleIf
 import com.goodwy.commons.extensions.getProperBackgroundColor
 import com.goodwy.commons.extensions.toast
 
 /**
  * PIN-scoped conversation list: [EXTRA_CIPHER_NUMBER] 1 = private space, greater than 1 = secure box.
- * Two-finger swipe down opens the secret-box app to switch into secure box (cipher > 1).
+ * Two-finger swipe down opens [com.android.common.dialogs.MSecretBoxDialog] to switch into secure box (cipher > 1).
  */
 class SecureMainActivity : MainActivity() {
 
@@ -70,7 +66,6 @@ class SecureMainActivity : MainActivity() {
             finish()
             return
         }
-        setupSecureLockPlaceholder()
         secureMainContentInitialized = true
     }
 
@@ -100,21 +95,12 @@ class SecureMainActivity : MainActivity() {
         loadInitialMessagesIfEnabled()
     }
 
-    private fun setupSecureLockPlaceholder() {
-        binding.noConversationsPlaceholder.setImageDrawable(
-            AppCompatResources.getDrawable(this, com.android.common.R.drawable.ic_cmn_lock_fill),
-        )
-        binding.noConversationsPlaceholder2.beGone()
-    }
-
-    @SuppressLint("ResourceAsColor")
-    override fun showOrHidePlaceholder(show: Boolean) {
-        binding.noConversationsPlaceholder.beVisibleIf(show)
-        binding.noConversationsPlaceholder2.beGone()
-    }
-
     override fun handleTwoFingerSwipeDown() {
         launchSecretBoxForUnlock()
+    }
+
+    override fun onSecretBoxCipherApplied(cipher: Int) {
+        cipherNumber = cipher.coerceAtLeast(DEFAULT_CIPHER_NUMBER)
     }
 
     override fun mainOverflowMenuRes(): Int = R.menu.menu_main_secure
