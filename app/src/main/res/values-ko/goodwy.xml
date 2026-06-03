@@ -13,4 +13,5 @@
     <string name="failed">실패한</string>
     <string name="pending">보류중</string>
     <string name="message_type">류형 : </string>
+    <string name="receipt">수신됨 </string>
 </resources>

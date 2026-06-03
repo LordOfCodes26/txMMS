@@ -148,11 +148,14 @@ class MessageDetailsDialog(val activity: BaseSimpleActivity, val message: Messag
     }
 
     private fun Message.getStatus(): String {
-        return when (status) {
+        var txtStatus = when (status) {
             Sms.STATUS_COMPLETE -> activity.getString(R.string.delivered)
             Sms.STATUS_FAILED -> activity.getString(R.string.failed)
             Sms.STATUS_PENDING -> activity.getString(R.string.pending)
             else -> activity.getString(com.goodwy.commons.R.string.unknown)
         }
+        if (isReceivedMessage()) txtStatus = activity.getString(R.string.receipt)
+        if (isScheduled) txtStatus = activity.getString(R.string.scheduled_message)
+        return txtStatus
     }
 }
