@@ -300,9 +300,25 @@ class ConversationsAdapter(
     }
 
     override fun updateSelectAllButtonIconIfAvailable(selectableItemCount: Int, selectedCount: Int) {
-        super.updateSelectAllButtonIconIfAvailable(selectableItemCount, selectedCount)
+//        super.updateSelectAllButtonIconIfAvailable(selectableItemCount, selectedCount)
+        val allSelected = selectableItemCount > 0 && selectedCount == selectableItemCount
+        updateQuickTextsSelectAllIcon(allSelected)
         (activity as? MainActivity)?.refreshActionModeRippleToolbarIfNeeded()
         (activity as? BlockedItemsActivity)?.refreshActionModeRippleToolbarIfNeeded()
+    }
+
+    private fun updateQuickTextsSelectAllIcon(allSelected: Boolean) {
+        val toolbar = actBarToolbar ?: return
+        val actionBar = toolbar.findViewById<View>(com.goodwy.commons.R.id.actionbar) ?: return
+        val iconRes = if (allSelected) {
+            R.drawable.ic_empty
+        } else {
+            com.android.common.R.drawable.ic_cmn_multi_check
+        }
+        runCatching {
+            actionBar.javaClass.getMethod("setMenuItemIcon", Int::class.javaPrimitiveType, Int::class.javaPrimitiveType)
+                .invoke(actionBar, R.id.cab_select_all, iconRes)
+        }
     }
 
     /** Label for block/unblock slot on the bottom ripple toolbar (txDial [RecentCallsAdapter] pattern). */
