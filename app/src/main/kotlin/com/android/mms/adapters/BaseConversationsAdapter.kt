@@ -412,13 +412,11 @@ abstract class BaseConversationsAdapter(
             val isRowSelected = selectedKeys.contains(conversation.hashCode())
             val smsDraft = drafts[conversation.threadId]
             // SMS Draft Configuration
-            conversationBodyShort.translationX = (-5 * resources.displayMetrics.density)
             tvConversationCHOGO.beGone()
             val colorRed = resources.getColor(R.color.red_unread, activity.theme)
             if (smsDraft != null) {
                 tvConversationCHOGO.beVisible()
                 conversationMessageType.beGone()
-                conversationBodyShort.translationX = (-10 * resources.displayMetrics.density)
 //                conversationDraft.beVisible()
 //                conversationDraft.apply {
 //                    setTextColor(colorRed)
@@ -464,53 +462,25 @@ abstract class BaseConversationsAdapter(
                     }
                 }
                 lastMessageType == Telephony.Sms.MESSAGE_TYPE_OUTBOX -> {
-                    if (smsDraft == null)   {
                         conversationMessageType.setImageResource(R.drawable.ic_cmn_sms_send)
                         conversationMessageType.beVisible()
-                        conversationBodyShort.translationX = (-5 * resources.displayMetrics.density)
-                    }
-                    else {
-                        if (smsDraft != null){
-                            conversationBodyShort.translationX = (40 * resources.displayMetrics.density)
-                        }
-                    }
+
                 }
                 lastMessageType == Telephony.Sms.MESSAGE_TYPE_FAILED -> {
-                    if (smsDraft == null) {
                         conversationMessageType.setImageResource(R.drawable.ic_sms_send_fail)
                         conversationMessageType.beVisible()
-                        conversationBodyShort.translationX = (-5 * resources.displayMetrics.density)
-                    }
-                    else {
-                        if (smsDraft != null){
-                            conversationBodyShort.translationX = (40 * resources.displayMetrics.density)
-                        }
-                    }
+
                 }
                 lastMessageType == Telephony.Sms.MESSAGE_TYPE_QUEUED -> {
-                    if (smsDraft == null) {
                         conversationMessageType.setImageResource(com.android.common.R.drawable.ic_cmn_alarm)
                         conversationMessageType.beVisible()
-                        conversationBodyShort.translationX = (-5 * resources.displayMetrics.density)
-                    }
-                    else {
-                        if (smsDraft != null){
-                            conversationBodyShort.translationX = (40 * resources.displayMetrics.density)
-                        }
-                    }
+
                 }
                 lastMessageType == Telephony.Sms.MESSAGE_TYPE_DRAFT -> {
-                    if (smsDraft == null) {
                         conversationMessageType.beGone()
                         tvConversationCHOGO.beVisible()
                         conversationDraft.beGone()
-                        conversationBodyShort.translationX = (-5 * resources.displayMetrics.density)
-                    }
-                    else {
-                        if (smsDraft != null){
-                            conversationBodyShort.translationX = (40 * resources.displayMetrics.density)
-                        }
-                    }
+
                 }
                 else -> conversationMessageType.beGone()
             }

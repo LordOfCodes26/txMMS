@@ -232,7 +232,7 @@
                     android:layout_height="wrap_content"
                     android:paddingTop="@dimen/tx_cardview_summary_padding_top"
                     android:layout_marginEnd="@dimen/section_margin"
-                    android:layout_marginStart="@dimen/medium_margin"
+                    android:layout_marginStart="@dimen/small_margin"
                     android:textDirection="firstStrongLtr"
                     android:ellipsize="end"
                     android:maxLines="1"
