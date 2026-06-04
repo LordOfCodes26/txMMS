@@ -304,15 +304,20 @@
                 android:layout_height="match_parent"
                 android:background="@drawable/tx_item_ripple"
                 android:clipToPadding="false"
-                android:padding="@dimen/small_margin">
+                android:layout_gravity="center"
+                android:gravity="center"
+                android:orientation="horizontal"
+                android:padding="@dimen/small_margin"
+                >
 
                 <ImageView
                     android:id="@+id/threadSendMessage"
-                    android:layout_width="19.5dp"
-                    android:layout_height="16.3dp"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
                     android:layout_gravity="center"
-                    android:background="@drawable/ic_cmn_sms_send"
-                    android:backgroundTint="@color/tx_title_text"
+                    android:src="@drawable/ic_cmn_sms_send"
+                    app:tint="@color/tx_title_text"
+                    android:padding="@dimen/tiny_margin"
                     android:clickable="false"
                     android:contentDescription="@string/ok" />
 
