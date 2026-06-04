@@ -200,14 +200,25 @@ class BlockedNumbersListAdapter(
 
             val nameLp = binding.itemContactName.layoutParams as ConstraintLayout.LayoutParams
             val holderId = binding.itemContactHolder.id
+            val avatarId = binding.itemContactImage.id
+            val topMargin = activity.resources.getDimensionPixelOffset(R.dimen.normal_margin)
             if (displayName != null) {
+                nameLp.topToTop = holderId
+                nameLp.topToBottom = ConstraintLayout.LayoutParams.UNSET
                 nameLp.bottomToTop = binding.itemContactNumber.id
                 nameLp.bottomToBottom = ConstraintLayout.LayoutParams.UNSET
                 nameLp.verticalBias = 0f
+                nameLp.topMargin = topMargin
+                nameLp.bottomMargin = 0
             } else {
+                // Unsaved numbers: one line only — center with the avatar, not the two-line stack.
+                nameLp.topToTop = avatarId
+                nameLp.topToBottom = ConstraintLayout.LayoutParams.UNSET
                 nameLp.bottomToTop = ConstraintLayout.LayoutParams.UNSET
-                nameLp.bottomToBottom = holderId
+                nameLp.bottomToBottom = avatarId
                 nameLp.verticalBias = 0.5f
+                nameLp.topMargin = 0
+                nameLp.bottomMargin = 0
             }
             binding.itemContactName.layoutParams = nameLp
 

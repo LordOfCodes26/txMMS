@@ -7,56 +7,68 @@
     <eightbitlab.com.blurview.BlurTarget xmlns:tools="http://schemas.android.com/tools"
         android:id="@+id/mainBlurTarget"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="@color/tx_common_bg">
-
+        android:layout_height="match_parent">
 
         <androidx.coordinatorlayout.widget.CoordinatorLayout
             android:id="@+id/main_coordinator"
             android:layout_width="match_parent"
-            android:layout_height="match_parent">
+            android:layout_height="match_parent"
+            android:background="@color/tx_common_bg">
 
             <eightbitlab.com.blurview.BlurTarget
                 android:id="@+id/blurTarget"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:background="@color/tx_common_bg"
-                android:layout_marginVertical="-150dp"
                 app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
-                <androidx.core.widget.NestedScrollView
+                <!-- Full-height pager (same as MainActivity main_holder); NestedScrollView breaks RecyclerView tabs. -->
+                <FrameLayout
                     android:id="@+id/mainHolder"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:clipToPadding="false"
-                    android:fillViewport="true"
-                    android:scrollbars="none"
-                    app:layout_behavior="@string/appbar_scrolling_view_behavior">
+                    android:clipToPadding="false">
 
                     <com.goodwy.commons.views.MyViewPager
                         android:id="@+id/blocked_items_view_pager"
                         android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:paddingBottom="@dimen/dialpad_margin_bottom_ios" />
-                </androidx.core.widget.NestedScrollView>
+                        android:layout_height="match_parent" />
+                </FrameLayout>
             </eightbitlab.com.blurview.BlurTarget>
 
             <com.android.common.view.MVSideFrame
                 android:id="@+id/m_vertical_side_frame_top"
                 android:layout_width="match_parent"
-                android:layout_height="120dp"
-                app:autoUpdate="true"
-                android:layout_alignParentTop="true" />
+                android:layout_height="@dimen/tx_mv_side_top_frame_height"
+                android:layout_gravity="top"
+                app:autoUpdate="true" />
 
-            <com.goodwy.commons.views.MySearchMenu
+            <com.android.common.view.MAppBarLayout
                 android:id="@+id/mainMenu"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content" />
+                android:layout_height="@dimen/tx_top_bar_expand_height"
+                android:background="@android:color/transparent"
+                app:elevation="0dp" />
+
+            <FrameLayout
+                android:id="@+id/action_mode_toolbar_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/tx_top_bar_toolbar_margin_top"
+                android:visibility="gone">
+
+                <com.goodwy.commons.views.CustomActionModeToolbar
+                    android:id="@+id/action_mode_toolbar"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/tx_top_bar_toolbar_height"
+                    android:background="@android:color/transparent" />
+
+            </FrameLayout>
 
             <com.android.common.view.MVSideFrame
                 android:id="@+id/m_vertical_side_frame_bottom"
                 android:layout_width="match_parent"
-                android:layout_height="50dp"
+                android:layout_height="@dimen/tx_mv_side_bottom_frame_height"
                 android:layout_gravity="bottom"
                 app:autoUpdate="true"
                 app:isTopFrame="false" />

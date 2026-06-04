@@ -17,7 +17,7 @@ import com.goodwy.commons.views.MyRecyclerView
 import com.android.common.view.MRippleToolBar
 import eightbitlab.com.blurview.BlurTarget
 
-class BlockListFragment : Fragment(R.layout.fragment_block_list) {
+open class BlockListFragment : Fragment(R.layout.fragment_block_list) {
     private lateinit var blockListRecycler: MyRecyclerView
     private lateinit var blockListPlaceholder: View
     private lateinit var blockListAdapter: BlockedNumbersListAdapter
@@ -44,6 +44,12 @@ class BlockListFragment : Fragment(R.layout.fragment_block_list) {
     override fun onResume() {
         super.onResume()
         loadBlockedNumbers()
+    }
+
+    fun refreshBlockedNumbersList() {
+        if (::blockListAdapter.isInitialized) {
+            loadBlockedNumbers()
+        }
     }
 
     fun bindRippleToolbarIfNeeded(ripple: MRippleToolBar, blurTarget: BlurTarget) {

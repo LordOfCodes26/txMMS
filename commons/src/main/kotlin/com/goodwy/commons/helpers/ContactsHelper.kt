@@ -2935,6 +2935,7 @@ class ContactsHelper(val context: Context) {
         callback: (ArrayList<Contact>) -> Unit
     ) {
         ensureBackgroundThread {
+            ContactProtectionHelper.ensureUnlockedForThread(context)
             val contacts = SparseArray<Contact>()
             // For recents, always include all phone storage and SIM contacts regardless of filter
             // Get all sources (phone storage and SIM) without applying the current filter

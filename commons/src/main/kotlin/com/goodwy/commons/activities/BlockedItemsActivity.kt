@@ -1,29 +1,43 @@
 package com.goodwy.commons.activities
 
+import android.app.Activity
 import android.content.ComponentName
 import android.content.Intent
 import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
+import android.view.Gravity
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
+import androidx.appcompat.view.menu.MenuBuilder
+import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.view.isVisible
-import androidx.core.view.updateLayoutParams
 import androidx.core.view.updatePadding
 import com.android.common.R as CommonR
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.FragmentPagerAdapter
+import com.android.common.dialogs.MRenameDialog
 import com.android.common.helper.IconItem
+import com.android.common.interfaces.OnRenameListener
+import com.android.common.view.MAppBarLayout
 import com.android.common.view.MVSideFrame
 import com.goodwy.commons.R
 import com.goodwy.commons.databinding.ActivityBlockedItemsBinding
-import com.goodwy.commons.extensions.getProperBackgroundColor
+import com.goodwy.commons.dialogs.OptionListDialog
+import com.goodwy.commons.extensions.addBlockedNumber
+import com.goodwy.commons.extensions.blockContact
+import com.goodwy.commons.extensions.onPageChangeListener
+import com.goodwy.commons.extensions.toast
 import com.goodwy.commons.extensions.updateMarginWithBase
 import com.goodwy.commons.extensions.updatePaddingWithBase
-import com.goodwy.commons.extensions.onPageChangeListener
 import com.goodwy.commons.extensions.viewBinding
+import android.telephony.PhoneNumberUtils
+import com.goodwy.commons.helpers.ContactsHelper
+import com.goodwy.commons.helpers.ensureBackgroundThread
 import com.goodwy.commons.fragments.BlockedCallsFragment
 import com.goodwy.commons.fragments.BlockListFragment
 import com.goodwy.commons.fragments.BlockedContactsFragment
@@ -31,14 +45,36 @@ import com.goodwy.commons.fragments.BlockedMessagesFragment
 import com.goodwy.commons.helpers.APP_ICON_IDS
 import com.goodwy.commons.helpers.APP_LAUNCHER_NAME
 import com.goodwy.commons.interfaces.ActionModeToolbarHost
-import com.goodwy.commons.views.CustomToolbar
+import com.goodwy.commons.views.showMPopupMenu
+import com.google.android.material.appbar.AppBarLayout
+import com.google.android.material.appbar.AppBarLayout.ScrollingViewBehavior
+import com.google.android.material.appbar.CollapsingToolbarLayout
 import com.qmdeve.liquidglass.view.LiquidGlassTabs
 import eightbitlab.com.blurview.BlurTarget
 
 open class BlockedItemsActivity : BaseSimpleActivity(), ActionModeToolbarHost {
     private val binding by viewBinding(ActivityBlockedItemsBinding::inflate)
     private var isProgrammaticTabSelection = false
-    private var customToolbar: CustomToolbar? = null
+    /** Saved while action mode drops [binding.blurTarget]'s scrolling behavior. */
+    private var blurTargetScrollingBehavior: CoordinatorLayout.Behavior<*>? = null
+
+    private val pickContactsToBlockLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode != Activity.RESULT_OK) return@registerForActivityResult
+            result.data?.let { handleSelectContactsToBlockResult(it) }
+        }
+
+    private val pickContactNumberToBlockLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode != Activity.RESULT_OK) return@registerForActivityResult
+            result.data?.let { handleSelectContactNumberToBlockResult(it) }
+        }
+
+    private val pickRecentNumberToBlockLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode != Activity.RESULT_OK) return@registerForActivityResult
+            result.data?.let { handleSelectContactNumberToBlockResult(it) }
+        }
 
     override fun getAppIconIDs() = intent.getIntegerArrayListExtra(APP_ICON_IDS) ?: ArrayList()
 
@@ -49,41 +85,38 @@ open class BlockedItemsActivity : BaseSimpleActivity(), ActionModeToolbarHost {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
-//        setupMVSideFrame()
         setupEdgeToEdge(
-            padTopSystem = listOf(binding.mainMenu),
             padBottomSystem = listOf(binding.blockedItemsTabBar),
             moveBottomSystem = listOf(binding.actionModeRippleToolbar),
         )
 
-        binding.mainMenu.requireCustomToolbar().apply {
-            setNavigationIconViewVisible(true)
-            setNavigationOnClickListener { onBackPressedDispatcher.onBackPressed() }
-        }
         setupOptionsMenu()
-        updateTopMenuColors()
         setupPager()
         binding.root.post {
             syncVerticalSideFrameBlurState()
-            scheduleTopSideFrameHeightSyncIfNeeded()
+            bindMainAppBarBlurTargets()
+            syncMainAppBarLayer()
             syncMainHolderBottomPaddingForTabBar()
         }
     }
 
     override fun onResume() {
         super.onResume()
-        updateTopMenuColors()
         binding.root.post {
             syncVerticalSideFrameBlurState()
-            scheduleTopSideFrameHeightSyncIfNeeded()
+            bindMainAppBarBlurTargets()
+            syncMainAppBarLayer()
             syncMainHolderBottomPaddingForTabBar()
         }
     }
 
-    private fun updateTopMenuColors() {
-        val surfaceColor = getProperBackgroundColor()
-        binding.mainMenu.updateColors(surfaceColor)
-        binding.mainMenu.setMenuBarBackgroundColor(Color.TRANSPARENT)
+    /** Wire glass blur on [binding.mainMenu]'s back arrow + action bar pills (inner [binding.blurTarget]). */
+    private fun bindMainAppBarBlurTargets() {
+        if (isDestroyed || isFinishing) return
+        val blurTarget = binding.blurTarget
+        val appBar = binding.mainMenu
+        appBar.backArrow?.bindBlurTarget(this, blurTarget)
+        appBar.getActionBarView()?.bindBlurTarget(this, blurTarget)
     }
 
     /**
@@ -103,32 +136,59 @@ open class BlockedItemsActivity : BaseSimpleActivity(), ActionModeToolbarHost {
         setupVerticalSideFrameBlur()
     }
 
-    /** Align top glass strip and blur target with [binding.mainMenu] like MainActivity. */
-    private fun syncTopSideFrameHeightWithToolbar() {
-        val menuHeight = binding.mainMenu.height
-        if (menuHeight <= 0) return
-        val collapsedMenuHeight =
-            binding.mainMenu.getCollapsedHeightPx().takeIf { it > 0 } ?: menuHeight
-        binding.mVerticalSideFrameTop.updateLayoutParams<ViewGroup.LayoutParams> {
-            if (height != collapsedMenuHeight) {
-                height = collapsedMenuHeight
-            }
-        }
-        val targetTopMargin = -menuHeight
-        binding.blurTarget.updateLayoutParams<ViewGroup.MarginLayoutParams> {
-            if (topMargin != targetTopMargin) {
-                topMargin = targetTopMargin
-            }
-        }
-        // blurTarget is shifted up for MVSideFrame blur sampling; keep scroll content below toolbar like Recents.
-        binding.mainHolder.updatePadding(
-            left = binding.mainHolder.paddingLeft,
-            top = menuHeight,
-            right = binding.mainHolder.paddingRight,
-            bottom = binding.mainHolder.paddingBottom,
-        )
-        syncMainHolderBottomPaddingForTabBar()
+    /**
+     * Keeps [binding.mainMenu] and [binding.blurTarget] in sync — same layering as
+     * [com.android.dialer.activities.MainActivity.syncMainAppBarLayer].
+     */
+    private fun syncMainAppBarLayer() {
+        if (isDestroyed || isFinishing) return
+        syncBlurTargetScrollingBehavior()
+        syncBlurTargetTopMarginForAppBar()
+        binding.mainCoordinator.requestLayout()
     }
+
+    /**
+     * [ScrollingViewBehavior] pins [binding.blurTarget] below [binding.mainMenu] even when the bar
+     * is transparent; drop it while action mode is shown so content starts at the coordinator top.
+     */
+    private fun syncBlurTargetScrollingBehavior() {
+        val lp = binding.blurTarget.layoutParams as? CoordinatorLayout.LayoutParams ?: return
+        val dropBehavior = isActionModeToolbarVisible()
+        if (dropBehavior) {
+            if (blurTargetScrollingBehavior == null) {
+                blurTargetScrollingBehavior = lp.behavior
+            }
+            if (lp.behavior != null) {
+                lp.behavior = null
+                binding.blurTarget.layoutParams = lp
+            }
+        } else if (lp.behavior == null) {
+            lp.behavior = blurTargetScrollingBehavior ?: ScrollingViewBehavior()
+            blurTargetScrollingBehavior = lp.behavior
+            binding.blurTarget.layoutParams = lp
+        }
+    }
+
+    /**
+     * Negative top margin pulls [binding.blurTarget] under [binding.mainMenu] so the glass blur
+     * samples list content beneath the bar (see [CommonR.dimen.tx_top_bar_expand_height]).
+     */
+    private fun syncBlurTargetTopMarginForAppBar() {
+        val appBarShown = !isActionModeToolbarVisible() && binding.mainMenu.visibility == View.VISIBLE
+        val targetTop =
+            if (appBarShown) {
+                -resources.getDimensionPixelSize(CommonR.dimen.tx_top_bar_expand_height)
+            } else {
+                0
+            }
+        val lp = binding.blurTarget.layoutParams as? ViewGroup.MarginLayoutParams ?: return
+        if (lp.topMargin == targetTop) return
+        lp.topMargin = targetTop
+        binding.blurTarget.layoutParams = lp
+    }
+
+    private fun isActionModeToolbarVisible(): Boolean =
+        binding.actionModeToolbarContainer.visibility == View.VISIBLE
 
     /**
      * The bottom tab bar overlays the scroll area; without bottom inset the placeholder centers in the
@@ -152,81 +212,79 @@ open class BlockedItemsActivity : BaseSimpleActivity(), ActionModeToolbarHost {
         )
     }
 
-    private fun scheduleTopSideFrameHeightSyncIfNeeded() {
-        if (binding.mainMenu.height > 0) {
-            syncTopSideFrameHeightWithToolbar()
-            return
-        }
-        binding.mainMenu.viewTreeObserver.addOnGlobalLayoutListener(object : android.view.ViewTreeObserver.OnGlobalLayoutListener {
-            override fun onGlobalLayout() {
-                if (binding.mainMenu.height <= 0) return
-                binding.mainMenu.viewTreeObserver.removeOnGlobalLayoutListener(this)
-                syncTopSideFrameHeightWithToolbar()
+    /**
+     * MAppBarLayout's inner CollapsingToolbarLayout still receives Material's default
+     * statusBarScrim, which paints the tinted header when expanded. Strip both scrims plus
+     * the inner background so only the glass blur shows through — copy of
+     * [com.android.dialer.activities.MainActivity.clearMainAppBarScrims].
+     */
+    private fun clearMainAppBarScrims() {
+        val transparent = ColorDrawable(Color.TRANSPARENT)
+        binding.mainMenu.background = null
+        for (i in 0 until binding.mainMenu.childCount) {
+            val child = binding.mainMenu.getChildAt(i)
+            if (child is CollapsingToolbarLayout) {
+                child.background = null
+                child.contentScrim = transparent
+                child.statusBarScrim = transparent
             }
-        })
+        }
     }
 
-    /** Same flow as the app’s `MainActivity.setupOptionsMenu` (action bar + more → overflow). */
+    /** Wire the [MAppBarLayout] action bar pill, popup overflow, and per-offset blur refresh. */
     private fun setupOptionsMenu() {
-        binding.mainMenu.apply {
-            val toolbar = requireCustomToolbar()
-            toolbar.inflateMenu(R.menu.block_action_menu)
-            this@BlockedItemsActivity.customToolbar = toolbar
-            toolbar.setOnMenuItemClickListener { item ->
-                onBlockToolbarMenuItemClick(item)
-            }
-            val blurTarget = this@BlockedItemsActivity.binding.blurTarget
-            toolbar.bindBlurTarget(this@BlockedItemsActivity, blurTarget)
+        val appBar = binding.mainMenu
 
-            toolbar.setPopupForMoreItem(
-                R.id.more,
-                R.menu.block_menu,
-                this@BlockedItemsActivity.binding.mainBlurTarget,
-                object : MenuItem.OnMenuItemClickListener {
-                    override fun onMenuItemClick(item: MenuItem): Boolean {
-                        return onBlockToolbarMenuItemClick(item)
-                    }
-                }
-            )
+        clearMainAppBarScrims()
+        appBar.setTitle(getString(R.string.blocked_items))
+        // Default back arrow stays visible; MAppBarLayout routes it through OnBackPressedDispatcher,
+        // so [onBackPressedCompat] still gets a chance to finish selection mode first.
+        appBar.addOnOffsetChangedListener(AppBarLayout.OnOffsetChangedListener { _, _ ->
+            binding.mVerticalSideFrameTop.update()
+        })
+
+        bindMainAppBarBlurTargets()
+        appBar.getActionBarView()?.setPosition("right")
+        appBar.getActionBarView()?.inflateMenu(R.menu.block_action_menu)
+        appBar.getActionBarView()?.setOnMenuItemClickListener { item ->
+            onBlockToolbarMenuItemClick(item)
         }
+
+        // Action mode toolbar floats over the main content; bind it to blurTarget so its
+        // controls (back arrow + overflow) blur the content beneath them. Same pattern as
+        // [com.android.dialer.activities.MainActivity.setupOptionsMenu].
+        binding.actionModeToolbar.bindBlurTarget(this, binding.blurTarget)
     }
-    private fun setupMVSideFrame() {
-        val blurTarget = findViewById<BlurTarget>(R.id.blurTarget)
-            ?: throw IllegalStateException("mainBlurTarget not found")
-        val topSideFrame = findViewById<MVSideFrame>(R.id.m_vertical_side_frame_top)
-            ?: throw IllegalStateException("Top MVSideFrame not found")
-        val bottomSideFrame = findViewById<MVSideFrame>(R.id.m_vertical_side_frame_bottom)
-            ?: throw IllegalStateException("Bottom MVSideFrame not found")
-        topSideFrame.bindBlurTarget(blurTarget)
-        bottomSideFrame.bindBlurTarget(blurTarget)
-    }
-    override fun getActionModeToolbar() = binding.mainMenu.getActionModeToolbar()
+
+    override fun getActionModeToolbar() = binding.actionModeToolbar
 
     override fun showActionModeToolbar() {
-        // showActionModeToolbar() locks the current (expanded) height for later restoration.
-        // After that, override the height to collapsed so the action-mode bar is compact and
-        // syncTopSideFrameHeightWithToolbar() aligns the content edge with the shorter bar.
-        binding.mainMenu.showActionModeToolbar()
-        val collapsedH = binding.mainMenu.getCollapsedHeightPx()
-        if (collapsedH > 0) {
-            binding.mainMenu.updateLayoutParams<ViewGroup.LayoutParams> { height = collapsedH }
-        }
+        binding.actionModeToolbarContainer.visibility = View.VISIBLE
+        // Collapse the AppBarLayout's scroll state before hiding so any residual scrim/status-bar
+        // foreground that MAppBarLayout could still draw is fully retracted, then mark it GONE so
+        // it doesn't reserve layout space under the action mode toolbar.
+        binding.mainMenu.setExpanded(false, false)
+        binding.mainMenu.visibility = View.GONE
         binding.blockedItemsTabBar.visibility = View.GONE
+        syncBlurTargetScrollingBehavior()
+        syncBlurTargetTopMarginForAppBar()
         syncActionModeRippleToolbarInsetWithTabBar()
+        syncVerticalSideFrameBlurState()
         binding.root.post {
-            syncTopSideFrameHeightWithToolbar()
             syncMainHolderBottomPaddingForTabBar()
             refreshActionModeRippleToolbarIfNeeded()
         }
     }
 
     override fun hideActionModeToolbar() {
-        // hideActionModeToolbar() restores the saved expanded height and calls setExpanded(true).
-        binding.mainMenu.hideActionModeToolbar()
+        binding.actionModeToolbarContainer.visibility = View.GONE
+        binding.mainMenu.visibility = View.VISIBLE
         binding.actionModeRippleToolbar.visibility = View.GONE
         binding.blockedItemsTabBar.visibility = View.VISIBLE
+        binding.mainMenu.dismissCollapse()
+        syncBlurTargetScrollingBehavior()
         binding.root.post {
-            syncTopSideFrameHeightWithToolbar()
+            syncMainAppBarLayer()
             syncMainHolderBottomPaddingForTabBar()
         }
     }
@@ -296,11 +354,7 @@ open class BlockedItemsActivity : BaseSimpleActivity(), ActionModeToolbarHost {
                 tryStartBlockedSelection()
             }
             R.id.add_blocked_number -> {
-                Intent(this, ManageBlockedNumbersActivity::class.java).apply {
-                    putExtra(APP_ICON_IDS, getAppIconIDs())
-                    putExtra(APP_LAUNCHER_NAME, getAppLauncherName())
-                    startActivity(this)
-                }
+                showAddBlockedItemOptionsDialog()
                 true
             }
             R.id.settings -> {
@@ -314,8 +368,180 @@ open class BlockedItemsActivity : BaseSimpleActivity(), ActionModeToolbarHost {
                 }
                 true
             }
+            R.id.more -> {
+                showMoreActionsPopup()
+                true
+            }
             else -> false
         }
+    }
+
+    private fun showAddBlockedItemOptionsDialog() {
+        OptionListDialog(
+            activity = this,
+            title = "",
+            options = listOf(
+                getString(R.string.add_phone_number) to { showAddBlockedNumberDialog() },
+                getString(R.string.pick_contact_number) to { launchSelectContactNumberToBlock() },
+                getString(R.string.pick_recent_number) to { launchSelectRecentNumberToBlock() },
+                getString(R.string.add_contact) to { launchSelectContactsToBlock() },
+            ),
+            blurTarget = binding.mainBlurTarget,
+        )
+    }
+
+    private fun showAddBlockedNumberDialog() {
+        MRenameDialog(this, OnRenameListener { raw ->
+            val number = normalizeBlockedNumberInput(raw)
+            if (number.isEmpty()) return@OnRenameListener
+            if (addBlockedNumber(number)) {
+                refreshBlockedContactsTab()
+            } else {
+                toast(R.string.unknown_error_occurred)
+            }
+        }).apply {
+            bindBlurTarget(binding.mainBlurTarget)
+            setTitle(getString(R.string.add_a_blocked_number))
+            setHintText(getString(R.string.number))
+            setContentText("")
+            show()
+        }
+    }
+
+    private fun launchSelectContactsToBlock() {
+        try {
+            val intent = Intent().apply {
+                component = ComponentName(packageName, SELECT_CONTACTS_ACTIVITY)
+                putExtra(SELECT_CONTACTS_EXTRA_ALLOW_MULTIPLE, true)
+                putExtra(SELECT_CONTACTS_EXTRA_SHOW_ONLY_WITH_NUMBER, true)
+            }
+            pickContactsToBlockLauncher.launch(intent)
+        } catch (_: Exception) {
+            toast(R.string.unknown_error_occurred)
+        }
+    }
+
+    private fun launchSelectContactNumberToBlock() {
+        try {
+            val intent = Intent().apply {
+                component = ComponentName(packageName, SELECT_CONTACT_NUMBERS_ACTIVITY)
+                putExtra(SELECT_NUMBERS_EXTRA_ALLOW_MULTIPLE, true)
+            }
+            pickContactNumberToBlockLauncher.launch(intent)
+        } catch (_: Exception) {
+            toast(R.string.unknown_error_occurred)
+        }
+    }
+
+    private fun launchSelectRecentNumberToBlock() {
+        try {
+            val intent = Intent().apply {
+                component = ComponentName(packageName, SELECT_RECENT_NUMBERS_ACTIVITY)
+                putExtra(SELECT_NUMBERS_EXTRA_ALLOW_MULTIPLE, true)
+            }
+            pickRecentNumberToBlockLauncher.launch(intent)
+        } catch (_: Exception) {
+            toast(R.string.unknown_error_occurred)
+        }
+    }
+
+    private fun handleSelectContactNumberToBlockResult(data: Intent) {
+        val phones = data.getStringArrayExtra(SELECT_NUMBERS_RESULT_ALL_PHONES)
+        val list = if (phones != null && phones.isNotEmpty()) {
+            phones.mapIndexed { i, phone ->
+                val normalized = data.getStringArrayExtra(SELECT_NUMBERS_RESULT_ALL_NORMALIZED)?.getOrElse(i) { "" }
+                    ?: phone
+                PhoneNumberUtils.stripSeparators(normalized.ifEmpty { phone })
+            }
+        } else {
+            val phone = data.getStringExtra(SELECT_CONTACT_NUMBERS_RESULT_PHONE) ?: return
+            val normalized = data.getStringExtra(SELECT_CONTACT_NUMBERS_RESULT_NORMALIZED)?.takeIf { it.isNotEmpty() }
+            listOf(PhoneNumberUtils.stripSeparators(normalized ?: phone))
+        }
+        var blockedAny = false
+        for (number in list) {
+            if (number.isNotEmpty() && addBlockedNumber(number)) {
+                blockedAny = true
+            }
+        }
+        when {
+            blockedAny -> {
+                toast(R.string.block_contact_success)
+                refreshBlockedContactsTab()
+            }
+            list.isNotEmpty() -> toast(R.string.block_contact_fail)
+        }
+    }
+
+    private fun handleSelectContactsToBlockResult(data: Intent) {
+        val ids = data.getLongArrayExtra(SELECT_CONTACTS_RESULT_ALL_IDS)
+            ?.takeIf { it.isNotEmpty() }
+            ?: data.getLongArrayExtra(SELECT_CONTACTS_RESULT_ADDED_IDS)
+            ?: return
+        ensureBackgroundThread {
+            val helper = ContactsHelper(this)
+            var blockedAny = false
+            var hadNumberless = false
+            ids.forEach { id ->
+                val contact = helper.getContactWithId(id.toInt()) ?: return@forEach
+                if (contact.phoneNumbers.isEmpty()) {
+                    hadNumberless = true
+                    return@forEach
+                }
+                if (blockContact(contact)) {
+                    blockedAny = true
+                }
+            }
+            runOnUiThread {
+                when {
+                    blockedAny -> {
+                        toast(R.string.block_contact_success)
+                        refreshBlockedContactsTab()
+                    }
+                    hadNumberless -> toast(R.string.no_phone_number_found)
+                    else -> toast(R.string.block_contact_fail)
+                }
+            }
+        }
+    }
+
+    private fun normalizeBlockedNumberInput(raw: String): String {
+        var number = raw.trim()
+        if (number.contains(".*")) {
+            number = number.replace(".*", "*")
+        }
+        return number
+    }
+
+    private fun refreshBlockedContactsTab() {
+        val contactsPage = supportFragmentManager.fragments
+            .filterIsInstance<BlockListFragment>()
+            .firstOrNull()
+        contactsPage?.refreshBlockedNumbersList()
+        (currentBlockedPageFragment() as? BlockListFragment)?.refreshBlockedNumbersList()
+    }
+
+    /**
+     * Shows [R.menu.block_menu] as an MPopup anchored to the [MAppBarLayout]'s action-bar pill.
+     * Mirrors the dialer `MainActivity.showMoreActionsPopup` flow: build the menu, hide
+     * settings on the messages tab, then dispatch through [onBlockToolbarMenuItemClick].
+     */
+    private fun showMoreActionsPopup() {
+        val actionBar = binding.mainMenu.getActionBarView() ?: return
+        val anchor: View = actionBar
+        val blurTarget = binding.mainBlurTarget
+        val menu = MenuBuilder(this)
+        menuInflater.inflate(R.menu.block_menu, menu)
+        val currentTab = binding.blockedItemsViewPager.currentItem
+        menu.findItem(R.id.settings)?.isVisible = currentTab != TAB_BLOCKED_MESSAGES
+        showMPopupMenu(
+            context = this,
+            anchor = anchor,
+            menu = menu,
+            gravity = Gravity.END,
+            blurTarget = blurTarget,
+            listener = { item -> onBlockToolbarMenuItemClick(item) },
+        )
     }
 
 
@@ -343,9 +569,11 @@ open class BlockedItemsActivity : BaseSimpleActivity(), ActionModeToolbarHost {
         binding.blockedItemsTabBar.setTabs(this, tabItems, binding.mainBlurTarget)
         binding.blockedItemsTabBar.setSelection(initialTab)
         updateTitleForTab(initialTab)
+        binding.blockedItemsViewPager.post { refreshTabContent(initialTab) }
 
         binding.blockedItemsViewPager.onPageChangeListener { index ->
             updateTitleForTab(index)
+            refreshTabContent(index)
             isProgrammaticTabSelection = true
             binding.blockedItemsTabBar.setSelection(index)
             binding.blockedItemsTabBar.post {
@@ -372,12 +600,22 @@ open class BlockedItemsActivity : BaseSimpleActivity(), ActionModeToolbarHost {
         }
     }
 
+    private fun refreshTabContent(index: Int) {
+        binding.blockedItemsViewPager.post {
+            val tag = "android:switcher:${binding.blockedItemsViewPager.id}:$index"
+            when (val page = supportFragmentManager.findFragmentByTag(tag)) {
+                is BlockedCallsFragment -> page.refreshBlockedCallLogs()
+                is BlockListFragment -> page.refreshBlockedNumbersList()
+            }
+        }
+    }
+
     private fun updateTitleForTab(index: Int) {
         val titleId = TITLES.getOrElse(index) { R.string.blocked_items }
-        binding.mainMenu.updateTitle(getString(titleId))
-        val menuRes = if (index == TAB_BLOCKED_CONTACTS) R.menu.block_action_menu else R.menu.block_action_menu_no_add
-        customToolbar?.inflateMenu(menuRes)
-        customToolbar?.menu?.findItem(R.id.settings)?.isVisible = index != TAB_BLOCKED_MESSAGES
+        binding.mainMenu.setTitle(getString(titleId))
+        // Only the "Contacts" tab supports adding a new blocked number directly from the bar.
+        binding.mainMenu.getActionBarView()
+            ?.setMenuItemVisible(R.id.add_blocked_number, index == TAB_BLOCKED_CONTACTS)
     }
 
     private inner class BlockedItemsPagerAdapter(fragmentManager: FragmentManager) :
@@ -399,6 +637,23 @@ open class BlockedItemsActivity : BaseSimpleActivity(), ActionModeToolbarHost {
 
     companion object {
         const val EXTRA_INITIAL_TAB_INDEX = "com.goodwy.commons.BlockedItemsActivity.INITIAL_TAB_INDEX"
+
+        /** Mirrors [com.android.contacts.activities.SelectContactsActivity] extras for picker results. */
+        private const val SELECT_CONTACTS_ACTIVITY = "com.android.contacts.activities.SelectContactsActivity"
+        private const val SELECT_CONTACTS_EXTRA_ALLOW_MULTIPLE = "allow_select_multiple"
+        private const val SELECT_CONTACTS_EXTRA_SHOW_ONLY_WITH_NUMBER = "show_only_contacts_with_number"
+        private const val SELECT_CONTACTS_RESULT_ADDED_IDS = "added_contact_ids"
+        private const val SELECT_CONTACTS_RESULT_ALL_IDS = "all_selected_contact_ids"
+
+        /** Mirrors [com.android.contacts.activities.SelectContactNumbersActivity] result extras. */
+        private const val SELECT_CONTACT_NUMBERS_ACTIVITY = "com.android.contacts.activities.SelectContactNumbersActivity"
+        private const val SELECT_CONTACT_NUMBERS_RESULT_PHONE = "phone_number"
+        private const val SELECT_CONTACT_NUMBERS_RESULT_NORMALIZED = "normalized_phone_number"
+        private const val SELECT_NUMBERS_EXTRA_ALLOW_MULTIPLE = "allow_select_multiple"
+        private const val SELECT_NUMBERS_RESULT_ALL_PHONES = "all_phone_numbers"
+        private const val SELECT_NUMBERS_RESULT_ALL_NORMALIZED = "all_normalized_phone_numbers"
+
+        private const val SELECT_RECENT_NUMBERS_ACTIVITY = "com.android.contacts.activities.SelectRecentNumbersActivity"
 
         const val TAB_BLOCKED_CALLS = 0
         const val TAB_BLOCKED_MESSAGES = 1

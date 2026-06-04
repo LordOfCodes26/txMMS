@@ -1,6 +1,7 @@
 package com.goodwy.commons.fragments
 
-import androidx.fragment.app.Fragment
-import com.goodwy.commons.R
-
-class BlockedContactsFragment : Fragment(R.layout.fragment_blocked_contacts)
+/**
+ * Contacts tab in [com.goodwy.commons.activities.BlockedItemsActivity]: blocked numbers
+ * (with contact names when available). Reuses [BlockListFragment] list/selection behavior.
+ */
+class BlockedContactsFragment : BlockListFragment()
