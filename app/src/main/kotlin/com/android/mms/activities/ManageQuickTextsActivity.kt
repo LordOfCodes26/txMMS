@@ -175,6 +175,21 @@ class ManageQuickTextsActivity : SimpleActivity(), RefreshRecyclerViewListener, 
     private fun makeSystemBarsToTransparent() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
+            val nav = insets.getInsets(WindowInsetsCompat.Type.navigationBars())
+            val navHeight = nav.bottom
+            val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
+            val dp5 = (5 * resources.displayMetrics.density).toInt()
+            binding.mVerticalSideFrameBottom.layoutParams =
+                binding.mVerticalSideFrameBottom.layoutParams.apply { height = navHeight + dp5 }
+            val barLp = binding.actionModeRippleToolbar.layoutParams as ViewGroup.MarginLayoutParams
+            val activityMargin = (0 * resources.displayMetrics.density).toInt()
+            if (ime.bottom > 0) {
+                barLp.bottomMargin = ime.bottom + activityMargin
+            } else {
+                barLp.bottomMargin = navHeight + activityMargin
+            }
+            binding.actionModeRippleToolbar.layoutParams = barLp
+
             insets.getInsets(WindowInsetsCompat.Type.navigationBars())
             syncManageQuickTextsListBottomPadding()
             insets

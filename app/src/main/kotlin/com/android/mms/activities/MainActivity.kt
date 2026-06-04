@@ -183,7 +183,7 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         }
         initTheme()
         setupTwoFingerSwipeGesture()
-//        makeSystemBarsToTransparent()
+        makeSystemBarsToTransparent()
         val isFirstLaunch = baseConfig.appRunCount == 0
         appLaunched(BuildConfig.APPLICATION_ID)
         // Initialize default quick texts if they haven't been initialized yet
@@ -1789,18 +1789,17 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
             val nav = insets.getInsets(WindowInsetsCompat.Type.navigationBars())
             val navHeight = nav.bottom
             val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
-//            val dp5 = (5 * resources.displayMetrics.density).toInt()
-//            binding.mVerticalSideFrameBottom.layoutParams =
-//                binding.mVerticalSideFrameBottom.layoutParams.apply { height = navHeight + dp5 }
-            val bottomOffset = (0 * resources.displayMetrics.density).toInt()
-            val fabLp = binding.conversationsFab.layoutParams as? ViewGroup.MarginLayoutParams
-            if (fabLp != null) {
-                // Lists are not in padBottomImeAndSystem (txDial recents pattern); lift FAB above IME only.
-                fabLp.bottomMargin = if (ime.bottom > 0) ime.bottom + bottomOffset else bottomOffset
-                fabLp.rightMargin = (32 * resources.displayMetrics.density).toInt()
-                binding.conversationsFab.layoutParams = fabLp
+            val dp5 = (5 * resources.displayMetrics.density).toInt()
+            binding.mVerticalSideFrameBottom.layoutParams =
+                binding.mVerticalSideFrameBottom.layoutParams.apply { height = navHeight + dp5 }
+            val barLp = binding.lytAction.layoutParams as ViewGroup.MarginLayoutParams
+            val activityMargin = (0 * resources.displayMetrics.density).toInt()
+            if (ime.bottom > 0) {
+                barLp.bottomMargin = ime.bottom + activityMargin
+            } else {
+                barLp.bottomMargin = navHeight + activityMargin
             }
-            setFabIconColor()
+            binding.lytAction.layoutParams = barLp
             insets
         }
     }
