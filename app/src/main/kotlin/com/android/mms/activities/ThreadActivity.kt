@@ -477,10 +477,6 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             }
             binding.lytAction.layoutParams = barLp
 
-            if (imeSyncAnimationActive) {
-                return@setOnApplyWindowInsetsListener insets
-            }
-
             if (barContainer != null) {
                 val imeVisible =
                     ime.bottom > 0 && insets.isVisible(WindowInsetsCompat.Type.ime())
