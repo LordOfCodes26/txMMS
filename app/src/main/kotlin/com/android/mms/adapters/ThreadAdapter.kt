@@ -251,26 +251,9 @@ class ThreadAdapter(
     }
 
     override fun updateSelectAllButtonIconIfAvailable(selectableItemCount: Int, selectedCount: Int) {
-        val allSelected = selectableItemCount > 0 && selectedCount == selectableItemCount
-        updateQuickTextsSelectAllIcon(allSelected)
-//        actBarToolbar?.updateSelectAllButtonIcon(R.id.cab_select_all, allSelected)
+        super.updateSelectAllButtonIconIfAvailable(selectableItemCount, selectedCount)
         (activity as? ThreadActivity)?.refreshActionModeRippleToolbarIfNeeded()
     }
-
-    private fun updateQuickTextsSelectAllIcon(allSelected: Boolean) {
-        val toolbar = actBarToolbar ?: return
-        val actionBar = toolbar.findViewById<View>(com.goodwy.commons.R.id.actionbar) ?: return
-        val iconRes = if (allSelected) {
-            R.drawable.ic_empty
-        } else {
-            com.android.common.R.drawable.ic_cmn_multi_check
-        }
-        runCatching {
-            actionBar.javaClass.getMethod("setMenuItemIcon", Int::class.javaPrimitiveType, Int::class.javaPrimitiveType)
-                .invoke(actionBar, R.id.cab_select_all, iconRes)
-        }
-    }
-
     fun isThreadRippleTabInteractionEnabled(tabIndex: Int): Boolean {
         val id = THREAD_RIPPLE_TOOLBAR_IDS.getOrNull(tabIndex) ?: return false
         if (selectedKeys.isEmpty()) return false

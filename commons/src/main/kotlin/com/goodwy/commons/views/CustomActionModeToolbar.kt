@@ -577,12 +577,13 @@ class CustomActionModeToolbar @JvmOverloads constructor(
         } else {
             com.android.common.R.drawable.ic_cmn_multi_check
         }
-        val barIconRes = if (hasSelection) {
-            visibleIconRes
-        } else {
+        // changed by sun ------------>
+        val barIconRes = if (allSelected) {
             R.drawable.ic_action_mode_select_all_placeholder
+        } else {
+            visibleIconRes
         }
-
+        // <------------
         fun applyToItem(menuItem: MenuItem) {
             menuItem.isVisible = true
             val icon = ContextCompat.getDrawable(context, barIconRes)?.mutate() ?: return
@@ -601,7 +602,7 @@ class CustomActionModeToolbar @JvmOverloads constructor(
         _menu?.findItem(menuItemId)?.let { applyToItem(it) }
 
         // MActionBar renders icons via [setMenuItemIcon], not MenuItem.icon — that is what the user sees.
-        applySelectAllIconToMActionBar(menuItemId, barIconRes, hasSelection)
+        applySelectAllIconToMActionBar(menuItemId, barIconRes, allSelected) // changed by sun hasSelection -> allSelected
         invalidateMenu()
     }
 
@@ -615,7 +616,9 @@ class CustomActionModeToolbar @JvmOverloads constructor(
                 }
                 actionBar.setMenuItemIconTint(menuItemId, cachedTextColor)
             }
+            // changed by sun ------------>
             setMActionBarMenuItemGlyphAlpha(menuItemId, if (hasSelection) 1f else 0f)
+            // <--------
         }
         apply()
         actionBar.post { apply() }
