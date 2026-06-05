@@ -94,12 +94,6 @@ val BUBBLE_DRAWABLE_OPTIONS = listOf(
         incomingRes = R.drawable.bubble_incoming_14,
         outgoingRes = R.drawable.bubble_outgoing_14,
         minHeightDp = 42
-    ),
-    BubbleDrawableOption(
-        id = 15,
-        incomingRes = R.drawable.bubble_incoming_15,
-        outgoingRes = R.drawable.bubble_outgoing_15,
-        minHeightDp = 42
     )
 )
 
