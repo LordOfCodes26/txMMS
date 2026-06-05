@@ -47,6 +47,7 @@ import com.android.mms.helpers.*
 import com.android.mms.models.Conversation
 import com.android.mms.models.ConversationListItem
 import com.android.mms.databinding.ItemConversationDateHeaderBinding
+import com.android.mms.extensions.conversationsDB
 import com.android.mms.extensions.deleteSmsDraft
 import com.android.mms.extensions.getUnreadCountsByThread
 import com.android.mms.extensions.saveSmsDraft
@@ -198,9 +199,20 @@ abstract class BaseConversationsAdapter(
         val yesterdayStart = (todayStart.clone() as Calendar).apply { add(Calendar.DAY_OF_YEAR, -1) }
         val todayStartMillis = todayStart.timeInMillis
         val yesterdayStartMillis = yesterdayStart.timeInMillis
+        val pinnedConversations = activity.config.pinnedConversations
+        val (pinnedItems, regularItems) = conversations.partition {
+            pinnedConversations.contains(it.threadId.toString())
+        }
         val result = mutableListOf<ConversationListItem>()
+        if (pinnedItems.isNotEmpty()) {
+            result += ConversationListItem.DateHeader(
+                timestamp = ConversationListItem.SECTION_PIN_TIMESTAMP,
+                dayCode = ConversationListItem.SECTION_PIN
+            )
+            result += pinnedItems.map { ConversationListItem.ConversationItem(it) }
+        }
         var lastSection: String? = null
-        for (conv in conversations) {
+        for (conv in regularItems) {
             val dateMillis = conv.date * 1000L
             val section = when {
                 dateMillis >= todayStartMillis -> ConversationListItem.SECTION_TODAY
@@ -321,15 +333,7 @@ abstract class BaseConversationsAdapter(
         when (val item = currentList[position]) {
             is ConversationListItem.DateHeader -> {
                 ItemConversationDateHeaderBinding.bind(holder.itemView).dateTextView.apply {
-//                    alpha = 0.6f
-//                    setTextColor(blackDarkTextColor)
-                    text = when (item.dayCode) {
-                        ConversationListItem.SECTION_TODAY -> activity.getString(R.string.today)
-                        ConversationListItem.SECTION_YESTERDAY -> activity.getString(R.string.yesterday)
-                        else -> activity.getString(R.string.previous)
-                    }
-//                    if (position == 0)
-//                        text =  resources.getString(R.string.pin_conversation)
+                    text = getDateHeadertext(item.dayCode)
                 }
                 val params = holder.itemView.layoutParams as? RecyclerView.LayoutParams
                 params?.bottomMargin = 0
@@ -358,6 +362,14 @@ abstract class BaseConversationsAdapter(
             }
         }
         bindViewHolder(holder)
+    }
+    private fun getDateHeadertext(dayCode: String): String {
+        return when (dayCode) {
+            ConversationListItem.SECTION_PIN -> resources.getString(R.string.pin_conversation)
+            ConversationListItem.SECTION_TODAY -> activity.getString(R.string.today)
+            ConversationListItem.SECTION_YESTERDAY -> activity.getString(R.string.yesterday)
+            else -> activity.getString(R.string.previous)
+        }
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int, payloads: MutableList<Any>) {
@@ -771,11 +783,7 @@ abstract class BaseConversationsAdapter(
             item.conversation,
             getSectionDayCodeForPosition(position),
         )
-        is ConversationListItem.DateHeader -> when (item.dayCode) {
-            ConversationListItem.SECTION_TODAY -> activity.getString(R.string.today)
-            ConversationListItem.SECTION_YESTERDAY -> activity.getString(R.string.yesterday)
-            else -> activity.getString(R.string.previous)
-        }
+        is ConversationListItem.DateHeader -> getDateHeadertext(item.dayCode)
         null -> ""
     }
 

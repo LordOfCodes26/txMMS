@@ -8,9 +8,11 @@ package com.android.mms.models
 sealed class ConversationListItem {
 
     companion object {
+        const val SECTION_PIN = "__section_pin__"
         const val SECTION_TODAY = "__section_today__"
         const val SECTION_YESTERDAY = "__section_yesterday__"
         const val SECTION_BEFORE = "__section_before__"
+        const val SECTION_PIN_TIMESTAMP = Long.MAX_VALUE
     }
 
     data class DateHeader(
