@@ -2733,7 +2733,8 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             activity = this,
             items = items,
             titleId = R.string.scheduled_message,
-            blurTarget = blurTarget
+            blurTarget = blurTarget,
+            requireConfirmButton = true
         ) { any ->
             when (any as Int) {
                 TYPE_DELETE -> cancelScheduledMessageAndRefresh(message.id)
