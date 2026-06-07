@@ -729,6 +729,7 @@ class ThreadAdapter(
                 )
                 setLineSpacing(lineSpacingExtra, 1.1f)
                 setOnLongClickListener {
+                    if (actModeCallback.isSelectable) return@setOnLongClickListener false
                     showPopupMenu(message, this)
                     true
                 }
@@ -978,7 +979,7 @@ class ThreadAdapter(
                     applyDrawablePadding(bubbleDrawable)
                 }
 
-                messageBinding.threadMessageBodySpacer.layoutParams.height = 40
+//                messageBinding.threadMessageBodySpacer.layoutParams.height = 40
             }
 
 //            val alignment =
