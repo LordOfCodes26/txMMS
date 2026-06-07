@@ -2,14 +2,18 @@ package com.android.mms.activities
 
 import android.annotation.SuppressLint
 import android.content.ContentValues
+import android.content.Intent
 import android.graphics.Color
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.provider.Telephony
 import android.view.Gravity
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
+import androidx.annotation.RequiresApi
 import androidx.appcompat.view.menu.MenuBuilder
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
@@ -21,9 +25,17 @@ import com.android.common.dialogs.MConfirmDialog
 import com.android.mms.R
 import com.android.mms.adapters.SimMessageAdapter
 import com.android.mms.databinding.ActivitySimMessagesBinding
+import com.android.mms.extensions.getThreadId
+import com.android.mms.helpers.THREAD_ID
+import com.android.mms.helpers.THREAD_NUMBER
+import com.android.mms.helpers.THREAD_TITLE
+import com.android.mms.messaging.getSmsManager
+import com.android.mms.messaging.isShortCodeWithLetters
 import com.android.mms.models.SimMessage
+import com.goodwy.commons.dialogs.OptionListDialog
 import com.goodwy.commons.extensions.beGone
 import com.goodwy.commons.extensions.beVisible
+import com.goodwy.commons.extensions.copyToClipboard
 import com.goodwy.commons.extensions.getProperBackgroundColor
 import com.goodwy.commons.extensions.getSurfaceColor
 import com.goodwy.commons.extensions.hideKeyboard
@@ -104,6 +116,7 @@ class SimMessagesActivity : SimpleActivity() {
         applyTransparentMAppBarChrome()
         syncListTopPadding()
         refreshSideFrameBlurAndInsets()
+        adapter?.notifyDataSetChanged()
     }
 
     override fun onDestroy() {
@@ -300,27 +313,72 @@ class SimMessagesActivity : SimpleActivity() {
 
     @SuppressLint("RestrictedApi")
     private fun showMessageOptions(message: SimMessage, view: View) {
-        val menu = MenuBuilder(this)
-        menu.add(1, 0, 0, R.string.sim_copy_to_phone)
-        menu.add(1, 1, 1, R.string.sim_delete_message)
+        if (isDestroyed || isFinishing) true
+        val options = mutableListOf<Pair<CharSequence, () -> Unit>>()
+        val address = message.address.trim()
+
+        if (address.isNotEmpty() && !isShortCodeWithLetters(address)) {
+            // reply
+            options.add(getString(R.string.reply) to { replyToMessage(message) })
+        }
+        options.add(getString(R.string.forward_message) to { forwardMessage(message) })
+        options.add(getString(R.string.sms_txt_copy) to { copyToClipboard(message.body) })
+        options.add(getString(R.string.sim_show_sms_capacity) to { showSimCapacity() })
+        options.add(getString(R.string.sim_copy_to_phone) to { copyToPhone(message) })
+        options.add(getString(R.string.sim_delete_message) to { confirmDelete(message) })
 
         val blurTarget = this.findViewById<eightbitlab.com.blurview.BlurTarget>(com.android.mms.R.id.mainBlurTarget)
-        showMPopupMenu(
-            context = this,
-            anchor = view,
-            menu = menu,
-            gravity = Gravity.START,
+        OptionListDialog(
+            activity = this,
+            title = "",
+            options = options,
             blurTarget = blurTarget,
-            listener = MenuItem.OnMenuItemClickListener { item ->
-                when (item.itemId) {
-                    0 -> copyToPhone(message)
-                    1 -> confirmDelete(message)
-                    else -> {
-                    }
-                }
-                true
-            },
+            cancelListener = null
         )
+    }
+
+    private fun replyToMessage(message: SimMessage) {
+        val address = message.address.trim()
+
+        if (address.isNotEmpty() && !isShortCodeWithLetters(address)) {
+            toast(R.string.no_reply_support, Toast.LENGTH_SHORT)
+            return
+        }
+        Intent(this, ThreadActivity::class.java).apply {
+            putExtra(THREAD_ID, getThreadId(address))
+            putExtra(THREAD_NUMBER, address)
+            putExtra(THREAD_TITLE, address)
+            startActivity(this)
+        }
+    }
+
+    private fun forwardMessage(message: SimMessage) {
+        Intent(this, NewConversationActivity::class.java).apply {
+            action = Intent.ACTION_SEND
+            putExtra(Intent.EXTRA_TEXT, message.body)
+            startActivity(this)
+        }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.S)
+    @SuppressLint("MissingPermission")
+    private fun showSimCapacity() {
+        val usedCount = messages.size
+        val totalCapacity = try {
+            getSmsManager(subscriptionId).smsCapacityOnIcc
+        } catch (e: Exception) {
+            -1
+        }
+        runOnUiThread {
+            if (isDestroyed || isFinishing) return@runOnUiThread
+            if (totalCapacity <= 0) {
+                toast(R.string.sim_sms_capacity_unavailable)
+            } else {
+                toast(getString(R.string.sim_sms_storage_capacity, usedCount, totalCapacity))
+            }
+
+        }
+
     }
 
     private fun copyToPhone(message: SimMessage) {

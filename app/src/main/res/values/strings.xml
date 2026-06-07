@@ -248,6 +248,10 @@
     <string name="sim_delete_message">Delete from SIM</string>
     <string name="sim_confirm_delete">Delete this message from the SIM card?</string>
     <string name="sim_message_copied">Message copied to phone</string>
+
+    <string name="sim_show_sms_capacity">capacity</string>
+    <string name="sim_sms_storage_capacity">%1$d / %2$d messages used</string>
+    <string name="sim_sms_capacity_unavailable">SMS capacity unavailable</string>
     <string name="sms_storage_location">SMS storage location</string>
     <string name="sms_storage_location_phone">Phone</string>
     <string name="sms_storage_location_sim">SIM card</string>
