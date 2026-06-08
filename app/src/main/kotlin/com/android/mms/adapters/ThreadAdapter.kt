@@ -109,6 +109,7 @@ import com.android.mms.models.ThreadItem.ThreadDateTime
 import com.android.common.helper.IconItem
 import android.widget.PopupMenu
 import com.android.common.dialogs.MConfirmDialog
+import com.android.mms.dialogs.SelectSIMDialog
 import com.android.mms.helpers.SimMessageCopyHelper
 import com.android.mms.helpers.getLocaleDateFormatPatternMonthDay
 import com.android.mms.helpers.resolveSimIconTint
@@ -833,7 +834,23 @@ class ThreadAdapter(
             activity.toast(R.string.sim_copy_to_sim_failed)
             return
         }
-        val subscriptionId = SimMessageCopyHelper.resolveSubscriptionId(message)
+        if (hasMultipleSIMCards) {
+            val blurTarget = activity.findViewById<BlurTarget>(R.id.mainBlurTarget)
+            SelectSIMDialog(
+                activity = activity as SimpleActivity,
+                blurTarget = blurTarget,
+                showNetName = true
+            ) { simCard, _ ->
+                proceedCopyToSim(message, address,simCard.subscriptionId)
+            }
+        } else {
+            val subscriptionId = SimMessageCopyHelper.resolveSubscriptionId(message)
+            proceedCopyToSim(message, address, subscriptionId)
+        }
+    }
+
+    private fun proceedCopyToSim(message: Message, address: String, subscriptionId: Int) {
+
         if (subscriptionId < 0) {
             activity.toast(R.string.sim_card_not_available)
             return

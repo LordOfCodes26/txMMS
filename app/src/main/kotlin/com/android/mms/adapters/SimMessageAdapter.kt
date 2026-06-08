@@ -81,6 +81,9 @@ class SimMessageAdapter(
                 setupSendBubble(binding.simMsgBubbleSent)
             }
 
+            if (timeStr.isEmpty())
+                binding.simMsgTime.visibility = View.GONE
+
             binding.root.setOnLongClickListener {
                 onLongClick(message, itemView)
                 true
@@ -90,6 +93,9 @@ class SimMessageAdapter(
     }
 
     private fun formatTime(millis: Long): String {
+
+        if (millis <= 0) return ""
+
         return (millis).formatDateOrTime(
             context = activity,
             hideTimeOnOtherDays = false,

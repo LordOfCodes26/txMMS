@@ -49,6 +49,7 @@ class SelectSIMDialog(
     private val anchorPlacement: SelectSimDialogAnchorPlacement = SelectSimDialogAnchorPlacement.TOP_RIGHT_OF_ANCHOR,
     private val position: DialpadSimListDialogPosition = DialpadSimListDialogPosition.BOTTOM,
     private val verticalOffsetPx: Int = 250,
+    private val showNetName: Boolean = false,
     private val onDismiss: () -> Unit = {},
     private val callback: (simAccount: SIMCard, index: Int) -> Unit,
 ) {
@@ -88,16 +89,20 @@ class SelectSIMDialog(
                     simSelectSlotIcon.setImageResource(simRes)
                     val slotId = FeeInfoUtils.getSimSlotIndexForSubscriptionId(activity, simAccount.subscriptionId)
                     ensureBackgroundThread {
-                        val smsCount = slotId?.let { FeeInfoUtils.getAvailableSmsCountForSlot(activity, it) }
-                        val feeCash = slotId?.let { FeeInfoUtils.getAvailableFeeCashForSlot(activity, it) }
-                        val txtSmsCount = activity.getString(R.string.remained_sms_count, smsCount)
-                        val txtCash = activity.getString(R.string.remained_cash) + feeCash
-                        activity.runOnUiThread {
-                            if (smsCount !== null) {
-                                simSelectLabel.text = "$txtSmsCount, $txtCash"
-                            } else {
-                                simSelectLabel.text = activity.getString(R.string.select_sim_1)
+                        if (!showNetName) {
+                            val smsCount = slotId?.let { FeeInfoUtils.getAvailableSmsCountForSlot(activity, it) }
+                            val feeCash = slotId?.let { FeeInfoUtils.getAvailableFeeCashForSlot(activity, it) }
+                            val txtSmsCount = activity.getString(R.string.remained_sms_count, smsCount)
+                            val txtCash = activity.getString(R.string.remained_cash) + feeCash
+                            activity.runOnUiThread {
+                                if (smsCount !== null) {
+                                    simSelectLabel.text = "$txtSmsCount, $txtCash"
+                                } else {
+                                    simSelectLabel.text = activity.getString(R.string.select_sim_1)
+                                }
                             }
+                        } else {
+                            simSelectLabel.text = simAccount.label
                         }
                     }
                     val textColor = activity.getProperTextColor()

@@ -10,6 +10,7 @@ import android.telephony.SmsManager
 import androidx.annotation.RequiresApi
 import com.android.mms.messaging.getSmsManager
 import com.android.mms.models.Message
+import com.goodwy.commons.extensions.formatDateOrTime
 
 object SimMessageCopyHelper {
     private val ICC_URI = Uri.parse("content://sms/icc")
@@ -113,21 +114,30 @@ object SimMessageCopyHelper {
         return try {
             val iccUri = Uri.parse("content://sms/icc_subId/$subscriptionId")
             val values = ContentValues().apply {
-                put("address", address)
-                put("body", message.body)
+                put(Telephony.Sms.ADDRESS, address)
+                put(Telephony.Sms.BODY, message.body)
                 put(
-                    "type", if (message.isReceivedMessage()) Telephony.Sms.MESSAGE_TYPE_INBOX
+                    Telephony.Sms.TYPE, if (message.isReceivedMessage()) Telephony.Sms.MESSAGE_TYPE_INBOX
                     else Telephony.Sms.MESSAGE_TYPE_SENT
                 )
-                put("service_center", "")
-                put("status",
+                put(Telephony.Sms.SERVICE_CENTER, "")
+                put(Telephony.Sms.STATUS,
                     if (message.isReceivedMessage()) STATUS_ON_ICC_READ else STATUS_ON_ICC_SENT)
-                put("date", message.date)
+                put(Telephony.Sms.DATE, resolveSimCopyDateMillis(message))
             }
             context.contentResolver.insert(iccUri, values) != null
         } catch (_: Exception) {
             false
         }
+    }
+
+    fun resolveSimCopyDateMillis(message: Message): Long {
+        val timestampSeconds = when {
+            message.date > 0 -> message.date.toLong()
+            message.dateSent > 0 -> message.dateSent.toLong()
+            else -> System.currentTimeMillis() / 1000L
+        }
+        return  timestampSeconds * 1000L
     }
 
     private data class SimIccRow(
