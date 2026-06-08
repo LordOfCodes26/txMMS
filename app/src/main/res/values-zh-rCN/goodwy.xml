@@ -14,4 +14,5 @@
     <string name="pending">待办的</string>
     <string name="message_type">类型 : </string>
     <string name="receipt">收据</string>
+    <string name="scheduled">scheduled </string>
 </resources>

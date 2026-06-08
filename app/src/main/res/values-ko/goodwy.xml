@@ -2,16 +2,17 @@
 <resources>
     <string name="app_name_g">Right Messages</string>
     <string name="chat_title_style_g">대화제목형식</string>
-    <string name="unread_at_top_g">읽지 못한 통보문 우에 현시</string>
+    <string name="unread_at_top_g">읽지못한 통보문우에 현시</string>
     <string name="show_sim_selection_dialog">보내기전 SIM카드 확인</string>
-    <string name="delete_after_copy">알림에서 번호를 복사한후 통보문 삭제</string>
+    <string name="delete_after_copy">알림에서 번호를 복사한후 통보문삭제</string>
     <string name="sound_on_out_going_messages">통보문을 보낼때 소리가 납니다.</string>
     <string name="delivered">전송됨</string>
     <string name="delivered_to_contact">%1$s (%2$s)에 전송됨</string>
     <string name="delivered_to_number">%1$s에 전송됨</string>
     <string name="sent">전송됨</string>
-    <string name="failed">실패한</string>
+    <string name="failed">실패함</string>
     <string name="pending">보류중</string>
     <string name="message_type">류형 : </string>
     <string name="receipt">수신됨 </string>
+    <string name="scheduled">예약됨 </string>
 </resources>

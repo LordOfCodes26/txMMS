@@ -151,6 +151,7 @@ class MessageDetailsDialog(val activity: BaseSimpleActivity, val message: Messag
         var txtStatus = when (status) {
             Sms.STATUS_COMPLETE -> activity.getString(R.string.delivered)
             Sms.STATUS_FAILED -> activity.getString(R.string.failed)
+            Sms.MESSAGE_TYPE_FAILED -> activity.getString(R.string.failed)
             Sms.STATUS_PENDING -> activity.getString(R.string.pending)
             else -> activity.getString(com.goodwy.commons.R.string.unknown)
         }
