@@ -33,12 +33,12 @@
 
         <ImageView
             android:id="@+id/expandedMinimizeButton"
-            android:layout_width="@dimen/medium_icon_size"
-            android:layout_height="@dimen/medium_icon_size"
+            android:layout_width="@dimen/ic_action_expanded"
+            android:layout_height="@dimen/ic_action_expanded"
             android:src="@drawable/ic_cmn_minimize"
             android:foreground="@drawable/ripple_all_corners_56dp"
             android:contentDescription="@string/minimize_message"
-            android:padding="@dimen/medium_normal_margin"
+            android:padding="@dimen/medium_margin"
             android:translationZ="4dp"
             app:tint="@color/tx_title_text" />
 
@@ -90,9 +90,9 @@
 
             <com.android.common.view.MImageButton
                 android:id="@+id/expandedThreadSendMessage"
-                android:layout_width="@dimen/medium_icon_size"
-                android:layout_height="@dimen/medium_icon_size"
-                android:padding="@dimen/medium_normal_margin"
+                android:layout_width="@dimen/ic_action_expanded"
+                android:layout_height="@dimen/ic_action_expanded"
+                android:padding="@dimen/medium_margin"
                 android:src="@drawable/ic_cmn_sms_send"
                 android:tint="@color/tx_title_text"
                 android:foreground="@drawable/ripple_all_corners_56dp"
@@ -148,7 +148,7 @@
             android:paddingEnd="12dp"
             android:maxLines="2"
             android:gravity="start"
-            android:textSize="@dimen/tx_sub_title"
+            android:textSize="@dimen/tx_app_title"
             app:layout_goneMarginTop="16dp"
             app:layout_constraintStart_toEndOf="@+id/expandedMinimizeButtonWrapper"
             app:layout_constraintTop_toBottomOf="@+id/sender_photo_large_expanded"

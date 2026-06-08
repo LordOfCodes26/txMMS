@@ -82,6 +82,7 @@
 
     <dimen name="ic_send_sms_width">18dp</dimen>
     <dimen name="ic_send_sms_height">15dp</dimen>
+    <dimen name="ic_action_expanded">35.5dp</dimen>
 
 
 </resources>
