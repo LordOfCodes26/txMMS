@@ -248,7 +248,11 @@
     <string name="sim_delete_message">Delete from SIM</string>
     <string name="sim_confirm_delete">Delete this message from the SIM card?</string>
     <string name="sim_message_copied">Message copied to phone</string>
-
+    <string name="sim_copy_to_sim">Copy to SIM Card</string>
+    <string name="sim_message_copied_to_sim">Message copied to SIM card</string>
+    <string name="sim_storage_full_confirm">SIM storage is full. Do you want to override?</string>
+    <string name="sim_copy_to_sim_mms_not_supported">MMS cannot be copied to SIM card</string>
+    <string name="sim_copy_to_sim_failed">Could not copy message to SIM card</string>
     <string name="sim_show_sms_capacity">capacity</string>
     <string name="sim_sms_storage_capacity">%1$d / %2$d messages used</string>
     <string name="sim_sms_capacity_unavailable">SMS capacity unavailable</string>

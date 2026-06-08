@@ -209,6 +209,11 @@
     <string name="sim_delete_message">SIM카드에 보관된 통보문삭제</string>
     <string name="sim_confirm_delete">선택된 통보문을 삭제하겠습니까?</string>
     <string name="sim_message_copied">전화기에 통보문을 복사하였습니다.</string>
+    <string name="sim_copy_to_sim">SIM카드에 복사</string>
+    <string name="sim_message_copied_to_sim">SIM카드에 복사하였습니다.</string>
+    <string name="sim_storage_full_confirm">SIM카드용량이 다 찼습니다.\n 이미전에 보관된 통보문을 삭제하고 보관합니다.</string>
+    <string name="sim_copy_to_sim_mms_not_supported">다매체통보문은 SIM카드에 보관할수 없습니다.</string>
+    <string name="sim_copy_to_sim_failed">SIM카드에 통보문을 보관할수 없습니다.</string>
     <string name="sim_show_sms_capacity">SIM카드 용량보기</string>
     <string name="sim_sms_storage_capacity">%1$d / %2$d 통보문이 보관되였습니다.</string>
     <string name="sim_sms_capacity_unavailable">통보문 용량보기기능을 지원하지 않습니다.</string>

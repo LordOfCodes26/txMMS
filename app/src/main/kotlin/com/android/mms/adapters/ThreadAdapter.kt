@@ -3,13 +3,10 @@ package com.android.mms.adapters
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
-import android.content.res.ColorStateList
 import android.graphics.*
 import android.graphics.drawable.Drawable
-import android.text.Spannable
 import android.text.SpannableString
 import android.text.method.LinkMovementMethod
-import android.text.style.ForegroundColorSpan
 import android.text.style.URLSpan
 import android.text.util.Linkify
 import android.util.TypedValue
@@ -55,7 +52,6 @@ import com.goodwy.commons.extensions.getLetterBackgroundColors
 import com.goodwy.commons.extensions.getProperBackgroundColor
 import com.goodwy.commons.extensions.getProperPrimaryColor
 import com.goodwy.commons.extensions.getSurfaceColor
-import com.goodwy.commons.extensions.getTextSize
 import com.goodwy.commons.extensions.getTextSizeSmall
 import com.goodwy.commons.extensions.isDynamicTheme
 import com.goodwy.commons.extensions.isRTLLayout
@@ -112,11 +108,11 @@ import com.android.mms.models.ThreadItem
 import com.android.mms.models.ThreadItem.ThreadDateTime
 import com.android.common.helper.IconItem
 import android.widget.PopupMenu
-import androidx.core.view.updatePadding
 import com.android.common.dialogs.MConfirmDialog
+import com.android.mms.helpers.SimMessageCopyHelper
 import com.android.mms.helpers.getLocaleDateFormatPatternMonthDay
 import com.android.mms.helpers.resolveSimIconTint
-import com.behaviorule.arturdumchev.library.setHeight
+import com.goodwy.commons.extensions.toast
 import com.goodwy.commons.helpers.DARK_GREY
 import com.goodwy.commons.views.enableItemDividers
 import eightbitlab.com.blurview.BlurTarget
@@ -827,6 +823,56 @@ class ThreadAdapter(
         }
     }
 
+    private fun copyToSimMessage(message: Message) {
+        if (message.isMMS) {
+            activity.toast(R.string.sim_copy_to_sim_mms_not_supported)
+            return
+        }
+        val address = SimMessageCopyHelper.resolveCopyAddress(message)
+        if (address.isNullOrEmpty()) {
+            activity.toast(R.string.sim_copy_to_sim_failed)
+            return
+        }
+        val subscriptionId = SimMessageCopyHelper.resolveSubscriptionId(message)
+        if (subscriptionId < 0) {
+            activity.toast(R.string.sim_card_not_available)
+            return
+        }
+        ensureBackgroundThread {
+            val storageInfo = SimMessageCopyHelper.getStorageInfo(activity, subscriptionId)
+            activity.runOnUiThread {
+                if (activity.isDestroyed || activity.isFinishing) return@runOnUiThread
+                if (storageInfo?.isFull == true) {
+                    showMConfirmDialog(activity.getString(R.string.sim_storage_full_confirm)){
+                        performCopyToSim(message, address, subscriptionId, storageInfo, overrideIfFull = true)
+                    }
+                } else {
+                    performCopyToSim(message, address, subscriptionId, storageInfo, overrideIfFull = false)
+                }
+            }
+        }
+    }
+
+    private fun performCopyToSim(message: Message, address: String, subscriptionId: Int, storageInfo: SimMessageCopyHelper.SimStorageInfo?, overrideIfFull: Boolean) {
+        ensureBackgroundThread {
+            val success = SimMessageCopyHelper.copyMessageToSim(
+                context = activity,
+                message = message,
+                address = address,
+                subscriptionId = subscriptionId,
+                storageInfo = storageInfo,
+                overrideIfFull = overrideIfFull
+            )
+            activity.runOnUiThread {
+                if (activity.isDestroyed || activity.isFinishing) return@runOnUiThread
+                if (success) {
+                    activity.toast(R.string.sim_message_copied_to_sim)
+                } else {
+                    activity.toast(R.string.sim_copy_to_sim_failed)
+                }
+            }
+        }
+    }
     private fun showPopupMenu(message: Message, view: View) {
         if (activity.isDestroyed || activity.isFinishing) return
         val text = message.body
@@ -853,6 +899,10 @@ class ThreadAdapter(
         // 통보문 삭제
         options.add(activity.getString(R.string.sms_thread_delete) to { askConfirmDelete(message) })
         // options.add(activity.getString(com.goodwy.commons.R.string.share) to { activity.shareTextIntent(text) })
+        // copy to sim
+        if (!message.isMMS) {
+            options.add(activity.getString(R.string.sim_copy_to_sim) to {copyToSimMessage(message)})
+        }
         // 상세정보
         options.add(activity.getString(R.string.message_details) to {
             activity.findViewById<eightbitlab.com.blurview.BlurTarget>(com.android.mms.R.id.mainBlurTarget)?.let { bt ->

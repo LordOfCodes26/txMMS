@@ -28,6 +28,8 @@ import com.android.mms.models.SimMessage
 import com.goodwy.commons.extensions.applyColorFilter
 import com.goodwy.commons.extensions.beGone
 import com.goodwy.commons.extensions.beVisible
+import com.goodwy.commons.extensions.formatDateOrTime
+import com.goodwy.commons.extensions.formatTime
 import com.goodwy.commons.extensions.getLetterBackgroundColors
 import com.goodwy.commons.extensions.getProperBackgroundColor
 import com.goodwy.commons.extensions.getProperPrimaryColor
@@ -88,17 +90,26 @@ class SimMessageAdapter(
     }
 
     private fun formatTime(millis: Long): String {
-        val date = Date(millis)
-        val dateFormat = DateFormat.getDateFormat(activity)
-        val timeFormat = DateFormat.getTimeFormat(activity)
-        val now = System.currentTimeMillis()
-        val diff = now - millis
-        val oneDayMs = 24 * 60 * 60 * 1000L
-        return if (diff < oneDayMs) {
-            timeFormat.format(date)
-        } else {
-            "${dateFormat.format(date)} ${timeFormat.format(date)}"
-        }
+        return (millis).formatDateOrTime(
+            context = activity,
+            hideTimeOnOtherDays = false,
+            showCurrentYear = true,
+            hideTodaysDate = false,
+            dateFormat = "yyyy.M.d",
+            timeFormat = "HH:mm"
+        )
+
+//        val date = Date(millis * 1000L)
+//        val dateFormat = DateFormat.getDateFormat(activity)
+//        val timeFormat = DateFormat.getTimeFormat(activity)
+//        val now = System.currentTimeMillis()
+//        val diff = now - millis
+//        val oneDayMs = 24 * 60 * 60 * 1000L
+//        return if (diff < oneDayMs) {
+//            timeFormat.format(date)
+//        } else {
+//            "${dateFormat.format(date)} ${timeFormat.format(date)}"
+//        }
     }
 
     @DrawableRes
