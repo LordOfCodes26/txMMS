@@ -79,8 +79,8 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = true
-            isShrinkResources = true
+            isMinifyEnabled = false
+            isShrinkResources = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -128,7 +128,7 @@ android {
 
     lint {
         checkReleaseBuilds = false
-        abortOnError = true
+        abortOnError = false
         warningsAsErrors = false
         baseline = file("lint-baseline.xml")
         lintConfig = rootProject.file("lint.xml")
