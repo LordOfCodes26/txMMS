@@ -180,7 +180,8 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         setupTwoFingerSwipeGesture()
         makeSystemBarsToTransparent()
         val isFirstLaunch = baseConfig.appRunCount == 0
-        appLaunched(BuildConfig.APPLICATION_ID)
+// deleted by sun what means?
+//        appLaunched(BuildConfig.APPLICATION_ID)
         // Initialize default quick texts if they haven't been initialized yet
         // The function internally checks if quick texts are empty to prevent re-initialization
         // if user deletes all quick texts later
