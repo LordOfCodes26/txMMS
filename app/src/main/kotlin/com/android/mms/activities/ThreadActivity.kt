@@ -2793,21 +2793,16 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
 //    }
 
     private fun setupScheduleSendUi() = binding.messageHolder.apply {
-        val textColor = getProperTextColor()
-        scheduledMessageHolder.background.applyColorFilter(getProperPrimaryColor().darkenColor())
-        scheduledMessageIcon.applyColorFilter(textColor)
         scheduledMessageButton.apply {
-            setTextColor(textColor)
-//            setOnClickListener {
-//                launchScheduleSendDialog()
-//            }
+            setOnClickListener {
+                launchScheduleSendDialog()
+            }
         }
         scheduledMessagePress.setOnClickListener {
             launchScheduleSendDialog()
         }
 
         discardScheduledMessage.apply {
-            applyColorFilter(textColor)
             setOnClickListener {
                 hideScheduleSendUi()
                 if (scheduledMessage != null) {

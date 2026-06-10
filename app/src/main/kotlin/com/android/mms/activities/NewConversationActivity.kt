@@ -1833,15 +1833,10 @@ class NewConversationActivity : SimpleActivity() {
     }
 
     private fun setupScheduleSendUi() = binding.messageHolder.apply {
-        val textColor = getProperTextColor()
-        scheduledMessageHolder.background.applyColorFilter(getProperPrimaryColor().darkenColor())
-        scheduledMessageIcon.applyColorFilter(textColor)
-        scheduledMessageButton.setTextColor(textColor)
         scheduledMessagePress.setOnClickListener {
             launchScheduleSendDialog()
         }
         discardScheduledMessage.apply {
-            applyColorFilter(textColor)
             setOnClickListener {
                 hideScheduleSendUi()
             }
