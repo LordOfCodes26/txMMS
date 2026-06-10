@@ -46,7 +46,12 @@
 
                         <androidx.cardview.widget.CardView
                             android:id="@+id/settingsGeneralHolder"
-                            style="@style/SettingsSectionHolder"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginHorizontal="@dimen/tx_cardview_margin_horizontal"
+                            android:layout_marginVertical="@dimen/tx_cardview_margin_vertical"
+                            app:cardBackgroundColor="@color/tx_cardview_bg"
+                            app:cardCornerRadius="@dimen/tx_cardview_corner_radius"
                             app:cardElevation="0dp">
 
                             <LinearLayout
@@ -140,7 +145,12 @@
 
                         <androidx.cardview.widget.CardView
                             android:id="@+id/settingsNotificationsHolder"
-                            style="@style/SettingsSectionHolder"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginHorizontal="@dimen/tx_cardview_margin_horizontal"
+                            android:layout_marginVertical="@dimen/tx_cardview_margin_vertical"
+                            app:cardBackgroundColor="@color/tx_cardview_bg"
+                            app:cardCornerRadius="@dimen/tx_cardview_corner_radius"
                             app:cardElevation="0dp">
 
                             <LinearLayout
@@ -151,8 +161,7 @@
 
                                 <RelativeLayout
                                     android:id="@+id/settings_enable_delivery_reports_holder"
-                                    style="@style/SettingsHolderSwitchStyle"
-                                    android:paddingTop="@dimen/tx_cardview_margin_vertical">
+                                    style="@style/SettingsHolderSwitchStyle">
                                     <com.goodwy.commons.views.MyTextView
                                         android:id="@+id/settingsDeliveryReportLabel"
                                         style="@style/SettingsTextLabelStyle"
@@ -176,8 +185,7 @@
                                         android:layout_width="wrap_content"
                                         android:layout_height="wrap_content"
                                         android:layout_alignParentEnd="true"
-                                        android:layout_centerVertical="true"
-                                        app:switchPadding="@dimen/bigger_margin" />
+                                        android:layout_centerVertical="true"/>
 
                                 </RelativeLayout>
 
@@ -190,6 +198,8 @@
 
                                 <RelativeLayout
                                     android:id="@+id/settings_delivery_report_sound_holder"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
                                     style="@style/SettingsHolderSwitchStyle">
 
                                     <com.goodwy.commons.views.MyTextView
@@ -257,7 +267,6 @@
                                         style="@style/SettingsTextValueStyle"
                                         android:layout_alignParentEnd="true"
                                         android:layout_centerVertical="true"
-                                        android:layout_marginEnd="@dimen/small_margin"
                                         tools:text="None" />
 
                                 </RelativeLayout>
@@ -285,7 +294,6 @@
                                         android:id="@+id/settings_lock_screen_visibility"
                                         style="@style/SettingsTextValueStyle"
                                         android:layout_alignParentEnd="true"
-                                        android:layout_marginEnd="@dimen/small_margin"
                                         tools:text="@string/sender_and_message" />
 
                                 </RelativeLayout>
@@ -449,7 +457,6 @@
                                         android:id="@+id/settings_message_send_delay"
                                         style="@style/SettingsTextValueStyle"
                                         android:layout_alignParentEnd="true"
-                                        android:layout_marginEnd="@dimen/small_margin"
                                         tools:text="@string/no_delay" />
                                 </RelativeLayout>
                             </LinearLayout>
@@ -514,7 +521,6 @@
                                     android:id="@+id/settingsSmsServiceCenterValue"
                                     style="@style/SettingsTextValueStyle"
                                     android:layout_alignParentEnd="true"
-                                    android:layout_marginEnd="@dimen/small_margin"
                                     android:visibility="gone"
                                     tools:text="@string/sms" />
 
@@ -550,7 +556,6 @@
                                     android:id="@+id/settingsSmsStorageLocationValue"
                                     style="@style/SettingsTextValueStyle"
                                     android:layout_alignParentEnd="true"
-                                    android:layout_marginEnd="@dimen/small_margin"
                                     android:visibility="gone"
                                     tools:text="@string/sms_storage_location_phone" />
 
@@ -597,7 +602,6 @@
                                         style="@style/SettingsTextValueStyle"
                                         android:layout_alignParentEnd="true"
                                         android:layout_centerVertical="true"
-                                        android:layout_marginEnd="@dimen/small_margin"
                                         tools:text="Type 1" />
                                 </RelativeLayout>
 

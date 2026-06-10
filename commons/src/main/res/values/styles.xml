@@ -485,18 +485,16 @@
     <style name="BottomSheetModalStyle" parent="Widget.Design.BottomSheet.Modal">
         <item name="android:background">@android:color/transparent</item>
     </style>
-
+    <!-- edited by sun -->
     <style name="SettingsSectionLabelStyle">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">wrap_content</item>
         <item name="android:textSize">@dimen/tx_section_title</item>
         <item name="android:textColor">@color/tx_sub_text</item>
         <!-- Match card outer inset (SettingsSectionHolder marginHorizontal), not a separate title gutter -->
-        <item name="android:layout_marginStart">@dimen/tx_cardview_margin_horizontal</item>
-        <item name="android:layout_marginEnd">@dimen/tx_cardview_margin_horizontal</item>
+        <item name="android:layout_marginStart">@dimen/tx_cardview_card_title_margin_left</item>
         <item name="android:layout_marginTop">@dimen/tx_cardview_card_title_margin_top</item>
         <item name="android:layout_marginBottom">@dimen/tx_cardview_card_title_margin_bottom</item>
-        <item name="android:paddingStart">@dimen/tx_cardview_padding_left</item>
     </style>
 
     <style name="MaterialSectionLabelStyle">
@@ -533,14 +531,14 @@
         <item name="android:paddingTop">@dimen/tx_cardview_padding_vertical</item>
         <item name="android:paddingBottom">@dimen/tx_cardview_padding_vertical</item>
     </style>
-
+    <!-- edited by sun -->
     <style name="SettingsHolderSwitchStyle">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">wrap_content</item>
         <item name="android:paddingStart">@dimen/tx_cardview_padding_left</item>
-        <item name="android:paddingEnd">@dimen/normal_margin</item>
-        <item name="android:paddingTop">@dimen/setting_switch_item_vertical_margin</item>
-        <item name="android:paddingBottom">@dimen/setting_switch_item_vertical_margin</item>
+        <item name="android:paddingEnd">@dimen/tx_cardview_padding_right</item>
+        <item name="android:paddingTop">@dimen/tx_cardview_padding_vertical</item>
+        <item name="android:paddingBottom">@dimen/tx_cardview_padding_vertical</item>
     </style>
 
     <style name="SettingsCheckboxStyle">
@@ -550,14 +548,14 @@
         <item name="android:paddingStart">@dimen/normal_margin</item>
         <item name="android:textSize">@dimen/small_text_size</item>
     </style>
-
+    <!-- edited by sun -->
     <style name="SettingsSwitchStyle">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">wrap_content</item>
         <item name="android:background">@null</item>
         <item name="android:clickable">false</item>
 <!--        <item name="android:paddingStart">@dimen/settings_margin</item>-->
-<!--        <item name="android:paddingEnd">@dimen/settings_margin</item>-->
+        <item name="android:paddingEnd">@dimen/small_margin</item>
         <item name="android:textSize">@dimen/tx_normal_text</item>
         <item name="android:textColor">@color/tx_cardview_title</item>
         <item name="android:minHeight">16dp</item>
@@ -584,14 +582,15 @@
         <item name="android:textColor">@color/tx_cardview_summary</item>
 <!--        <item name="android:alpha">0.6</item>-->
     </style>
-
+    <!-- edited by sun -->
     <style name="SettingsTextValueStyle">
         <item name="android:layout_width">wrap_content</item>
-        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_height">@dimen/tx_cardview_icon_size</item>
         <item name="android:layout_centerVertical">true</item>
         <item name="android:textSize">@dimen/tx_small_text</item>
         <item name="android:textColor">@color/tx_cardview_summary</item>
-        <item name="android:gravity">end</item>
+        <item name="android:paddingEnd">@dimen/medium_margin</item>
+        <item name="android:gravity">end|center_vertical</item>
         <item name="android:alpha">1</item>
         <item name="android:textAlignment">viewEnd</item>
     </style>
