@@ -21,9 +21,9 @@
             android:layout_alignParentStart="true"
             android:layout_centerVertical="true"
             android:layout_marginStart="@dimen/medium_margin"
-            android:layout_marginTop="@dimen/medium_margin"
+            android:layout_marginTop="@dimen/tx_cardview_card_title_margin_top"
             android:layout_marginEnd="@dimen/larger_margin"
-            android:layout_marginBottom="@dimen/medium_margin"
+            android:layout_marginBottom="@dimen/tx_cardview_card_title_margin_top"
             android:textSize="@dimen/tx_normal_text"
             android:layout_toStartOf="@+id/quick_text_end_container" />
 
