@@ -5,6 +5,7 @@ import android.view.Menu
 import android.view.View
 import android.view.ViewGroup
 import androidx.core.content.ContextCompat
+import androidx.core.view.isGone
 import com.android.common.dialogs.MConfirmDialog
 import com.goodwy.commons.activities.BaseSimpleActivity
 import com.goodwy.commons.adapters.MyRecyclerViewAdapter
@@ -82,24 +83,6 @@ class ManageQuickTextsAdapter(
 
     private fun askConfirmDelete() {
         if (selectedKeys.isEmpty()) return
-
-//        val blurTarget = (activity as? ManageQuickTextsActivity)?.getBlurTargetView()
-//            ?: activity.findViewById<BlurTarget>(R.id.mainBlurTarget)
-//            ?: return
-//            ?: throw IllegalStateException("mainBlurTarget not found")
-//        ConfirmationDialog(
-//            activity = this,
-//            message = "",
-//            messageId = R.string.empty_recycle_bin_messages_confirmation,
-//            positive = com.goodwy.commons.R.string.yes,
-//            negative = com.goodwy.commons.R.string.no,
-//            blurTarget = blurTarget
-//        ) {
-//            ensureBackgroundThread {
-//                emptyMessagesRecycleBin()
-//                loadRecycleBinConversations()
-//            }
-//        }
 
         val itemsCnt = selectedKeys.size
         val items = if (itemsCnt == 1) {
@@ -235,6 +218,7 @@ class ManageQuickTextsAdapter(
         ItemManageQuickTextBinding.bind(view).apply {
             root.setupViewBackground(activity)
             manageQuickTextHolder.isSelected = false
+            if (holder.position == 0) divider.visibility = View.GONE
             manageQuickTextTitle.apply {
                 text = quickText
                 setTextColor(textColor)
