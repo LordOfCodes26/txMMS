@@ -144,7 +144,7 @@
     <string name="sms_service_center">SMS service center</string>
     <string name="invalid_smsc_number">Invalid service center number</string>
 
-    <string name="no_quick_texts">You have no quick texts. You may add quick texts here to use them when sending messages.</string>
+    <string name="no_quick_texts">You have no quick texts. \n You may add quick texts here to use them when sending messages.</string>
     <string name="add_a_quick_text">Add a quick text</string>
     <string name="quick_text">Quick text</string>
     <string name="export_quick_texts">Export quick texts</string>
@@ -156,6 +156,7 @@
         <item>It\'s my pleasure</item>
         <item>Please call me</item>
     </string-array>
+    <string name="add">Add</string>
     <string name="lock_screen_visibility">Lock screen notification visibility</string>
     <string name="sender_and_message">Sender and message</string>
     <string name="sender_only">Sender only</string>

@@ -5,6 +5,7 @@ import android.view.Menu
 import android.view.View
 import android.view.ViewGroup
 import androidx.core.content.ContextCompat
+import com.android.common.dialogs.MConfirmDialog
 import com.goodwy.commons.activities.BaseSimpleActivity
 import com.goodwy.commons.adapters.MyRecyclerViewAdapter
 import com.goodwy.commons.extensions.beVisibleIf
@@ -14,14 +15,18 @@ import com.goodwy.commons.extensions.getSurfaceColor
 import com.goodwy.commons.extensions.isDynamicTheme
 import com.goodwy.commons.extensions.isSystemInDarkMode
 import com.goodwy.commons.extensions.setupViewBackground
+import com.goodwy.commons.dialogs.ConfirmationDialog
 import com.goodwy.commons.interfaces.RefreshRecyclerViewListener
 import com.goodwy.commons.views.MyRecyclerView
+import eightbitlab.com.blurview.BlurTarget
 import com.android.common.helper.IconItem
 import com.android.mms.R
 import com.android.mms.activities.ManageQuickTextsActivity
 import com.android.mms.databinding.ItemManageQuickTextBinding
 import com.android.mms.extensions.config
+import com.android.mms.extensions.emptyMessagesRecycleBin
 import com.goodwy.commons.extensions.applyColorFilter
+import com.goodwy.commons.helpers.ensureBackgroundThread
 import com.goodwy.commons.R as CommonsR
 
 class ManageQuickTextsAdapter(
@@ -71,8 +76,63 @@ class ManageQuickTextsAdapter(
         }
 
         when (id) {
-            R.id.cab_delete -> deleteSelection()
+            R.id.cab_delete -> askConfirmDelete()
         }
+    }
+
+    private fun askConfirmDelete() {
+        if (selectedKeys.isEmpty()) return
+
+//        val blurTarget = (activity as? ManageQuickTextsActivity)?.getBlurTargetView()
+//            ?: activity.findViewById<BlurTarget>(R.id.mainBlurTarget)
+//            ?: return
+//            ?: throw IllegalStateException("mainBlurTarget not found")
+//        ConfirmationDialog(
+//            activity = this,
+//            message = "",
+//            messageId = R.string.empty_recycle_bin_messages_confirmation,
+//            positive = com.goodwy.commons.R.string.yes,
+//            negative = com.goodwy.commons.R.string.no,
+//            blurTarget = blurTarget
+//        ) {
+//            ensureBackgroundThread {
+//                emptyMessagesRecycleBin()
+//                loadRecycleBinConversations()
+//            }
+//        }
+
+        val itemsCnt = selectedKeys.size
+        val items = if (itemsCnt == 1) {
+            getSelectedItems().firstOrNull() ?: activity.getString(R.string.quick_text)
+        } else {
+            itemsCnt.toString()
+        }
+        val question = String.format(
+            activity.resources.getString(CommonsR.string.deletion_confirmation),
+            items,
+        )
+
+        showMConfirmDialog(question) {
+            deleteSelection()
+        }
+    }
+
+    private fun showMConfirmDialog(question: String, onConfirm: () -> Unit) {
+        val blurTarget = (activity as? ManageQuickTextsActivity)?.getBlurTargetView()
+            ?: activity.findViewById<BlurTarget>(R.id.mainBlurTarget)
+            ?: return
+        val dialog = MConfirmDialog(activity)
+        dialog.bindBlurTarget(blurTarget)
+        dialog.setContent(question)
+        dialog.setConfirmTitle(resources.getString(com.goodwy.commons.R.string.ok))
+        dialog.setCancelTitle(resources.getString(com.goodwy.commons.R.string.cancel))
+        dialog.setCanceledOnTouchOutside(true)
+        dialog.setOnCompleteListener { isConfirm ->
+            if (isConfirm) {
+                onConfirm()
+            }
+        }
+        dialog.show()
     }
 
     fun isActionModeActive(): Boolean = actModeCallback.isSelectable
@@ -129,11 +189,13 @@ class ManageQuickTextsAdapter(
         toolbar?.updateColorsForBackground(cabBackgroundColor)
 
         notifyDataSetChanged()
+        (activity as? ManageQuickTextsActivity)?.scheduleSyncQuickTextsCardHeight()
     }
 
     @SuppressLint("NotifyDataSetChanged")
     override fun onActionModeDestroyed() {
         notifyDataSetChanged()
+        (activity as? ManageQuickTextsActivity)?.scheduleSyncQuickTextsCardHeight()
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -143,7 +205,7 @@ class ManageQuickTextsAdapter(
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val quickText = quickTexts[position]
-        holder.bindView(quickText, allowSingleClick = true, allowLongClick = false) { itemView, _ ->
+        holder.bindView(quickText, allowSingleClick = true, allowLongClick = true) { itemView, _ ->
             setupView(itemView, quickText, holder)
         }
         bindViewHolder(holder)

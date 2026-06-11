@@ -1,36 +1,36 @@
 package com.android.mms.activities
 
-import android.animation.AnimatorListenerAdapter
-import android.animation.ValueAnimator
 import android.content.ActivityNotFoundException
 import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewTreeObserver
+import androidx.recyclerview.widget.RecyclerView
 import android.widget.EditText
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.coordinatorlayout.widget.CoordinatorLayout
+import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updateLayoutParams
 import androidx.core.view.updatePadding
 import com.android.common.dialogs.MRenameDialog
+import com.android.common.helper.IconItem
 import com.android.common.view.MActionBar
 import com.google.android.material.appbar.AppBarLayout.ScrollingViewBehavior
 import com.goodwy.commons.extensions.beVisibleIf
 import com.goodwy.commons.extensions.getTempFile
 import com.goodwy.commons.extensions.getProperBackgroundColor
-import com.goodwy.commons.extensions.getProperPrimaryColor
 import com.goodwy.commons.extensions.getSurfaceColor
 import com.goodwy.commons.extensions.hideKeyboard
 import com.goodwy.commons.extensions.isDynamicTheme
 import com.goodwy.commons.extensions.isSystemInDarkMode
 import com.goodwy.commons.extensions.showErrorToast
 import com.goodwy.commons.extensions.toast
-import com.goodwy.commons.extensions.underlineText
 import com.goodwy.commons.extensions.updateTextColors
 import com.goodwy.commons.helpers.ExportResult
 import com.goodwy.commons.helpers.ensureBackgroundThread
@@ -48,18 +48,21 @@ import com.android.mms.extensions.toArrayList
 import com.android.mms.helpers.QuickTextsExporter
 import com.android.mms.helpers.QuickTextsImporter
 import com.goodwy.commons.extensions.showKeyboard
+import com.mikhaellopez.rxanimation.height
 import java.io.FileOutputStream
 import java.io.OutputStream
 
 class ManageQuickTextsActivity : SimpleActivity(), RefreshRecyclerViewListener, ActionModeToolbarHost {
 
     private lateinit var binding: ActivityManageQuickTextsBinding
-    private var quickTextsAppBarVerticalOffset = 0
 
     /** Saved [ScrollingViewBehavior] while action mode clears app-bar coupling from [mainBlurTarget]. */
     private var blurTargetScrollingBehavior: CoordinatorLayout.Behavior<View>? = null
 
-    private var topOffsetsAnimator: ValueAnimator? = null
+    private var quickTextsAdapter: RecyclerView.Adapter<*>? = null
+    private var quickTextsAdapterObserver: RecyclerView.AdapterDataObserver? = null
+
+    private val syncQuickTextsCardHeightRunnable = Runnable { syncQuickTextsCardHeight() }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -71,25 +74,16 @@ class ManageQuickTextsActivity : SimpleActivity(), RefreshRecyclerViewListener, 
         setupQuickTextsTopAppBar()
         setupQuickTextsSpringSync()
         applyQuickTextsWindowSurfacesAndChrome()
+        setupBottomAddQuickTextButton()
         updateQuickTexts()
-        binding.manageQuickTextsPlaceholder2.apply {
-            underlineText()
-            setTextColor(getProperPrimaryColor())
-            setOnClickListener {
-                addOrEditQuickText()
-            }
-        }
         scrollingView = binding.manageQuickTextsList
-        binding.quickTextsAppbar.addOnOffsetChangedListener { _, verticalOffset ->
-            quickTextsAppBarVerticalOffset = verticalOffset
-            binding.mVerticalSideFrameTop.update()
-        }
         binding.manageQuickTextsList.post {
             binding.quickTextsAppbar.dismissCollapse()
-            quickTextsAppBarVerticalOffset = 0
             applyTransparentMAppBarChrome()
             syncBlurTargetTopMarginForAppBar()
-            requestTopInsetSync()
+            syncQuickTextsWrapperTopPadding()
+            syncQuickTextsListTopPadding()
+            scheduleSyncQuickTextsCardHeight()
             refreshSideFrameBlurAndInsets()
         }
     }
@@ -111,10 +105,13 @@ class ManageQuickTextsActivity : SimpleActivity(), RefreshRecyclerViewListener, 
         applyQuickTextsWindowSurfacesAndChrome()
         updateTextColors(binding.rootView)
         setupQuickTextsTopAppBar()
+        setupBottomAddQuickTextButton()
         binding.quickTextsAppbar.translationY = 0f
         applyTransparentMAppBarChrome()
         syncBlurTargetTopMarginForAppBar()
-        requestTopInsetSync()
+        syncQuickTextsWrapperTopPadding()
+        syncQuickTextsListTopPadding()
+        scheduleSyncQuickTextsCardHeight()
         refreshSideFrameBlurAndInsets()
     }
 
@@ -155,14 +152,18 @@ class ManageQuickTextsActivity : SimpleActivity(), RefreshRecyclerViewListener, 
         binding.root.setBackgroundColor(backgroundColor)
         binding.rootView.setBackgroundColor(backgroundColor)
         binding.mainBlurTarget.setBackgroundColor(backgroundColor)
-        binding.manageQuickTextsList.setBackgroundColor(backgroundColor)
+        binding.manageQuickTextsList.setBackgroundColor(Color.TRANSPARENT)
         scrollingView = binding.manageQuickTextsList
         applyTransparentMAppBarChrome()
     }
 
     override fun onDestroy() {
-        topOffsetsAnimator?.cancel()
-        topOffsetsAnimator = null
+        quickTextsAdapterObserver?.let { observer ->
+            quickTextsAdapter?.unregisterAdapterDataObserver(observer)
+        }
+        quickTextsAdapter = null
+        quickTextsAdapterObserver = null
+        binding.root.removeCallbacks(syncQuickTextsCardHeightRunnable)
         clearQuickTextsSpringSync()
         super.onDestroy()
     }
@@ -181,39 +182,20 @@ class ManageQuickTextsActivity : SimpleActivity(), RefreshRecyclerViewListener, 
             val dp5 = (5 * resources.displayMetrics.density).toInt()
             binding.mVerticalSideFrameBottom.layoutParams =
                 binding.mVerticalSideFrameBottom.layoutParams.apply { height = navHeight + dp5 }
-            val barLp = binding.actionModeRippleToolbar.layoutParams as ViewGroup.MarginLayoutParams
-            val activityMargin = (0 * resources.displayMetrics.density).toInt()
-            if (ime.bottom > 0) {
-                barLp.bottomMargin = ime.bottom + activityMargin
-            } else {
-                barLp.bottomMargin = navHeight + activityMargin
-            }
-            binding.actionModeRippleToolbar.layoutParams = barLp
+            applyBottomRippleToolbarInsets(navHeight, ime.bottom)
 
-            insets.getInsets(WindowInsetsCompat.Type.navigationBars())
+            applyBottomRippleToolbarInsets(navHeight, ime.bottom)
             syncManageQuickTextsListBottomPadding()
+            if (!insets.isVisible(WindowInsetsCompat.Type.ime())) {
+                scheduleSyncQuickTextsCardHeight()
+            }
             insets
         }
     }
 
     private fun syncManageQuickTextsListBottomPadding() {
         val activityMargin = resources.getDimensionPixelSize(com.goodwy.commons.R.dimen.activity_margin)
-        val rootInsets = ViewCompat.getRootWindowInsets(binding.root)
-        val nav = rootInsets?.getInsets(WindowInsetsCompat.Type.navigationBars())?.bottom ?: 0
-        val ime = rootInsets?.getInsets(WindowInsetsCompat.Type.ime())?.bottom ?: 0
-        val bottomInset = maxOf(nav, ime)
-
-        val rippleExtra = if (binding.actionModeRippleToolbar.visibility == View.VISIBLE) {
-            val ripple = binding.actionModeRippleToolbar
-            val h = ripple.height.takeIf { it > 0 } ?: ripple.measuredHeight.takeIf { it > 0 }
-                ?: resources.getDimensionPixelSize(R.dimen.action_mode_bottom_inset_fallback)
-            val margin = (25 * resources.displayMetrics.density).toInt()
-            h + margin
-        } else {
-            0
-        }
-
-        binding.manageQuickTextsList.updatePadding(bottom = bottomInset + activityMargin + rippleExtra)
+        binding.manageQuickTextsList.updatePadding(bottom = activityMargin)
     }
 
     override fun getActionModeToolbar(): CustomActionModeToolbar =
@@ -222,13 +204,11 @@ class ManageQuickTextsActivity : SimpleActivity(), RefreshRecyclerViewListener, 
     override fun showActionModeToolbar() {
         binding.quickTextsAppbar.visibility = View.GONE
         binding.quickTextsActionModeToolbar.visibility = View.VISIBLE
-        syncBlurTargetScrollingBehaviorForActionMode()
-        syncBlurTargetTopMarginForAppBar()
-        syncQuickTextsListTopPadding()
+        binding.manageQuickTextsAddButton.visibility = View.GONE
         binding.root.post {
             applyActionModeRippleToolbarForQuickTexts()
             refreshActionModeToolbarBlur()
-            binding.root.post { syncManageQuickTextsListBottomPadding() }
+            refreshQuickTextsLayoutAfterToolbarModeChange()
         }
     }
 
@@ -236,17 +216,12 @@ class ManageQuickTextsActivity : SimpleActivity(), RefreshRecyclerViewListener, 
         binding.quickTextsActionModeToolbar.visibility = View.GONE
         binding.quickTextsAppbar.visibility = View.VISIBLE
         binding.actionModeRippleToolbar.visibility = View.GONE
+        binding.manageQuickTextsAddButton.visibility = View.VISIBLE
         binding.quickTextsAppbar.dismissCollapse()
-        quickTextsAppBarVerticalOffset = 0
-        syncBlurTargetScrollingBehaviorForActionMode()
-        syncBlurTargetTopMarginForAppBar()
-        syncQuickTextsListTopPadding()
-        syncManageQuickTextsListBottomPadding()
-        (binding.mainBlurTarget.parent as? View)?.requestLayout()
         binding.root.post {
             applyTransparentMAppBarChrome()
             binding.mVerticalSideFrameTop.update()
-            requestTopInsetSync()
+            refreshQuickTextsLayoutAfterToolbarModeChange()
         }
     }
 
@@ -256,12 +231,7 @@ class ManageQuickTextsActivity : SimpleActivity(), RefreshRecyclerViewListener, 
 
     /** Fixed list top inset (MainActivity [conversationsListTopPaddingPx]); CoordinatorLayout drives collapse. */
     private fun quickTextsListTopPaddingPx(): Int {
-        val dimen = if (isQuickTextsActionModeToolbarVisible()) {
-            R.dimen.conversations_list_top_padding_action_mode
-        } else {
-            R.dimen.conversations_list_top_padding
-        }
-        return resources.getDimensionPixelSize(dimen)
+        return resources.getDimensionPixelSize(com.goodwy.commons.R.dimen.activity_margin)
     }
 
     private fun syncQuickTextsListTopPadding() {
@@ -274,81 +244,6 @@ class ManageQuickTextsActivity : SimpleActivity(), RefreshRecyclerViewListener, 
         list.updatePadding(top = topPad)
         list.translationY = 0f
         binding.manageQuickTextsPlaceholder.updatePadding(top = topPad)
-    }
-
-    private fun animateTopOffsets(duration: Long) {
-        val list = binding.manageQuickTextsList
-        val targetTopPadding = quickTextsListTopPaddingPx()
-
-        topOffsetsAnimator?.cancel()
-
-        if (duration <= 0L) {
-            if (list.paddingTop != targetTopPadding || list.translationY != 0f) {
-                list.updatePadding(top = targetTopPadding)
-                list.translationY = 0f
-            }
-            binding.manageQuickTextsPlaceholder.updatePadding(top = targetTopPadding)
-            topOffsetsAnimator = null
-            return
-        }
-
-        val currentTopPadding = list.paddingTop
-        val currentTranslationY = list.translationY
-        if (currentTopPadding != targetTopPadding) {
-            list.updatePadding(top = targetTopPadding)
-            list.translationY = currentTranslationY + (currentTopPadding - targetTopPadding).toFloat()
-        }
-
-        val startTranslationY = list.translationY
-        if (kotlin.math.abs(startTranslationY) < 0.5f) {
-            list.translationY = 0f
-            applyFinalQuickTextsListTopPadding()
-            return
-        }
-
-        topOffsetsAnimator = ValueAnimator.ofFloat(0f, 1f).apply {
-            this.duration = duration
-            interpolator = android.view.animation.AccelerateDecelerateInterpolator()
-            addUpdateListener { animator ->
-                val fraction = animator.animatedValue as Float
-                list.translationY = lerpFloat(startTranslationY, 0f, fraction)
-            }
-            addListener(object : AnimatorListenerAdapter() {
-                override fun onAnimationEnd(animation: android.animation.Animator) {
-                    list.translationY = 0f
-                    applyFinalQuickTextsListTopPadding()
-                    topOffsetsAnimator = null
-                }
-
-                override fun onAnimationCancel(animation: android.animation.Animator) {
-                    list.translationY = 0f
-                    applyFinalQuickTextsListTopPadding()
-                    topOffsetsAnimator = null
-                }
-            })
-            start()
-        }
-    }
-
-    private fun lerpFloat(start: Float, end: Float, fraction: Float): Float =
-        start + (end - start) * fraction
-
-    private fun requestTopInsetSync(animate: Boolean = false, duration: Long = TOP_INSET_SYNC_DURATION_MS) {
-        val insetDuration = if (animate) duration else 0L
-        runTopInsetSyncOnce(duration = insetDuration)
-    }
-
-    private fun runTopInsetSyncOnce(duration: Long) {
-        binding.root.post {
-            fun applyInsets() {
-                animateTopOffsets(duration)
-            }
-            applyInsets()
-            val menu = binding.quickTextsAppbar
-            if (!menu.isLaidOut || menu.height <= 0) {
-                menu.post { applyInsets() }
-            }
-        }
     }
 
     /**
@@ -419,7 +314,10 @@ class ManageQuickTextsActivity : SimpleActivity(), RefreshRecyclerViewListener, 
     fun refreshActionModeRippleToolbarIfNeeded() {
         if (isDestroyed || isFinishing) return
         applyActionModeRippleToolbarForQuickTexts()
-        binding.root.post { syncManageQuickTextsListBottomPadding() }
+        binding.root.post {
+            syncManageQuickTextsListBottomPadding()
+            scheduleSyncQuickTextsCardHeight()
+        }
     }
 
     /** Glass top chrome: keep [MAppBarLayout] transparent so [MVSideFrame] blur shows through (txCommon). */
@@ -460,11 +358,6 @@ class ManageQuickTextsActivity : SimpleActivity(), RefreshRecyclerViewListener, 
         actionBar.inflateMenu(R.menu.menu_add_quick_text)
         actionBar.setOnMenuItemClickListener { menuItem ->
             when (menuItem.itemId) {
-                R.id.add_quick_text -> {
-                    addOrEditQuickText()
-                    true
-                }
-
                 R.id.export_quick_texts -> {
                     tryExportQuickTexts()
                     true
@@ -616,21 +509,142 @@ class ManageQuickTextsActivity : SimpleActivity(), RefreshRecyclerViewListener, 
         ensureBackgroundThread {
             val quickTexts = config.quickTexts.toArrayList()
             runOnUiThread {
-                ManageQuickTextsAdapter(
+                val adapter = ManageQuickTextsAdapter(
                     activity = this,
                     quickTexts = quickTexts,
                     listener = this,
                     recyclerView = binding.manageQuickTextsList,
                 ) {
                     addOrEditQuickText(it as String)
-                }.apply {
-                    binding.manageQuickTextsList.adapter = this
                 }
+                binding.manageQuickTextsList.adapter = adapter
+                attachQuickTextsAdapterObserver(adapter)
 
                 binding.manageQuickTextsPlaceholder.beVisibleIf(quickTexts.isEmpty())
-                binding.manageQuickTextsPlaceholder2.beVisibleIf(quickTexts.isEmpty())
+                binding.manageQuickTextsList.beVisibleIf(quickTexts.isNotEmpty())
+                scheduleSyncQuickTextsCardHeight()
             }
         }
+    }
+
+    private fun applyBottomRippleToolbarInsets(navHeight: Int, imeBottom: Int) {
+        val bottomMargin = if (imeBottom > 0) imeBottom else navHeight
+        listOf(binding.manageQuickTextsAddButton, binding.actionModeRippleToolbar).forEach { toolbar ->
+            toolbar.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+                this.bottomMargin = bottomMargin
+            }
+        }
+    }
+
+    private fun setupBottomAddQuickTextButton() {
+        val items = ArrayList<IconItem>().apply {
+            add(
+                IconItem().apply {
+                    icon = com.android.common.R.drawable.ic_cmn_add
+                    title = getString(R.string.add)
+                },
+            )
+        }
+        binding.manageQuickTextsAddButton.setTabs(this, items, binding.mainBlurTarget)
+        binding.manageQuickTextsAddButton.setOnClickedListener {
+            addOrEditQuickText()
+        }
+    }
+
+    internal fun scheduleSyncQuickTextsCardHeight() {
+        binding.root.removeCallbacks(syncQuickTextsCardHeightRunnable)
+        binding.root.post(syncQuickTextsCardHeightRunnable)
+    }
+
+    private fun attachQuickTextsAdapterObserver(adapter: RecyclerView.Adapter<*>) {
+        quickTextsAdapterObserver?.let { observer ->
+            quickTextsAdapter?.unregisterAdapterDataObserver(observer)
+        }
+        val observer = object : RecyclerView.AdapterDataObserver() {
+            override fun onChanged() = scheduleSyncQuickTextsCardHeight()
+
+            override fun onItemRangeInserted(positionStart: Int, itemCount: Int) = scheduleSyncQuickTextsCardHeight()
+
+            override fun onItemRangeRemoved(positionStart: Int, itemCount: Int) = scheduleSyncQuickTextsCardHeight()
+
+            override fun onItemRangeMoved(fromPosition: Int, toPosition: Int, itemCount: Int) =
+                scheduleSyncQuickTextsCardHeight()
+        }
+        adapter.registerAdapterDataObserver(observer)
+        quickTextsAdapter = adapter
+        quickTextsAdapterObserver = observer
+    }
+
+    private fun measureQuickTextsContentHeight(): Int {
+        if (binding.manageQuickTextsPlaceholder.visibility == View.VISIBLE) {
+            val placeholder = binding.manageQuickTextsPlaceholder
+            val width = placeholder.width.takeIf { it > 0 } ?: binding.manageQuickTextsCard.width
+            if (width <= 0) return 0
+            placeholder.measure(
+                View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(450, View.MeasureSpec.UNSPECIFIED),
+            )
+            return placeholder.measuredHeight
+        }
+
+        val list = binding.manageQuickTextsList
+        val width = list.width.takeIf { it > 0 } ?: binding.manageQuickTextsCard.width
+        if (width <= 0) return 0
+        list.measure(
+            View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+        )
+        return list.measuredHeight
+    }
+
+    private fun syncQuickTextsCardHeight() {
+        if (isImeVisible()) return
+
+        val card = binding.manageQuickTextsCard
+        val list = binding.manageQuickTextsList
+        val content = binding.manageQuickTextsCardContent
+
+        if (card.width <= 0) {
+            card.viewTreeObserver.addOnGlobalLayoutListener(object : ViewTreeObserver.OnGlobalLayoutListener {
+                override fun onGlobalLayout() {
+                    card.viewTreeObserver.removeOnGlobalLayoutListener(this)
+                    scheduleSyncQuickTextsCardHeight()
+                }
+            })
+            return
+        }
+
+        val contentHeight = measureQuickTextsContentHeight()
+        if (contentHeight <= 0) {
+            list.viewTreeObserver.addOnGlobalLayoutListener(object : ViewTreeObserver.OnGlobalLayoutListener {
+                override fun onGlobalLayout() {
+                    list.viewTreeObserver.removeOnGlobalLayoutListener(this)
+                    scheduleSyncQuickTextsCardHeight()
+                }
+            })
+            return
+        }
+
+        val cardTopOnScreen = IntArray(2).also { card.getLocationOnScreen(it) }[1]
+
+        val bottomMargin = resources.getDimensionPixelSize(com.goodwy.commons.R.dimen.activity_margin)
+        val minHeight = bottomMargin * 3
+        val availableHeight = (getQuickTextsCardBottomLimitOnScreen() -cardTopOnScreen -bottomMargin).coerceAtLeast(minHeight)
+
+        val shouldScrollInside = contentHeight > availableHeight
+        val targetHeight = if (shouldScrollInside) availableHeight else ViewGroup.LayoutParams.WRAP_CONTENT
+
+        card.updateLayoutParams<ConstraintLayout.LayoutParams> {
+            height = targetHeight
+        }
+        content.updateLayoutParams<ViewGroup.LayoutParams> {
+            height = if (shouldScrollInside) ViewGroup.LayoutParams.MATCH_PARENT else ViewGroup.LayoutParams.WRAP_CONTENT
+        }
+        list.updateLayoutParams<ViewGroup.LayoutParams> {
+            height = if (shouldScrollInside) ViewGroup.LayoutParams.MATCH_PARENT else ViewGroup.LayoutParams.WRAP_CONTENT
+        }
+        list.isNestedScrollingEnabled = shouldScrollInside
+        card.requestLayout()
     }
 
     private fun addOrEditQuickText(text: String? = null) {
@@ -648,14 +662,70 @@ class ManageQuickTextsActivity : SimpleActivity(), RefreshRecyclerViewListener, 
             }
             updateQuickTexts()
         }
+        dialog.setOnDismissListener {
+            hideKeyboard()
+            scheduleSyncQuickTextsCardHeight()
+        }
         dialog.show()
         dialog.window?.decorView?.findViewById<EditText>(com.android.common.R.id.input_text)?.let { et ->
             et.post { showKeyboard(et) }
         }
     }
 
+    private fun isImeVisible(): Boolean {
+        return ViewCompat.getRootWindowInsets(binding.root)?.isVisible(WindowInsetsCompat.Type.ime()) == true
+    }
+
+    private fun getQuickTextsCardBottomLimitOnScreen(): Int {
+        val rootLoc = IntArray(2).also { binding.root.getLocationOnScreen(it) }
+        val insets = ViewCompat.getRootWindowInsets(binding.root)
+        val navBottom = insets?.getInsets(WindowInsetsCompat.Type.navigationBars())?.bottom ?: 0
+        val activityMargin = resources.getDimensionPixelSize(com.goodwy.commons.R.dimen.activity_margin)
+        val rippleBottom = resources.getDimensionPixelSize(R.dimen.ripple_bottom)
+        val toolbarHeight = getBottomRippleToolbarHeightPx()
+        return rootLoc[1] + binding.root.height - navBottom -rippleBottom - toolbarHeight - activityMargin
+    }
+
+    private fun getBottomRippleToolbarHeightPx(): Int {
+        val toolbar = when {
+            binding.actionModeRippleToolbar.visibility == View.VISIBLE -> binding.actionModeRippleToolbar
+            binding.manageQuickTextsAddButton.visibility == View.VISIBLE -> binding.manageQuickTextsAddButton
+            else -> null
+        } ?: return (48 * resources.displayMetrics.density).toInt()
+        if ( toolbar.height > 0 ) {
+            return toolbar.height
+        }
+        toolbar.measure(
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+        )
+        return toolbar.measuredHeight.coerceAtLeast((48 * resources.displayMetrics.density).toInt())
+    }
+
+    private fun refreshQuickTextsLayoutAfterToolbarModeChange() {
+        syncBlurTargetScrollingBehaviorForActionMode()
+        syncBlurTargetTopMarginForAppBar()
+        syncQuickTextsWrapperTopPadding()
+        syncQuickTextsListTopPadding()
+        binding.settingsCoordinator.requestLayout()
+        binding.root.post {
+            scheduleSyncQuickTextsCardHeight()
+        }
+    }
+
+    private fun getCollapsedAppBarHeightPx(): Int = resources.getDimensionPixelSize(com.android.common.R.dimen.tx_top_bar_toolbar_margin_top) + resources.getDimensionPixelSize(com.android.common.R.dimen.tx_top_bar_toolbar_height)
+
+    private fun getExpandedAppBarHeightPx(): Int = resources.getDimensionPixelSize(com.android.common.R.dimen.tx_nest_bouncy_content_padding_top)
+
+    private fun syncQuickTextsWrapperTopPadding() {
+        val topPad = if (isQuickTextsActionModeToolbarVisible()) {
+            getCollapsedAppBarHeightPx()
+        } else {
+            getExpandedAppBarHeightPx()
+        }
+        binding.manageQuickTextsWrapper.updatePadding(top = topPad)
+    }
     companion object {
         private const val NEST_BOUNCY_OVERSCROLL_FACTOR = 0.35f
-        private const val TOP_INSET_SYNC_DURATION_MS = 480L
     }
 }

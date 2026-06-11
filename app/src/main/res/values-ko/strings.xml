@@ -87,7 +87,7 @@
     <string name="manage_quick_texts">일상용어편집</string>
     <string name="sms_service_center">단문통보문봉사실</string>
     <string name="invalid_smsc_number">단문통보문봉사번호가 정확지 않습니다</string>
-    <string name="no_quick_texts">등록된 일상용어가 없습니다. 여기서 필요한 일상용어를 추가할수 있습니다.</string>
+    <string name="no_quick_texts">등록된 일상용어가 없습니다. \n 추가단추를 눌러 일상용어를 추가할수 있습니다.</string>
     <string name="add_a_quick_text">일상용어추가</string>
     <string name="quick_text">일상용어</string>
     <string name="export_quick_texts">일상용어 내보내기</string>
@@ -99,6 +99,7 @@
         <item>저에게 전화해주십시오.</item>
         <item>어디에 있습니까？</item>
     </string-array>
+    <string name="add">추가</string>
     <string name="app_launcher_name">통보문</string>
     <string name="type_a_message">본문을 입력하십시오.</string>
     <string name="message_not_sent_touch_retry">전송되지 않았습니다. 다시 시도하려면 선택하십시오.</string>

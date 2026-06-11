@@ -117,6 +117,7 @@
         <item>请打电话给我。</item>
         <item>你在哪里？</item>
     </string-array>
+    <string name="add">添加</string>
     <string name="lock_screen_visibility">锁屏通知可见性</string>
     <string name="sender_and_message">发信人和消息</string>
     <string name="sender_only">仅发信人</string>

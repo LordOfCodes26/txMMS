@@ -4,11 +4,6 @@
     xmlns:tools="http://schemas.android.com/tools"
     tools:ignore="AppCompatResource,AlwaysShowAction">
     <item
-        android:id="@+id/add_quick_text"
-        android:icon="@drawable/ic_cmn_add"
-        android:title="@string/add_a_quick_text"
-        app:showAsAction="ifRoom" />
-    <item
         android:id="@+id/select_quick_text"
         android:icon="@drawable/ic_cmn_multi_check"
         android:title="@string/select_conversations"
