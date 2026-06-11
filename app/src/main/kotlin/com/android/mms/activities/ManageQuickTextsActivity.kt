@@ -41,7 +41,7 @@ import com.goodwy.commons.views.MyRecyclerView
 import com.android.mms.R
 import com.android.mms.databinding.ActivityManageQuickTextsBinding
 import com.android.mms.dialogs.ExportQuickTextsDialog
-import com.android.mms.dialogs.ManageQuickTextsAdapter
+import com.android.mms.adapters.ManageQuickTextsAdapter
 import com.android.mms.extensions.config
 import com.android.mms.extensions.setRippleTabEnabledWidthAlpha
 import com.android.mms.extensions.toArrayList

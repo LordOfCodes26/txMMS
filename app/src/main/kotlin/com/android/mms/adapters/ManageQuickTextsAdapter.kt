@@ -1,12 +1,15 @@
-package com.android.mms.dialogs
+package com.android.mms.adapters
 
 import android.annotation.SuppressLint
 import android.view.Menu
 import android.view.View
 import android.view.ViewGroup
-import androidx.core.content.ContextCompat
-import androidx.core.view.isGone
 import com.android.common.dialogs.MConfirmDialog
+import com.android.common.helper.IconItem
+import com.android.mms.R
+import com.android.mms.activities.ManageQuickTextsActivity
+import com.android.mms.databinding.ItemManageQuickTextBinding
+import com.android.mms.extensions.config
 import com.goodwy.commons.activities.BaseSimpleActivity
 import com.goodwy.commons.adapters.MyRecyclerViewAdapter
 import com.goodwy.commons.extensions.beVisibleIf
@@ -16,19 +19,10 @@ import com.goodwy.commons.extensions.getSurfaceColor
 import com.goodwy.commons.extensions.isDynamicTheme
 import com.goodwy.commons.extensions.isSystemInDarkMode
 import com.goodwy.commons.extensions.setupViewBackground
-import com.goodwy.commons.dialogs.ConfirmationDialog
 import com.goodwy.commons.interfaces.RefreshRecyclerViewListener
+import com.goodwy.commons.views.CustomActionModeToolbar
 import com.goodwy.commons.views.MyRecyclerView
 import eightbitlab.com.blurview.BlurTarget
-import com.android.common.helper.IconItem
-import com.android.mms.R
-import com.android.mms.activities.ManageQuickTextsActivity
-import com.android.mms.databinding.ItemManageQuickTextBinding
-import com.android.mms.extensions.config
-import com.android.mms.extensions.emptyMessagesRecycleBin
-import com.goodwy.commons.extensions.applyColorFilter
-import com.goodwy.commons.helpers.ensureBackgroundThread
-import com.goodwy.commons.R as CommonsR
 
 class ManageQuickTextsAdapter(
     activity: BaseSimpleActivity,
@@ -81,6 +75,7 @@ class ManageQuickTextsAdapter(
         }
     }
 
+    @SuppressLint("StringFormatInvalid")
     private fun askConfirmDelete() {
         if (selectedKeys.isEmpty()) return
 
@@ -91,7 +86,7 @@ class ManageQuickTextsAdapter(
             itemsCnt.toString()
         }
         val question = String.format(
-            activity.resources.getString(CommonsR.string.deletion_confirmation),
+            activity.resources.getString(com.goodwy.commons.R.string.deletion_confirmation),
             items,
         )
 
@@ -135,7 +130,7 @@ class ManageQuickTextsAdapter(
         items.add(
             IconItem().apply {
                 icon = com.android.common.R.drawable.ic_cmn_delete_fill
-                title = activity.getString(CommonsR.string.delete)
+                title = activity.getString(com.goodwy.commons.R.string.delete)
             },
         )
         ids.add(R.id.cab_delete)
@@ -167,7 +162,7 @@ class ManageQuickTextsAdapter(
         actModeBar?.setBackgroundColor(cabBackgroundColor)
 
         val toolbar =
-            (actMode?.customView as? com.goodwy.commons.views.CustomActionModeToolbar) ?: actBarToolbar
+            (actMode?.customView as? CustomActionModeToolbar) ?: actBarToolbar
         toolbar?.updateTextColorForBackground(cabBackgroundColor)
         toolbar?.updateColorsForBackground(cabBackgroundColor)
 
