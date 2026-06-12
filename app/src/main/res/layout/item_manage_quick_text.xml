@@ -31,7 +31,7 @@
             android:id="@+id/quick_text_end_container"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/medium_margin"
+            android:layout_marginTop="@dimen/tx_cardview_card_title_margin_top"
             android:paddingStart="@dimen/medium_margin"
             android:layout_alignParentEnd="true">
 
@@ -50,6 +50,7 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="top|end"
                 android:layout_marginEnd="@dimen/smaller_margin"
+                android:paddingHorizontal="@dimen/small_margin"
                 android:clickable="true"
                 android:focusable="false"
                 android:visibility="gone"

@@ -571,46 +571,59 @@ class CustomActionModeToolbar @JvmOverloads constructor(
      * @param allSelected True if all items are selected, false otherwise
      * @param hasSelection True if at least one item is selected; when false the icon is transparent
      */
+
+    // changed function by sun 20260611
     fun updateSelectAllButtonIcon(menuItemId: Int, allSelected: Boolean, hasSelection: Boolean = true) {
-        val visibleIconRes = if (allSelected) {
-            com.android.common.R.drawable.ic_cmn_multi_check
-        } else {
-            com.android.common.R.drawable.ic_cmn_multi_check
-        }
-
-        val barIconRes = if (!hasSelection) { // changed by sun if (hasSelection) -> if (!hasSelection)
-            visibleIconRes
-        } else {
+        val actionBar = actionMActionBar() ?: return
+        val iconRes = if (allSelected) {
             R.drawable.ic_action_mode_select_all_placeholder
+        } else {
+            com.android.common.R.drawable.ic_cmn_multi_check
+        }
+        runCatching {
+            (actionBar as Any).javaClass.getMethod("setMenuItemIcon", Int::class.javaPrimitiveType, Int::class.javaPrimitiveType)
+                .invoke(actionBar, R.id.cab_select_all, iconRes)
         }
 
-        fun applyToItem(menuItem: MenuItem) {
-            menuItem.isVisible = true
-            val icon = ContextCompat.getDrawable(context, barIconRes)?.mutate() ?: return
-            if (hasSelection) {
-                if (cachedTextColor == -1) {
-                    cachedTextColor = context.getProperTextColor()
-                }
-                icon.applyColorFilter(cachedTextColor)
-            }
-            menuItem.icon = icon
-        }
-
-        // Menu model (used by [updateMenuDisplay] sync).
-        _action_menu?.findItem(menuItemId)?.let { applyToItem(it) }
-        menuActionBarMenu()?.findItem(menuItemId)?.let { applyToItem(it) }
-        _menu?.findItem(menuItemId)?.let { applyToItem(it) }
-
-        // MActionBar renders icons via [setMenuItemIcon], not MenuItem.icon — that is what the user sees.
-        applySelectAllIconToMActionBar(menuItemId, barIconRes, hasSelection)
-        invalidateMenu()
+//        val visibleIconRes = if (allSelected) {
+//            com.android.common.R.drawable.ic_cmn_multi_check
+//        } else {
+//            com.android.common.R.drawable.ic_cmn_multi_check
+//        }
+//
+//        val barIconRes = if (!hasSelection) { // changed by sun if (hasSelection) -> if (!hasSelection)
+//            visibleIconRes
+//        } else {
+//            R.drawable.ic_action_mode_select_all_placeholder
+//        }
+//
+//        fun applyToItem(menuItem: MenuItem) {
+//            menuItem.isVisible = true
+//            val icon = ContextCompat.getDrawable(context, barIconRes)?.mutate() ?: return
+//            if (!hasSelection) {
+//                if (cachedTextColor == -1) {
+//                    cachedTextColor = context.getProperTextColor()
+//                }
+//                icon.applyColorFilter(cachedTextColor)
+//            }
+//            menuItem.icon = icon
+//        }
+//
+//        // Menu model (used by [updateMenuDisplay] sync).
+//        _action_menu?.findItem(menuItemId)?.let { applyToItem(it) }
+//        menuActionBarMenu()?.findItem(menuItemId)?.let { applyToItem(it) }
+//        _menu?.findItem(menuItemId)?.let { applyToItem(it) }
+//
+//        // MActionBar renders icons via [setMenuItemIcon], not MenuItem.icon — that is what the user sees.
+//        applySelectAllIconToMActionBar(menuItemId, barIconRes, hasSelection)
+//        invalidateMenu()
     }
 
     private fun applySelectAllIconToMActionBar(menuItemId: Int, @androidx.annotation.DrawableRes iconRes: Int, hasSelection: Boolean) {
         val actionBar = actionMActionBar() ?: return
         val apply = {
             actionBar.setMenuItemIcon(menuItemId, iconRes)
-            if (hasSelection) {
+            if (!hasSelection) {
                 if (cachedTextColor == -1) {
                     cachedTextColor = context.getProperTextColor()
                 }
