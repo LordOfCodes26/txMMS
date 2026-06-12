@@ -1,11 +1,14 @@
 package com.android.mms.models
 
 import android.net.Uri
+import com.android.mms.extensions.isAudioMimeType
 import com.android.mms.extensions.isImageMimeType
 import com.android.mms.extensions.isVCardMimeType
 import com.android.mms.extensions.isVideoMimeType
+import com.android.mms.helpers.ATTACHMENT_AUDIO
 import com.android.mms.helpers.ATTACHMENT_DOCUMENT
 import com.android.mms.helpers.ATTACHMENT_MEDIA
+import com.android.mms.helpers.ATTACHMENT_SLIDESHOW
 import com.android.mms.helpers.ATTACHMENT_VCARD
 
 data class AttachmentSelection(
@@ -21,6 +24,7 @@ data class AttachmentSelection(
             return when {
                 mimetype.isImageMimeType() || mimetype.isVideoMimeType() -> ATTACHMENT_MEDIA
                 mimetype.isVCardMimeType() -> ATTACHMENT_VCARD
+                mimetype.isAudioMimeType() -> ATTACHMENT_AUDIO
                 else -> ATTACHMENT_DOCUMENT
             }
         }
@@ -30,7 +34,8 @@ data class AttachmentSelection(
         }
 
         fun areContentsTheSame(first: AttachmentSelection, second: AttachmentSelection): Boolean {
-            return first.uri == second.uri &&
+            return first.viewType == second.viewType &&
+                first.uri == second.uri &&
                 first.mimetype == second.mimetype &&
                 first.filename == second.filename &&
                 first.isPending == second.isPending

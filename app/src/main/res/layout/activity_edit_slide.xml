@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/root_view"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/tx_common_bg">
+
+    <androidx.coordinatorlayout.widget.CoordinatorLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@android:color/transparent"
+        android:clipChildren="false"
+        android:clipToPadding="false">
+
+        <!-- BlurTarget contains ONLY the scrollable image+buttons area.
+             The text bar lives outside it so AppBar scroll behaviour
+             never moves the bar up or down. -->
+        <eightbitlab.com.blurview.BlurTarget
+            android:id="@+id/mainBlurTarget"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@color/tx_common_bg"
+            app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+            <com.android.common.nestbouncy.BouncyScrollView
+                android:id="@+id/edit_slide_scroll"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:clipToPadding="false"
+                android:fillViewport="true"
+                android:paddingTop="@dimen/tx_nest_bouncy_content_padding_top"
+                android:scrollbars="none">
+
+                <!-- fillViewport forces this LinearLayout to match the
+                     scroll-view height; gravity=center_vertical keeps
+                     the image+buttons row vertically centred. -->
+                <LinearLayout
+                    android:id="@+id/edit_slide_wrapper"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center_vertical"
+                    android:orientation="vertical"
+                    android:paddingStart="@dimen/activity_margin"
+                    android:paddingEnd="@dimen/activity_margin"
+                    android:paddingBottom="@dimen/activity_margin">
+
+                    <LinearLayout
+                        android:id="@+id/edit_slide_content"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+
+                        <FrameLayout
+                            android:layout_width="0dp"
+                            android:layout_height="@dimen/edit_slide_image_height"
+                            android:layout_weight="1"
+                            android:background="@drawable/section_holder_stroke">
+
+                            <androidx.appcompat.widget.AppCompatImageView
+                                android:id="@+id/slide_editor_image"
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:layout_margin="@dimen/small_margin"
+                                android:scaleType="fitCenter" />
+
+                            <androidx.appcompat.widget.AppCompatImageView
+                                android:id="@+id/slide_editor_play_icon"
+                                android:layout_width="@dimen/play_outline_size"
+                                android:layout_height="@dimen/play_outline_size"
+                                android:layout_gravity="center"
+                                android:alpha="0.85"
+                                android:src="@drawable/ic_vector_play_circle_outline"
+                                android:visibility="gone"
+                                tools:visibility="visible" />
+                        </FrameLayout>
+
+                        <LinearLayout
+                            android:layout_width="@dimen/attachment_media_action_button_width"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center_vertical"
+                            android:orientation="vertical"
+                            android:paddingStart="@dimen/small_margin">
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="horizontal">
+
+                                <androidx.appcompat.widget.AppCompatImageButton
+                                    android:id="@+id/pre_slide_button"
+                                    style="?android:attr/buttonStyleSmall"
+                                    android:layout_width="0dp"
+                                    android:layout_height="@dimen/attachment_media_action_button_height"
+                                    android:layout_weight="1"
+                                    android:contentDescription="@string/previous_slide"
+                                    android:src="@drawable/ic_chevron_left_vector" />
+
+                                <androidx.appcompat.widget.AppCompatImageButton
+                                    android:id="@+id/next_slide_button"
+                                    style="?android:attr/buttonStyleSmall"
+                                    android:layout_width="0dp"
+                                    android:layout_height="@dimen/attachment_media_action_button_height"
+                                    android:layout_weight="1"
+                                    android:contentDescription="@string/next_slide"
+                                    android:src="@drawable/ic_chevron_right_vector" />
+                            </LinearLayout>
+
+                            <androidx.appcompat.widget.AppCompatButton
+                                android:id="@+id/preview_slide_button"
+                                style="?android:attr/buttonStyleSmall"
+                                android:layout_width="match_parent"
+                                android:layout_height="@dimen/attachment_media_action_button_height"
+                                android:text="@string/preview" />
+
+                            <androidx.appcompat.widget.AppCompatButton
+                                android:id="@+id/replace_slide_button"
+                                style="?android:attr/buttonStyleSmall"
+                                android:layout_width="match_parent"
+                                android:layout_height="@dimen/attachment_media_action_button_height"
+                                android:text="@string/replace_attachment" />
+
+                            <androidx.appcompat.widget.AppCompatButton
+                                android:id="@+id/remove_slide_button"
+                                style="?android:attr/buttonStyleSmall"
+                                android:layout_width="match_parent"
+                                android:layout_height="@dimen/attachment_media_action_button_height"
+                                android:text="@string/remove_slide" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                </LinearLayout>
+            </com.android.common.nestbouncy.BouncyScrollView>
+        </eightbitlab.com.blurview.BlurTarget>
+
+        <!-- Text-input bar: direct child of CoordinatorLayout so it is
+             completely unaffected by the AppBar scroll behaviour.
+             Its bottom padding is set programmatically to clear the
+             navigation bar (see setupEdgeToEdge). -->
+        <LinearLayout
+            android:id="@+id/edit_slide_text_row"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom"
+            android:background="@color/tx_common_bg"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="@dimen/activity_margin"
+            android:paddingEnd="@dimen/activity_margin"
+            android:paddingTop="@dimen/small_margin"
+            android:paddingBottom="@dimen/small_margin">
+
+            <com.goodwy.commons.views.MyEditText
+                android:id="@+id/slide_text_message"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:hint="@string/type_a_message"
+                android:imeOptions="actionDone"
+                android:inputType="textCapSentences|textMultiLine"
+                android:maxLines="3" />
+
+            <androidx.appcompat.widget.AppCompatButton
+                android:id="@+id/done_slide_button"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/done" />
+        </LinearLayout>
+
+        <com.android.common.view.MVSideFrame
+            android:id="@+id/m_vertical_side_frame_top"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/tx_mv_side_top_frame_height"
+            android:layout_gravity="top"
+            app:autoUpdate="false" />
+
+        <com.android.common.view.MAppBarLayout
+            android:id="@+id/edit_slide_appbar"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/tx_top_bar_expand_height"
+            android:background="@color/transparent"
+            app:elevation="0dp"
+            app:liftOnScroll="false"
+            app:titleText="@string/edit_slide" />
+
+        <com.android.common.view.MVSideFrame
+            android:id="@+id/m_vertical_side_frame_bottom"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/tx_mv_side_bottom_frame_height"
+            android:layout_gravity="bottom"
+            app:autoUpdate="false"
+            app:isTopFrame="false" />
+    </androidx.coordinatorlayout.widget.CoordinatorLayout>
+</FrameLayout>

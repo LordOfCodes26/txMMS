@@ -4,6 +4,10 @@
     <dimen name="bigger_avatar_size">64dp</dimen>
     <dimen name="play_outline_size">36dp</dimen>
     <dimen name="attachment_preview_size">64dp</dimen>
+    <dimen name="attachment_media_preview_height">135dp</dimen>
+    <dimen name="edit_slide_image_height">280dp</dimen>
+    <dimen name="attachment_media_action_button_width">100dp</dimen>
+    <dimen name="attachment_media_action_button_height">50dp</dimen>
     <dimen name="attachment_preview_min_height">@dimen/attachment_preview_size</dimen>
     <dimen name="attachment_preview_max_width">156dp</dimen>
     <dimen name="remove_attachment_size">24dp</dimen>
@@ -11,6 +15,7 @@
     <dimen name="vcard_property_start_margin">64dp</dimen>
     <dimen name="small_icon_size">20dp</dimen>
     <dimen name="medium_icon_size">38dp</dimen>
+    <dimen name="big_icon_size">52dp</dimen>
     <dimen name="medium_icon_size_plus">40dp</dimen>
     <dimen name="attachment_button_height">96dp</dimen>
     <dimen name="attachment_button_width">90dp</dimen>

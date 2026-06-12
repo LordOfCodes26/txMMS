@@ -226,6 +226,39 @@
             android:parentActivityName=".activities.SettingsActivity" />
 
         <activity
+            android:name=".activities.ManageSlideshowActivity"
+            android:configChanges="orientation"
+            android:exported="false"
+            android:label="@string/edit_slideshow"
+            android:screenOrientation="portrait"
+            tools:ignore="DiscouragedApi,LockedOrientationActivity" />
+
+        <activity
+            android:name=".activities.PlaySlideshowActivity"
+            android:configChanges="orientation"
+            android:exported="false"
+            android:label="@string/preview"
+            android:screenOrientation="portrait"
+            tools:ignore="DiscouragedApi,LockedOrientationActivity"
+            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen" />
+
+        <activity
+            android:name=".activities.ViewMmsActivity"
+            android:configChanges="orientation|keyboardHidden"
+            android:exported="false"
+            android:label="@string/mms"
+            android:screenOrientation="portrait"
+            tools:ignore="DiscouragedApi,LockedOrientationActivity" />
+
+        <activity
+            android:name=".activities.EditSlideActivity"
+            android:configChanges="orientation"
+            android:exported="false"
+            android:label="@string/edit_slide"
+            android:screenOrientation="portrait"
+            tools:ignore="DiscouragedApi,LockedOrientationActivity" />
+
+        <activity
             android:name=".activities.ManageSimMessagesActivity"
             android:configChanges="orientation"
             android:exported="false"
@@ -389,6 +422,12 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/provider_paths" />
         </provider>
+
+        <provider
+            android:name="com.android.mms.helpers.MmsCaptureTempProvider"
+            android:authorities="${applicationId}.capture_temp"
+            android:exported="false"
+            android:grantUriPermissions="true" />
 
         <activity-alias
             android:name=".activities.MainActivity.Original"

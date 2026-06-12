@@ -2,10 +2,15 @@ package com.android.mms.helpers
 
 import android.annotation.SuppressLint
 import android.content.Intent
+import android.media.MediaMetadataRetriever
+import android.os.Build
+import android.provider.MediaStore
 import android.media.AudioManager
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
+import android.media.RingtoneManager
+import android.provider.Settings
 import android.telephony.SmsManager
 import android.telephony.SmsMessage
 import android.text.InputType
@@ -30,9 +35,14 @@ import com.android.mms.emoji.Ch350EmojiBootstrap
 import com.android.mms.emoji.ChatPaneEmoji
 import com.android.mms.emoji.RepeatListener
 import com.android.mms.extensions.*
+import com.android.mms.activities.ManageSlideshowActivity
+import com.android.mms.activities.PlaySlideshowActivity
+import com.android.mms.activities.ViewMmsActivity
 import com.android.mms.models.Attachment
 import com.android.mms.models.AttachmentSelection
 import com.android.mms.models.DraftStoredAttachment
+import com.android.mms.models.MmsSlide
+import com.android.mms.models.MmsSlideshow
 import com.android.mms.models.SIMCard
 import com.goodwy.commons.activities.BaseSimpleActivity
 import com.goodwy.commons.dialogs.RadioGroupDialog
@@ -61,7 +71,10 @@ class MessageHolderHelper(
     private var isSpeechToTextAvailable = false
     private val availableSIMCards = ArrayList<SIMCard>()
     private var currentSIMCardIndex = 0
-    private var capturedImageUri: Uri? = null
+    private var capturedVideoUri: Uri? = null
+    private var attachmentIntentLauncher: AttachmentIntentLauncher? = null
+    private var pendingReplaceAttachmentId: String? = null
+    private var mmsSlideshow: MmsSlideshow? = null
     private var chatPaneEmoji: ChatPaneEmoji? = null
     private var isEmojiPickerVisible: Boolean = false
     var isScheduledMessage: Boolean = false
@@ -83,16 +96,25 @@ class MessageHolderHelper(
     private var lastExpandIconVisible: Boolean? = null
 
     companion object {
-        const val CAPTURE_PHOTO_INTENT = 1001
-        const val CAPTURE_VIDEO_INTENT = 1002
-        const val CAPTURE_AUDIO_INTENT = 1003
-        const val PICK_PHOTO_INTENT = 1004
-        const val PICK_VIDEO_INTENT = 1005
-        const val PICK_DOCUMENT_INTENT = 1006
-        const val PICK_CONTACT_INTENT = 1007
+        const val CAPTURE_PHOTO_INTENT = 2001
+        const val CAPTURE_VIDEO_INTENT = 2002
+        const val CAPTURE_AUDIO_INTENT = 2003
+        const val PICK_PHOTO_INTENT = 2004
+        const val PICK_VIDEO_INTENT = 2005
+        const val PICK_DOCUMENT_INTENT = 2006
+        const val PICK_CONTACT_INTENT = 2007
+        const val PICK_RINGTONE_INTENT = 2008
+        const val PICK_SOUND_INTENT = 2009
 
         private const val CHARACTER_COUNTER_DEBOUNCE_MS = 48L
+        private const val CAPTURE_VIDEO_FINALIZE_MAX_ATTEMPTS = 50
+        private const val CAPTURE_VIDEO_FINALIZE_RETRY_MS = 50L
+        private const val CAPTURE_PHOTO_FINALIZE_MAX_ATTEMPTS = 50
+        private const val CAPTURE_PHOTO_FINALIZE_RETRY_MS = 50L
     }
+
+    private var captureVideoFinalizeAttempt = 0
+    private var capturePhotoFinalizeAttempt = 0
 
     fun setup(isSpeechToTextAvailable: Boolean = false) {
         this.isSpeechToTextAvailable = isSpeechToTextAvailable
@@ -280,7 +302,7 @@ class MessageHolderHelper(
         onChooseVideo: () -> Unit,
         onTakePhoto: () -> Unit,
         onRecordVideo: () -> Unit,
-        onRecordAudio: () -> Unit,
+        onPickAudio: () -> Unit,
         onPickFile: () -> Unit,
         onPickContact: () -> Unit,
         onScheduleMessage: (() -> Unit)? = null,
@@ -330,7 +352,7 @@ class MessageHolderHelper(
                 chooseImageText,
                 chooseVoiceText,
                 chooseCameraText,
-                chooseTitleText
+                chooseRecordVideoText,
             ).forEach { it.setTextColor(textColor) }
 //            chooseClock
 //            chooseEmoji
@@ -355,17 +377,17 @@ class MessageHolderHelper(
                     }
                 }
             }
-            chooseImage.setOnClickListener { onChoosePhoto() }
-            chooseEmoji.setOnClickListener { showEmojiPicker() }
-            chooseText.setOnClickListener { onPickQuickText() }
-            chooseCamera.setOnClickListener { onTakePhoto() }
-            chooseVoice.setOnClickListener { onRecordAudio() }
-//            pickFile.setOnClickListener { onPickFile() }
-            chooseContact.setOnClickListener { onPickContact() }
-            chooseTitle.setOnClickListener {
-                onPickQuickText()
+            val hidePickerThen: (() -> Unit) -> Unit = { action ->
+                onHideAttachmentPickerRequested?.invoke() ?: hideAttachmentPicker()
+                action()
             }
-
+            chooseImage.setOnClickListener { hidePickerThen(onChoosePhoto) }
+            chooseEmoji.setOnClickListener { showEmojiPicker() }
+            chooseText.setOnClickListener { hidePickerThen(onPickQuickText) }
+            chooseCamera.setOnClickListener { hidePickerThen(onTakePhoto) }
+            chooseVoice.setOnClickListener { hidePickerThen(onPickAudio) }
+            chooseContact.setOnClickListener { hidePickerThen(onPickContact) }
+            chooseRecordVideo.setOnClickListener { hidePickerThen(onRecordVideo) }
         }
     }
 
@@ -637,8 +659,22 @@ class MessageHolderHelper(
     }
 
     fun clearAttachments() {
+        mmsSlideshow = null
+        ComposeSlideshowBridge.clear()
         getAttachmentsAdapter()?.clear()
         checkSendMessageAvailability()
+    }
+
+    fun setAttachmentIntentLauncher(launcher: AttachmentIntentLauncher?) {
+        attachmentIntentLauncher = launcher
+    }
+
+    fun setPendingReplaceAttachmentId(attachmentId: String) {
+        pendingReplaceAttachmentId = attachmentId
+    }
+
+    fun clearPendingReplaceAttachmentId() {
+        pendingReplaceAttachmentId = null
     }
 
     fun addAttachment(uri: Uri) {
@@ -647,7 +683,7 @@ class MessageHolderHelper(
             activity.toast(com.goodwy.commons.R.string.unknown_error_occurred)
             return
         }
-        addAttachmentWithKnownMime(uri, mimeType, activity.getFilenameFromUri(uri))
+        finishAttachmentFromPicker(uri, mimeType, activity.getFilenameFromUri(uri))
     }
 
     fun addContactAttachment(contactUri: Uri) {
@@ -721,6 +757,7 @@ class MessageHolderHelper(
             }
         }
         if (selections.isEmpty()) {
+            mmsSlideshow = null
             getAttachmentsAdapter()?.submitAttachments(emptyList())
             binding.threadAttachmentsRecyclerview.beGone()
             checkSendMessageAvailability()
@@ -728,23 +765,22 @@ class MessageHolderHelper(
         }
         var adapter = getAttachmentsAdapter()
         if (adapter == null) {
-            adapter = AttachmentsAdapter(
-                activity = activity,
-                recyclerView = binding.threadAttachmentsRecyclerview,
-                onAttachmentsRemoved = {
-                    binding.threadAttachmentsRecyclerview.beGone()
-                    checkSendMessageAvailability()
-                },
-                onReady = { checkSendMessageAvailability() },
-            )
+            adapter = createAttachmentsAdapter()
             binding.threadAttachmentsRecyclerview.adapter = adapter
         }
-        binding.threadAttachmentsRecyclerview.beVisible()
-        adapter.submitAttachments(selections)
-        binding.threadAttachmentsRecyclerview.post {
-            binding.threadAttachmentsRecyclerview.requestLayout()
+        val media = SlideshowHelper.mediaSelections(selections)
+        if (media.isNotEmpty()) {
+            mmsSlideshow = MmsSlideshow.fromMediaSelections(media)
+            refreshSlideshowComposeUi(adapter)
+        } else {
+            mmsSlideshow = null
+            binding.threadAttachmentsRecyclerview.beVisible()
+            adapter.submitAttachments(selections)
+            binding.threadAttachmentsRecyclerview.post {
+                binding.threadAttachmentsRecyclerview.requestLayout()
+            }
+            checkSendMessageAvailability()
         }
-        checkSendMessageAvailability()
     }
 
     /**
@@ -787,64 +823,644 @@ class MessageHolderHelper(
         return AttachmentSelection(id, uri, mimeType, filename, pending)
     }
 
+    private fun createAttachmentsAdapter(): AttachmentsAdapter {
+        return AttachmentsAdapter(
+            activity = activity,
+            recyclerView = binding.threadAttachmentsRecyclerview,
+            onAttachmentsRemoved = {
+                binding.threadAttachmentsRecyclerview.beGone()
+                checkSendMessageAvailability()
+            },
+            onReady = { checkSendMessageAvailability() },
+            onReplaceAttachment = { attachment ->
+                when {
+                    attachment.mimetype.isVideoMimeType() ->
+                        attachmentIntentLauncher?.showReplaceVideoDialog(attachment.id)
+                    attachment.mimetype.isImageMimeType() || attachment.mimetype.isGifMimeType() ->
+                        attachmentIntentLauncher?.showReplaceImageDialog(attachment.id)
+                }
+            },
+            getSlideshow = { mmsSlideshow },
+            onEditSlideshow = { launchSlideshowEditor() },
+            onPlaySlideshow = { playSlideshowPreview() },
+            onRemoveSlideshow = { removeSlideshow() },
+            onCompressedMediaOrphaned = { oldUri, newUri -> onCompressedMediaOrphaned(oldUri, newUri) },
+            onMediaAttachmentRemoved = { attachment -> onMediaAttachmentRemoved(attachment) },
+        )
+    }
+
+    private fun onMediaAttachmentRemoved(attachment: AttachmentSelection) {
+        val slideshow = mmsSlideshow ?: return
+        if (slideshow.isRealSlideshow()) {
+            return
+        }
+        val slide = slideshow.slides.firstOrNull() ?: return
+        if (slide.uriString == attachment.uri.toString()) {
+            mmsSlideshow = null
+        }
+    }
+
+    private fun finishAttachmentFromPicker(
+        uri: Uri,
+        mimeType: String,
+        filename: String,
+        isPendingOverride: Boolean? = null,
+    ) {
+        val replaceId = pendingReplaceAttachmentId
+        pendingReplaceAttachmentId = null
+        if (replaceId != null) {
+            replaceAttachmentWithKnownMime(replaceId, uri, mimeType, filename, isPendingOverride)
+        } else {
+            addAttachmentWithKnownMime(uri, mimeType, filename, isPendingOverride)
+        }
+    }
+
     private fun addAttachmentWithKnownMime(
         uri: Uri,
         mimeType: String,
         filename: String,
         isPendingOverride: Boolean? = null,
     ) {
+        if (!passesNonImageAttachmentSizeCap(uri, mimeType)) {
+            activity.toast(R.string.attachment_sized_exceeds_max_limit, length = Toast.LENGTH_LONG)
+            return
+        }
+
+        // Alps WorkingMessage.setAttachment: image, video, AND audio all go into the SlideshowModel
+        // as slides.  Route all three through addMediaAttachmentToCompose so the compose UI always
+        // shows a single unified slideshow row (image or slideshow) with at most one EDIT button.
+        if (mimeType.isImageMimeType() || mimeType.isVideoMimeType() || mimeType.isAudioMimeType()) {
+            val stableUri = SlideshowHelper.stabilizeAttachmentUri(activity, uri, mimeType)
+            if (isDuplicateMediaUri(stableUri)) {
+                activity.toast(R.string.duplicate_item_warning)
+                return
+            }
+            addMediaAttachmentToCompose(stableUri, mimeType, filename, isPendingOverride)
+            return
+        }
+
         val id = uri.toString()
         if (getAttachmentSelections().any { it.id == id }) {
             activity.toast(R.string.duplicate_item_warning)
             return
         }
 
-        if (!passesNonImageAttachmentSizeCap(uri, mimeType)) {
-            activity.toast(R.string.attachment_sized_exceeds_max_limit, length = Toast.LENGTH_LONG)
-            return
-        }
-
         var adapter = getAttachmentsAdapter()
         if (adapter == null) {
-            adapter = AttachmentsAdapter(
-                activity = activity,
-                recyclerView = binding.threadAttachmentsRecyclerview,
-                onAttachmentsRemoved = {
-                    binding.threadAttachmentsRecyclerview.beGone()
-                    checkSendMessageAvailability()
-                },
-                onReady = { checkSendMessageAvailability() }
-            )
+            adapter = createAttachmentsAdapter()
             binding.threadAttachmentsRecyclerview.adapter = adapter
         }
 
         binding.threadAttachmentsRecyclerview.beVisible()
         val attachment = buildAttachmentSelection(uri, mimeType, filename, isPendingOverride)
         adapter.addAttachment(attachment)
+        binding.threadAttachmentsRecyclerview.post {
+            binding.threadAttachmentsRecyclerview.requestLayout()
+        }
         checkSendMessageAvailability()
     }
 
-    fun handleActivityResult(requestCode: Int, resultCode: Int, resultData: Intent?) {
-        if (resultCode != android.app.Activity.RESULT_OK) return
-        val data = resultData?.data
+    private fun isDuplicateMediaUri(uri: Uri): Boolean {
+        val uriString = uri.toString()
+        return mmsSlideshow?.slides?.any { it.uriString == uriString } == true
+    }
 
-        when (requestCode) {
-            CAPTURE_PHOTO_INTENT -> {
-                if (capturedImageUri != null) {
-                    addAttachment(capturedImageUri!!)
-                }
+    /**
+     * Alps [WorkingMessage.setAttachment] + [appendMedia]: all media lives in [mmsSlideshow] from the
+     * first image/video. One slide shows the single-media preview; two+ slides show slideshow preview.
+     */
+    private fun addMediaAttachmentToCompose(
+        uri: Uri,
+        mimeType: String,
+        filename: String,
+        isPendingOverride: Boolean?,
+    ) {
+        if (!hasReadableAttachmentContent(uri)) {
+            activity.toast(com.goodwy.commons.R.string.unknown_error_occurred)
+            return
+        }
+
+        var adapter = getAttachmentsAdapter()
+        if (adapter == null) {
+            adapter = createAttachmentsAdapter()
+            binding.threadAttachmentsRecyclerview.adapter = adapter
+        }
+
+        mergeAllSlidesIntoModel(adapter)
+
+        val stableFilename = filename.ifBlank { activity.getFilenameFromUri(uri) }
+        val durationMs = if (mimeType.isVideoMimeType() || mimeType.isAudioMimeType()) {
+            readMediaDurationMs(uri) ?: MmsSlide.DEFAULT_DURATION_MS
+        } else {
+            MmsSlide.DEFAULT_DURATION_MS
+        }
+        val newSlide = MmsSlide(
+            uriString = uri.toString(),
+            mimetype = mimeType,
+            filename = stableFilename,
+            durationMs = durationMs,
+        )
+
+        var slideshow = mmsSlideshow
+        if (slideshow == null) {
+            val existingMedia = SlideshowHelper.mediaSelections(adapter.attachments)
+            if (existingMedia.isNotEmpty()) {
+                slideshow = MmsSlideshow.fromMediaSelections(existingMedia)
             }
-            CAPTURE_VIDEO_INTENT,
-            PICK_DOCUMENT_INTENT,
-            CAPTURE_AUDIO_INTENT,
-            PICK_PHOTO_INTENT,
-            PICK_VIDEO_INTENT -> {
-                if (data != null) {
-                    val stableUri = stabilizePickerResultUri(resultData, data)
-                    addAttachment(stableUri)
+        }
+        mmsSlideshow = when {
+            slideshow == null -> MmsSlideshow(listOf(newSlide))
+            slideshow.slides.any { it.uriString == newSlide.uriString } -> {
+                activity.toast(R.string.duplicate_item_warning)
+                return
+            }
+            else -> slideshow.addSlide(newSlide) ?: run {
+                activity.toast(R.string.cannot_add_slide_anymore)
+                return
+            }
+        }
+        ComposeSlideshowBridge.slideshow = mmsSlideshow
+        refreshSlideshowComposeUi(adapter, isPendingOverride)
+    }
+
+    /** Merge every known slide source so appendMedia never drops a prior image (Alps [WorkingMessage]). */
+    private fun mergeAllSlidesIntoModel(adapter: AttachmentsAdapter? = getAttachmentsAdapter()) {
+        val merged = LinkedHashMap<String, MmsSlide>()
+        listOf(mmsSlideshow, ComposeSlideshowBridge.slideshow).forEach { source ->
+            source?.slides?.forEach { slide ->
+                if (slide.uriString.isNotEmpty()) {
+                    merged[slide.uriString] = slide
                 }
             }
         }
+        adapter?.attachments?.let { rows ->
+            // image/video selections
+            SlideshowHelper.mediaSelections(rows).forEach { selection ->
+                val uriString = selection.uri.toString()
+                merged.putIfAbsent(uriString, MmsSlide.fromSelection(selection))
+            }
+            // audio selections (draft-restored standalone audio rows, if any)
+            rows.filter { it.viewType == ATTACHMENT_AUDIO }.forEach { selection ->
+                val uriString = selection.uri.toString()
+                merged.putIfAbsent(uriString, MmsSlide.fromSelection(selection))
+            }
+        }
+        if (merged.isNotEmpty()) {
+            mmsSlideshow = MmsSlideshow(merged.values.toList())
+            ComposeSlideshowBridge.slideshow = mmsSlideshow
+        }
+    }
+
+    private fun onCompressedMediaOrphaned(oldUri: Uri, newUri: Uri?) {
+        val slideshow = mmsSlideshow ?: return
+        val index = slideshow.slides.indexOfFirst { it.uriString == oldUri.toString() }
+        if (index < 0) {
+            return
+        }
+        if (newUri == null) {
+            activity.toast(R.string.compress_error)
+            // Alps keeps all slides; do not drop a slide from a multi-slide slideshow on compress failure.
+            if (slideshow.slides.size <= 1) {
+                mmsSlideshow = slideshow.removeSlideAt(index)
+            }
+        } else {
+            val slide = slideshow.slides[index]
+            mmsSlideshow = slideshow.replaceSlideAt(
+                index,
+                slide.copy(uriString = newUri.toString()),
+            )
+        }
+        ComposeSlideshowBridge.slideshow = mmsSlideshow
+        syncSlideshowAfterMutation()
+    }
+
+    private fun syncSlideshowAfterMutation() {
+        val adapter = getAttachmentsAdapter() ?: return
+        val slideshow = mmsSlideshow
+        if (slideshow == null || slideshow.slides.isEmpty()) {
+            removeSlideshow()
+            return
+        }
+        refreshSlideshowComposeUi(adapter)
+    }
+
+    private fun refreshSlideshowComposeUi(
+        adapter: AttachmentsAdapter,
+        isPendingOverride: Boolean? = null,
+    ) {
+        val slideshow = mmsSlideshow ?: return
+        // Exclude standalone audio rows whose URI is already a slide in the slideshow: audio is now
+        // part of the slideshow model (Alps WorkingMessage) and must not appear as a second row.
+        val slideshowUriSet = slideshow.slides.mapTo(HashSet()) { it.uriString }
+        val nonMedia = adapter.attachments.filter {
+            !SlideshowHelper.isMediaSelection(it) && it.id != SLIDESHOW_ATTACHMENT_ID
+                && it.id !in slideshowUriSet
+        }
+
+        if (!slideshow.isRealSlideshow()) {
+            val slide = slideshow.slides.firstOrNull { it.uriString.isNotEmpty() } ?: run {
+                adapter.submitAttachments(nonMedia)
+                binding.threadAttachmentsRecyclerview.beVisibleIf(nonMedia.isNotEmpty())
+                checkSendMessageAvailability()
+                return
+            }
+            val restored = buildAttachmentSelection(
+                slide.uri,
+                slide.mimetype,
+                slide.filename,
+                isPendingOverride,
+            )
+            adapter.submitAttachments(nonMedia + restored)
+        } else {
+            adapter.submitAttachments(listOf(buildSlideshowAttachmentSelection(slideshow)) + nonMedia)
+        }
+
+        binding.threadAttachmentsRecyclerview.beVisible()
+        binding.threadAttachmentsRecyclerview.post {
+            binding.threadAttachmentsRecyclerview.requestLayout()
+        }
+        checkSendMessageAvailability()
+    }
+
+    private fun buildSlideshowAttachmentSelection(slideshow: MmsSlideshow): AttachmentSelection {
+        val first = slideshow.slides.firstOrNull { it.uriString.isNotEmpty() } ?: slideshow.slides.first()
+        return AttachmentSelection(
+            id = SLIDESHOW_ATTACHMENT_ID,
+            uri = first.uri,
+            mimetype = "application/vnd.wap.mms-slideshow",
+            filename = activity.getString(R.string.attachment),
+            isPending = false,
+            viewType = ATTACHMENT_SLIDESHOW,
+        )
+    }
+
+    fun launchSlideshowEditor() {
+        mergeAllSlidesIntoModel()
+        val slideshow = mmsSlideshow ?: return
+        ComposeSlideshowBridge.slideshow = slideshow
+        ComposeSlideshowBridge.editingSlideIndex = 0
+        val intent = Intent(activity, ManageSlideshowActivity::class.java)
+        activity.startActivityForResult(intent, REQUEST_EDIT_SLIDESHOW)
+    }
+
+    fun handleSlideshowEditorResult(resultData: Intent?) {
+        val raw = ComposeSlideshowBridge.slideshow
+            ?: SlideshowHelper.fromJson(resultData?.getStringExtra(EXTRA_SLIDESHOW_JSON))
+        val slides = raw?.slides?.filter { it.uriString.isNotEmpty() || it.text.isNotEmpty() }.orEmpty()
+        if (slides.isEmpty()) {
+            ComposeSlideshowBridge.clear()
+            removeSlideshow()
+            return
+        }
+        mmsSlideshow = MmsSlideshow(slides)
+        ComposeSlideshowBridge.slideshow = mmsSlideshow
+        val adapter = getAttachmentsAdapter() ?: return
+        refreshSlideshowComposeUi(adapter)
+    }
+
+    private fun playSlideshowPreview() {
+        // ComposeSlideshowBridge is the authoritative in-memory slideshow state; it is set
+        // whenever an attachment is added/edited and is never overwritten by draft restores.
+        // Fall back to mmsSlideshow for cases where the bridge hasn't been populated yet.
+        val slideshow = ComposeSlideshowBridge.slideshow ?: mmsSlideshow ?: return
+        val slides = slideshow.slides.filter { it.uriString.isNotEmpty() || it.text.isNotBlank() }
+        if (slides.isEmpty()) return
+        // Alps MessageUtils.viewMmsMessageAttachment: always open MmsPlayerActivity (list view).
+        // ViewMmsActivity is our equivalent; "Play as slideshow" inside it opens PlaySlideshowActivity.
+        val intent = Intent(activity, ViewMmsActivity::class.java).apply {
+            putExtra(EXTRA_SLIDESHOW_JSON, SlideshowHelper.toJson(MmsSlideshow(slides)))
+        }
+        activity.startActivity(intent)
+    }
+
+    private fun removeSlideshow() {
+        mmsSlideshow = null
+        ComposeSlideshowBridge.clear()
+        val adapter = getAttachmentsAdapter() ?: return
+        val remaining = adapter.attachments.filter {
+            it.id != SLIDESHOW_ATTACHMENT_ID && !SlideshowHelper.isMediaSelection(it)
+        }
+        if (remaining.isEmpty()) {
+            adapter.clear()
+        } else {
+            adapter.submitAttachments(remaining)
+        }
+        checkSendMessageAvailability()
+    }
+
+    private fun replaceAttachmentWithKnownMime(
+        oldId: String,
+        uri: Uri,
+        mimeType: String,
+        filename: String,
+        isPendingOverride: Boolean? = null,
+    ) {
+        if (!passesNonImageAttachmentSizeCap(uri, mimeType)) {
+            activity.toast(R.string.attachment_sized_exceeds_max_limit, length = Toast.LENGTH_LONG)
+            return
+        }
+
+        val adapter = getAttachmentsAdapter() ?: return
+        val attachment = buildAttachmentSelection(uri, mimeType, filename, isPendingOverride)
+        if (!adapter.replaceAttachment(oldId, attachment)) {
+            return
+        }
+        val slideshow = mmsSlideshow
+        if (slideshow != null && !slideshow.isRealSlideshow() && slideshow.slides.size == 1) {
+            val slide = slideshow.slides.first()
+            mmsSlideshow = slideshow.replaceSlideAt(
+                0,
+                slide.copy(
+                    uriString = uri.toString(),
+                    mimetype = mimeType,
+                    filename = filename,
+                ),
+            )
+        }
+        checkSendMessageAvailability()
+    }
+
+    /**
+     * Camera apps may return before the [CAPTURE_PHOTO_INTENT] output file is flushed, or only return a
+     * thumbnail [Uri]/[Bitmap] in the result instead of writing [MediaStore.EXTRA_OUTPUT].
+     */
+    fun handleCapturePhotoResult(resultCode: Int, resultData: Intent?) {
+        capturePhotoFinalizeAttempt = 0
+        composeUiHandler.removeCallbacks(capturePhotoFinalizeRunnable)
+        if (resultCode != android.app.Activity.RESULT_OK) {
+            clearPendingReplaceAttachmentId()
+            return
+        }
+        composeUiHandler.post(capturePhotoFinalizeRunnable)
+    }
+
+    private val capturePhotoFinalizeRunnable = object : Runnable {
+        override fun run() {
+            if (activity.isFinishing || activity.isDestroyed) {
+                return
+            }
+
+            val uri = resolveCapturedImageUri()
+            if (uri != null) {
+                attachCapturedImage(uri)
+                return
+            }
+
+            if (capturePhotoFinalizeAttempt < CAPTURE_PHOTO_FINALIZE_MAX_ATTEMPTS) {
+                capturePhotoFinalizeAttempt++
+                composeUiHandler.postDelayed(this, CAPTURE_PHOTO_FINALIZE_RETRY_MS)
+                return
+            }
+
+            clearPendingReplaceAttachmentId()
+        }
+    }
+
+    private fun attachCapturedImage(uri: Uri) {
+        hideAttachmentPicker()
+        finishAttachmentFromPicker(
+            uri,
+            "image/jpeg",
+            activity.getFilenameFromUri(uri),
+        )
+    }
+
+    /**
+     * Alps MMS always finalizes the scrap `.temp.3gp` file after [CAPTURE_VIDEO_INTENT], even when the
+     * camcorder returns before the file is fully flushed. Retries briefly before giving up.
+     */
+    fun handleCaptureVideoResult(resultCode: Int, resultData: Intent?) {
+        captureVideoFinalizeAttempt = 0
+        composeUiHandler.removeCallbacks(captureVideoFinalizeRunnable)
+        captureVideoFinalizeRunnable.resultCode = resultCode
+        captureVideoFinalizeRunnable.resultData = resultData
+        composeUiHandler.post(captureVideoFinalizeRunnable)
+    }
+
+    private val captureVideoFinalizeRunnable = object : Runnable {
+        var resultCode: Int = android.app.Activity.RESULT_CANCELED
+        var resultData: Intent? = null
+
+        override fun run() {
+            if (activity.isFinishing || activity.isDestroyed) {
+                capturedVideoUri = null
+                return
+            }
+
+            val uri = resolveCapturedVideoUri(resultData)
+            if (uri != null) {
+                attachCapturedVideo(uri)
+                return
+            }
+
+            if (captureVideoFinalizeAttempt < CAPTURE_VIDEO_FINALIZE_MAX_ATTEMPTS) {
+                captureVideoFinalizeAttempt++
+                composeUiHandler.postDelayed(this, CAPTURE_VIDEO_FINALIZE_RETRY_MS)
+                return
+            }
+
+            capturedVideoUri = null
+            clearPendingReplaceAttachmentId()
+            if (resultCode == android.app.Activity.RESULT_OK) {
+                activity.toast(com.goodwy.commons.R.string.unknown_error_occurred)
+            }
+        }
+    }
+
+    private fun attachCapturedVideo(uri: Uri) {
+        hideAttachmentPicker()
+        val mimeType = activity.contentResolver.getType(uri) ?: inferVideoMimeType(uri)
+        finishAttachmentFromPicker(
+            uri,
+            mimeType,
+            activity.getFilenameFromUri(uri),
+        )
+        capturedVideoUri = null
+    }
+
+    fun handleActivityResult(requestCode: Int, resultCode: Int, resultData: Intent?) {
+        if (requestCode == CAPTURE_VIDEO_INTENT) {
+            handleCaptureVideoResult(resultCode, resultData)
+            return
+        }
+        if (requestCode == CAPTURE_PHOTO_INTENT) {
+            handleCapturePhotoResult(resultCode, resultData)
+            return
+        }
+        if (resultCode != android.app.Activity.RESULT_OK) {
+            clearPendingReplaceAttachmentId()
+            return
+        }
+        val data = resultData?.data
+
+        when (requestCode) {
+            PICK_DOCUMENT_INTENT,
+            PICK_PHOTO_INTENT,
+            PICK_VIDEO_INTENT,
+            PICK_SOUND_INTENT -> {
+                if (data != null) {
+                    val stableUri = stabilizePickerResultUri(resultData, data)
+                    val mimeType = resolvePickerMimeType(stableUri, resultData, requestCode)
+                    if (mimeType == null) {
+                        activity.toast(com.goodwy.commons.R.string.unknown_error_occurred)
+                        clearPendingReplaceAttachmentId()
+                        return
+                    }
+                    finishAttachmentFromPicker(
+                        stableUri,
+                        mimeType,
+                        activity.getFilenameFromUri(stableUri),
+                    )
+                }
+            }
+            PICK_RINGTONE_INTENT -> {
+                @Suppress("DEPRECATION")
+                val uri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    resultData?.getParcelableExtra(RingtoneManager.EXTRA_RINGTONE_PICKED_URI, Uri::class.java)
+                } else {
+                    resultData?.getParcelableExtra(RingtoneManager.EXTRA_RINGTONE_PICKED_URI)
+                }
+                if (uri != null && uri != Settings.System.getUriFor(Settings.System.RINGTONE)) {
+                    val stableUri = stabilizePickerResultUri(resultData, uri)
+                    val mimeType = activity.contentResolver.getType(stableUri) ?: "audio/*"
+                    finishAttachmentFromPicker(
+                        stableUri,
+                        mimeType,
+                        activity.getFilenameFromUri(stableUri),
+                    )
+                } else {
+                    clearPendingReplaceAttachmentId()
+                }
+            }
+        }
+    }
+
+    /**
+     * Alps [ComposeMessageActivity] REQUEST_CODE_TAKE_PICTURE: read scrap `.temp.jpg`, copy to a unique file.
+     */
+    private fun resolveCapturedImageUri(): Uri? {
+        MmsCaptureTempFiles.finalizeScrapPhoto(activity)?.let { return it }
+        val path = MmsCaptureTempFiles.getScrapPhotoPath(activity) ?: return null
+        val file = File(path)
+        if (file.length() > 0L) {
+            return activity.getMyFileUri(file)
+        }
+        return null
+    }
+
+    private fun resolveCapturedVideoUri(resultData: Intent?): Uri? {
+        MmsCaptureTempFiles.finalizeScrapVideo(activity)?.let { return it }
+
+        if (MmsCaptureTempFiles.scrapVideoLength(activity) > 0L) {
+            return null
+        }
+
+        capturedVideoUri?.let { uri ->
+            if (hasReadableAttachmentContent(uri)) {
+                return uri
+            }
+        }
+
+        val candidates = linkedSetOf<Uri>()
+        resultData?.data?.let { candidates.add(it) }
+        @Suppress("DEPRECATION")
+        val outputUri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            resultData?.getParcelableExtra(MediaStore.EXTRA_OUTPUT, Uri::class.java)
+        } else {
+            resultData?.getParcelableExtra(MediaStore.EXTRA_OUTPUT)
+        }
+        outputUri?.let { candidates.add(it) }
+        @Suppress("DEPRECATION")
+        val streamUri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            resultData?.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java)
+        } else {
+            resultData?.getParcelableExtra(Intent.EXTRA_STREAM)
+        }
+        streamUri?.let { candidates.add(it) }
+        resultData?.clipData?.let { clip ->
+            for (index in 0 until clip.itemCount) {
+                candidates.add(clip.getItemAt(index).uri)
+            }
+        }
+
+        for (candidate in candidates) {
+            val stabilized = stabilizePickerResultUri(resultData, candidate)
+            if (hasReadableAttachmentContent(stabilized)) {
+                return stabilized
+            }
+        }
+        return null
+    }
+
+    private fun readMediaDurationMs(uri: Uri): Long? {
+        return try {
+            val retriever = MediaMetadataRetriever()
+            retriever.setDataSource(activity, uri)
+            val ms = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
+                ?.toLongOrNull()
+                ?.takeIf { it > 0L }
+            retriever.release()
+            ms
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private fun hasReadableAttachmentContent(uri: Uri): Boolean {
+        if ("file".equals(uri.scheme, ignoreCase = true)) {
+            val file = uri.path?.let(::File) ?: return false
+            return file.isFile && file.length() > 0L
+        }
+        val size = activity.getFileSizeFromUri(uri)
+        if (size > 0L) {
+            return true
+        }
+        return try {
+            activity.contentResolver.openInputStream(uri)?.use { stream ->
+                stream.read() != -1
+            } == true
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    private fun inferVideoMimeType(uri: Uri): String {
+        val name = activity.getFilenameFromUri(uri).lowercase()
+        return when {
+            name.endsWith(".mp4") -> "video/mp4"
+            name.endsWith(".3gp") -> "video/3gpp"
+            name.endsWith(".webm") -> "video/webm"
+            else -> "video/*"
+        }
+    }
+
+    private fun resolvePickerMimeType(uri: Uri, resultIntent: Intent?, requestCode: Int): String? {
+        resultIntent?.type?.takeIf { it.isNotBlank() }?.let { return it }
+        activity.contentResolver.getType(uri)?.let { return it }
+        val filename = activity.getFilenameFromUri(uri).lowercase()
+        inferMimeTypeFromFilename(filename)?.let { return it }
+        return when (requestCode) {
+            PICK_PHOTO_INTENT -> "image/jpeg"
+            PICK_VIDEO_INTENT -> inferVideoMimeType(uri)
+            PICK_SOUND_INTENT -> "audio/*"
+            else -> null
+        }
+    }
+
+    private fun inferMimeTypeFromFilename(filename: String): String? = when {
+        filename.endsWith(".jpg") || filename.endsWith(".jpeg") -> "image/jpeg"
+        filename.endsWith(".png") -> "image/png"
+        filename.endsWith(".gif") -> "image/gif"
+        filename.endsWith(".webp") -> "image/webp"
+        filename.endsWith(".heic") -> "image/heic"
+        filename.endsWith(".mp4") -> "video/mp4"
+        filename.endsWith(".3gp") -> "video/3gpp"
+        filename.endsWith(".webm") -> "video/webm"
+        filename.endsWith(".mkv") -> "video/x-matroska"
+        filename.endsWith(".mp3") -> "audio/mpeg"
+        filename.endsWith(".wav") -> "audio/wav"
+        filename.endsWith(".ogg") -> "audio/ogg"
+        else -> null
     }
 
     /**
@@ -856,7 +1472,8 @@ class MessageHolderHelper(
             return uri
         }
         if (resultIntent == null) {
-            return copyPickedUriToAttachmentCache(uri) ?: uri
+            val mimeType = activity.contentResolver.getType(uri) ?: "application/octet-stream"
+            return copyMediaUriToAttachmentCache(uri, mimeType) ?: uri
         }
         val hasPersistable = resultIntent.flags and Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION != 0
         if (hasPersistable) {
@@ -870,16 +1487,21 @@ class MessageHolderHelper(
                 }
             }
         }
-        return copyPickedUriToAttachmentCache(uri) ?: uri
+        val mimeType = activity.contentResolver.getType(uri)
+        return copyMediaUriToAttachmentCache(uri, mimeType ?: "application/octet-stream") ?: uri
     }
 
-    private fun copyPickedUriToAttachmentCache(uri: Uri): Uri? {
+    private fun copyMediaUriToAttachmentCache(uri: Uri, mimeType: String): Uri? {
         return try {
             val name = activity.getFilenameFromUri(uri).trim()
-            val base = if (name.isNotEmpty()) name else "attachment"
+            val base = if (name.isNotEmpty()) name else "attachment_${System.currentTimeMillis()}"
             val safeBase = base.replace(Regex("[^A-Za-z0-9._-]"), "_")
             val dir = File(activity.cacheDir, "attachments").apply { mkdirs() }
-            val dest = File(dir, "${System.currentTimeMillis()}_$safeBase")
+            val dest = if (safeBase.contains('.')) {
+                File(dir, "${System.currentTimeMillis()}_$safeBase")
+            } else {
+                File(dir, "${System.currentTimeMillis()}_$safeBase${extensionForMimeType(mimeType)}")
+            }
             val destUri = activity.getMyFileUri(dest)
             activity.copyToUri(uri, destUri)
             if (dest.length() > 0L) destUri else null
@@ -888,8 +1510,21 @@ class MessageHolderHelper(
         }
     }
 
-    fun setCapturedImageUri(uri: Uri?) {
-        capturedImageUri = uri
+    private fun extensionForMimeType(mimeType: String): String = when {
+        mimeType.contains("jpeg", ignoreCase = true) -> ".jpg"
+        mimeType.contains("png", ignoreCase = true) -> ".png"
+        mimeType.contains("gif", ignoreCase = true) -> ".gif"
+        mimeType.contains("webp", ignoreCase = true) -> ".webp"
+        mimeType.contains("heic", ignoreCase = true) -> ".heic"
+        mimeType.contains("3gp", ignoreCase = true) -> ".3gp"
+        mimeType.contains("webm", ignoreCase = true) -> ".webm"
+        mimeType.isVideoMimeType() -> ".mp4"
+        mimeType.isImageMimeType() -> ".jpg"
+        else -> ""
+    }
+
+    fun setCapturedVideoUri(uri: Uri?) {
+        capturedVideoUri = uri
     }
 
     fun showAttachmentPicker() {
@@ -923,12 +1558,34 @@ class MessageHolderHelper(
         binding.threadExpandMessage.beVisibleIf(visible)
     }
 
+    fun stopAttachmentAudio() {
+        getAttachmentsAdapter()?.stopAudio()
+    }
+
     private fun getAttachmentsAdapter(): AttachmentsAdapter? {
         val adapter = binding.threadAttachmentsRecyclerview.adapter
         return adapter as? AttachmentsAdapter
     }
 
-    fun getAttachmentSelections() = getAttachmentsAdapter()?.attachments ?: emptyList()
+    fun getAttachmentSelections(): List<AttachmentSelection> {
+        val adapter = getAttachmentsAdapter() ?: return emptyList()
+        val slideshow = mmsSlideshow ?: return adapter.attachments
+        val nonMedia = adapter.attachments.filter {
+            it.id != SLIDESHOW_ATTACHMENT_ID && !SlideshowHelper.isMediaSelection(it)
+        }
+        val slideSelections = slideshow.slides
+            .filter { it.uriString.isNotEmpty() }
+            .map { slide ->
+                AttachmentSelection(
+                    id = slide.uriString,
+                    uri = slide.uri,
+                    mimetype = slide.mimetype,
+                    filename = slide.filename,
+                    isPending = false,
+                )
+            }
+        return nonMedia + slideSelections
+    }
 
     fun buildMessageAttachments(messageId: Long = -1L): ArrayList<Attachment> = getAttachmentSelections()
         .map { Attachment(null, messageId, it.uri.toString(), it.mimetype, 0, 0, it.filename) }

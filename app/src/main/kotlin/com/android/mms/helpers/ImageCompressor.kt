@@ -33,15 +33,36 @@ class ImageCompressor(private val context: Context) {
     private val minResolution = 56
     private val scaleStepFactor = 0.6f // increase for more accurate file size at the cost increased computation
 
-    fun compressImage(uri: Uri, compressSize: Long, lossy: Boolean = compressSize < FILE_SIZE_1_MB, callback: (compressedFileUri: Uri?) -> Unit) {
+    fun compressImage(
+        uri: Uri,
+        compressSize: Long,
+        mimeType: String? = null,
+        lossy: Boolean = compressSize < FILE_SIZE_1_MB,
+        callback: (compressedFileUri: Uri?) -> Unit,
+    ) {
         ensureBackgroundThread {
             try {
                 val fileSize = context.getFileSizeFromUri(uri)
                 if (fileSize > compressSize) {
-                    val mimeType = contentResolver.getType(uri)!!
-                    if (mimeType.isImageMimeType()) {
-                        val byteArray = contentResolver.openInputStream(uri)?.readBytes()!!
-                        var imageFile = File(outputDirectory, System.currentTimeMillis().toString().plus(mimeType.getExtensionFromMimeType()))
+                    val resolvedMimeType = mimeType?.takeIf { it.isNotBlank() }
+                        ?: contentResolver.getType(uri)
+                        ?: uri.path?.substringAfterLast('.', "")?.let { ext ->
+                            when (ext.lowercase()) {
+                                "jpg", "jpeg" -> "image/jpeg"
+                                "png" -> "image/png"
+                                "webp" -> "image/webp"
+                                else -> null
+                            }
+                        }
+                    if (resolvedMimeType == null || !resolvedMimeType.isImageMimeType()) {
+                        callback.invoke(null)
+                        return@ensureBackgroundThread
+                    }
+                    val byteArray = contentResolver.openInputStream(uri)?.readBytes()!!
+                        var imageFile = File(
+                            outputDirectory,
+                            System.currentTimeMillis().toString().plus(resolvedMimeType.getExtensionFromMimeType()),
+                        )
                         imageFile.writeBytes(byteArray)
                         val bitmap = loadBitmap(imageFile)
                         val format = if (lossy) {
@@ -78,10 +99,7 @@ class ImageCompressor(private val context: Context) {
                             }
                         }
 
-                        callback.invoke(context.getMyFileUri(imageFile))
-                    } else {
-                        callback.invoke(null)
-                    }
+                    callback.invoke(context.getMyFileUri(imageFile))
                 } else {
                     // no need to compress since the file is less than the compress size
                     callback.invoke(uri)

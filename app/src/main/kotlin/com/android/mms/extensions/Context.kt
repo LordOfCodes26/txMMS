@@ -693,6 +693,60 @@ fun Context.getConversationIds(): List<Long> {
     return conversationIds
 }
 
+/**
+ * Read MMS parts for [messageId] and group them into [MmsSlide] objects.
+ * Adjacent text/plain parts are associated with the following image or video part (SMIL order).
+ * Matches Alps [MmsPlayerActivity] slide-building logic in [SlideshowModel].
+ */
+fun Context.getMmsSlides(messageId: Long): List<com.android.mms.models.MmsSlide> {
+    val partsUri = if (isQPlus()) Mms.Part.CONTENT_URI else "content://mms/part".toUri()
+    val projection = arrayOf(Mms._ID, Mms.Part.CONTENT_TYPE, Mms.Part.TEXT)
+    val selection = "${Mms.Part.MSG_ID} = ?"
+    val selectionArgs = arrayOf(messageId.toString())
+
+    data class Part(val id: Long, val mimetype: String, val text: String)
+    val parts = mutableListOf<Part>()
+    queryCursor(partsUri, projection, selection, selectionArgs, showErrors = true) { cursor ->
+        val partId = cursor.getLongValue(Mms._ID)
+        val mimetype = cursor.getStringValue(Mms.Part.CONTENT_TYPE)
+        val text = cursor.getStringValueOrNull(Mms.Part.TEXT).orEmpty()
+        parts.add(Part(partId, mimetype, text))
+    }
+
+    val slides = mutableListOf<com.android.mms.models.MmsSlide>()
+    var pendingText = ""
+    for (part in parts) {
+        when {
+            part.mimetype == "application/smil" -> Unit
+            part.mimetype == "text/plain" -> pendingText = part.text
+            part.mimetype.startsWith("image/") || part.mimetype.startsWith("video/") -> {
+                val fileUri = Uri.withAppendedPath(partsUri, part.id.toString())
+                slides.add(
+                    com.android.mms.models.MmsSlide(
+                        uriString = fileUri.toString(),
+                        mimetype = part.mimetype,
+                        filename = "",
+                        text = pendingText,
+                    )
+                )
+                pendingText = ""
+            }
+        }
+    }
+    // Trailing text with no following media: attach to last slide or create text-only slide.
+    if (pendingText.isNotBlank()) {
+        if (slides.isNotEmpty()) {
+            val last = slides.last()
+            slides[slides.lastIndex] = last.copy(
+                text = if (last.text.isBlank()) pendingText else "${last.text}\n$pendingText",
+            )
+        } else {
+            slides.add(com.android.mms.models.MmsSlide(uriString = "", mimetype = "text/plain", filename = "", text = pendingText))
+        }
+    }
+    return slides
+}
+
 // based on https://stackoverflow.com/a/6446831/1967672
 @SuppressLint("NewApi")
 fun Context.getMmsAttachment(id: Long): MessageAttachment {

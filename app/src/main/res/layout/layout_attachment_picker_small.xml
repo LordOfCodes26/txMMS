@@ -424,12 +424,12 @@
                 </LinearLayout>
 
                 <LinearLayout
-                    android:id="@+id/choose_title"
+                    android:id="@+id/choose_record_video"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:orientation="vertical"
-                    android:contentDescription="@string/title">
+                    android:contentDescription="@string/record_video">
                     <RelativeLayout
                         android:layout_width="match_parent"
                         android:layout_height="@dimen/list_icon_size_extra_large"
@@ -447,14 +447,14 @@
                                 android:clickable="false"
                                 android:layout_gravity="center" />
                             <ImageView
-                                android:id="@+id/choose_title_icon"
+                                android:id="@+id/choose_record_video_icon"
                                 android:layout_width="@dimen/chips_input_chip_row_height"
                                 android:layout_height="@dimen/chips_input_chip_row_height"
                                 android:contentDescription="@null"
                                 android:paddingHorizontal="@dimen/zero"
                                 android:layout_gravity="center"
                                 android:gravity="center"
-                                android:src="@drawable/ic_sms_extra_title"
+                                android:src="@drawable/ic_videocam_vector"
                                 app:rippleColor="?attr/colorControlHighlight" />
 
                         </androidx.coordinatorlayout.widget.CoordinatorLayout>
@@ -463,14 +463,14 @@
                     </RelativeLayout>
 
                     <androidx.appcompat.widget.AppCompatTextView
-                        android:id="@+id/choose_title_text"
+                        android:id="@+id/choose_record_video_text"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_gravity="center"
                         android:layout_marginTop="@dimen/small_margin"
                         android:ellipsize="end"
                         android:maxLines="1"
-                        android:text="@string/title"
+                        android:text="@string/record_video"
                         android:textAlignment="center"
                         android:textColor="@color/default_text_color"
                         android:textSize="@dimen/smaller_text_size"

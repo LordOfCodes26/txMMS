@@ -104,6 +104,18 @@ const val THREAD_KEY_MASK = (1L shl THREAD_KEY_BITS) - 1
 // view types for attachment list
 const val ATTACHMENT_DOCUMENT = 7
 const val ATTACHMENT_MEDIA = 8
+const val ATTACHMENT_SLIDESHOW = 10
+const val ATTACHMENT_AUDIO = 11
+
+const val SLIDESHOW_ATTACHMENT_ID = "mms_slideshow"
+
+const val EXTRA_SLIDESHOW_JSON = "extra_slideshow_json"
+const val EXTRA_SLIDE_INDEX = "extra_slide_index"
+const val EXTRA_SLIDESHOW_DONE = "extra_slideshow_done"
+const val EXTRA_MMS_MESSAGE_ID = "extra_mms_message_id"
+
+const val REQUEST_EDIT_SLIDESHOW = 2010
+const val REQUEST_EDIT_SLIDE = 2011
 const val ATTACHMENT_VCARD = 9
 
 // lock screen visibility constants

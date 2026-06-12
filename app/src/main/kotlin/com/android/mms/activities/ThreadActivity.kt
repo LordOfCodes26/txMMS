@@ -168,6 +168,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
     private var isSpeechToTextAvailable = false
     private var expandedMessageFragment: com.android.mms.fragments.ExpandedMessageFragment? = null
     private var messageHolderHelper: MessageHolderHelper? = null
+    private var attachmentIntentLauncher: AttachmentIntentLauncher? = null
     private var isFeeInfoReceiverRegistered = false
     private val feeInfoReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -264,13 +265,6 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                 }
             }
 
-            val draftRow = getSmsDraftEntity(threadId)
-            runOnUiThread {
-                if (draftRow != null && draftRow.threadHasPersistedComposeContent()) {
-                    applyThreadDraftRow(draftRow)
-                }
-            }
-
             markThreadMessagesRead(threadId)
         }
 
@@ -335,6 +329,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         captureThreadLayoutForKeyboardResume()
         super.onPause()
         composeBarBottomInsetLatch = ComposeBarBottomInsetLatch.NONE
+        messageHolderHelper?.stopAttachmentAudio()
         // Persist first, then notify: save runs on a background thread; posting before it completes
         // leaves MainActivity's list without the new draft until the next resume.
         saveDraftMessage(notifyConversationsAfter = true, showDraftSavedToast = isFinishing)
@@ -1094,6 +1089,18 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, resultData: Intent?) {
         super.onActivityResult(requestCode, resultCode, resultData)
+        if (requestCode == MessageHolderHelper.CAPTURE_VIDEO_INTENT) {
+            messageHolderHelper?.handleCaptureVideoResult(resultCode, resultData)
+            return
+        }
+        if (requestCode == MessageHolderHelper.CAPTURE_PHOTO_INTENT) {
+            messageHolderHelper?.handleCapturePhotoResult(resultCode, resultData)
+            return
+        }
+        if (requestCode == REQUEST_EDIT_SLIDESHOW && resultCode == RESULT_OK) {
+            messageHolderHelper?.handleSlideshowEditorResult(resultData)
+            return
+        }
         if (resultCode != RESULT_OK) return
         messageToResend = null
 
@@ -1665,23 +1672,27 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
 //            }
         }
 
-        messageHolderHelper?.setupAttachmentPicker(
-            onChoosePhoto = { launchGetContentIntent(arrayOf("image/*"), MessageHolderHelper.PICK_PHOTO_INTENT) },
-            onChooseVideo = { launchGetContentIntent(arrayOf("video/*"), MessageHolderHelper.PICK_VIDEO_INTENT) },
-            onTakePhoto = { launchCapturePhotoIntent() },
-            onRecordVideo = { launchCaptureVideoIntent() },
-            onRecordAudio = { launchCaptureAudioIntent() },
-            onPickFile = { launchGetContentIntent(arrayOf("*/*"), MessageHolderHelper.PICK_DOCUMENT_INTENT) },
-            onPickContact = { launchPickContactIntent() },
-            onScheduleMessage = { launchScheduleSendDialog() },
-            onPickQuickText = {
-                val blurTarget = findViewById<eightbitlab.com.blurview.BlurTarget>(R.id.mainBlurTarget)
-                    ?: throw IllegalStateException("mainBlurTarget not found")
-                com.android.mms.dialogs.QuickTextSelectionDialog(this, blurTarget) { selectedText ->
-                    messageHolderHelper?.insertText(selectedText)
+        attachmentIntentLauncher = messageHolderHelper?.let { AttachmentIntentLauncher(this, it) }
+        messageHolderHelper?.setAttachmentIntentLauncher(attachmentIntentLauncher)
+        attachmentIntentLauncher?.let { launcher ->
+            messageHolderHelper?.setupAttachmentPicker(
+                onChoosePhoto = { launcher.launchSelectImage() },
+                onChooseVideo = { launcher.launchSelectVideo() },
+                onTakePhoto = { launcher.launchCapturePhoto() },
+                onRecordVideo = { launcher.launchCaptureVideo() },
+                onPickAudio = { launcher.showPickAudioDialog() },
+                onPickFile = { launcher.launchPickDocument() },
+                onPickContact = { launcher.launchPickContact() },
+                onScheduleMessage = { launchScheduleSendDialog() },
+                onPickQuickText = {
+                    val blurTarget = findViewById<eightbitlab.com.blurview.BlurTarget>(R.id.mainBlurTarget)
+                        ?: throw IllegalStateException("mainBlurTarget not found")
+                    com.android.mms.dialogs.QuickTextSelectionDialog(this, blurTarget) { selectedText ->
+                        messageHolderHelper?.insertText(selectedText)
+                    }
                 }
-            }
-        )
+            )
+        }
 
         messageHolderHelper?.hideAttachmentPicker()
         applyThreadDraftAfterHelperInitialized()
@@ -2331,51 +2342,6 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         }
     }
 
-    private fun getAttachmentsDir(): File {
-        return File(cacheDir, "attachments").apply {
-            if (!exists()) {
-                mkdirs()
-            }
-        }
-    }
-
-    private fun launchCapturePhotoIntent() {
-        val imageFile = File.createTempFile("attachment_", ".jpg", getAttachmentsDir())
-        val capturedImageUri = getMyFileUri(imageFile)
-        messageHolderHelper?.setCapturedImageUri(capturedImageUri)
-        val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE).apply {
-            putExtra(MediaStore.EXTRA_OUTPUT, capturedImageUri)
-        }
-        launchActivityForResult(intent, MessageHolderHelper.CAPTURE_PHOTO_INTENT)
-    }
-
-    private fun launchCaptureVideoIntent() {
-        val intent = Intent(MediaStore.ACTION_VIDEO_CAPTURE)
-        launchActivityForResult(intent, MessageHolderHelper.CAPTURE_VIDEO_INTENT)
-    }
-
-    private fun launchCaptureAudioIntent() {
-        val intent = Intent(MediaStore.Audio.Media.RECORD_SOUND_ACTION)
-        launchActivityForResult(intent, MessageHolderHelper.CAPTURE_AUDIO_INTENT)
-    }
-
-    private fun launchGetContentIntent(mimeTypes: Array<String>, requestCode: Int) {
-        Intent(Intent.ACTION_GET_CONTENT).apply {
-            addCategory(Intent.CATEGORY_OPENABLE)
-            type = "*/*"
-            putExtra(Intent.EXTRA_MIME_TYPES, mimeTypes)
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            launchActivityForResult(this, requestCode)
-        }
-    }
-
-    private fun launchPickContactIntent() {
-        Intent(Intent.ACTION_PICK).apply {
-            type = ContactsContract.Contacts.CONTENT_TYPE
-            launchActivityForResult(this, MessageHolderHelper.PICK_CONTACT_INTENT)
-        }
-    }
-
     private fun addContactAttachment(contactUri: Uri) {
         messageHolderHelper?.addContactAttachment(contactUri)
     }
@@ -2933,8 +2899,8 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         const val SCROLL_TO_BOTTOM_FAB_LIMIT = 20
         //        <--------
         const val PREFETCH_THRESHOLD = 15
-        const val PICK_SAVE_FILE_INTENT = 1008
-        const val PICK_SAVE_DIR_INTENT = 1009
+        const val PICK_SAVE_FILE_INTENT = 2012
+        const val PICK_SAVE_DIR_INTENT = 2013
     }
 
     private fun updateContactImage() {

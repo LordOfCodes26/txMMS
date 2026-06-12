@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/root_view"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/tx_common_bg">
+
+    <androidx.coordinatorlayout.widget.CoordinatorLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@android:color/transparent"
+        android:clipChildren="false"
+        android:clipToPadding="false">
+
+        <eightbitlab.com.blurview.BlurTarget
+            android:id="@+id/mainBlurTarget"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@color/tx_common_bg"
+            app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/manage_slideshow_wrapper"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                tools:context=".activities.ManageSlideshowActivity">
+
+                <com.goodwy.commons.views.MyRecyclerView
+                    android:id="@+id/manage_slideshow_list"
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    android:clipToPadding="false"
+                    android:nestedScrollingEnabled="true"
+                    android:paddingStart="@dimen/activity_margin"
+                    android:paddingTop="@dimen/tx_nest_bouncy_content_padding_top"
+                    android:paddingEnd="@dimen/activity_margin"
+                    android:scrollbars="vertical"
+                    app:layoutManager="com.goodwy.commons.views.MyLinearLayoutManager"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+                    tools:listitem="@layout/item_slideshow_slide" />
+
+                <com.goodwy.commons.views.MyTextView
+                    android:id="@+id/manage_slideshow_placeholder"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:alpha="0.8"
+                    android:gravity="center_horizontal"
+                    android:paddingStart="@dimen/activity_margin"
+                    android:paddingTop="@dimen/tx_nest_bouncy_content_padding_top"
+                    android:paddingEnd="@dimen/activity_margin"
+                    android:text="@string/no_slides"
+                    android:textSize="@dimen/bigger_text_size"
+                    android:textStyle="italic"
+                    android:visibility="gone"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+            </androidx.constraintlayout.widget.ConstraintLayout>
+        </eightbitlab.com.blurview.BlurTarget>
+
+        <com.android.common.view.MVSideFrame
+            android:id="@+id/m_vertical_side_frame_top"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/tx_mv_side_top_frame_height"
+            android:layout_gravity="top"
+            app:autoUpdate="false" />
+
+        <com.android.common.view.MAppBarLayout
+            android:id="@+id/slideshow_appbar"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/tx_top_bar_expand_height"
+            android:background="@color/transparent"
+            app:elevation="0dp"
+            app:liftOnScroll="false"
+            app:titleText="@string/edit_slideshow" />
+
+        <com.android.common.view.MVSideFrame
+            android:id="@+id/m_vertical_side_frame_bottom"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/tx_mv_side_bottom_frame_height"
+            android:layout_gravity="bottom"
+            app:autoUpdate="false"
+            app:isTopFrame="false" />
+    </androidx.coordinatorlayout.widget.CoordinatorLayout>
+</FrameLayout>

@@ -617,8 +617,8 @@ class SettingsActivity : SimpleActivity() {
     }
 
     companion object {
-        private const val PICK_NOTIFICATION_SOUND_INTENT_ID = 1001
-        private const val PICK_DELIVERY_REPORT_SOUND_INTENT_ID = 1002
+        private const val PICK_NOTIFICATION_SOUND_INTENT_ID = 2015
+        private const val PICK_DELIVERY_REPORT_SOUND_INTENT_ID = 2016
         private const val NEST_BOUNCY_OVERSCROLL_FACTOR = 0.35f
     }
 

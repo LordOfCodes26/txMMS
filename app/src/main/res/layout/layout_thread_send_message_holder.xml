@@ -87,7 +87,6 @@
         android:layout_marginTop="@dimen/tiny_margin"
         android:layout_marginBottom="@dimen/normal_margin"
         android:clipToPadding="false"
-        android:orientation="horizontal"
         android:paddingStart="@dimen/normal_margin"
         android:paddingEnd="@dimen/normal_margin"
         android:scrollbars="none"

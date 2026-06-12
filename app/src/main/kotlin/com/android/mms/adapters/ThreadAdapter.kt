@@ -68,6 +68,7 @@ import com.android.mms.activities.NewConversationActivity
 import com.android.mms.activities.SimpleActivity
 import com.android.mms.activities.ThreadActivity
 import com.android.mms.activities.VCardViewerActivity
+import com.android.mms.activities.ViewMmsActivity
 import com.android.mms.databinding.ItemAttachmentDocumentBinding
 import com.android.mms.databinding.ItemAttachmentImageBinding
 import com.android.mms.databinding.ItemAttachmentVcardBinding
@@ -94,6 +95,7 @@ import com.android.mms.helpers.BUBBLE_STYLE_IOS
 import com.android.mms.helpers.BUBBLE_STYLE_IOS_NEW
 import com.android.mms.helpers.BUBBLE_STYLE_ROUNDED
 import com.android.mms.helpers.BubbleDrawableOption
+import com.android.mms.helpers.EXTRA_MMS_MESSAGE_ID
 import com.android.mms.helpers.EXTRA_VCARD_URI
 import com.android.mms.helpers.THREAD_DATE_TIME
 import com.android.mms.helpers.THREAD_RECEIVED_MESSAGE
@@ -1202,7 +1204,19 @@ class ThreadAdapter(
             if (actModeCallback.isSelectable) {
                 holder.viewClicked(message)
             } else {
-                activity.launchViewIntent(uri, mimetype, attachment.filename)
+                // Alps MmsPlayerActivity: for slideshow MMS (2+ media parts) open the player;
+                // for single-attachment MMS fall through to plain viewer.
+                val mediaCount = message.attachment?.attachments?.count {
+                    it.mimetype.isImageMimeType() || it.mimetype.isVideoMimeType()
+                } ?: 0
+                if (message.isMMS && mediaCount >= 2) {
+                    activity.startActivity(
+                        Intent(activity, ViewMmsActivity::class.java)
+                            .putExtra(EXTRA_MMS_MESSAGE_ID, message.id)
+                    )
+                } else {
+                    activity.launchViewIntent(uri, mimetype, attachment.filename)
+                }
             }
         }
         imageView.root.setOnLongClickListener {

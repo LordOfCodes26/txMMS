@@ -94,6 +94,7 @@ class NewConversationActivity : SimpleActivity() {
     private var composeBarBottomInsetLatchPx = 0
     private var wasKeyboardVisible = false
     private var messageHolderHelper: MessageHolderHelper? = null
+    private var attachmentIntentLauncher: AttachmentIntentLauncher? = null
     private var expandedMessageFragment: com.android.mms.fragments.ExpandedMessageFragment? = null
     // Map to store chip display text -> phone number mapping
     public val chipDisplayToPhoneNumber = mutableMapOf<String, String>()
@@ -121,9 +122,9 @@ class NewConversationActivity : SimpleActivity() {
 
 
     companion object {
-        private const val PICK_SAVE_FILE_INTENT = 1008
-        private const val PICK_SAVE_DIR_INTENT = 1009
-        private const val REQUEST_CODE_CONTACT_PICKER = 1010
+        private const val PICK_SAVE_FILE_INTENT = 2012
+        private const val PICK_SAVE_DIR_INTENT = 2013
+        private const val REQUEST_CODE_CONTACT_PICKER = 2014
         /** Cap recipient search suggestions so filtering stays responsive with large address books. */
         private const val MAX_RECIPIENT_SEARCH_SUGGESTIONS = 6
         /** Min interval between contact-provider searches while the user is typing (throttle). */
@@ -490,23 +491,27 @@ class NewConversationActivity : SimpleActivity() {
                 }
             }
 
-            messageHolderHelper?.setupAttachmentPicker(
-                onChoosePhoto = { launchGetContentIntent(arrayOf("image/*"), MessageHolderHelper.PICK_PHOTO_INTENT) },
-                onChooseVideo = { launchGetContentIntent(arrayOf("video/*"), MessageHolderHelper.PICK_VIDEO_INTENT) },
-                onTakePhoto = { launchCapturePhotoIntent() },
-                onRecordVideo = { launchCaptureVideoIntent() },
-                onRecordAudio = { launchCaptureAudioIntent() },
-                onPickFile = { launchGetContentIntent(arrayOf("*/*"), MessageHolderHelper.PICK_DOCUMENT_INTENT) },
-                onPickContact = { launchPickContactIntent() },
-                onScheduleMessage = { launchScheduleSendDialog() },
-                onPickQuickText = {
-                    val blurTarget = findViewById<eightbitlab.com.blurview.BlurTarget>(R.id.mainBlurTarget)
-                        ?: throw IllegalStateException("mainBlurTarget not found")
-                    com.android.mms.dialogs.QuickTextSelectionDialog(this@NewConversationActivity, blurTarget) { selectedText ->
-                        messageHolderHelper?.insertText(selectedText)
+            attachmentIntentLauncher = AttachmentIntentLauncher(this@NewConversationActivity, messageHolderHelper!!)
+            messageHolderHelper?.setAttachmentIntentLauncher(attachmentIntentLauncher)
+            attachmentIntentLauncher?.let { launcher ->
+                messageHolderHelper?.setupAttachmentPicker(
+                    onChoosePhoto = { launcher.launchSelectImage() },
+                    onChooseVideo = { launcher.launchSelectVideo() },
+                    onTakePhoto = { launcher.launchCapturePhoto() },
+                    onRecordVideo = { launcher.launchCaptureVideo() },
+                    onPickAudio = { launcher.showPickAudioDialog() },
+                    onPickFile = { launcher.launchPickDocument() },
+                    onPickContact = { launcher.launchPickContact() },
+                    onScheduleMessage = { launchScheduleSendDialog() },
+                    onPickQuickText = {
+                        val blurTarget = findViewById<eightbitlab.com.blurview.BlurTarget>(R.id.mainBlurTarget)
+                            ?: throw IllegalStateException("mainBlurTarget not found")
+                        com.android.mms.dialogs.QuickTextSelectionDialog(this@NewConversationActivity, blurTarget) { selectedText ->
+                            messageHolderHelper?.insertText(selectedText)
+                        }
                     }
-                }
-            )
+                )
+            }
 
             messageHolderHelper?.hideAttachmentPicker()
         }
@@ -550,6 +555,18 @@ class NewConversationActivity : SimpleActivity() {
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, resultData: Intent?) {
         super.onActivityResult(requestCode, resultCode, resultData)
+        if (requestCode == MessageHolderHelper.CAPTURE_VIDEO_INTENT) {
+            messageHolderHelper?.handleCaptureVideoResult(resultCode, resultData)
+            return
+        }
+        if (requestCode == MessageHolderHelper.CAPTURE_PHOTO_INTENT) {
+            messageHolderHelper?.handleCapturePhotoResult(resultCode, resultData)
+            return
+        }
+        if (requestCode == REQUEST_EDIT_SLIDESHOW && resultCode == RESULT_OK) {
+            messageHolderHelper?.handleSlideshowEditorResult(resultData)
+            return
+        }
         if (resultCode != RESULT_OK) return
 
         if (requestCode == REQUEST_CODE_SPEECH_INPUT && resultData != null) {
@@ -1730,43 +1747,6 @@ class NewConversationActivity : SimpleActivity() {
         messageHolderHelper?.addContactAttachment(contactUri)
     }
 
-    private fun launchCapturePhotoIntent() {
-        val imageFile = java.io.File.createTempFile("attachment_", ".jpg", getAttachmentsDir())
-        val capturedImageUri = getMyFileUri(imageFile)
-        messageHolderHelper?.setCapturedImageUri(capturedImageUri)
-        val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE).apply {
-            putExtra(MediaStore.EXTRA_OUTPUT, capturedImageUri)
-        }
-        launchActivityForResult(intent, MessageHolderHelper.CAPTURE_PHOTO_INTENT)
-    }
-
-    private fun launchCaptureVideoIntent() {
-        val intent = Intent(MediaStore.ACTION_VIDEO_CAPTURE)
-        launchActivityForResult(intent, MessageHolderHelper.CAPTURE_VIDEO_INTENT)
-    }
-
-    private fun launchCaptureAudioIntent() {
-        val intent = Intent(MediaStore.Audio.Media.RECORD_SOUND_ACTION)
-        launchActivityForResult(intent, MessageHolderHelper.CAPTURE_AUDIO_INTENT)
-    }
-
-    private fun launchGetContentIntent(mimeTypes: Array<String>, requestCode: Int) {
-        Intent(Intent.ACTION_GET_CONTENT).apply {
-            addCategory(Intent.CATEGORY_OPENABLE)
-            type = "*/*"
-            putExtra(Intent.EXTRA_MIME_TYPES, mimeTypes)
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            launchActivityForResult(this, requestCode)
-        }
-    }
-
-    private fun launchPickContactIntent() {
-        Intent(Intent.ACTION_PICK).apply {
-            type = ContactsContract.Contacts.CONTENT_TYPE
-            launchActivityForResult(this, MessageHolderHelper.PICK_CONTACT_INTENT)
-        }
-    }
-
     private fun launchContactPicker() {
         // Start the picker immediately; it handles READ_CONTACTS itself. Do not gate on
         // handlePermission or hideKeyboard here — both delay the activity transition.
@@ -1780,23 +1760,6 @@ class NewConversationActivity : SimpleActivity() {
             return
         }
         window.decorView.post { hideKeyboard() }
-    }
-
-    private fun launchActivityForResult(intent: Intent, requestCode: Int) {
-        hideKeyboard()
-        try {
-            startActivityForResult(intent, requestCode)
-        } catch (e: Exception) {
-            showErrorToast(e)
-        }
-    }
-
-    private fun getAttachmentsDir(): java.io.File {
-        return java.io.File(cacheDir, "attachments").apply {
-            if (!exists()) {
-                mkdirs()
-            }
-        }
     }
 
     private fun askForExactAlarmPermissionIfNeeded(callback: () -> Unit = {}) {

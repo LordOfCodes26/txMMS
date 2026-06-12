@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingBottom="@dimen/normal_margin">
+
+    <!-- Page N header — divider + page number + divider, like Alps mms_player_activity_item page_index -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/normal_margin"
+        android:layout_marginTop="@dimen/normal_margin"
+        android:layout_marginEnd="@dimen/normal_margin"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1"
+            android:background="?android:attr/listDivider" />
+
+        <com.goodwy.commons.views.MyTextView
+            android:id="@+id/slide_page_number"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/small_margin"
+            android:layout_marginEnd="@dimen/small_margin"
+            android:textColor="?android:attr/colorAccent"
+            android:textSize="@dimen/smaller_text_size"
+            tools:text="Page 1" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1"
+            android:background="?android:attr/listDivider" />
+    </LinearLayout>
+
+    <!-- Image / video thumbnail -->
+    <FrameLayout
+        android:id="@+id/slide_media_frame"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/small_margin"
+        android:visibility="gone"
+        tools:visibility="visible">
+
+        <androidx.appcompat.widget.AppCompatImageView
+            android:id="@+id/slide_image"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:adjustViewBounds="true"
+            android:maxHeight="400dp"
+            android:scaleType="fitCenter"
+            tools:src="@drawable/ic_image_vector" />
+
+        <androidx.appcompat.widget.AppCompatImageView
+            android:id="@+id/slide_video_play_icon"
+            android:layout_width="@dimen/play_outline_size"
+            android:layout_height="@dimen/play_outline_size"
+            android:layout_gravity="center"
+            android:alpha="0.85"
+            android:src="@drawable/ic_vector_play_circle_outline"
+            android:visibility="gone"
+            tools:visibility="visible" />
+    </FrameLayout>
+
+    <!-- Text caption -->
+    <com.goodwy.commons.views.MyTextView
+        android:id="@+id/slide_text"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/normal_margin"
+        android:layout_marginTop="@dimen/small_margin"
+        android:layout_marginEnd="@dimen/normal_margin"
+        android:autoLink="web|phone|email"
+        android:linksClickable="true"
+        android:textSize="@dimen/normal_text_size"
+        android:visibility="gone"
+        tools:text="Hello world"
+        tools:visibility="visible" />
+
+</LinearLayout>

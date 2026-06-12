@@ -2,4 +2,5 @@
 <paths>
     <cache-path name="compressed_files" path="compressed/"/>
     <cache-path name="attachment_files" path="attachments/"/>
+    <external-cache-path name="external_attachment_files" path="attachments/"/>
 </paths>

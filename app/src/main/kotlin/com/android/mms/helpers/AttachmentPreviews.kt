@@ -14,6 +14,7 @@ import com.goodwy.commons.extensions.*
 import com.goodwy.commons.helpers.SimpleContactsHelper
 import com.goodwy.commons.helpers.ensureBackgroundThread
 import com.android.mms.R
+import com.android.mms.databinding.ItemAttachmentAudioPreviewBinding
 import com.android.mms.databinding.ItemAttachmentDocumentBinding
 import com.android.mms.databinding.ItemAttachmentDocumentPreviewBinding
 import com.android.mms.databinding.ItemAttachmentVcardBinding
@@ -213,6 +214,68 @@ fun ItemAttachmentVcardBinding.setupVCardPreview(
             }
         }
     }
+}
+
+fun ItemAttachmentAudioPreviewBinding.setupAudioPreview(
+    uri: Uri,
+    title: String,
+    isPlaying: Boolean,
+    maxSizeBytes: Long = FILE_SIZE_NONE,
+    onTogglePlay: () -> Unit,
+    onRemoveButtonClicked: (() -> Unit)? = null,
+) {
+    val context = root.context
+    val primaryColor = context.getProperPrimaryColor()
+    val textColor = context.getProperTextColor()
+
+    threadAttachmentWrapper.background?.applyColorFilter(primaryColor.darkenColor())
+    audioIcon.setColorFilter(primaryColor)
+    filename.setTextColor(textColor)
+    fileSize.setTextColor(textColor)
+
+    if (title.isNotEmpty()) {
+        filename.text = title
+    }
+
+    updateAudioPlayStopIcon(isPlaying)
+    viewAttachmentButton.setText(if (isPlaying) R.string.pause else R.string.play)
+
+    val togglePlay = { onTogglePlay() }
+    audioContentHolder.setOnClickListener { togglePlay() }
+    playStopIcon.setOnClickListener { togglePlay() }
+    viewAttachmentButton.setOnClickListener { togglePlay() }
+
+    if (onRemoveButtonClicked != null) {
+        removeAttachmentButton.setOnClickListener { onRemoveButtonClicked() }
+    }
+
+    ensureBackgroundThread {
+        try {
+            val bytes = context.getFileSizeFromUri(uri)
+            root.post {
+                if (bytes > 0L) {
+                    val ceilKb = ((bytes - 1L) / 1024L + 1L).toInt()
+                    fileSize.text = if (maxSizeBytes == FILE_SIZE_NONE || maxSizeBytes <= 0L) {
+                        "${ceilKb}K"
+                    } else {
+                        val maxKb = (maxSizeBytes / 1024L).toInt()
+                        "${ceilKb}K/${maxKb}K"
+                    }
+                    fileSize.beVisible()
+                } else {
+                    fileSize.beGone()
+                }
+            }
+        } catch (_: Exception) {
+            root.post { fileSize.beGone() }
+        }
+    }
+}
+
+fun ItemAttachmentAudioPreviewBinding.updateAudioPlayStopIcon(isPlaying: Boolean) {
+    playStopIcon.setImageResource(
+        if (isPlaying) R.drawable.ic_stop_vector else R.drawable.ic_vector_play_circle_outline,
+    )
 }
 
 private fun getIconResourceForMimeType(mimeType: String) = when {

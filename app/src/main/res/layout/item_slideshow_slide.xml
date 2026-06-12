@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/slideshow_slide_holder"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="@dimen/tiny_margin"
+    android:background="@drawable/section_holder_stroke"
+    android:clickable="true"
+    android:focusable="true"
+    android:gravity="center_vertical"
+    android:minHeight="?android:attr/listPreferredItemHeight"
+    android:orientation="horizontal"
+    android:paddingStart="@dimen/small_margin"
+    android:paddingTop="@dimen/small_margin"
+    android:paddingEnd="@dimen/small_margin"
+    android:paddingBottom="@dimen/small_margin">
+
+    <androidx.appcompat.widget.AppCompatImageView
+        android:id="@+id/slide_image_preview"
+        android:layout_width="60dp"
+        android:layout_height="60dp"
+        android:paddingStart="2dp"
+        android:scaleType="fitCenter"
+        tools:src="@drawable/ic_image_vector" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_vertical"
+        android:layout_marginStart="@dimen/small_margin"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <com.goodwy.commons.views.MyTextView
+            android:id="@+id/slide_number_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingStart="5dp"
+            android:textSize="@dimen/big_text_size"
+            android:textStyle="bold"
+            tools:text="Slide 1" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <com.goodwy.commons.views.MyTextView
+                android:id="@+id/slide_text_preview"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="0.4"
+                android:ellipsize="marquee"
+                android:marqueeRepeatLimit="marquee_forever"
+                android:minWidth="35dp"
+                android:paddingStart="5dp"
+                android:paddingEnd="5dp"
+                android:singleLine="true"
+                android:textSize="@dimen/normal_text_size"
+                android:visibility="gone"
+                tools:text="Hello"
+                tools:visibility="visible" />
+
+            <com.goodwy.commons.views.MyTextView
+                android:id="@+id/slide_attachment_name"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="0.3"
+                android:ellipsize="marquee"
+                android:marqueeRepeatLimit="marquee_forever"
+                android:minWidth="35dp"
+                android:paddingStart="5dp"
+                android:singleLine="true"
+                android:textSize="@dimen/normal_text_size"
+                android:visibility="gone"
+                tools:text="clip.mp4"
+                tools:visibility="visible" />
+
+            <androidx.appcompat.widget.AppCompatImageView
+                android:id="@+id/slide_attachment_icon"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_vertical"
+                android:layout_weight="0"
+                android:paddingStart="5dp"
+                android:visibility="gone"
+                tools:src="@drawable/ic_vector_play_circle_outline"
+                tools:visibility="visible" />
+
+            <Space
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+
+            <com.goodwy.commons.views.MyTextView
+                android:id="@+id/slide_duration_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_vertical"
+                android:layout_weight="0"
+                android:maxLines="1"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
+                android:textSize="@dimen/normal_text_size"
+                tools:text="5 secs" />
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>

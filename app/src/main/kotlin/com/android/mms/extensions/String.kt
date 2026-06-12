@@ -29,7 +29,15 @@ fun String.isVCardMimeType(): Boolean {
 }
 
 fun String.isAudioMimeType(): Boolean {
-    return lowercase().startsWith("audio")
+    val lower = lowercase()
+    // "audio/*" covers standard audio types.
+    // application/ogg and application/x-ogg are common for OGG Vorbis voice recordings on Android;
+    // the system ContentResolver may return either form instead of audio/ogg.
+    // video/ogg can also be returned by some devices/pickers for pure-audio OGG containers.
+    return lower.startsWith("audio") ||
+        lower == "application/ogg" ||
+        lower == "application/x-ogg" ||
+        lower == "video/ogg"
 }
 
 fun String.isCalendarMimeType(): Boolean {
