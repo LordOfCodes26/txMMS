@@ -33,6 +33,7 @@ import com.android.mms.databinding.ItemAttachmentDocumentPreviewBinding
 import com.android.mms.databinding.ItemAttachmentMediaPreviewBinding
 import com.android.mms.databinding.ItemAttachmentSlideshowPreviewBinding
 import com.android.mms.databinding.ItemAttachmentVcardPreviewBinding
+import com.android.mms.databinding.ItemAttachmentVcardStripBinding
 import com.android.mms.models.MmsSlideshow
 import com.android.mms.extensions.*
 import com.android.mms.helpers.*
@@ -124,32 +125,26 @@ class AttachmentsAdapter(
                         onRemoveButtonClicked = { removeAttachment(attachment) }
                     )
                 }
-                ATTACHMENT_VCARD -> {
-                    (binding as ItemAttachmentVcardPreviewBinding).setupVCardPreview(
-                        activity = activity,
-                        uri = attachment.uri,
-                        onClick = {
-                            val intent = Intent(activity, VCardViewerActivity::class.java).also {
-                                it.putExtra(EXTRA_VCARD_URI, attachment.uri)
-                            }
-                            activity.startActivity(intent)
-                        },
-                        onRemoveButtonClicked = { removeAttachment(attachment) }
-                    )
-                }
+                ATTACHMENT_VCARD -> setupVCardPreview(
+                    binding = binding as ItemAttachmentVcardPreviewBinding,
+                    attachment = attachment,
+                )
                 ATTACHMENT_MEDIA -> setupMediaPreview(
                     binding = binding as ItemAttachmentMediaPreviewBinding,
                     attachment = attachment
                 )
                 ATTACHMENT_AUDIO -> {
-                    (binding as ItemAttachmentAudioPreviewBinding).setupAudioPreview(
-                        uri = attachment.uri,
-                        title = attachment.filename,
-                        isPlaying = playingAudioUri == attachment.uri,
-                        maxSizeBytes = config.mmsFileSizeLimit,
-                        onTogglePlay = { toggleAudioPlayback(attachment.uri) },
-                        onRemoveButtonClicked = { removeAttachment(attachment) },
-                    )
+                    (binding as ItemAttachmentAudioPreviewBinding).apply {
+                        bindEmbeddedVCardStrip(vcardStrip)
+                        setupAudioPreview(
+                            uri = attachment.uri,
+                            title = attachment.filename,
+                            isPlaying = playingAudioUri == attachment.uri,
+                            maxSizeBytes = config.mmsFileSizeLimit,
+                            onTogglePlay = { toggleAudioPlayback(attachment.uri) },
+                            onRemoveButtonClicked = { removeAttachment(attachment) },
+                        )
+                    }
                 }
             }
         }
@@ -239,11 +234,48 @@ class AttachmentsAdapter(
         val hasMediaOrSlideshow = attachments.any {
             it.viewType == ATTACHMENT_MEDIA || it.viewType == ATTACHMENT_SLIDESHOW
         }
+        val hasPrimary = hasPrimaryComposeAttachment()
+        val hideEmbeddedVCard: (AttachmentSelection) -> Boolean = { selection ->
+            selection.viewType == ATTACHMENT_VCARD && hasPrimary
+        }
         return if (hasMediaOrSlideshow) {
-            ArrayList(attachments.filter { it.viewType != ATTACHMENT_AUDIO })
+            ArrayList(attachments.filter { it.viewType != ATTACHMENT_AUDIO && !hideEmbeddedVCard(it) })
+        } else if (hasPrimary) {
+            ArrayList(attachments.filter { !hideEmbeddedVCard(it) })
         } else {
             ArrayList(attachments)
         }
+    }
+
+    private fun hasPrimaryComposeAttachment(): Boolean =
+        attachments.any {
+            it.viewType == ATTACHMENT_MEDIA ||
+                it.viewType == ATTACHMENT_SLIDESHOW ||
+                it.viewType == ATTACHMENT_AUDIO
+        }
+
+    private fun getVCardAttachment(): AttachmentSelection? =
+        attachments.firstOrNull { it.viewType == ATTACHMENT_VCARD }
+
+    private fun openVCardViewer(attachment: AttachmentSelection) {
+        val intent = Intent(activity, VCardViewerActivity::class.java).also {
+            it.putExtra(EXTRA_VCARD_URI, attachment.uri)
+        }
+        activity.startActivity(intent)
+    }
+
+    private fun bindEmbeddedVCardStrip(strip: ItemAttachmentVcardStripBinding) {
+        val vcard = getVCardAttachment()
+        if (vcard == null) {
+            strip.root.beGone()
+            return
+        }
+        strip.setupVCardStrip(
+            activity = activity,
+            attachment = vcard,
+            onViewClick = { openVCardViewer(vcard) },
+            onRemoveClick = { removeAttachment(vcard) },
+        )
     }
 
     private fun removeAttachment(attachment: AttachmentSelection) {
@@ -323,8 +355,41 @@ class AttachmentsAdapter(
         return true
     }
 
+    private fun setupVCardPreview(binding: ItemAttachmentVcardPreviewBinding, attachment: AttachmentSelection) {
+        val previewWidth = vcardPreviewThumbnailWidth(binding)
+        if (previewWidth <= 1 && recyclerView.width <= 0) {
+            binding.root.post { setupVCardPreview(binding, attachment) }
+            return
+        }
+
+        binding.setupVCardComposePreview(
+            activity = activity,
+            uri = attachment.uri,
+            sizeInfoText = buildSizeInfoText(),
+            previewWidth = previewWidth,
+            onViewClick = {
+                val intent = Intent(activity, VCardViewerActivity::class.java).also {
+                    it.putExtra(EXTRA_VCARD_URI, attachment.uri)
+                }
+                activity.startActivity(intent)
+            },
+            onReplaceClick = { onReplaceAttachment(attachment) },
+            onRemoveClick = { removeAttachment(attachment) },
+        )
+    }
+
+    private fun vcardPreviewThumbnailWidth(binding: ItemAttachmentVcardPreviewBinding): Int {
+        val actionButtonWidth = resources.getDimension(R.dimen.attachment_media_action_button_width).toInt()
+        val itemInnerWidth = binding.root.width
+            .takeIf { it > 0 }
+            ?: (recyclerView.width - recyclerView.paddingLeft - recyclerView.paddingRight)
+        return (itemInnerWidth - actionButtonWidth).coerceAtLeast(1)
+    }
+
     private fun setupMediaPreview(binding: ItemAttachmentMediaPreviewBinding, attachment: AttachmentSelection) {
         binding.apply {
+            bindEmbeddedVCardStrip(vcardStrip)
+
             // RecyclerView reuse: XML leaves compression_progress visible by default; a recycled row can
             // hide the thumbnail until Glide finishes unless we reset before branching.
             Glide.with(thumbnail).clear(thumbnail)
@@ -432,6 +497,7 @@ class AttachmentsAdapter(
         }
 
         binding.apply {
+            bindEmbeddedVCardStrip(vcardStrip)
             Glide.with(slideshowImage).clear(slideshowImage)
             threadAttachmentWrapper.background?.applyColorFilter(primaryColor.darkenColor())
             audioIndicator.beVisibleIf(attachments.any { it.viewType == ATTACHMENT_AUDIO })
@@ -469,8 +535,10 @@ class AttachmentsAdapter(
 
     private fun mediaPreviewThumbnailWidthForSlideshow(binding: ItemAttachmentSlideshowPreviewBinding): Int {
         val actionButtonWidth = resources.getDimension(R.dimen.attachment_media_action_button_width).toInt()
-        val itemInnerWidth = binding.root.width
+        val itemInnerWidth = binding.slideshowAttachmentRow.width
             .takeIf { it > 0 }
+            ?: binding.root.width
+                .takeIf { it > 0 }
             ?: (recyclerView.width - recyclerView.paddingLeft - recyclerView.paddingRight)
         return (itemInnerWidth - actionButtonWidth).coerceAtLeast(1)
     }
@@ -642,8 +710,10 @@ class AttachmentsAdapter(
 
     private fun mediaPreviewThumbnailWidth(binding: ItemAttachmentMediaPreviewBinding): Int {
         val actionButtonWidth = resources.getDimension(R.dimen.attachment_media_action_button_width).toInt()
-        val itemInnerWidth = binding.root.width
+        val itemInnerWidth = binding.mediaAttachmentRow.width
             .takeIf { it > 0 }
+            ?: binding.root.width
+                .takeIf { it > 0 }
             ?: (recyclerView.width - recyclerView.paddingLeft - recyclerView.paddingRight)
         return (itemInnerWidth - actionButtonWidth).coerceAtLeast(1)
     }

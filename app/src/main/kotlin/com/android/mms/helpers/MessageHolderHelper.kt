@@ -49,6 +49,7 @@ import com.goodwy.commons.dialogs.RadioGroupDialog
 import com.goodwy.commons.extensions.*
 import com.goodwy.commons.helpers.*
 import com.goodwy.commons.models.RadioItem
+import com.goodwy.commons.models.contacts.Contact
 import douglasspgyn.com.github.circularcountdown.CircularCountdown
 import douglasspgyn.com.github.circularcountdown.listener.CircularListener
 import eightbitlab.com.blurview.BlurTarget
@@ -660,10 +661,14 @@ class MessageHolderHelper(
     }
 
     fun clearAttachments() {
-        mmsSlideshow = null
-        ComposeSlideshowBridge.clear()
+        clearSlideshowState()
         getAttachmentsAdapter()?.clear()
         checkSendMessageAvailability()
+    }
+
+    private fun clearSlideshowState() {
+        mmsSlideshow = null
+        ComposeSlideshowBridge.clear()
     }
 
     fun setAttachmentIntentLauncher(launcher: AttachmentIntentLauncher?) {
@@ -679,8 +684,8 @@ class MessageHolderHelper(
     }
 
     fun addAttachment(uri: Uri) {
-        val mimeType = activity.contentResolver.getType(uri)
-        if (mimeType == null) {
+        val mimeType = activity.getMimeTypeFromUri(uri)
+        if (mimeType.isBlank()) {
             activity.toast(com.goodwy.commons.R.string.unknown_error_occurred)
             return
         }
@@ -688,6 +693,19 @@ class MessageHolderHelper(
     }
 
     fun addContactAttachment(contactUri: Uri) {
+        val replacingVCard = pendingReplaceAttachmentId != null
+        if (replacingVCard) {
+            resolveContactForAttachment(contactUri) { contact ->
+                if (contact != null) {
+                    exportContactAsVCardAttachment(contact)
+                } else {
+                    activity.toast(com.goodwy.commons.R.string.unknown_error_occurred)
+                    clearPendingReplaceAttachmentId()
+                }
+            }
+            return
+        }
+
         val items = arrayListOf(
             RadioItem(1, activity.getString(com.goodwy.commons.R.string.file)),
             RadioItem(2, activity.getString(com.goodwy.commons.R.string.text))
@@ -695,46 +713,63 @@ class MessageHolderHelper(
         val blurTarget = activity.findViewById<BlurTarget>(R.id.mainBlurTarget)
             ?: throw IllegalStateException("mainBlurTarget not found")
         RadioGroupDialog(activity as SimpleActivity, items, blurTarget = blurTarget) { choice ->
-            val privateCursor = activity.getMyContactsCursor(favoritesOnly = false, withPhoneNumbersOnly = true)
-            ContactsHelper(activity).getContacts(showOnlyContactsWithNumbers = false) { contacts ->
-                val contact = if (contactUri.pathSegments.last().startsWith("local_")) {
-                    val contactId = contactUri.path!!.substringAfter("local_").toInt()
-                    try {
-                        val privateContacts = MyContactsContentProvider.getContacts(activity, privateCursor)
-                        privateContacts.firstOrNull { it.id == contactId }
-                    } catch (_: Exception) {
-                        null
-                    }
-                } else {
-                    val contactId = activity.getContactUriRawId(contactUri)
-                    contacts.firstOrNull { it.id == contactId }
+            resolveContactForAttachment(contactUri) { contact ->
+                if (contact == null) {
+                    activity.toast(com.goodwy.commons.R.string.unknown_error_occurred)
+                    return@resolveContactForAttachment
                 }
 
-                if (contact != null) {
-                    if (choice == 1) {
-                        val attachmentsDir = File(activity.cacheDir, "attachments").apply { mkdirs() }
-                        val outputFile = File(attachmentsDir, "${contact.contactId}.vcf")
-                        VcfExporter().exportContacts(
-                            activity = activity,
-                            outputStream = outputFile.outputStream(),
-                            contacts = arrayListOf(contact),
-                            showExportingToast = false,
-                        ) { result ->
-                            if (result == ExportResult.EXPORT_OK) {
-                                val vCardUri = activity.getMyFileUri(outputFile)
-                                activity.runOnUiThread { addAttachment(vCardUri) }
-                            } else {
-                                activity.toast(com.goodwy.commons.R.string.unknown_error_occurred)
-                            }
-                        }
-                    } else {
-                        activity.runOnUiThread {
-                            val current = binding.threadTypeMessage.value
-                            binding.threadTypeMessage.setText(current + contact.getContactToText(activity))
-                        }
-                    }
+                if (choice == 1) {
+                    exportContactAsVCardAttachment(contact)
                 } else {
+                    activity.runOnUiThread {
+                        val current = binding.threadTypeMessage.value
+                        binding.threadTypeMessage.setText(current + contact.getContactToText(activity))
+                    }
+                }
+            }
+        }
+    }
+
+    private fun resolveContactForAttachment(contactUri: Uri, callback: (Contact?) -> Unit) {
+        val privateCursor = activity.getMyContactsCursor(favoritesOnly = false, withPhoneNumbersOnly = true)
+        ContactsHelper(activity).getContacts(showOnlyContactsWithNumbers = false) { contacts ->
+            val contact = if (contactUri.pathSegments.last().startsWith("local_")) {
+                val contactId = contactUri.path!!.substringAfter("local_").toInt()
+                try {
+                    val privateContacts = MyContactsContentProvider.getContacts(activity, privateCursor)
+                    privateContacts.firstOrNull { it.id == contactId }
+                } catch (_: Exception) {
+                    null
+                }
+            } else {
+                val contactId = activity.getContactUriRawId(contactUri)
+                contacts.firstOrNull { it.id == contactId }
+            }
+            callback(contact)
+        }
+    }
+
+    private fun exportContactAsVCardAttachment(contact: Contact) {
+        val attachmentsDir = File(activity.cacheDir, "attachments").apply { mkdirs() }
+        val outputFile = File(attachmentsDir, "${contact.contactId}.vcf")
+        val displayName = contact.getNameToDisplay()
+        val filename = activity.getString(R.string.file_attachment_vcard_name, displayName)
+        VcfExporter().exportContacts(
+            activity = activity,
+            outputStream = outputFile.outputStream(),
+            contacts = arrayListOf(contact),
+            showExportingToast = false,
+        ) { result ->
+            if (result == ExportResult.EXPORT_OK) {
+                val vCardUri = activity.getMyFileUri(outputFile)
+                activity.runOnUiThread {
+                    finishAttachmentFromPicker(vCardUri, "text/x-vcard", filename)
+                }
+            } else {
+                activity.runOnUiThread {
                     activity.toast(com.goodwy.commons.R.string.unknown_error_occurred)
+                    clearPendingReplaceAttachmentId()
                 }
             }
         }
@@ -758,7 +793,7 @@ class MessageHolderHelper(
             }
         }
         if (selections.isEmpty()) {
-            mmsSlideshow = null
+            clearSlideshowState()
             getAttachmentsAdapter()?.submitAttachments(emptyList())
             binding.threadAttachmentsRecyclerview.beGone()
             checkSendMessageAvailability()
@@ -829,6 +864,7 @@ class MessageHolderHelper(
             activity = activity,
             recyclerView = binding.threadAttachmentsRecyclerview,
             onAttachmentsRemoved = {
+                clearSlideshowState()
                 binding.threadAttachmentsRecyclerview.beGone()
                 setSlideshowComposeModeActive(false)
                 checkSendMessageAvailability()
@@ -836,6 +872,8 @@ class MessageHolderHelper(
             onReady = { checkSendMessageAvailability() },
             onReplaceAttachment = { attachment ->
                 when {
+                    attachment.mimetype.isVCardMimeType() ->
+                        attachmentIntentLauncher?.launchPickContactForReplace(attachment.id)
                     attachment.mimetype.isVideoMimeType() ->
                         attachmentIntentLauncher?.showReplaceVideoDialog(attachment.id)
                     attachment.mimetype.isImageMimeType() || attachment.mimetype.isGifMimeType() ->
@@ -859,7 +897,7 @@ class MessageHolderHelper(
         }
         val slide = slideshow.slides.firstOrNull() ?: return
         if (slide.uriString == attachment.uri.toString()) {
-            mmsSlideshow = null
+            clearSlideshowState()
         }
     }
 
@@ -1014,6 +1052,8 @@ class MessageHolderHelper(
         if (merged.isNotEmpty()) {
             mmsSlideshow = MmsSlideshow(merged.values.toList())
             ComposeSlideshowBridge.slideshow = mmsSlideshow
+        } else {
+            clearSlideshowState()
         }
     }
 
@@ -1145,8 +1185,7 @@ class MessageHolderHelper(
     }
 
     private fun removeSlideshow() {
-        mmsSlideshow = null
-        ComposeSlideshowBridge.clear()
+        clearSlideshowState()
         setSlideshowComposeModeActive(false)
         val adapter = getAttachmentsAdapter() ?: return
         val remaining = adapter.attachments.filter {

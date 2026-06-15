@@ -35,6 +35,7 @@
     <!-- Attachments -->
     <string name="duplicate_item_warning">Duplicate item was not included</string>
     <!-- vCard -->
+    <string name="file_attachment_vcard_name">vCard (%s)</string>
     <plurals name="and_other_contacts">
         <item quantity="one">and %d other</item>
         <item quantity="other">and %d others</item>

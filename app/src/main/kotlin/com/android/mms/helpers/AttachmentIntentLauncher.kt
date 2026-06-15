@@ -150,6 +150,11 @@ class AttachmentIntentLauncher(
         launchActivityForResult(intent, MessageHolderHelper.PICK_DOCUMENT_INTENT)
     }
 
+    fun launchPickContactForReplace(attachmentId: String) {
+        messageHolderHelper.setPendingReplaceAttachmentId(attachmentId)
+        launchPickContact()
+    }
+
     fun launchPickContact() {
         val intent = Intent(Intent.ACTION_PICK).apply {
             type = ContactsContract.Contacts.CONTENT_TYPE

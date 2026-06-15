@@ -1,41 +1,125 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/thread_attachment_wrapper"
-    android:layout_width="wrap_content"
-    android:layout_height="wrap_content">
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/section_holder_stroke"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingEnd="@dimen/small_margin">
 
-    <include
+    <androidx.coordinatorlayout.widget.CoordinatorLayout
         android:id="@+id/vcard_attachment_holder"
-        layout="@layout/item_attachment_vcard"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
+        android:layout_height="@dimen/attachment_media_preview_height"
+        android:layout_weight="1"
+        android:foreground="@drawable/ripple_all_corners_16dp">
+
+        <androidx.appcompat.widget.AppCompatImageView
+            android:id="@+id/thumbnail"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_gravity="center"
+            android:layout_margin="1dp"
+            android:scaleType="centerCrop" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom"
+            android:background="#88000000"
+            android:orientation="vertical"
+            android:paddingStart="6dp"
+            android:paddingTop="4dp"
+            android:paddingEnd="6dp"
+            android:paddingBottom="4dp">
+
+            <androidx.appcompat.widget.AppCompatTextView
+                android:id="@+id/vcard_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textColor="#FFFFFF"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:visibility="gone"
+                tools:text="Elon Reeve Musk"
+                tools:visibility="visible" />
+
+            <androidx.appcompat.widget.AppCompatTextView
+                android:id="@+id/vcard_subtitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textColor="#FFFFFF"
+                android:textSize="11sp"
+                android:visibility="gone"
+                tools:text="and 2 others"
+                tools:visibility="visible" />
+
+        </LinearLayout>
+
+        <ProgressBar
+            android:id="@+id/vcard_progress"
+            android:layout_width="@dimen/play_outline_size"
+            android:layout_height="@dimen/play_outline_size"
+            android:layout_gravity="center"
+            android:visibility="gone" />
+
+        <androidx.appcompat.widget.AppCompatTextView
+            android:id="@+id/media_size_info"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top|end"
+            android:background="#88000000"
+            android:paddingStart="4dp"
+            android:paddingTop="2dp"
+            android:paddingEnd="4dp"
+            android:paddingBottom="2dp"
+            android:textColor="#FFFFFF"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:visibility="gone"
+            tools:text="2K/300K"
+            tools:visibility="visible" />
+
+    </androidx.coordinatorlayout.widget.CoordinatorLayout>
+
+    <LinearLayout
+        android:id="@+id/vcard_attachment_actions"
+        android:layout_width="@dimen/attachment_media_action_button_width"
         android:layout_height="wrap_content"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHeight_min="@dimen/attachment_preview_min_height"
-        app:layout_constraintHorizontal_bias="0"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="1"
-        app:layout_constraintWidth_max="@dimen/attachment_preview_max_width" />
+        android:orientation="vertical"
+        android:paddingStart="@dimen/small_margin"
+        android:paddingEnd="@dimen/tiny_margin">
 
-    <ProgressBar
-        android:id="@+id/vcard_progress"
-        android:layout_width="@dimen/remove_attachment_size"
-        android:layout_height="@dimen/remove_attachment_size"
-        app:layout_constraintBottom_toBottomOf="@id/vcard_attachment_holder"
-        app:layout_constraintEnd_toEndOf="@id/vcard_attachment_holder"
-        app:layout_constraintStart_toStartOf="@id/vcard_attachment_holder"
-        app:layout_constraintTop_toTopOf="@id/vcard_attachment_holder" />
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/view_attachment_button"
+            style="?android:attr/buttonStyleSmall"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/attachment_media_action_button_height"
+            android:text="@string/view_attachment" />
 
-    <include
-        android:id="@+id/remove_attachment_button_holder"
-        layout="@layout/item_remove_attachment_button"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        app:layout_constraintBottom_toTopOf="@id/vcard_attachment_holder"
-        app:layout_constraintEnd_toEndOf="@id/vcard_attachment_holder"
-        app:layout_constraintStart_toEndOf="@id/vcard_attachment_holder"
-        app:layout_constraintTop_toTopOf="@id/vcard_attachment_holder" />
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/replace_attachment_button"
+            style="?android:attr/buttonStyleSmall"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/attachment_media_action_button_height"
+            android:ellipsize="none"
+            android:singleLine="true"
+            android:text="@string/replace_attachment" />
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/remove_attachment_button"
+            style="?android:attr/buttonStyleSmall"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/attachment_media_action_button_height"
+            android:text="@string/remove_attachment" />
+
+    </LinearLayout>
+
+</LinearLayout>

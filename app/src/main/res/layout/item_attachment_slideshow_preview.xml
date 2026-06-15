@@ -12,13 +12,19 @@
 
     android:background="@drawable/section_holder_stroke"
 
-    android:gravity="center_vertical"
+    android:orientation="vertical">
 
-    android:orientation="horizontal"
+    <include
+        android:id="@+id/vcard_strip"
+        layout="@layout/item_attachment_vcard_strip" />
 
-    android:paddingEnd="@dimen/small_margin">
-
-
+    <LinearLayout
+        android:id="@+id/slideshow_attachment_row"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingEnd="@dimen/small_margin">
 
     <FrameLayout
 
@@ -193,6 +199,8 @@
             android:layout_height="@dimen/attachment_media_action_button_height"
 
             android:text="@string/remove" />
+
+    </LinearLayout>
 
     </LinearLayout>
 

@@ -6,9 +6,19 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:background="@drawable/section_holder_stroke"
-    android:gravity="center_vertical"
-    android:orientation="horizontal"
-    android:paddingEnd="@dimen/small_margin">
+    android:orientation="vertical">
+
+    <include
+        android:id="@+id/vcard_strip"
+        layout="@layout/item_attachment_vcard_strip" />
+
+    <LinearLayout
+        android:id="@+id/media_attachment_row"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingEnd="@dimen/small_margin">
 
     <androidx.coordinatorlayout.widget.CoordinatorLayout
         android:id="@+id/media_attachment_holder"
@@ -103,6 +113,8 @@
             android:layout_width="match_parent"
             android:layout_height="@dimen/attachment_media_action_button_height"
             android:text="@string/remove_attachment" />
+    </LinearLayout>
+
     </LinearLayout>
 
 </LinearLayout>

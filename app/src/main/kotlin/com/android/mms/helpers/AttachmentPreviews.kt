@@ -7,6 +7,7 @@ import androidx.core.content.res.ResourcesCompat
 import androidx.core.graphics.drawable.toDrawable
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
+import com.bumptech.glide.load.resource.bitmap.CenterCrop
 import com.bumptech.glide.load.resource.bitmap.RoundedCorners
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
 import com.bumptech.glide.request.RequestOptions
@@ -19,7 +20,9 @@ import com.android.mms.databinding.ItemAttachmentDocumentBinding
 import com.android.mms.databinding.ItemAttachmentDocumentPreviewBinding
 import com.android.mms.databinding.ItemAttachmentVcardBinding
 import com.android.mms.databinding.ItemAttachmentVcardPreviewBinding
+import com.android.mms.databinding.ItemAttachmentVcardStripBinding
 import com.android.mms.extensions.*
+import com.android.mms.models.AttachmentSelection
 import com.android.mms.models.VCardPropertyWrapper
 import ezvcard.property.Organization
 import kotlin.math.abs
@@ -90,35 +93,148 @@ fun ItemAttachmentDocumentBinding.setupDocumentPreview(
     }
 }
 
-fun ItemAttachmentVcardPreviewBinding.setupVCardPreview(
+fun ItemAttachmentVcardStripBinding.setupVCardStrip(
+    activity: Activity,
+    attachment: AttachmentSelection,
+    onViewClick: () -> Unit,
+    onRemoveClick: () -> Unit,
+) {
+    root.beVisible()
+    vcardStripTitle.text = attachment.filename
+    vcardStripSubtitle.beGone()
+    vcardStripPhoto.setImageDrawable(null)
+    vcardStripRemove.setOnClickListener { onRemoveClick() }
+    root.setOnClickListener { onViewClick() }
+
+    parseVCardFromUri(activity, attachment.uri) { vCards ->
+        activity.runOnUiThread {
+            if (vCards.isEmpty()) {
+                return@runOnUiThread
+            }
+
+            val photo = vCards.firstOrNull()?.photos?.firstOrNull()
+            val title = vCards.firstOrNull()?.parseNameFromVCard()
+            val isCompany = vCards.firstOrNull()?.isCompanyVCard(title ?: "") ?: false
+            val imageIcon = if (isCompany) {
+                SimpleContactsHelper(activity).getColoredCompanyIcon(title ?: "")
+            } else if (title != null) {
+                SimpleContactsHelper(activity).getContactLetterIcon(title).toDrawable(activity.resources)
+            } else {
+                null
+            }
+
+            val roundingRadius = activity.resources.getDimensionPixelSize(com.goodwy.commons.R.dimen.normal_margin)
+            val options = RequestOptions()
+                .diskCacheStrategy(DiskCacheStrategy.RESOURCE)
+                .placeholder(imageIcon)
+                .transform(CenterCrop(), RoundedCorners(roundingRadius))
+
+            Glide.with(activity)
+                .load(photo?.data ?: photo?.url)
+                .apply(options)
+                .transition(DrawableTransitionOptions.withCrossFade())
+                .into(vcardStripPhoto)
+
+            if (!attachment.filename.isBlank()) {
+                vcardStripTitle.text = attachment.filename
+            } else if (!title.isNullOrBlank()) {
+                vcardStripTitle.text = activity.getString(R.string.file_attachment_vcard_name, title)
+            }
+
+            if (vCards.size > 1) {
+                val quantity = vCards.size - 1
+                vcardStripSubtitle.text = activity.resources.getQuantityString(
+                    R.plurals.and_other_contacts,
+                    quantity,
+                    quantity,
+                )
+                vcardStripSubtitle.beVisible()
+            }
+        }
+    }
+}
+
+fun ItemAttachmentVcardPreviewBinding.setupVCardComposePreview(
     activity: Activity,
     uri: Uri,
-    onClick: (() -> Unit)? = null,
-    onLongClick: (() -> Unit)? = null,
-    onRemoveButtonClicked: (() -> Unit)? = null,
-    onViewContactDetailsClick: (() -> Unit)? = null,
+    sizeInfoText: String,
+    previewWidth: Int,
+    onViewClick: () -> Unit,
+    onReplaceClick: () -> Unit,
+    onRemoveClick: () -> Unit,
 ) {
+    val primaryColor = activity.getProperPrimaryColor()
+    threadAttachmentWrapper.background?.applyColorFilter(primaryColor.darkenColor())
+
+    if (sizeInfoText.isNotEmpty()) {
+        mediaSizeInfo.text = sizeInfoText
+        mediaSizeInfo.beVisible()
+    } else {
+        mediaSizeInfo.beGone()
+    }
+
+    viewAttachmentButton.setOnClickListener { onViewClick() }
+    replaceAttachmentButton.setOnClickListener { onReplaceClick() }
+    removeAttachmentButton.setOnClickListener { onRemoveClick() }
+
     vcardProgress.beVisible()
-    vcardAttachmentHolder.setupVCardPreview(
-        activity = activity,
-        uri = uri,
-        attachment = true,
-        onClick = onClick,
-        onLongClick = onLongClick,
-        onVCardLoaded = {
+    thumbnail.setImageDrawable(null)
+    vcardTitle.beGone()
+    vcardSubtitle.beGone()
+
+    parseVCardFromUri(activity, uri) { vCards ->
+        activity.runOnUiThread {
             vcardProgress.beGone()
-            removeAttachmentButtonHolder.removeAttachmentButton.apply {
-                beVisible()
-                background.applyColorFilter(activity.getProperPrimaryColor())
-                if (onRemoveButtonClicked != null) {
-                    setOnClickListener {
-                        onRemoveButtonClicked.invoke()
-                    }
-                }
+            if (vCards.isEmpty()) {
+                vcardTitle.beVisible()
+                vcardTitle.text = activity.getString(com.goodwy.commons.R.string.unknown_error_occurred)
+                return@runOnUiThread
             }
-        },
-        onViewContactDetailsClick = onViewContactDetailsClick,
-    )
+
+            val photo = vCards.firstOrNull()?.photos?.firstOrNull()
+            val title = vCards.firstOrNull()?.parseNameFromVCard()
+            val isCompany = vCards.firstOrNull()?.isCompanyVCard(title ?: "") ?: false
+
+            val imageIcon = if (isCompany) {
+                SimpleContactsHelper(activity).getColoredCompanyIcon(title ?: "")
+            } else if (title != null) {
+                SimpleContactsHelper(activity).getContactLetterIcon(title).toDrawable(activity.resources)
+            } else {
+                null
+            }
+
+            val height = activity.resources.getDimension(R.dimen.attachment_media_preview_height).toInt()
+            val roundedCornersRadius = activity.resources.getDimension(com.goodwy.commons.R.dimen.activity_margin).toInt()
+            val options = RequestOptions()
+                .diskCacheStrategy(DiskCacheStrategy.RESOURCE)
+                .placeholder(imageIcon)
+                .transform(CenterCrop(), RoundedCorners(roundedCornersRadius))
+
+            Glide.with(activity)
+                .load(photo?.data ?: photo?.url)
+                .apply(options)
+                .override(previewWidth.coerceAtLeast(1), height)
+                .transition(DrawableTransitionOptions.withCrossFade())
+                .into(thumbnail)
+
+            if (!title.isNullOrBlank()) {
+                vcardTitle.text = title
+                vcardTitle.beVisible()
+            }
+
+            if (vCards.size > 1) {
+                val quantity = vCards.size - 1
+                vcardSubtitle.text = activity.resources.getQuantityString(
+                    R.plurals.and_other_contacts,
+                    quantity,
+                    quantity,
+                )
+                vcardSubtitle.beVisible()
+            }
+
+            vcardAttachmentHolder.setOnClickListener { onViewClick() }
+        }
+    }
 }
 
 fun ItemAttachmentVcardBinding.setupVCardPreview(
