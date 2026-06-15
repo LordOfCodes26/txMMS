@@ -878,22 +878,14 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             return
         }
         val draftMessage = messageHolderHelper?.getMessageText() ?: ""
-        val selections = messageHolderHelper?.getAttachmentSelections().orEmpty()
-        val attachmentsJson = if (selections.isEmpty()) {
+        val storedAttachments = messageHolderHelper?.getDraftStoredAttachments().orEmpty()
+        val attachmentsJson = if (storedAttachments.isEmpty()) {
             null
         } else {
-            val stored = selections.map {
-                DraftStoredAttachment(
-                    uriString = it.uri.toString(),
-                    mimetype = it.mimetype,
-                    filename = it.filename,
-                    isPending = it.isPending,
-                )
-            }
-            Gson().toJson(stored)
+            Gson().toJson(storedAttachments)
         }
         val persistCompose = draftMessage.isNotEmpty() ||
-            selections.isNotEmpty() ||
+            storedAttachments.isNotEmpty() ||
             isScheduledMessage
         val scheduledMillis = if (isScheduledMessage) scheduledDateTime.millis else 0L
 

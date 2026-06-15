@@ -780,18 +780,22 @@ class MessageHolderHelper(
      * intermediate empty list after a clear (see [AttachmentsAdapter.submitAttachments]).
      */
     fun replaceAttachmentsFromDraft(stored: List<DraftStoredAttachment>) {
-        val seenIds = HashSet<String>()
-        val selections = ArrayList<AttachmentSelection>(stored.size)
-        for (s in stored) {
-            try {
-                val uri = s.uriString.toUri()
-                if (!seenIds.add(uri.toString())) continue
-                if (!passesNonImageAttachmentSizeCap(uri, s.mimetype)) continue
-                val pending = resolveDraftAttachmentPending(uri, s.mimetype)
-                selections.add(buildAttachmentSelection(uri, s.mimetype, s.filename, pending))
-            } catch (_: Exception) {
+        val slideshowEntry = stored.firstOrNull { !it.slideshowJson.isNullOrBlank() }
+        val attachmentOnlyStored = stored.filter { entry ->
+            entry.slideshowJson.isNullOrBlank() && entry.uriString != SLIDESHOW_DRAFT_MARKER_URI
+        }
+        if (slideshowEntry != null) {
+            val restored = SlideshowHelper.fromJson(slideshowEntry.slideshowJson)
+            if (restored != null && restored.slides.any { it.uriString.isNotEmpty() || it.text.isNotEmpty() }) {
+                val slideshowUris = restored.slides.map { it.uriString }.filter { it.isNotEmpty() }.toSet()
+                restoreSlideshowDraft(
+                    slideshow = restored,
+                    nonSlideshowStored = attachmentOnlyStored.filter { it.uriString !in slideshowUris },
+                )
+                return
             }
         }
+        val selections = buildDraftAttachmentSelections(attachmentOnlyStored)
         if (selections.isEmpty()) {
             clearSlideshowState()
             getAttachmentsAdapter()?.submitAttachments(emptyList())
@@ -817,6 +821,78 @@ class MessageHolderHelper(
             }
             checkSendMessageAvailability()
         }
+    }
+
+    /**
+     * Serializes compose attachments for [Draft.attachmentsJson], including full slideshow slide text
+     * and order when the user edited slides in [ManageSlideshowActivity] / [EditSlideActivity].
+     */
+    fun getDraftStoredAttachments(): List<DraftStoredAttachment> {
+        mergeAllSlidesIntoModel()
+        val slideshow = mmsSlideshow?.takeIf { ss ->
+            ss.slides.any { it.uriString.isNotEmpty() || it.text.isNotEmpty() }
+        }
+        val selections = getAttachmentSelections()
+        val slideshowUris = slideshow?.slides?.map { it.uriString }?.filter { it.isNotEmpty() }?.toSet().orEmpty()
+        val nonSlideshowSelections = if (slideshowUris.isEmpty()) {
+            selections
+        } else {
+            selections.filter { it.uri.toString() !in slideshowUris }
+        }
+        val stored = nonSlideshowSelections.map { selection ->
+            DraftStoredAttachment(
+                uriString = selection.uri.toString(),
+                mimetype = selection.mimetype,
+                filename = selection.filename,
+                isPending = selection.isPending,
+            )
+        }.toMutableList()
+        if (slideshow != null) {
+            stored.add(
+                DraftStoredAttachment(
+                    uriString = SLIDESHOW_DRAFT_MARKER_URI,
+                    mimetype = "application/vnd.wap.mms-slideshow",
+                    filename = "",
+                    isPending = false,
+                    slideshowJson = SlideshowHelper.toJson(slideshow),
+                ),
+            )
+        }
+        return stored
+    }
+
+    private fun restoreSlideshowDraft(
+        slideshow: MmsSlideshow,
+        nonSlideshowStored: List<DraftStoredAttachment>,
+    ) {
+        mmsSlideshow = slideshow
+        ComposeSlideshowBridge.slideshow = slideshow
+        var adapter = getAttachmentsAdapter()
+        if (adapter == null) {
+            adapter = createAttachmentsAdapter()
+            binding.threadAttachmentsRecyclerview.adapter = adapter
+        }
+        val nonMedia = buildDraftAttachmentSelections(nonSlideshowStored).filter {
+            !SlideshowHelper.isMediaSelection(it) && it.viewType != ATTACHMENT_AUDIO
+        }
+        adapter.submitAttachments(nonMedia)
+        refreshSlideshowComposeUi(adapter)
+    }
+
+    private fun buildDraftAttachmentSelections(stored: List<DraftStoredAttachment>): List<AttachmentSelection> {
+        val seenIds = HashSet<String>()
+        val selections = ArrayList<AttachmentSelection>(stored.size)
+        for (s in stored) {
+            try {
+                val uri = s.uriString.toUri()
+                if (!seenIds.add(uri.toString())) continue
+                if (!passesNonImageAttachmentSizeCap(uri, s.mimetype)) continue
+                val pending = resolveDraftAttachmentPending(uri, s.mimetype)
+                selections.add(buildAttachmentSelection(uri, s.mimetype, s.filename, pending))
+            } catch (_: Exception) {
+            }
+        }
+        return selections
     }
 
     /**
@@ -1029,6 +1105,31 @@ class MessageHolderHelper(
 
     /** Merge every known slide source so appendMedia never drops a prior image (Alps [WorkingMessage]). */
     private fun mergeAllSlidesIntoModel(adapter: AttachmentsAdapter? = getAttachmentsAdapter()) {
+        val authoritative = ComposeSlideshowBridge.slideshow ?: mmsSlideshow
+        if (authoritative != null && authoritative.slides.any { it.uriString.isNotEmpty() || it.text.isNotEmpty() }) {
+            val slides = authoritative.slides.toMutableList()
+            val knownUris = slides.map { it.uriString }.filter { it.isNotEmpty() }.toMutableSet()
+            adapter?.attachments?.let { rows ->
+                SlideshowHelper.mediaSelections(rows).forEach { selection ->
+                    val uriString = selection.uri.toString()
+                    if (uriString !in knownUris) {
+                        slides.add(MmsSlide.fromSelection(selection))
+                        knownUris.add(uriString)
+                    }
+                }
+                rows.filter { it.viewType == ATTACHMENT_AUDIO }.forEach { selection ->
+                    val uriString = selection.uri.toString()
+                    if (uriString !in knownUris) {
+                        slides.add(MmsSlide.fromSelection(selection))
+                        knownUris.add(uriString)
+                    }
+                }
+            }
+            mmsSlideshow = MmsSlideshow(slides)
+            ComposeSlideshowBridge.slideshow = mmsSlideshow
+            return
+        }
+
         val merged = LinkedHashMap<String, MmsSlide>()
         listOf(mmsSlideshow, ComposeSlideshowBridge.slideshow).forEach { source ->
             source?.slides?.forEach { slide ->

@@ -108,6 +108,8 @@ const val ATTACHMENT_SLIDESHOW = 10
 const val ATTACHMENT_AUDIO = 11
 
 const val SLIDESHOW_ATTACHMENT_ID = "mms_slideshow"
+/** Marker [DraftStoredAttachment.uriString] for persisted in-progress slideshow drafts. */
+const val SLIDESHOW_DRAFT_MARKER_URI = "draft://mms-slideshow"
 
 const val EXTRA_SLIDESHOW_JSON = "extra_slideshow_json"
 const val EXTRA_SLIDE_INDEX = "extra_slide_index"

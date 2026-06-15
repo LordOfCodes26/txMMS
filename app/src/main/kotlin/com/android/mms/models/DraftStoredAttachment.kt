@@ -8,4 +8,6 @@ data class DraftStoredAttachment(
     val mimetype: String,
     val filename: String,
     val isPending: Boolean,
+    /** Full [MmsSlideshow] slide list (text, order, duration) when compose used the slideshow editor. */
+    val slideshowJson: String? = null,
 )

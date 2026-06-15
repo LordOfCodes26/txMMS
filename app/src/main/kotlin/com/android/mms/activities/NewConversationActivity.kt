@@ -1896,7 +1896,7 @@ class NewConversationActivity : SimpleActivity() {
         val threadId = messageId
         val isGroupMms = participants.size > 1 && config.sendGroupMessageMMS
         val isLongMms = isLongMmsMessage(text)
-        val hasAttachments = messageHolderHelper?.getAttachmentSelections()?.isNotEmpty() == true
+        val hasAttachments = messageHolderHelper?.getDraftStoredAttachments()?.isNotEmpty() == true
         val isMMS = hasAttachments || isGroupMms || isLongMms
         val attachments = messageHolderHelper?.buildMessageAttachments(messageId) ?: ArrayList()
         return Message(
@@ -2349,7 +2349,7 @@ class NewConversationActivity : SimpleActivity() {
     private fun newConversationExitSnapshot(): NewConversationExitSnapshot {
         val chips = binding.newConversationAddress.allChips
         val messageText = binding.messageHolder.threadTypeMessage.text?.toString()?.trim() ?: ""
-        val hasAttachments = messageHolderHelper?.getAttachmentSelections()?.isNotEmpty() == true
+        val hasAttachments = messageHolderHelper?.getDraftStoredAttachments()?.isNotEmpty() == true
         val hasMessage =
             messageText.isNotEmpty() || hasAttachments || isScheduledMessage
         val staleResumeId = resumedDraftThreadId
@@ -2366,19 +2366,11 @@ class NewConversationActivity : SimpleActivity() {
 
         mergeRecipientNumbersFromRecipientField(allNumbers)
 
-        val selections = messageHolderHelper?.getAttachmentSelections().orEmpty()
+        val selections = messageHolderHelper?.getDraftStoredAttachments().orEmpty()
         val attachmentsJson = if (selections.isEmpty()) {
             null
         } else {
-            val stored = selections.map {
-                DraftStoredAttachment(
-                    uriString = it.uri.toString(),
-                    mimetype = it.mimetype,
-                    filename = it.filename,
-                    isPending = it.isPending,
-                )
-            }
-            Gson().toJson(stored)
+            Gson().toJson(selections)
         }
         val scheduledMillis = if (isScheduledMessage) scheduledDateTime.millis else 0L
 
