@@ -46,59 +46,55 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal">
 
-            <com.goodwy.commons.views.MyTextView
-                android:id="@+id/slide_text_preview"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_weight="0.4"
-                android:ellipsize="marquee"
-                android:marqueeRepeatLimit="marquee_forever"
-                android:minWidth="35dp"
-                android:paddingStart="5dp"
-                android:paddingEnd="5dp"
-                android:singleLine="true"
-                android:textSize="@dimen/normal_text_size"
-                android:visibility="gone"
-                tools:text="Hello"
-                tools:visibility="visible" />
-
-            <com.goodwy.commons.views.MyTextView
-                android:id="@+id/slide_attachment_name"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_weight="0.3"
-                android:ellipsize="marquee"
-                android:marqueeRepeatLimit="marquee_forever"
-                android:minWidth="35dp"
-                android:paddingStart="5dp"
-                android:singleLine="true"
-                android:textSize="@dimen/normal_text_size"
-                android:visibility="gone"
-                tools:text="clip.mp4"
-                tools:visibility="visible" />
-
-            <androidx.appcompat.widget.AppCompatImageView
-                android:id="@+id/slide_attachment_icon"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center_vertical"
-                android:layout_weight="0"
-                android:paddingStart="5dp"
-                android:visibility="gone"
-                tools:src="@drawable/ic_vector_play_circle_outline"
-                tools:visibility="visible" />
-
-            <Space
+            <LinearLayout
                 android:layout_width="0dp"
-                android:layout_height="0dp"
-                android:layout_weight="1" />
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="horizontal">
+
+                <com.goodwy.commons.views.MyTextView
+                    android:id="@+id/slide_text_preview"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:paddingStart="5dp"
+                    android:paddingEnd="5dp"
+                    android:textSize="@dimen/normal_text_size"
+                    android:visibility="gone"
+                    tools:text="Hello"
+                    tools:visibility="visible" />
+
+                <com.goodwy.commons.views.MyTextView
+                    android:id="@+id/slide_attachment_name"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:paddingStart="5dp"
+                    android:textSize="@dimen/normal_text_size"
+                    android:visibility="gone"
+                    tools:text="clip.mp4"
+                    tools:visibility="visible" />
+
+                <androidx.appcompat.widget.AppCompatImageView
+                    android:id="@+id/slide_attachment_icon"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_vertical"
+                    android:paddingStart="5dp"
+                    android:visibility="gone"
+                    tools:src="@drawable/ic_vector_play_circle_outline"
+                    tools:visibility="visible" />
+            </LinearLayout>
 
             <com.goodwy.commons.views.MyTextView
                 android:id="@+id/slide_duration_text"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_vertical"
-                android:layout_weight="0"
                 android:maxLines="1"
                 android:paddingStart="10dp"
                 android:paddingEnd="10dp"
