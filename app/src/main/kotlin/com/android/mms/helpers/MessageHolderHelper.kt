@@ -712,7 +712,13 @@ class MessageHolderHelper(
         )
         val blurTarget = activity.findViewById<BlurTarget>(R.id.mainBlurTarget)
             ?: throw IllegalStateException("mainBlurTarget not found")
-        RadioGroupDialog(activity as SimpleActivity, items, blurTarget = blurTarget) { choice ->
+        RadioGroupDialog(
+            activity as SimpleActivity,
+            items,
+            checkedItemId = 1,
+            requireConfirmButton = true,
+            blurTarget = blurTarget,
+        ) { choice ->
             resolveContactForAttachment(contactUri) { contact ->
                 if (contact == null) {
                     activity.toast(com.goodwy.commons.R.string.unknown_error_occurred)
