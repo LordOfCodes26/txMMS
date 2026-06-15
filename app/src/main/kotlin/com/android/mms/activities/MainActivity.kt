@@ -171,7 +171,7 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         super.onCreate(savedInstanceState)
         // Theme.Material3.Dark windowBackground is dark; paint window + decor before inflation so edge-to-edge does not flash behind transparent bars.
         paintMainScreenWindowBeforeContentView()
-        setContentView(binding.root)
+
         binding.mainAppbar.addOnOffsetChangedListener { _, verticalOffset ->
             mainMenuLastAppBarVerticalOffset = verticalOffset
             binding.mVerticalSideFrameTop.update()
@@ -333,6 +333,7 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         } else {
             binding.root.post { refreshActionModeTopBlurChrome() }
         }
+        setContentView(binding.root)
 
         (binding.searchResultsList.adapter as? SearchResultsAdapter)?.scheduleGroupedTodayTimeRefresh()
     }

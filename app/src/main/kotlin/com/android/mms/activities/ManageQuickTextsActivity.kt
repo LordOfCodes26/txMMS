@@ -184,7 +184,7 @@ class ManageQuickTextsActivity : SimpleActivity(), RefreshRecyclerViewListener, 
                 binding.mVerticalSideFrameBottom.layoutParams.apply { height = navHeight + dp5 }
             applyBottomRippleToolbarInsets(navHeight, ime.bottom)
 
-            applyBottomRippleToolbarInsets(navHeight, ime.bottom)
+//            applyBottomRippleToolbarInsets(navHeight, ime.bottom)
             syncManageQuickTextsListBottomPadding()
             if (!insets.isVisible(WindowInsetsCompat.Type.ime())) {
                 scheduleSyncQuickTextsCardHeight()
