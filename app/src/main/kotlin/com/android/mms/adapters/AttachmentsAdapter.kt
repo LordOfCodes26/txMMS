@@ -48,6 +48,7 @@ class AttachmentsAdapter(
     val onEditSlideshow: (() -> Unit)? = null,
     val onPlaySlideshow: (() -> Unit)? = null,
     val onRemoveSlideshow: (() -> Unit)? = null,
+    val onSendSlideshow: (() -> Unit)? = null,
     /** Fired when compression completes after the row was promoted into a slideshow or removed. */
     val onCompressedMediaOrphaned: ((oldUri: android.net.Uri, newUri: android.net.Uri?) -> Unit)? = null,
     val onMediaAttachmentRemoved: ((AttachmentSelection) -> Unit)? = null,
@@ -446,6 +447,10 @@ class AttachmentsAdapter(
             slideshowText.text = firstSlide.text.ifBlank {
                 activity.getString(R.string.slide_number, "1")
             }
+            // setupSlideshowPreview is only reached when the slideshow view is active
+            // (2+ media items present), so the Send button is always shown here.
+            sendSlideshowButton.beVisible()
+            sendSlideshowButton.setOnClickListener { onSendSlideshow?.invoke() }
             editSlideshowButton.setOnClickListener { onEditSlideshow?.invoke() }
             playSlideshowButton.beVisible()
             playSlideshowButton.bringToFront()

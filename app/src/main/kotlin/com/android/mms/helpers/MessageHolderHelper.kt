@@ -628,6 +628,7 @@ class MessageHolderHelper(
 
     @SuppressLint("SuspiciousIndentation")
     fun sendMessage(subscriptionId: Int) {
+        mergeAllSlidesIntoModel()
         val text = binding.threadTypeMessage.value.trim()
         val attachments = buildMessageAttachments()
         onSendMessage(text, subscriptionId, attachments)
@@ -829,6 +830,7 @@ class MessageHolderHelper(
             recyclerView = binding.threadAttachmentsRecyclerview,
             onAttachmentsRemoved = {
                 binding.threadAttachmentsRecyclerview.beGone()
+                setSlideshowComposeModeActive(false)
                 checkSendMessageAvailability()
             },
             onReady = { checkSendMessageAvailability() },
@@ -844,6 +846,7 @@ class MessageHolderHelper(
             onEditSlideshow = { launchSlideshowEditor() },
             onPlaySlideshow = { playSlideshowPreview() },
             onRemoveSlideshow = { removeSlideshow() },
+            onSendSlideshow = { pickSimAndSendOrSendDirect() },
             onCompressedMediaOrphaned = { oldUri, newUri -> onCompressedMediaOrphaned(oldUri, newUri) },
             onMediaAttachmentRemoved = { attachment -> onMediaAttachmentRemoved(attachment) },
         )
@@ -948,7 +951,10 @@ class MessageHolderHelper(
 
         mergeAllSlidesIntoModel(adapter)
 
-        val stableFilename = filename.ifBlank { activity.getFilenameFromUri(uri) }
+        val ext = mimeType.substringAfter("/").substringBefore(";").trim()
+        val stableFilename = filename
+            .ifBlank { activity.getFilenameFromUri(uri) }
+            .ifBlank { "attachment_${System.currentTimeMillis()}.$ext" }
         val durationMs = if (mimeType.isVideoMimeType() || mimeType.isAudioMimeType()) {
             readMediaDurationMs(uri) ?: MmsSlide.DEFAULT_DURATION_MS
         } else {
@@ -1057,10 +1063,12 @@ class MessageHolderHelper(
                 && it.id !in slideshowUriSet
         }
 
-        if (!slideshow.isRealSlideshow()) {
+        val isRealSlideshow = slideshow.isRealSlideshow()
+        if (!isRealSlideshow) {
             val slide = slideshow.slides.firstOrNull { it.uriString.isNotEmpty() } ?: run {
                 adapter.submitAttachments(nonMedia)
                 binding.threadAttachmentsRecyclerview.beVisibleIf(nonMedia.isNotEmpty())
+                setSlideshowComposeModeActive(false)
                 checkSendMessageAvailability()
                 return
             }
@@ -1074,6 +1082,9 @@ class MessageHolderHelper(
         } else {
             adapter.submitAttachments(listOf(buildSlideshowAttachmentSelection(slideshow)) + nonMedia)
         }
+
+        // When 2+ slides: hide message input + normal send button; Send lives in the preview.
+        setSlideshowComposeModeActive(isRealSlideshow)
 
         binding.threadAttachmentsRecyclerview.beVisible()
         binding.threadAttachmentsRecyclerview.post {
@@ -1136,6 +1147,7 @@ class MessageHolderHelper(
     private fun removeSlideshow() {
         mmsSlideshow = null
         ComposeSlideshowBridge.clear()
+        setSlideshowComposeModeActive(false)
         val adapter = getAttachmentsAdapter() ?: return
         val remaining = adapter.attachments.filter {
             it.id != SLIDESHOW_ATTACHMENT_ID && !SlideshowHelper.isMediaSelection(it)
@@ -1146,6 +1158,16 @@ class MessageHolderHelper(
             adapter.submitAttachments(remaining)
         }
         checkSendMessageAvailability()
+    }
+
+    /**
+     * When [active] is true (2+ slide MMS): hide the text input and the normal send button so the
+     * user sends via the "Send" button that appears in the slideshow attachment preview row.
+     * When [active] is false: restore both views to their normal visible state.
+     */
+    private fun setSlideshowComposeModeActive(active: Boolean) {
+        binding.threadTypeMessageWrapper.beVisibleIf(!active)
+        binding.threadSendMessageActionWrapper.beVisibleIf(!active)
     }
 
     private fun replaceAttachmentWithKnownMime(
@@ -1568,10 +1590,20 @@ class MessageHolderHelper(
     }
 
     fun getAttachmentSelections(): List<AttachmentSelection> {
+        mergeAllSlidesIntoModel()
         val adapter = getAttachmentsAdapter() ?: return emptyList()
-        val slideshow = mmsSlideshow ?: return adapter.attachments
-        val nonMedia = adapter.attachments.filter {
-            it.id != SLIDESHOW_ATTACHMENT_ID && !SlideshowHelper.isMediaSelection(it)
+        val adapterRows = adapter.attachments.filter {
+            it.id != SLIDESHOW_ATTACHMENT_ID &&
+                it.viewType != ATTACHMENT_SLIDESHOW &&
+                it.mimetype != "application/vnd.wap.mms-slideshow"
+        }
+        val slideshow = mmsSlideshow
+        if (slideshow == null) {
+            return adapterRows
+        }
+
+        val nonMedia = adapterRows.filter {
+            !SlideshowHelper.isMediaSelection(it) && it.viewType != ATTACHMENT_AUDIO
         }
         val slideSelections = slideshow.slides
             .filter { it.uriString.isNotEmpty() }
@@ -1584,12 +1616,51 @@ class MessageHolderHelper(
                     isPending = false,
                 )
             }
-        return nonMedia + slideSelections
+
+        // Prefer in-memory slides; if the model is empty but the picker still shows media, fall back
+        // to adapter rows so send never drops visible attachments.
+        val sendableMedia = LinkedHashMap<String, AttachmentSelection>()
+        slideSelections.forEach { sendableMedia[it.uri.toString()] = it }
+        if (sendableMedia.isEmpty()) {
+            adapterRows.filter {
+                SlideshowHelper.isMediaSelection(it) || it.viewType == ATTACHMENT_AUDIO
+            }.forEach { sendableMedia[it.uri.toString()] = it.copy(isPending = false) }
+        }
+        return nonMedia + sendableMedia.values
     }
 
-    fun buildMessageAttachments(messageId: Long = -1L): ArrayList<Attachment> = getAttachmentSelections()
-        .map { Attachment(null, messageId, it.uri.toString(), it.mimetype, 0, 0, it.filename) }
-        .toCollection(ArrayList())
+    fun buildMessageAttachments(messageId: Long = -1L): ArrayList<Attachment> {
+        mergeAllSlidesIntoModel()
+        return getAttachmentSelections()
+            .map { selection ->
+                val mimeType = selection.mimetype.ifBlank {
+                    activity.contentResolver.getType(selection.uri).orEmpty()
+                }.ifBlank { "application/octet-stream" }
+                val stableUri = if (
+                    mimeType.isImageMimeType() ||
+                    mimeType.isVideoMimeType() ||
+                    mimeType.isAudioMimeType()
+                ) {
+                    SlideshowHelper.stabilizeAttachmentUri(activity, selection.uri, mimeType)
+                } else {
+                    selection.uri
+                }
+                val ext = mimeType.substringAfter("/").substringBefore(";").trim().ifBlank { "dat" }
+                val filename = selection.filename
+                    .ifBlank { activity.getFilenameFromUri(stableUri) }
+                    .ifBlank { "attachment_${System.currentTimeMillis()}.$ext" }
+                Attachment(
+                    id = null,
+                    messageId = messageId,
+                    uriString = stableUri.toString(),
+                    mimetype = mimeType,
+                    width = 0,
+                    height = 0,
+                    filename = filename,
+                )
+            }
+            .toCollection(ArrayList())
+    }
 
     @SuppressLint("MissingPermission")
     private fun getSubscriptionId(): Int? {

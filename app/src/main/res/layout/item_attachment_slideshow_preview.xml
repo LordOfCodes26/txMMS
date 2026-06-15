@@ -154,6 +154,22 @@
 
         <androidx.appcompat.widget.AppCompatButton
 
+            android:id="@+id/send_slideshow_button"
+
+            style="?android:attr/buttonStyleSmall"
+
+            android:layout_width="match_parent"
+
+            android:layout_height="@dimen/attachment_media_action_button_height"
+
+            android:text="@string/send"
+
+            android:visibility="gone" />
+
+
+
+        <androidx.appcompat.widget.AppCompatButton
+
             android:id="@+id/edit_slideshow_button"
 
             style="?android:attr/buttonStyleSmall"
