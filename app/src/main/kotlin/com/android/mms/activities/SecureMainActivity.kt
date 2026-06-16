@@ -3,10 +3,12 @@ package com.android.mms.activities
 import android.content.Intent
 import android.os.Bundle
 import android.widget.FrameLayout
+import androidx.core.view.isVisible
 import com.android.mms.R
 import com.android.mms.extensions.config
 import com.android.mms.extensions.setConversationPinScope
 import com.goodwy.commons.extensions.getProperBackgroundColor
+import com.goodwy.commons.extensions.isVisible
 import com.goodwy.commons.extensions.toast
 
 /**
@@ -92,6 +94,7 @@ class SecureMainActivity : MainActivity() {
         initSecureMainContent()
         setContentView(binding.root)
         refreshMenuItems()
+        visibilityConversationAddBtn()
         loadInitialMessagesIfEnabled()
     }
 
@@ -112,6 +115,10 @@ class SecureMainActivity : MainActivity() {
             else -> getString(R.string.private_space)
         }
         binding.mainAppbar.setTitle(title)
+    }
+
+    private fun visibilityConversationAddBtn() {
+        binding.conversationsFab.isVisible = false
     }
 
     override fun onResume() {
