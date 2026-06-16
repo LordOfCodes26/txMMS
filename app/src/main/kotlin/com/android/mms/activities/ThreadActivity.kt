@@ -468,14 +468,14 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             val dp5 = (5 * resources.displayMetrics.density).toInt()
             binding.mVerticalSideFrameBottom.layoutParams =
                 binding.mVerticalSideFrameBottom.layoutParams.apply { height = navHeight + dp5 }
-            val barLp = binding.lytAction.layoutParams as ViewGroup.MarginLayoutParams
-            val activityMargin = dp(0)
-            if (ime.bottom > 0) {
-                barLp.bottomMargin = ime.bottom + activityMargin
-            } else {
-                barLp.bottomMargin = navHeight + activityMargin
-            }
-            binding.lytAction.layoutParams = barLp
+//            val barLp = binding.lytAction.layoutParams as ViewGroup.MarginLayoutParams
+//            val activityMargin = dp(0)
+//            if (ime.bottom > 0) {
+//                barLp.bottomMargin = ime.bottom + activityMargin
+//            } else {
+//                barLp.bottomMargin = navHeight + activityMargin
+//            }
+//            binding.lytAction.layoutParams = barLp
 
             if (barContainer != null) {
                 val imeVisible =
@@ -709,28 +709,28 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         if (barContainer.visibility == View.VISIBLE && barContainer.height > 0) {
             return barContainer.height
         }
-        if (barContainer.visibility != View.VISIBLE) {
-            return actionModeBottomOverlayClearancePx()
-        }
-        return if (barContainer.height > 0) barContainer.height else dp(90)
+//        if (barContainer.visibility != View.VISIBLE) {
+//            return actionModeBottomOverlayClearancePx()
+//        }
+        return if (barContainer.height > 0) barContainer.height else dp(30)
     }
 
     /** Height from list bottom to clear the floating CAB ripple container ([R.id.lyt_action]) + its bottom margin. */
-    private fun actionModeBottomOverlayClearancePx(): Int {
-        val box = binding.root.findViewById<View>(R.id.lyt_action)
-        val lp = box.layoutParams as? ViewGroup.MarginLayoutParams
-        val marginBottom = lp?.bottomMargin?.takeIf { it > 0 }
-            ?: resources.getDimensionPixelSize(R.dimen.ripple_bottom)
-        val frameHeight = when {
-            box.height > 0 -> box.height
-            box.measuredHeight > 0 -> box.measuredHeight
-            else -> {
-                val ripple = binding.actionModeRippleToolbar
-                maxOf(ripple.height, ripple.measuredHeight, dp(48))
-            }
-        }
-        return frameHeight + marginBottom
-    }
+//    private fun actionModeBottomOverlayClearancePx(): Int {
+//        val box = binding.root.findViewById<View>(R.id.lyt_action)
+//        val lp = box.layoutParams as? ViewGroup.MarginLayoutParams
+//        val marginBottom = lp?.bottomMargin?.takeIf { it > 0 }
+//            ?: resources.getDimensionPixelSize(R.dimen.ripple_bottom)
+//        val frameHeight = when {
+//            box.height > 0 -> box.height
+//            box.measuredHeight > 0 -> box.measuredHeight
+//            else -> {
+//                val ripple = binding.actionModeRippleToolbar
+//                maxOf(ripple.height, ripple.measuredHeight, dp(48))
+//            }
+//        }
+//        return frameHeight + marginBottom
+//    }
 
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
 
@@ -3174,9 +3174,9 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                 binding.threadMessagesList.post {
                     refreshThreadMessagesListPaddingForComposeBarHeight()
                 }
-                binding.root.findViewById<View>(R.id.lyt_action).post {
-                    refreshThreadMessagesListPaddingForComposeBarHeight()
-                }
+//                binding.root.findViewById<View>(R.id.lyt_action).post {
+//                    refreshThreadMessagesListPaddingForComposeBarHeight()
+//                }
             }
         }
     }

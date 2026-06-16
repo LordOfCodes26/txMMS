@@ -127,15 +127,16 @@ class MessageBubblePickerActivity : SimpleActivity() {
             val dp5 = (5 * resources.displayMetrics.density).toInt()
             binding.mVerticalSideFrameBottom.layoutParams =
                 binding.mVerticalSideFrameBottom.layoutParams.apply { height = navHeight + dp5 }
-            val barLp = binding.lytAction.layoutParams as ViewGroup.MarginLayoutParams
-            val activityMargin = dp(0)
-            if (ime.bottom > 0) {
-                barLp.bottomMargin = ime.bottom + activityMargin
-            } else {
-                barLp.bottomMargin = navHeight + activityMargin
-            }
-            binding.lytAction.layoutParams = barLp
+//            val barLp = binding.lytAction.layoutParams as ViewGroup.MarginLayoutParams
+//            val activityMargin = dp(0)
+//            if (ime.bottom > 0) {
+//                barLp.bottomMargin = ime.bottom + activityMargin
+//            } else {
+//                barLp.bottomMargin = navHeight + activityMargin
+//            }
+//            binding.lytAction.layoutParams = barLp
             applyBubbleListBottomInset(navHeight, ime.bottom)
+            android.util.Log.d("SUN_DEBUG", "navHeight = " + navHeight + ", ime.bottom = " + ime.bottom)
             insets
         }
     }
@@ -144,7 +145,7 @@ class MessageBubblePickerActivity : SimpleActivity() {
         val activityMargin = resources.getDimensionPixelSize(com.goodwy.commons.R.dimen.activity_margin)
         val bottomInset = if (imeBottom > 0) imeBottom else navHeight
         binding.bubblePickerList.updatePadding(
-            bottom = bottomInset + activityMargin + dp(90),
+            bottom = bottomInset + activityMargin + dp(30),
         )
     }
 
