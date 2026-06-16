@@ -154,9 +154,7 @@ class AttachmentsAdapter(
         stopAudio()
         attachments.clear()
         submitList(emptyList())
-        recyclerView.onGlobalLayout {
-            onAttachmentsRemoved()
-        }
+        onAttachmentsRemoved()
     }
 
     fun addAttachment(attachment: AttachmentSelection) {
@@ -178,9 +176,7 @@ class AttachmentsAdapter(
         attachments.addAll(reconcileComposeAttachments(newAttachments))
         publishAttachmentsList()
         if (attachments.isEmpty()) {
-            recyclerView.onGlobalLayout {
-                onAttachmentsRemoved()
-            }
+            onAttachmentsRemoved()
         }
     }
 

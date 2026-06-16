@@ -999,12 +999,16 @@ class MessageHolderHelper(
 
     private fun onMediaAttachmentRemoved(attachment: AttachmentSelection) {
         val slideshow = mmsSlideshow ?: return
-        if (slideshow.isRealSlideshow()) {
+        val uriString = attachment.uri.toString()
+        if (!slideshow.slides.any { it.uriString == uriString }) {
             return
         }
-        val slide = slideshow.slides.firstOrNull() ?: return
-        if (slide.uriString == attachment.uri.toString()) {
+        val updatedSlides = slideshow.slides.filter { it.uriString != uriString }
+        if (updatedSlides.isEmpty()) {
             clearSlideshowState()
+        } else {
+            mmsSlideshow = MmsSlideshow(updatedSlides)
+            ComposeSlideshowBridge.slideshow = mmsSlideshow
         }
     }
 
@@ -1134,10 +1138,25 @@ class MessageHolderHelper(
         refreshSlideshowComposeUi(adapter, isPendingOverride)
     }
 
+    private fun composeAdapterHasMediaAttachments(adapter: AttachmentsAdapter?): Boolean {
+        val rows = adapter?.attachments.orEmpty()
+        if (rows.isEmpty()) {
+            return false
+        }
+        return rows.any { SlideshowHelper.isMediaSelection(it) } ||
+            rows.any { it.id == SLIDESHOW_ATTACHMENT_ID || it.viewType == ATTACHMENT_SLIDESHOW } ||
+            rows.any { it.viewType == ATTACHMENT_AUDIO }
+    }
+
     /** Merge every known slide source so appendMedia never drops a prior image (Alps [WorkingMessage]). */
     private fun mergeAllSlidesIntoModel(adapter: AttachmentsAdapter? = getAttachmentsAdapter()) {
+        val adapterHasMedia = composeAdapterHasMediaAttachments(adapter)
         val authoritative = ComposeSlideshowBridge.slideshow ?: mmsSlideshow
         if (authoritative != null && authoritative.slides.any { it.uriString.isNotEmpty() || it.text.isNotEmpty() }) {
+            if (!adapterHasMedia) {
+                clearSlideshowState()
+                return
+            }
             val slides = authoritative.slides.toMutableList()
             val knownUris = slides.map { it.uriString }.filter { it.isNotEmpty() }.toMutableSet()
             adapter?.attachments?.let { rows ->
@@ -1162,6 +1181,10 @@ class MessageHolderHelper(
         }
 
         val merged = LinkedHashMap<String, MmsSlide>()
+        if (!adapterHasMedia) {
+            clearSlideshowState()
+            return
+        }
         listOf(mmsSlideshow, ComposeSlideshowBridge.slideshow).forEach { source ->
             source?.slides?.forEach { slide ->
                 if (slide.uriString.isNotEmpty()) {
