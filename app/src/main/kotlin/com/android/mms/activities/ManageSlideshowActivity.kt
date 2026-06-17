@@ -7,7 +7,6 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.appcompat.widget.PopupMenu
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
@@ -23,6 +22,7 @@ import com.goodwy.commons.extensions.isDynamicTheme
 import com.goodwy.commons.extensions.isSystemInDarkMode
 import com.goodwy.commons.extensions.toast
 import com.goodwy.commons.extensions.updateTextColors
+import com.goodwy.commons.dialogs.OptionListDialog
 import com.goodwy.commons.views.MyRecyclerView
 import com.android.mms.R
 import com.android.mms.adapters.SlideshowSlidesAdapter
@@ -117,56 +117,56 @@ class ManageSlideshowActivity : SimpleActivity() {
             activity = this,
             onSlideClicked = { position -> openSlideEditor(position) },
             onAddSlideClicked = { addNewSlide() },
-            onSlideLongClicked = { position, view ->
+            onSlideLongClicked = { position, _ ->
                 selectedPosition = position
-                showSlideContextMenu(view, position)
+                showSlideActionsDialog(position)
             },
         )
         binding.manageSlideshowList.adapter = adapter
     }
 
-    private fun showSlideContextMenu(anchor: View, position: Int) {
-        val popup = PopupMenu(this, anchor)
+    /** Long-press: show actions in a blurred list dialog (MainActivity conversation pattern), not a popup menu. */
+    private fun showSlideActionsDialog(position: Int) {
+        if (isDestroyed || isFinishing) {
+            return
+        }
+
+        val options = mutableListOf<Pair<CharSequence, () -> Unit>>()
         if (position > 0) {
-            popup.menu.add(0, MENU_MOVE_UP, 0, R.string.move_up)
+            options.add(getString(R.string.move_up) to { moveSlideUpAt(position) })
         }
         if (position < slideshow.size - 1) {
-            popup.menu.add(0, MENU_MOVE_DOWN, 1, R.string.move_down)
+            options.add(getString(R.string.move_down) to { moveSlideDownAt(position) })
         }
         if (slideshow.size < MmsSlideshow.MAX_SLIDE_NUM) {
-            popup.menu.add(0, MENU_ADD_SLIDE, 2, R.string.add_slide)
+            options.add(getString(R.string.add_slide) to { addNewSlideAt(position + 1) })
         }
-        popup.menu.add(0, MENU_REMOVE_SLIDE, 3, R.string.remove_slide)
-        popup.setOnMenuItemClickListener { item ->
-            handleSlideContextMenuItem(item.itemId, position)
+        options.add(getString(R.string.remove_slide) to { removeSlideAt(position) })
+
+        if (options.isEmpty()) {
+            return
         }
-        popup.show()
+
+        val title = getString(R.string.slide_number, (position + 1).toString())
+        OptionListDialog(
+            activity = this,
+            title = title,
+            options = options,
+            blurTarget = binding.mainBlurTarget,
+            cancelListener = null,
+        )
     }
 
-    private fun handleSlideContextMenuItem(itemId: Int, position: Int): Boolean {
-        when (itemId) {
-            MENU_MOVE_UP -> {
-                slideshow = slideshow.moveSlideUp(position)
-                ComposeSlideshowBridge.slideshow = slideshow
-                refreshList()
-                return true
-            }
-            MENU_MOVE_DOWN -> {
-                slideshow = slideshow.moveSlideDown(position)
-                ComposeSlideshowBridge.slideshow = slideshow
-                refreshList()
-                return true
-            }
-            MENU_ADD_SLIDE -> {
-                addNewSlideAt(position + 1)
-                return true
-            }
-            MENU_REMOVE_SLIDE -> {
-                removeSlideAt(position)
-                return true
-            }
-        }
-        return false
+    private fun moveSlideUpAt(position: Int) {
+        slideshow = slideshow.moveSlideUp(position)
+        ComposeSlideshowBridge.slideshow = slideshow
+        refreshList()
+    }
+
+    private fun moveSlideDownAt(position: Int) {
+        slideshow = slideshow.moveSlideDown(position)
+        ComposeSlideshowBridge.slideshow = slideshow
+        refreshList()
     }
 
     private fun refreshList() {
@@ -363,9 +363,5 @@ class ManageSlideshowActivity : SimpleActivity() {
 
     companion object {
         private const val NEST_BOUNCY_OVERSCROLL_FACTOR = 0.35f
-        private const val MENU_MOVE_UP = 10
-        private const val MENU_MOVE_DOWN = 11
-        private const val MENU_ADD_SLIDE = 12
-        private const val MENU_REMOVE_SLIDE = 13
     }
 }
