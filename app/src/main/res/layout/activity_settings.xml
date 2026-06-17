@@ -347,8 +347,7 @@
 
                                 <RelativeLayout
                                     android:id="@+id/settings_show_phone_number_holder"
-                                    style="@style/SettingsHolderSwitchStyle"
-                                    android:paddingTop="@dimen/tx_cardview_margin_vertical">
+                                    style="@style/SettingsHolderSwitchStyle">
 
                                     <com.goodwy.commons.views.MyTextView
                                         android:id="@+id/settingsShowPhoneNumberLabel"
