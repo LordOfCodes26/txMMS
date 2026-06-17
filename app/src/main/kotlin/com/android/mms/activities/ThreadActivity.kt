@@ -964,6 +964,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             binding.messageHolder.threadCharacterCounter.beVisibleIf(
                 config.showCharacterCounter && draft.body.isNotEmpty()
             )
+            helper.checkSendMessageAvailability()
         } else if (draft.body.isNotEmpty()) {
             binding.messageHolder.threadTypeMessage.setText(draft.body)
             binding.messageHolder.threadTypeMessage.setSelection(draft.body.length)

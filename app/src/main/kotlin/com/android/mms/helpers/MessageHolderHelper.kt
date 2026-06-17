@@ -906,7 +906,11 @@ class MessageHolderHelper(
         val nonMedia = buildDraftAttachmentSelections(nonSlideshowStored).filter {
             !SlideshowHelper.isMediaSelection(it) && it.viewType != ATTACHMENT_AUDIO
         }
-        adapter.submitAttachments(nonMedia)
+        // Image-only drafts have no non-media rows. submitAttachments(empty) fires onAttachmentsRemoved,
+        // which clears mmsSlideshow before refreshSlideshowComposeUi can bind the preview.
+        if (nonMedia.isNotEmpty()) {
+            adapter.submitAttachments(nonMedia)
+        }
         refreshSlideshowComposeUi(adapter)
     }
 
@@ -1267,11 +1271,13 @@ class MessageHolderHelper(
                 checkSendMessageAvailability()
                 return
             }
+            val pending = isPendingOverride
+                ?: resolveDraftAttachmentPending(slide.uri, slide.mimetype)
             val restored = buildAttachmentSelection(
                 slide.uri,
                 slide.mimetype,
                 slide.filename,
-                isPendingOverride,
+                pending,
             )
             adapter.submitAttachments(nonMedia + restored)
         } else {
