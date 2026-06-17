@@ -111,7 +111,10 @@ class EditSlideActivity : SimpleActivity() {
         binding.editSlideAppbar.addOnOffsetChangedListener { _, _ ->
             binding.mVerticalSideFrameTop.update()
         }
-        binding.root.post { refreshSideFrames() }
+        binding.root.post {
+            binding.editSlideAppbar.dismissCollapse()
+            refreshSideFrames()
+        }
     }
 
     override fun onResume() {
@@ -120,6 +123,8 @@ class EditSlideActivity : SimpleActivity() {
         applyWindowSurfaces()
         updateTextColors(binding.rootView)
         setupTopAppBar()
+        binding.editSlideAppbar.dismissCollapse()
+        binding.editSlideAppbar.translationY = 0f
         refreshSideFrames()
     }
 
@@ -131,7 +136,10 @@ class EditSlideActivity : SimpleActivity() {
         binding.removeSlideButton.setOnClickListener { removeCurrentSlide() }
         binding.doneSlideButton.setOnClickListener { finishWithResult(done = false) }
         binding.slideTextMessage.setOnFocusChangeListener { _, hasFocus ->
-            if (!hasFocus) {
+            if (hasFocus) {
+                binding.editSlideAppbar.dismissCollapse()
+                binding.mVerticalSideFrameTop.update()
+            } else {
                 persistSlideText()
             }
         }
@@ -224,17 +232,27 @@ class EditSlideActivity : SimpleActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
             val nav = insets.getInsets(WindowInsetsCompat.Type.navigationBars())
+            val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
             val dp5 = (5 * resources.displayMetrics.density).toInt()
             binding.mVerticalSideFrameBottom.layoutParams =
                 binding.mVerticalSideFrameBottom.layoutParams.apply { height = nav.bottom + dp5 }
-            // The text row is outside BlurTarget so it always stays at the screen bottom.
-            // Give it bottom padding to clear the navigation bar.
+            // Keep the text row above the keyboard / nav bar (MainActivity / ContactPicker pattern)
+            // so the CoordinatorLayout does not collapse the top app bar when IME opens.
+            val textRowLp = binding.editSlideTextRow.layoutParams as ViewGroup.MarginLayoutParams
             val smallMargin = resources.getDimensionPixelSize(com.goodwy.commons.R.dimen.small_margin)
-            binding.editSlideTextRow.updatePadding(bottom = nav.bottom + smallMargin)
+            textRowLp.bottomMargin = if (ime.bottom > 0) ime.bottom else nav.bottom
+            binding.editSlideTextRow.layoutParams = textRowLp
+            binding.editSlideTextRow.updatePadding(bottom = smallMargin)
+            if (ime.bottom > 0) {
+                binding.editSlideAppbar.dismissCollapse()
+            }
             // Once the text row re-measures, push the scroll area's bottom padding up by
             // the same amount so the scroll content is never hidden under the text bar.
             binding.editSlideTextRow.post {
                 binding.editSlideScroll.updatePadding(bottom = binding.editSlideTextRow.height)
+                if (ime.bottom > 0) {
+                    binding.mVerticalSideFrameTop.update()
+                }
             }
             insets
         }
