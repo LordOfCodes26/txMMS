@@ -5,6 +5,7 @@ import android.graphics.Color
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Bundle
+import android.util.TypedValue
 import android.view.View
 import android.view.ViewGroup
 import androidx.activity.OnBackPressedCallback
@@ -15,19 +16,23 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updateLayoutParams
 import androidx.core.view.updatePadding
 import com.bumptech.glide.Glide
+import com.goodwy.commons.extensions.applyColorFilter
 import com.goodwy.commons.extensions.beGone
 import com.goodwy.commons.extensions.beVisible
 import com.goodwy.commons.extensions.beVisibleIf
 import com.goodwy.commons.extensions.getProperBackgroundColor
+import com.goodwy.commons.extensions.getProperTextColor
 import com.goodwy.commons.extensions.getSurfaceColor
 import com.goodwy.commons.extensions.getFilenameFromUri
 import com.goodwy.commons.extensions.hideKeyboard
 import com.goodwy.commons.extensions.toast
 import com.goodwy.commons.extensions.isDynamicTheme
 import com.goodwy.commons.extensions.isSystemInDarkMode
+import com.goodwy.commons.extensions.updatePaddingWithBase
 import com.goodwy.commons.extensions.updateTextColors
 import com.android.mms.R
 import com.android.mms.databinding.ActivityEditSlideBinding
+import com.android.mms.extensions.getTextSizeMessage
 import com.android.mms.extensions.isAudioMimeType
 import com.android.mms.extensions.isImageMimeType
 import com.android.mms.extensions.isVideoMimeType
@@ -105,6 +110,7 @@ class EditSlideActivity : SimpleActivity() {
         setupEdgeToEdge()
         setupTopAppBar()
         applyWindowSurfaces()
+        setupComposeBarStyle()
         setupActions()
         showCurrentSlide()
 
@@ -122,10 +128,17 @@ class EditSlideActivity : SimpleActivity() {
         applySystemBarUi()
         applyWindowSurfaces()
         updateTextColors(binding.rootView)
+        setupComposeBarStyle()
         setupTopAppBar()
         binding.editSlideAppbar.dismissCollapse()
         binding.editSlideAppbar.translationY = 0f
         refreshSideFrames()
+    }
+
+    private fun setupComposeBarStyle() {
+        val textColor = getProperTextColor()
+        binding.slideTextMessage.setTextSize(TypedValue.COMPLEX_UNIT_PX, getTextSizeMessage())
+        binding.doneSlideButtonIcon.applyColorFilter(textColor)
     }
 
     private fun setupActions() {
@@ -232,25 +245,23 @@ class EditSlideActivity : SimpleActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
             val nav = insets.getInsets(WindowInsetsCompat.Type.navigationBars())
-            val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
+            val imeAndSystem = insets.getInsets(
+                WindowInsetsCompat.Type.ime() or WindowInsetsCompat.Type.systemBars(),
+            )
             val dp5 = (5 * resources.displayMetrics.density).toInt()
             binding.mVerticalSideFrameBottom.layoutParams =
                 binding.mVerticalSideFrameBottom.layoutParams.apply { height = nav.bottom + dp5 }
-            // Keep the text row above the keyboard / nav bar (MainActivity / ContactPicker pattern)
-            // so the CoordinatorLayout does not collapse the top app bar when IME opens.
-            val textRowLp = binding.editSlideTextRow.layoutParams as ViewGroup.MarginLayoutParams
-            val smallMargin = resources.getDimensionPixelSize(com.goodwy.commons.R.dimen.small_margin)
-            textRowLp.bottomMargin = if (ime.bottom > 0) ime.bottom else nav.bottom
-            binding.editSlideTextRow.layoutParams = textRowLp
-            binding.editSlideTextRow.updatePadding(bottom = smallMargin)
-            if (ime.bottom > 0) {
+            // Match ThreadActivity / NewConversationActivity: inset padding on the compose row
+            // so card strokes sit above the nav bar and bottom MVSideFrame.
+            binding.editSlideTextRow.updatePaddingWithBase(bottom = imeAndSystem.bottom)
+            if (imeAndSystem.bottom > nav.bottom) {
                 binding.editSlideAppbar.dismissCollapse()
             }
             // Once the text row re-measures, push the scroll area's bottom padding up by
             // the same amount so the scroll content is never hidden under the text bar.
             binding.editSlideTextRow.post {
                 binding.editSlideScroll.updatePadding(bottom = binding.editSlideTextRow.height)
-                if (ime.bottom > 0) {
+                if (imeAndSystem.bottom > nav.bottom) {
                     binding.mVerticalSideFrameTop.update()
                 }
             }
