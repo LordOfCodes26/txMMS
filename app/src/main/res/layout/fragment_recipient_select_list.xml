@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <com.goodwy.commons.views.MyTextView
+        android:id="@+id/recipient_select_placeholder"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:alpha="0.8"
+        android:gravity="center"
+        android:padding="@dimen/activity_margin"
+        android:textSize="@dimen/tx_normal_text"
+        android:textStyle="italic"
+        android:visibility="gone"
+        tools:text="@string/no_contacts_found" />
+
+    <com.goodwy.commons.views.MyRecyclerView
+        android:id="@+id/recipient_select_list"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clipToPadding="false" />
+</FrameLayout>

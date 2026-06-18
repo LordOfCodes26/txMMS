@@ -164,9 +164,8 @@ class AttachmentIntentLauncher(
     }
 
     fun launchPickContact() {
-        val intent = Intent(Intent.ACTION_PICK).apply {
-            type = ContactsContract.Contacts.CONTENT_TYPE
-        }
+
+        val intent: Intent = Intent("com.android.contacts.action.SELECT_CONTACTS")
         launchActivityForResult(intent, MessageHolderHelper.PICK_CONTACT_INTENT)
     }
 

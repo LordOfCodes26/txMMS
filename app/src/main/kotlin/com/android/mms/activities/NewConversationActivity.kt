@@ -54,6 +54,7 @@ import com.android.mms.databinding.ItemSuggestedContactBinding
 import com.android.mms.dialogs.showScheduleDateTimePicker
 import com.android.mms.extensions.*
 import com.android.mms.helpers.*
+import com.android.mms.models.*
 import com.android.mms.messaging.isLongMmsMessage
 import com.android.mms.messaging.scheduleMessage
 import com.android.mms.messaging.sendMessageCompat
@@ -576,27 +577,13 @@ class NewConversationActivity : SimpleActivity() {
             if (speechToText.isNotEmpty()) {
                 messageHolderHelper?.setMessageText(speechToText)
             }
-        } else if (requestCode == REQUEST_CODE_CONTACT_PICKER && resultData != null) {
-            val displayTexts = ContactPickerActivity.getSelectedDisplayTexts(resultData)
-            val normalizedNumbers = ContactPickerActivity.getSelectedPhoneNumbers(resultData)
-            if (displayTexts.size == normalizedNumbers.size) {
-                isUpdatingChips = true
-                for (i in displayTexts.indices) {
-                    val displayText = displayTexts[i]
-                    val normalizedNumber = normalizedNumbers[i]
-                    if (displayText.isNotEmpty() && normalizedNumber.isNotEmpty() && !chipDisplayToPhoneNumber.containsKey(displayText)) {
-                        chipDisplayToPhoneNumber[displayText] = normalizedNumber
-                        binding.newConversationAddress.addChip(displayText)
-                    }
-                }
-                isUpdatingChips = false
-                messageHolderHelper?.checkSendMessageAvailability()
-            }
+        } else if (requestCode == RecipientSelectActivity.REQUEST_CODE_RECIPIENT_SELECT) {
+            applyRecipientsFromContactPickerResult(resultData)
         } else {
             messageHolderHelper?.handleActivityResult(requestCode, resultCode, resultData)
 
-            if (requestCode == MessageHolderHelper.PICK_CONTACT_INTENT && resultData?.data != null) {
-                addContactAttachment(resultData.data!!)
+            if (requestCode == MessageHolderHelper.PICK_CONTACT_INTENT) {
+                messageHolderHelper?.handlePickContactAttachmentResult("NewConversationActivity", resultCode, resultData)
             }
         }
     }
@@ -891,7 +878,7 @@ class NewConversationActivity : SimpleActivity() {
 
         binding.newConversationAddress.setSpeechToTextButtonVisible(false)
         binding.newConversationAddress.setSpeechToTextButtonClickListener { speechToText() }
-        binding.newConversationAddress.setAddressBookButtonClickListener { launchContactPicker() }
+        binding.newConversationAddress.setAddressBookButtonClickListener { launchRecipientSelectActivity() }
 
         binding.noContactsPlaceholder2.setOnClickListener {
             handlePermission(PERMISSION_READ_CONTACTS) {
@@ -1747,19 +1734,91 @@ class NewConversationActivity : SimpleActivity() {
         messageHolderHelper?.addContactAttachment(contactUri)
     }
 
-    private fun launchContactPicker() {
-        // Start the picker immediately; it handles READ_CONTACTS itself. Do not gate on
-        // handlePermission or hideKeyboard here — both delay the activity transition.
+    private fun launchCapturePhotoIntent() {
+        val imageFile = java.io.File.createTempFile("attachment_", ".jpg", getAttachmentsDir())
+        val capturedImageUri = getMyFileUri(imageFile)
+//        messageHolderHelper?.setCapturedImageUri(capturedImageUri)
+        val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE).apply {
+            putExtra(MediaStore.EXTRA_OUTPUT, capturedImageUri)
+        }
+        launchActivityForResult(intent, MessageHolderHelper.CAPTURE_PHOTO_INTENT)
+    }
+
+    private fun launchCaptureVideoIntent() {
+        val intent = Intent(MediaStore.ACTION_VIDEO_CAPTURE)
+        launchActivityForResult(intent, MessageHolderHelper.CAPTURE_VIDEO_INTENT)
+    }
+
+    private fun launchCaptureAudioIntent() {
+        val intent = Intent(MediaStore.Audio.Media.RECORD_SOUND_ACTION)
+        launchActivityForResult(intent, MessageHolderHelper.CAPTURE_AUDIO_INTENT)
+    }
+
+    private fun launchGetContentIntent(mimeTypes: Array<String>, requestCode: Int) {
+        Intent(Intent.ACTION_GET_CONTENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = "*/*"
+            putExtra(Intent.EXTRA_MIME_TYPES, mimeTypes)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            launchActivityForResult(this, requestCode)
+        }
+    }
+
+    private fun launchPickContactIntent() {
+        val intent = MessageHolderHelper.createSelectContactsIntent()
+        val resolved = packageManager.resolveActivity(intent, 0)
+        Log.d(
+            debugTag,
+            "launchPickContactIntent action=${intent.action} resolved=${resolved?.activityInfo?.packageName}/" +
+                "${resolved?.activityInfo?.name}",
+        )
+        launchActivityForResult(intent, MessageHolderHelper.PICK_CONTACT_INTENT)
+    }
+
+    private fun launchRecipientSelectActivity() {
+        val alreadySelected = ArrayList<Contact>()
+        chipDisplayToPhoneNumber.forEach { (display, phone) ->
+            alreadySelected.add(Contact(name = display, phoneNumber = phone))
+        }
+        val intent = Intent(this, RecipientSelectActivity::class.java).apply {
+            putParcelableArrayListExtra(ContactPickerActivity.EXTRA_ALREADY_SELECTED_CONTACTS, alreadySelected)
+        }
+        launchActivityForResult(intent, RecipientSelectActivity.REQUEST_CODE_RECIPIENT_SELECT)
+    }
+
+    private fun applyRecipientsFromContactPickerResult(resultData: Intent?) {
+        val displayTexts = ContactPickerActivity.getSelectedDisplayTexts(resultData)
+        val phoneNumbers = ContactPickerActivity.getSelectedPhoneNumbers(resultData)
+        if (displayTexts.isEmpty()) return
+        isUpdatingChips = true
+        chipDisplayToPhoneNumber.keys.toList().forEach { binding.newConversationAddress.removeChip(it) }
+        chipDisplayToPhoneNumber.clear()
+        displayTexts.forEachIndexed { index, displayText ->
+            val normalized = phoneNumbers.getOrNull(index) ?: return@forEachIndexed
+            chipDisplayToPhoneNumber[displayText] = normalized
+            binding.newConversationAddress.addChip(displayText)
+        }
+        isUpdatingChips = false
+        binding.newConversationAddress.clearText()
+        updateNewConversationTitle()
+        messageHolderHelper?.checkSendMessageAvailability()
+    }
+
+    private fun launchActivityForResult(intent: Intent, requestCode: Int) {
+        hideKeyboard()
         try {
-            startActivityForResult(
-                Intent(this, ContactPickerActivity::class.java),
-                REQUEST_CODE_CONTACT_PICKER,
-            )
+            startActivityForResult(intent, requestCode)
         } catch (e: Exception) {
             showErrorToast(e)
-            return
         }
-        window.decorView.post { hideKeyboard() }
+    }
+
+    private fun getAttachmentsDir(): java.io.File {
+        return java.io.File(cacheDir, "attachments").apply {
+            if (!exists()) {
+                mkdirs()
+            }
+        }
     }
 
     private fun askForExactAlarmPermissionIfNeeded(callback: () -> Unit = {}) {
@@ -1896,7 +1955,7 @@ class NewConversationActivity : SimpleActivity() {
         val threadId = messageId
         val isGroupMms = participants.size > 1 && config.sendGroupMessageMMS
         val isLongMms = isLongMmsMessage(text)
-        val hasAttachments = messageHolderHelper?.getDraftStoredAttachments()?.isNotEmpty() == true
+        val hasAttachments = messageHolderHelper?.getAttachmentSelections()?.isNotEmpty() == true
         val isMMS = hasAttachments || isGroupMms || isLongMms
         val attachments = messageHolderHelper?.buildMessageAttachments(messageId) ?: ArrayList()
         return Message(
@@ -2349,7 +2408,7 @@ class NewConversationActivity : SimpleActivity() {
     private fun newConversationExitSnapshot(): NewConversationExitSnapshot {
         val chips = binding.newConversationAddress.allChips
         val messageText = binding.messageHolder.threadTypeMessage.text?.toString()?.trim() ?: ""
-        val hasAttachments = messageHolderHelper?.getDraftStoredAttachments()?.isNotEmpty() == true
+        val hasAttachments = messageHolderHelper?.getAttachmentSelections()?.isNotEmpty() == true
         val hasMessage =
             messageText.isNotEmpty() || hasAttachments || isScheduledMessage
         val staleResumeId = resumedDraftThreadId
@@ -2366,11 +2425,19 @@ class NewConversationActivity : SimpleActivity() {
 
         mergeRecipientNumbersFromRecipientField(allNumbers)
 
-        val selections = messageHolderHelper?.getDraftStoredAttachments().orEmpty()
+        val selections = messageHolderHelper?.getAttachmentSelections().orEmpty()
         val attachmentsJson = if (selections.isEmpty()) {
             null
         } else {
-            Gson().toJson(selections)
+            val stored = selections.map {
+                DraftStoredAttachment(
+                    uriString = it.uri.toString(),
+                    mimetype = it.mimetype,
+                    filename = it.filename,
+                    isPending = it.isPending,
+                )
+            }
+            Gson().toJson(stored)
         }
         val scheduledMillis = if (isScheduledMessage) scheduledDateTime.millis else 0L
 

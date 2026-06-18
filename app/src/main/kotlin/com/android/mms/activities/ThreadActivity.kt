@@ -265,6 +265,13 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                 }
             }
 
+            val draftRow = getSmsDraftEntity(threadId)
+            runOnUiThread {
+                if (draftRow != null && draftRow.threadHasPersistedComposeContent()) {
+                    applyThreadDraftRow(draftRow)
+                }
+            }
+
             markThreadMessagesRead(threadId)
         }
 
@@ -878,14 +885,22 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             return
         }
         val draftMessage = messageHolderHelper?.getMessageText() ?: ""
-        val storedAttachments = messageHolderHelper?.getDraftStoredAttachments().orEmpty()
-        val attachmentsJson = if (storedAttachments.isEmpty()) {
+        val selections = messageHolderHelper?.getAttachmentSelections().orEmpty()
+        val attachmentsJson = if (selections.isEmpty()) {
             null
         } else {
-            Gson().toJson(storedAttachments)
+            val stored = selections.map {
+                DraftStoredAttachment(
+                    uriString = it.uri.toString(),
+                    mimetype = it.mimetype,
+                    filename = it.filename,
+                    isPending = it.isPending,
+                )
+            }
+            Gson().toJson(stored)
         }
         val persistCompose = draftMessage.isNotEmpty() ||
-            storedAttachments.isNotEmpty() ||
+            selections.isNotEmpty() ||
             isScheduledMessage
         val scheduledMillis = if (isScheduledMessage) scheduledDateTime.millis else 0L
 
@@ -1125,14 +1140,11 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         // Handle attachments via helper
         messageHolderHelper?.handleActivityResult(requestCode, resultCode, resultData)
 
-        // Handle contact attachment and save operations
-        val data = resultData?.data
-        if (data != null) {
-            when (requestCode) {
-                MessageHolderHelper.PICK_CONTACT_INTENT -> addContactAttachment(data)
-                PICK_SAVE_FILE_INTENT -> saveAttachments(resultData)
-                PICK_SAVE_DIR_INTENT -> saveAttachments(resultData)
-            }
+        when (requestCode) {
+            MessageHolderHelper.PICK_CONTACT_INTENT ->
+                messageHolderHelper?.handlePickContactAttachmentResult("ThreadActivity", resultCode, resultData)
+            PICK_SAVE_FILE_INTENT -> resultData?.data?.let { saveAttachments(resultData) }
+            PICK_SAVE_DIR_INTENT -> resultData?.data?.let { saveAttachments(resultData) }
         }
     }
 
@@ -2332,6 +2344,55 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         } catch (e: Exception) {
             showErrorToast(e)
         }
+    }
+
+    private fun getAttachmentsDir(): File {
+        return File(cacheDir, "attachments").apply {
+            if (!exists()) {
+                mkdirs()
+            }
+        }
+    }
+
+    private fun launchCapturePhotoIntent() {
+        val imageFile = File.createTempFile("attachment_", ".jpg", getAttachmentsDir())
+        val capturedImageUri = getMyFileUri(imageFile)
+//        messageHolderHelper?.setCapturedImageUri(capturedImageUri)
+        val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE).apply {
+            putExtra(MediaStore.EXTRA_OUTPUT, capturedImageUri)
+        }
+        launchActivityForResult(intent, MessageHolderHelper.CAPTURE_PHOTO_INTENT)
+    }
+
+    private fun launchCaptureVideoIntent() {
+        val intent = Intent(MediaStore.ACTION_VIDEO_CAPTURE)
+        launchActivityForResult(intent, MessageHolderHelper.CAPTURE_VIDEO_INTENT)
+    }
+
+    private fun launchCaptureAudioIntent() {
+        val intent = Intent(MediaStore.Audio.Media.RECORD_SOUND_ACTION)
+        launchActivityForResult(intent, MessageHolderHelper.CAPTURE_AUDIO_INTENT)
+    }
+
+    private fun launchGetContentIntent(mimeTypes: Array<String>, requestCode: Int) {
+        Intent(Intent.ACTION_GET_CONTENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = "*/*"
+            putExtra(Intent.EXTRA_MIME_TYPES, mimeTypes)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            launchActivityForResult(this, requestCode)
+        }
+    }
+
+    private fun launchPickContactIntent() {
+        val intent = MessageHolderHelper.createSelectContactsIntent()
+        val resolved = packageManager.resolveActivity(intent, 0)
+        Log.d(
+            debugTag,
+            "launchPickContactIntent action=${intent.action} resolved=${resolved?.activityInfo?.packageName}/" +
+                "${resolved?.activityInfo?.name}",
+        )
+        launchActivityForResult(intent, MessageHolderHelper.PICK_CONTACT_INTENT)
     }
 
     private fun addContactAttachment(contactUri: Uri) {

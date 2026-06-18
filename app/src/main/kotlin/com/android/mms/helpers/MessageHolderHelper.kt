@@ -14,6 +14,7 @@ import android.provider.Settings
 import android.telephony.SmsManager
 import android.telephony.SmsMessage
 import android.text.InputType
+import android.util.Log
 import android.util.TypedValue
 import android.view.KeyEvent
 import android.view.View
@@ -106,12 +107,50 @@ class MessageHolderHelper(
         const val PICK_CONTACT_INTENT = 2007
         const val PICK_RINGTONE_INTENT = 2008
         const val PICK_SOUND_INTENT = 2009
+        const val SELECT_CONTACTS_ACTION = "com.android.contacts.action.SELECT_CONTACTS"
+        const val SELECT_CONTACTS_RESULT_ADDED_IDS = "added_contact_ids"
+        const val SELECT_CONTACTS_RESULT_ALL_IDS = "all_selected_contact_ids"
+	private const val LOG_TAG = "PickContactAttachment"
 
         private const val CHARACTER_COUNTER_DEBOUNCE_MS = 48L
         private const val CAPTURE_VIDEO_FINALIZE_MAX_ATTEMPTS = 50
         private const val CAPTURE_VIDEO_FINALIZE_RETRY_MS = 50L
         private const val CAPTURE_PHOTO_FINALIZE_MAX_ATTEMPTS = 50
         private const val CAPTURE_PHOTO_FINALIZE_RETRY_MS = 50L
+        fun createSelectContactsIntent(): Intent = Intent(SELECT_CONTACTS_ACTION)
+
+        fun logSelectContactsResult(callerTag: String, resultCode: Int, resultData: Intent?) {
+            val tag = "$LOG_TAG:$callerTag"
+            if (resultData == null) {
+                Log.w(tag, "onActivityResult requestCode=$PICK_CONTACT_INTENT resultCode=$resultCode resultData=null")
+                return
+            }
+            val extrasSummary = resultData.extras?.let { bundle ->
+                bundle.keySet().joinToString(prefix = "{", postfix = "}") { key ->
+                    val value = bundle.get(key)
+                    val rendered = when (value) {
+                        is LongArray -> value.contentToString()
+                        is IntArray -> value.contentToString()
+                        is Array<*> -> value.contentToString()
+                        else -> value.toString()
+                    }
+                    "$key=$rendered"
+                }
+            } ?: "{}"
+            Log.d(
+                tag,
+                "onActivityResult requestCode=$PICK_CONTACT_INTENT resultCode=$resultCode " +
+                    "data=${resultData.data} clipData=${resultData.clipData} extras=$extrasSummary",
+            )
+        }
+
+        fun getSelectedRawContactIds(resultData: Intent?): List<Int> {
+            if (resultData == null) return emptyList()
+            val fromAll = resultData.getLongArrayExtra(SELECT_CONTACTS_RESULT_ALL_IDS)
+            val fromAdded = resultData.getLongArrayExtra(SELECT_CONTACTS_RESULT_ADDED_IDS)
+            val ids = fromAll?.takeIf { it.isNotEmpty() } ?: fromAdded
+            return ids?.map { it.toInt() } ?: emptyList()
+        }
     }
 
     private var captureVideoFinalizeAttempt = 0
@@ -675,6 +714,36 @@ class MessageHolderHelper(
         attachmentIntentLauncher = launcher
     }
 
+ /**
+     * Handles [PICK_CONTACT_INTENT] from [SELECT_CONTACTS_ACTION].
+     * That picker returns raw contact ids in extras ([SELECT_CONTACTS_RESULT_ADDED_IDS] /
+     * [SELECT_CONTACTS_RESULT_ALL_IDS]), not a [Uri] in [Intent.getData].
+     */
+    fun handlePickContactAttachmentResult(callerTag: String, resultCode: Int, resultData: Intent?) {
+        logSelectContactsResult(callerTag, resultCode, resultData)
+        if (resultCode != android.app.Activity.RESULT_OK || resultData == null) return
+
+        val dataUri = resultData.data
+        if (dataUri != null) {
+            Log.d("$LOG_TAG:$callerTag", "Using resultData.data uri=$dataUri")
+            addContactAttachment(dataUri)
+            return
+        }
+
+        val rawContactIds = getSelectedRawContactIds(resultData)
+        if (rawContactIds.isEmpty()) {
+            Log.w(
+                "$LOG_TAG:$callerTag",
+                "No contact result: data Uri is null and no " +
+                    "$SELECT_CONTACTS_RESULT_ADDED_IDS / $SELECT_CONTACTS_RESULT_ALL_IDS extras",
+            )
+            activity.toast(com.goodwy.commons.R.string.unknown_error_occurred)
+            return
+        }
+
+        Log.d("$LOG_TAG:$callerTag", "Using raw contact id extras ids=$rawContactIds")
+        addContactAttachmentByRawContactId(rawContactIds.first())
+    }
     fun setPendingReplaceAttachmentId(attachmentId: String) {
         pendingReplaceAttachmentId = attachmentId
     }
@@ -693,51 +762,22 @@ class MessageHolderHelper(
     }
 
     fun addContactAttachment(contactUri: Uri) {
-        val replacingVCard = pendingReplaceAttachmentId != null
-        if (replacingVCard) {
-            resolveContactForAttachment(contactUri) { contact ->
-                if (contact != null) {
-                    exportContactAsVCardAttachment(contact)
-                } else {
-                    activity.toast(com.goodwy.commons.R.string.unknown_error_occurred)
-                    clearPendingReplaceAttachmentId()
-                }
-            }
-            return
-        }
-
-        val items = arrayListOf(
-            RadioItem(1, activity.getString(com.goodwy.commons.R.string.file)),
-            RadioItem(2, activity.getString(com.goodwy.commons.R.string.text))
-        )
-        val blurTarget = activity.findViewById<BlurTarget>(R.id.mainBlurTarget)
-            ?: throw IllegalStateException("mainBlurTarget not found")
-        RadioGroupDialog(
-            activity as SimpleActivity,
-            items,
-            checkedItemId = 1,
-            requireConfirmButton = true,
-            blurTarget = blurTarget,
-        ) { choice ->
-            resolveContactForAttachment(contactUri) { contact ->
-                if (contact == null) {
-                    activity.toast(com.goodwy.commons.R.string.unknown_error_occurred)
-                    return@resolveContactForAttachment
-                }
-
-                if (choice == 1) {
-                    exportContactAsVCardAttachment(contact)
-                } else {
-                    activity.runOnUiThread {
-                        val current = binding.threadTypeMessage.value
-                        binding.threadTypeMessage.setText(current + contact.getContactToText(activity))
-                    }
-                }
-            }
+        resolveContactForAttachment(contactUri) { contact ->
+            insertContactAsText(contact)
         }
     }
 
-    private fun resolveContactForAttachment(contactUri: Uri, callback: (Contact?) -> Unit) {
+    fun addContactAttachmentByRawContactId(rawContactId: Int) {
+        ensureBackgroundThread {
+            val contact = ContactsHelper(activity).getContactWithId(rawContactId)
+            activity.runOnUiThread { insertContactAsText(contact) }
+        }
+    }
+
+    private fun resolveContactForAttachment(
+        contactUri: Uri,
+        onResolved: (com.goodwy.commons.models.contacts.Contact?) -> Unit,
+    ) {
         val privateCursor = activity.getMyContactsCursor(favoritesOnly = false, withPhoneNumbersOnly = true)
         ContactsHelper(activity).getContacts(showOnlyContactsWithNumbers = false) { contacts ->
             val contact = if (contactUri.pathSegments.last().startsWith("local_")) {
@@ -751,34 +791,19 @@ class MessageHolderHelper(
             } else {
                 val contactId = activity.getContactUriRawId(contactUri)
                 contacts.firstOrNull { it.id == contactId }
+                    ?: ContactsHelper(activity).getContactWithId(contactId)
             }
-            callback(contact)
+            activity.runOnUiThread { onResolved(contact) }
         }
     }
 
-    private fun exportContactAsVCardAttachment(contact: Contact) {
-        val attachmentsDir = File(activity.cacheDir, "attachments").apply { mkdirs() }
-        val outputFile = File(attachmentsDir, "${contact.contactId}.vcf")
-        val displayName = contact.getNameToDisplay()
-        val filename = activity.getString(R.string.file_attachment_vcard_name, displayName)
-        VcfExporter().exportContacts(
-            activity = activity,
-            outputStream = outputFile.outputStream(),
-            contacts = arrayListOf(contact),
-            showExportingToast = false,
-        ) { result ->
-            if (result == ExportResult.EXPORT_OK) {
-                val vCardUri = activity.getMyFileUri(outputFile)
-                activity.runOnUiThread {
-                    finishAttachmentFromPicker(vCardUri, "text/x-vcard", filename)
-                }
-            } else {
-                activity.runOnUiThread {
-                    activity.toast(com.goodwy.commons.R.string.unknown_error_occurred)
-                    clearPendingReplaceAttachmentId()
-                }
-            }
+    private fun insertContactAsText(contact: com.goodwy.commons.models.contacts.Contact?) {
+        if (contact == null) {
+            activity.toast(com.goodwy.commons.R.string.unknown_error_occurred)
+            return
         }
+        val current = binding.threadTypeMessage.value
+        binding.threadTypeMessage.setText(current + contact.getContactToText(activity))
     }
 
     /**

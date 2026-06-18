@@ -116,6 +116,16 @@
             android:parentActivityName=".activities.NewConversationActivity" />
 
         <activity
+            android:name=".activities.RecipientSelectActivity"
+            android:configChanges="orientation"
+            android:exported="false"
+            android:label="@string/select_contacts"
+            android:theme="@style/BlurAppBarTheme"
+            android:screenOrientation="portrait"
+            tools:ignore="DiscouragedApi,LockedOrientationActivity"
+            android:parentActivityName=".activities.NewConversationActivity" />
+
+        <activity
             android:name=".activities.NewConversationActivity"
             android:configChanges="orientation"
             android:exported="true"
