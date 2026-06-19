@@ -41,9 +41,13 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:background="@color/tx_common_bg"
+            android:clipChildren="false"
+            android:clipToPadding="false"
+            android:elevation="0dp"
             android:orientation="vertical">
 
             <LinearLayout
+                android:id="@+id/recipient_select_filter_bar_child"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/tx_nest_bouncy_content_padding_top"
@@ -145,20 +149,12 @@
             app:isTopFrame="false" />
     </androidx.coordinatorlayout.widget.CoordinatorLayout>
 
-    <FrameLayout
-        android:id="@+id/lyt_action"
-        android:layout_width="match_parent"
+    <com.android.common.view.MRippleToolBar
+        android:id="@+id/confirm_tab"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="bottom"
-        android:layout_marginLeft="15dp"
-        android:layout_marginRight="15dp"
-        android:layout_marginBottom="@dimen/ripple_bottom">
+        android:layout_gravity="center|bottom"
+        android:layout_centerHorizontal="true" />
 
-        <com.android.common.view.MRippleToolBar
-            android:id="@+id/confirm_tab"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:visibility="visible" />
-    </FrameLayout>
+    
 </FrameLayout>

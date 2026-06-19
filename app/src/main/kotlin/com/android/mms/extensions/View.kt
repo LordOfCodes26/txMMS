@@ -2,6 +2,9 @@ package com.android.mms.extensions
 
 import android.animation.ObjectAnimator
 import android.app.Activity
+import android.graphics.Rect
+import android.graphics.drawable.Drawable
+import android.graphics.drawable.DrawableWrapper
 import android.view.View
 import androidx.core.animation.doOnStart
 import androidx.core.view.isVisible
@@ -78,3 +81,23 @@ fun View.setPaddingBubble(activity: Activity, bubbleStyle: Int, isReceived: Bool
     }
 }
 
+fun View.applyCustomBubbleBackground(activity: Activity, drawable: Drawable?, bubbleStyle: Int, isReceived: Boolean) {
+    minimumHeight = 0
+    minimumWidth = 0
+    val padding = Rect()
+    val hasNinePatchPadding = drawable?.getPadding(padding) == true &&
+        padding.left + padding.top + padding.right + padding.bottom > 0
+    padding.setEmpty()
+    background = if (drawable != null && !hasNinePatchPadding) drawable.withZeroMinimumSize() else drawable
+    if (hasNinePatchPadding && background?.getPadding(padding) == true) {
+        setPadding(padding.left, padding.top, padding.right, padding.bottom)
+    } else {
+        setPaddingBubble(activity, bubbleStyle, isReceived)
+    }
+}
+
+private fun Drawable.withZeroMinimumSize(): Drawable = object : DrawableWrapper(this) {
+    override fun getMinimumWidth(): Int = 0
+
+    override fun getMinimumHeight(): Int = 0
+}

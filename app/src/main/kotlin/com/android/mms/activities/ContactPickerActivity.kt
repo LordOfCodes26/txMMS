@@ -1234,7 +1234,11 @@ class ContactPickerActivity : SimpleActivity() {
                 globalSelected.forEach { selectedPositions.add(it) }
                 filteredContacts.clear()
                 filteredContacts.addAll(contactList)
-                contactAdapter?.setContactModeItems(ArrayList(filteredContacts), buildFilteredSelectedIndicesForAdapter())
+                contactAdapter?.setContactModeItems(
+                    ArrayList(filteredContacts),
+                    buildFilteredSelectedIndicesForAdapter(),
+                    query,
+                )
                 hideContactsLetterFastScroller()
             }
         }
@@ -1493,7 +1497,7 @@ class ContactPickerActivity : SimpleActivity() {
             entries.forEach { e ->
                 if (selectedPositions.contains(e.contactIndex)) filteredSelected.add(e.contactIndex)
             }
-            contactAdapter?.setCallLogModeItems(rows, allContacts, filteredSelected)
+            contactAdapter?.setCallLogModeItems(rows, allContacts, filteredSelected, searchString.trim())
             hideContactsLetterFastScroller()
             return
         }
@@ -1502,7 +1506,7 @@ class ContactPickerActivity : SimpleActivity() {
             filteredContacts.addAll(allContacts)
         }
         val filteredSelected = buildFilteredSelectedIndicesForAdapter()
-        contactAdapter?.setContactModeItems(ArrayList(filteredContacts), filteredSelected)
+        contactAdapter?.setContactModeItems(ArrayList(filteredContacts), filteredSelected, searchString.trim())
         hideContactsLetterFastScroller()
     }
 

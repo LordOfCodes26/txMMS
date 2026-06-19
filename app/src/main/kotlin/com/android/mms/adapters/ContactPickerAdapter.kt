@@ -21,7 +21,9 @@ import com.android.mms.extensions.nextGroupedTodayLabelRefreshDelayMillis
 import com.android.mms.extensions.normalizeGroupedListRelativeTextForKorean
 import com.goodwy.commons.extensions.getColoredDrawableWithColor
 import com.goodwy.commons.extensions.getProperAccentColor
+import com.goodwy.commons.extensions.getProperPrimaryColor
 import com.goodwy.commons.extensions.getProperTextColor
+import com.goodwy.commons.extensions.highlightTextPart
 import com.android.mms.R
 import com.android.mms.extensions.config
 import com.android.mms.helpers.bindContactPickerAvatar
@@ -43,6 +45,7 @@ class ContactPickerAdapter(
     private val selectedContactIndices = mutableSetOf<Int>()
     private var listener: ContactPickerAdapterListener? = null
     private var isCallLogMode = false
+    private var textToHighlight = ""
 
     private val groupedTodayRefreshHandler = Handler(Looper.getMainLooper())
     private val groupedTodayRefreshRunnable = Runnable {
@@ -92,13 +95,18 @@ class ContactPickerAdapter(
     }
 
     /** Contacts tab: one row per contact, indices match [contacts] list. */
-    fun setContactModeItems(contacts: List<Contact>?, selectedIndices: Set<Int>?) {
+    fun setContactModeItems(
+        contacts: List<Contact>?,
+        selectedIndices: Set<Int>?,
+        highlightQuery: String = "",
+    ) {
         pauseGroupedTodayTimeRefresh()
         isCallLogMode = false
         rows = emptyList()
         contactLookup = if (contacts.isNullOrEmpty()) emptyList() else ArrayList(contacts)
         selectedContactIndices.clear()
         selectedContactIndices.addAll(selectedIndices ?: emptySet())
+        textToHighlight = highlightQuery.trim()
         notifyDataSetChanged()
     }
 
@@ -107,12 +115,14 @@ class ContactPickerAdapter(
         listRows: List<ContactPickerListRow>,
         contactSource: List<Contact>,
         selectedIndices: Set<Int>?,
+        highlightQuery: String = "",
     ) {
         isCallLogMode = true
         contactLookup = contactSource
         selectedContactIndices.clear()
         selectedContactIndices.addAll(selectedIndices ?: emptySet())
         rows = listRows
+        textToHighlight = highlightQuery.trim()
         notifyDataSetChanged()
         scheduleGroupedTodayTimeRefresh()
     }
@@ -244,6 +254,17 @@ class ContactPickerAdapter(
         divider.setBackgroundColor(act.getProperTextColor())
     }
 
+    private fun highlightedText(text: String, ignoreCharsBetweenDigits: Boolean = false): CharSequence {
+        if (textToHighlight.isEmpty()) return text
+        val act = context as? android.app.Activity ?: return text
+        return text.highlightTextPart(
+            textToHighlight,
+            act.getProperPrimaryColor(),
+            highlightAll = true,
+            ignoreCharsBetweenDigits = ignoreCharsBetweenDigits,
+        )
+    }
+
     /** Contacts tab row: [R.layout.item_contact_picker]. */
     private inner class ContactViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private         val nameTextView: TextView = itemView.findViewById(R.id.tv_contact_name)
@@ -259,15 +280,15 @@ class ContactPickerAdapter(
             val hasContactName = contact.name.isNotEmpty() && contact.name != contact.phoneNumber
 
             if (hasContactName) {
-                nameTextView.text = contact.name
+                nameTextView.text = highlightedText(contact.name)
                 if (contact.phoneNumber.isNotEmpty()) {
-                    phoneTextView.text = contact.phoneNumber
+                    phoneTextView.text = highlightedText(contact.phoneNumber, ignoreCharsBetweenDigits = true)
                     phoneTextView.visibility = View.VISIBLE
                 } else {
                     phoneTextView.visibility = View.GONE
                 }
             } else {
-                nameTextView.text = contact.phoneNumber
+                nameTextView.text = highlightedText(contact.phoneNumber, ignoreCharsBetweenDigits = true)
                 phoneTextView.text = ""
                 phoneTextView.visibility = View.GONE
             }
@@ -333,19 +354,19 @@ class ContactPickerAdapter(
             val accentColor = act.getProperAccentColor()
 
             if (hasContactName) {
-                nameTextView.text = contact.name
+                nameTextView.text = highlightedText(contact.name)
                 nameTextView.setTextColor(
                     if (row.callType == Calls.MISSED_TYPE) missedColor
                     else ContextCompat.getColor(context, com.android.common.R.color.tx_content_text),
                 )
                 if (contact.phoneNumber.isNotEmpty()) {
-                    numberTextView.text = contact.phoneNumber
+                    numberTextView.text = highlightedText(contact.phoneNumber, ignoreCharsBetweenDigits = true)
                     numberTextView.visibility = View.VISIBLE
                 } else {
                     numberTextView.visibility = View.GONE
                 }
             } else {
-                nameTextView.text = contact.phoneNumber
+                nameTextView.text = highlightedText(contact.phoneNumber, ignoreCharsBetweenDigits = true)
                 nameTextView.setTextColor(
                     if (row.callType == Calls.MISSED_TYPE) missedColor
                     else ContextCompat.getColor(context, com.android.common.R.color.tx_content_text),
