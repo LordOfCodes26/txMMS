@@ -17,7 +17,7 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginVertical="@dimen/tx_cardview_padding_vertical"
+                android:layout_marginTop="@dimen/list_touch_target_min"
                 android:baselineAligned="false"
                 android:orientation="horizontal"
                 android:weightSum="4">
@@ -251,7 +251,7 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginVertical="@dimen/small_md_margin"
+                android:layout_marginTop="@dimen/big_md_margin"
                 android:baselineAligned="false"
                 android:orientation="horizontal"
                 android:weightSum="4">
@@ -359,7 +359,7 @@
                         android:layout_marginTop="@dimen/small_margin"
                         android:ellipsize="end"
                         android:maxLines="1"
-                        android:text="@string/voice_short"
+                        android:text="@string/audio"
                         android:textAlignment="center"
                         android:textColor="@color/default_text_color"
                         android:textSize="@dimen/smaller_text_size"
@@ -454,8 +454,9 @@
                                 android:paddingHorizontal="@dimen/zero"
                                 android:layout_gravity="center"
                                 android:gravity="center"
-                                android:src="@drawable/ic_videocam_vector"
-                                app:rippleColor="?attr/colorControlHighlight" />
+                                android:src="@drawable/ic_cmn_video"
+                                app:rippleColor="?attr/colorControlHighlight"
+                                app:tint="@color/primary" />
 
                         </androidx.coordinatorlayout.widget.CoordinatorLayout>
 
