@@ -658,11 +658,11 @@ class RecipientSelectActivity : SimpleActivity(), RecipientSelectionHost {
     }
 
     private fun updateSearchHintForPage(page: Int) {
-        val hint = when (page) {
-            PAGE_RECENT -> getString(com.goodwy.commons.R.string.pick_recent_number)
-            else -> getString(com.goodwy.commons.R.string.pick_contact_number)
-        }
-        appBar?.getSearchView()?.findViewById<android.widget.EditText>(com.android.common.R.id.et_search_text)?.hint = hint
+//        val hint = when (page) {
+//            PAGE_RECENT -> getString(com.goodwy.commons.R.string.pick_recent_number)
+//            else -> getString(com.goodwy.commons.R.string.pick_contact_number)
+//        }
+//        appBar?.getSearchView()?.findViewById<android.widget.EditText>(com.android.common.R.id.et_search_text)?.hint = hint
     }
 
     private fun currentFragment(): RecipientSelectListFragment? {

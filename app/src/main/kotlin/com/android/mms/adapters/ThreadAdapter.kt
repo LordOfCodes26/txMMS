@@ -18,6 +18,7 @@ import android.widget.RelativeLayout
 import androidx.appcompat.view.menu.MenuBuilder
 import com.goodwy.commons.dialogs.OptionListDialog
 import com.goodwy.commons.views.showMPopupMenu
+import androidx.annotation.DrawableRes
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.constraintlayout.widget.ConstraintSet
 import androidx.core.content.res.ResourcesCompat
@@ -85,7 +86,6 @@ import com.android.mms.extensions.isVideoMimeType
 import com.android.mms.extensions.launchViewIntent
 import com.android.mms.extensions.openContactDetailsFromVCardUri
 import com.android.mms.extensions.setPaddingBubble
-import com.android.mms.extensions.applyCustomBubbleBackground
 import com.android.mms.extensions.startContactDetailsIntentRecommendation
 import com.android.mms.extensions.subscriptionManagerCompat
 import com.android.mms.helpers.ACTION_COPY_CODE
@@ -190,6 +190,18 @@ class ThreadAdapter(
             R.id.cab_ripple_copy,
             R.id.cab_properties
         )
+    }
+
+    @DrawableRes
+    private fun getCompactBubbleRes(@DrawableRes baseRes: Int): Int {
+        val baseName = runCatching { resources.getResourceEntryName(baseRes) }.getOrNull() ?: return baseRes
+        val compactName = when {
+            baseName.startsWith("bubble_incoming_") -> baseName.replaceFirst("bubble_incoming_", "bubble_incoming_compact_")
+            baseName.startsWith("bubble_outgoing_") -> baseName.replaceFirst("bubble_outgoing_", "bubble_outgoing_compact_")
+            else -> return baseRes
+        }
+        val compactRes = resources.getIdentifier(compactName, "drawable", activity.packageName)
+        return if (compactRes != 0) compactRes else baseRes
     }
 
     init {
@@ -976,6 +988,19 @@ class ThreadAdapter(
         )
     }
 
+    private fun View.applyDrawablePadding(drawable: Drawable?) {
+        if (drawable == null) return
+        val padding = Rect()
+        if (drawable.getPadding(padding)) {
+            setPadding(padding.left, padding.top, padding.right, padding.bottom)
+        }
+    }
+
+    private fun View.applyBubbleMinimumHeight(@Suppress("UNUSED_PARAMETER") selectedBubbleOption: BubbleDrawableOption?) {
+        // Let the bubble wrap its content height; fixed minimums make short one-line messages look too tall.
+        minimumHeight = 0
+    }
+
     private fun setupReceivedMessageView(messageBinding: ItemMessageBinding, message: Message) {
         messageBinding.apply {
             with(ConstraintSet()) {
@@ -1003,7 +1028,7 @@ class ThreadAdapter(
                 val bubbleStyle = activity.config.bubbleStyle
 
                 val bubbleReceived = if (selectedBubbleOption != null) {
-                    if (isRtl) selectedBubbleOption.outgoingRes else selectedBubbleOption.incomingRes
+                    if (isRtl) getCompactBubbleRes(selectedBubbleOption.outgoingRes) else getCompactBubbleRes(selectedBubbleOption.incomingRes)
                 } else {
                     when (bubbleStyle) {
                         BUBBLE_STYLE_IOS_NEW -> if (isRtl) R.drawable.item_sent_ios_new_background else R.drawable.item_received_ios_new_background
@@ -1013,12 +1038,14 @@ class ThreadAdapter(
                     }
                 }
                 val bubbleDrawable = ResourcesCompat.getDrawable(resources, bubbleReceived, activity.theme)
+                background = bubbleDrawable
+                applyBubbleMinimumHeight(selectedBubbleOption)
                 if (selectedBubbleOption == null) {
-                    background = bubbleDrawable
                     setPaddingBubble(activity, bubbleStyle)
                     background.applyColorFilter(backgroundReceived)
                 } else {
-                    applyCustomBubbleBackground(activity, bubbleDrawable, bubbleStyle, isReceived = true)
+                    // Respect 9-patch content padding when using custom bubble drawables.
+                    applyDrawablePadding(bubbleDrawable)
                 }
 
 //                messageBinding.threadMessageBodySpacer.layoutParams.height = 40
@@ -1093,7 +1120,7 @@ class ThreadAdapter(
                 val bubbleStyle = activity.config.bubbleStyle
 
                 val bubbleReceived = if (selectedBubbleOption != null) {
-                    if (isRtl) selectedBubbleOption.incomingRes else selectedBubbleOption.outgoingRes
+                    if (isRtl) getCompactBubbleRes(selectedBubbleOption.incomingRes) else getCompactBubbleRes(selectedBubbleOption.outgoingRes)
                 } else {
                     when (bubbleStyle) {
                         BUBBLE_STYLE_IOS_NEW -> if (isRtl) R.drawable.item_received_ios_new_background else R.drawable.item_sent_ios_new_background
@@ -1103,12 +1130,14 @@ class ThreadAdapter(
                     }
                 }
                 val bubbleDrawable = AppCompatResources.getDrawable(activity, bubbleReceived)
+                background = bubbleDrawable
+                applyBubbleMinimumHeight(selectedBubbleOption)
                 if (selectedBubbleOption == null) {
-                    background = bubbleDrawable
                     setPaddingBubble(activity, bubbleStyle, false)
                     background.applyColorFilter(backgroundReceived)
                 } else {
-                    applyCustomBubbleBackground(activity, bubbleDrawable, bubbleStyle, isReceived = false)
+                    // Respect 9-patch content padding when using custom bubble drawables.
+                    applyDrawablePadding(bubbleDrawable)
                 }
             }
             setupMessageTimeSim(messageBinding, message, contrastColorReceived)
