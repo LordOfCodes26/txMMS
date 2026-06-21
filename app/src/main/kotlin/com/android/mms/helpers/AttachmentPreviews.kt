@@ -38,7 +38,7 @@ fun ItemAttachmentDocumentPreviewBinding.setupDocumentPreview(
     documentAttachmentHolder.setupDocumentPreview(uri, title, mimeType, onClick, onLongClick)
     removeAttachmentButtonHolder.removeAttachmentButton.apply {
         beVisible()
-        background.applyColorFilter(context.getProperPrimaryColor())
+        background.applyColorFilter(context.getBoarderPrimaryColor())
         if (onRemoveButtonClicked != null) {
             setOnClickListener {
                 onRemoveButtonClicked.invoke()
@@ -74,7 +74,7 @@ fun ItemAttachmentDocumentBinding.setupDocumentPreview(
     }
 
     val textColor = context.getProperTextColor()
-    val primaryColor = context.getProperPrimaryColor()
+    val primaryColor = context.getBoarderPrimaryColor()
 
     filename.setTextColor(textColor)
     fileSize.setTextColor(textColor)
@@ -163,7 +163,7 @@ fun ItemAttachmentVcardPreviewBinding.setupVCardComposePreview(
     onReplaceClick: () -> Unit,
     onRemoveClick: () -> Unit,
 ) {
-    val primaryColor = activity.getProperPrimaryColor()
+    val primaryColor = activity.getBoarderPrimaryColor()
     threadAttachmentWrapper.background?.applyColorFilter(primaryColor.darkenColor())
 
     if (sizeInfoText.isNotEmpty()) {
@@ -248,7 +248,7 @@ fun ItemAttachmentVcardBinding.setupVCardPreview(
 ) {
     val context = root.context
     val textColor = activity.getProperTextColor()
-    val primaryColor = activity.getProperPrimaryColor()
+    val primaryColor = activity.getBoarderPrimaryColor()
 
     root.background.applyColorFilter(primaryColor.darkenColor())
     vcardTitle.setTextColor(textColor)
@@ -341,7 +341,7 @@ fun ItemAttachmentAudioPreviewBinding.setupAudioPreview(
     onRemoveButtonClicked: (() -> Unit)? = null,
 ) {
     val context = root.context
-    val primaryColor = context.getProperPrimaryColor()
+    val primaryColor = context.getBoarderPrimaryColor()
     val textColor = context.getProperTextColor()
 
     threadAttachmentWrapper.background?.applyColorFilter(primaryColor.darkenColor())

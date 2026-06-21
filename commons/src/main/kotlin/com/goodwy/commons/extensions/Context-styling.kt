@@ -120,6 +120,11 @@ fun Context.getProperPrimaryColor() = when {
     else -> baseConfig.primaryColor
 }
 
+fun Context.getBoarderPrimaryColor() = when {
+    isDynamicTheme() -> resources.getColor(com.android.common.R.color.tx_popup_menu_border, theme)
+    else -> baseConfig.primaryColor
+}
+
 fun Context.getProperAccentColor() = when {
     !baseConfig.isUsingAccentColor -> getProperPrimaryColor()
 //    isDynamicTheme() -> resources.getColor(R.color.you_primary_dark_color, theme)

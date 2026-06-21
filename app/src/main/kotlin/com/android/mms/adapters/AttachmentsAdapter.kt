@@ -57,7 +57,7 @@ class AttachmentsAdapter(
 
     private val config = activity.config
     private val resources = activity.resources
-    private val primaryColor = activity.getProperPrimaryColor()
+    private val primaryColor = activity.getBoarderPrimaryColor()
     private val imageCompressor by lazy { ImageCompressor(activity) }
 
     private var audioMediaPlayer: MediaPlayer? = null

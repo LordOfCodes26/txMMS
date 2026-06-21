@@ -6,6 +6,7 @@
     android:layout_height="wrap_content"
     android:layout_marginBottom="@dimen/tiny_margin"
     android:background="@drawable/section_holder_stroke"
+    android:backgroundTint="@color/tx_popup_menu_border"
     android:clickable="true"
     android:focusable="true"
     android:gravity="center_vertical"

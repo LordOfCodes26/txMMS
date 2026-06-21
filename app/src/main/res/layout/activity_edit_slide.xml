@@ -56,7 +56,8 @@
                             android:layout_width="0dp"
                             android:layout_height="@dimen/edit_slide_image_height"
                             android:layout_weight="1"
-                            android:background="@drawable/section_holder_stroke">
+                            android:background="@drawable/section_holder_stroke"
+                            android:backgroundTint="@color/tx_popup_menu_border">
 
                             <androidx.appcompat.widget.AppCompatImageView
                                 android:id="@+id/slide_editor_image"
