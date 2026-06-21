@@ -54,14 +54,15 @@
 
         <ImageView
             android:id="@+id/search_result_message_type"
-            android:layout_width="@dimen/list_icon_size_xx_small"
-            android:layout_height="@dimen/list_icon_size_xx_small"
-            android:layout_marginTop="@dimen/tx_cardview_card_title_margin_top"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/small_margin"
             android:contentDescription="@null"
             android:scaleType="fitCenter"
             app:layout_constraintStart_toStartOf="@+id/search_result_title_holder"
             app:layout_constraintTop_toBottomOf="@id/search_result_title_holder"
-            tools:src="@drawable/ic_sms_out" />
+            tools:src="@drawable/ic_cmn_msg_out"
+            app:tint="@color/txt_empty_sms"/>
 
         <com.goodwy.commons.views.MyTextView
             android:id="@+id/search_result_snippet"

@@ -114,23 +114,12 @@ class ExpandedMessageFragment : Fragment() {
             }
         }
         
-        binding.topDetailsCompactExpanded.findViewById<android.widget.ImageView>(
-            com.android.mms.R.id.expandedMinimizeButtonCompact
-        )?.apply {
-            applyColorFilter(topBarColor.getContrastColor())
-            setOnClickListener {
-                onMinimize?.invoke()
-            }
-        }
 
-        // Thread title will be set by the activity through updateThreadTitle()
-        binding.topDetailsCompactExpanded.beGone()
         binding.topDetailsLargeExpanded.beGone()
         
         // Same top bar fill as main thread / new conversation (large + compact headers).
         binding.topDetailsLargeExpanded.setBackgroundColor(topBarColor)
-        binding.topDetailsCompactExpanded.setBackgroundColor(topBarColor)
-        
+
         // Handle system window insets to avoid status bar overlap
         ViewCompat.setOnApplyWindowInsetsListener(binding.topDetailsLargeExpanded) { view, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
@@ -143,16 +132,6 @@ class ExpandedMessageFragment : Fragment() {
             insets
         }
         
-        ViewCompat.setOnApplyWindowInsetsListener(binding.topDetailsCompactExpanded) { view, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            view.setPadding(
-                view.paddingLeft,
-                systemBars.top,
-                view.paddingRight,
-                view.paddingBottom
-            )
-            insets
-        }
 
         // Edge-to-edge hosts (ThreadActivity / NewConversationActivity) do not resize for IME; pad the
         // editor container so long multi-line text stays above the keyboard and navigation bar.
@@ -193,14 +172,7 @@ class ExpandedMessageFragment : Fragment() {
             beVisibleIf(shouldShowCounter)
             backgroundTintList = activity.getProperBackgroundColor().getColorStateList()
         }
-        binding.topDetailsCompactExpanded.findViewById<com.goodwy.commons.views.MyTextView>(
-            com.android.mms.R.id.expandedThreadCharacterCounterCompact
-        )?.apply {
-            text = initialCounterText
-            beVisibleIf(shouldShowCounter)
-            backgroundTintList = activity.getProperBackgroundColor().getColorStateList()
-        }
-        
+
         // Setup text editor
         binding.expandedThreadTypeMessage.apply {
             setText(messageText)
@@ -235,12 +207,6 @@ class ExpandedMessageFragment : Fragment() {
                     binding.expandedThreadCharacterCounter.text = counterText
                     binding.expandedThreadCharacterCounter.beVisibleIf(shouldShow)
                     
-                    binding.topDetailsCompactExpanded.findViewById<com.goodwy.commons.views.MyTextView>(
-                        com.android.mms.R.id.expandedThreadCharacterCounterCompact
-                    )?.apply {
-                        text = counterText
-                        beVisibleIf(shouldShow)
-                    }
                 }
             })
             
@@ -251,16 +217,10 @@ class ExpandedMessageFragment : Fragment() {
 
         // Send control: same drawable + tint as [layout_thread_send_message_holder] / [MessageHolderHelper.setup]
         binding.expandedThreadSendMessage.applyColorFilter(sendIconTint)
-        binding.topDetailsCompactExpanded.findViewById<android.widget.ImageView>(
-            com.android.mms.R.id.expandedThreadSendMessageCompact
-        )?.applyColorFilter(sendIconTint)
-        
+
         // Initialize countdown views (hidden by default)
         binding.expandedThreadSendMessageCountdown.beGone()
-        binding.topDetailsCompactExpanded.findViewById<douglasspgyn.com.github.circularcountdown.CircularCountdown>(
-            com.android.mms.R.id.expandedThreadSendMessageCountdownCompact
-        )?.beGone()
-        
+
         // Update send button availability
         applySendConfigurationToView()
         checkSendMessageAvailability()
@@ -391,11 +351,7 @@ class ExpandedMessageFragment : Fragment() {
             null
         }
         binding.expandedThreadSendMessage.setOnLongClickListener(speechLongClick)
-        binding.topDetailsCompactExpanded.findViewById<ImageView>(
-            R.id.expandedThreadSendMessageCompact
-        )?.setOnLongClickListener(speechLongClick)
 
-//        checkSendMessageAvailability()
     }
 
     fun checkSendMessageAvailability() {
@@ -441,40 +397,10 @@ class ExpandedMessageFragment : Fragment() {
         
         when (threadTopStyle) {
             THREAD_TOP_COMPACT -> {
-                binding.topDetailsCompactExpanded.beVisible()
                 binding.topDetailsLargeExpanded.beGone()
-                
-                // Access views within the FrameLayout using findViewById
-                val senderPhotoView = binding.topDetailsCompactExpanded.findViewById<ImageView>(R.id.sender_photo)
-                val senderNameView = binding.topDetailsCompactExpanded.findViewById<MyTextView>(R.id.sender_name)
-                val senderNumberView = binding.topDetailsCompactExpanded.findViewById<MyTextView>(R.id.sender_number)
-                
-                // Follow ThreadActivity setupThreadTitle() THREAD_TOP_COMPACT logic (sender_name, sender_number)
-                senderPhotoView?.beVisibleIf(showContactThumbnails)
-                if (threadTitle.isNotEmpty()) {
-                    senderNameView?.text = threadTitle
-                    senderNameView?.setTextColor(textColor)
-                }
-                senderNumberView?.beGoneIf(threadSubtitle.isEmpty() || threadTitle == threadSubtitle || participantsCount > 1)
-                senderNumberView?.text = threadSubtitle
-                senderNumberView?.setTextColor(textColor)
-                
-                // Load contact image
-                if (showContactThumbnails && senderPhotoView != null) {
-                    loadContactImage(
-                        contactsHelper = contactsHelper,
-                        photoUri = conversationPhotoUri,
-                        imageView = senderPhotoView,
-                        threadTitle = threadTitle,
-                        conversationTitle = conversationTitle,
-                        conversationPhoneNumber = conversationPhoneNumber,
-                        isCompany = isCompany,
-                        participantsCount = participantsCount
-                    )
-                }
+
             }
             THREAD_TOP_LARGE -> {
-                binding.topDetailsCompactExpanded.beGone()
                 binding.topDetailsLargeExpanded.beVisible()
                 
                 val senderPhotoView =
@@ -507,7 +433,6 @@ class ExpandedMessageFragment : Fragment() {
                 }
             }
             else -> {
-                binding.topDetailsCompactExpanded.beGone()
                 binding.topDetailsLargeExpanded.beGone()
             }
         }
@@ -545,7 +470,6 @@ class ExpandedMessageFragment : Fragment() {
 
     private fun applyComposeSendMode(mode: ComposeSendMode) {
         val largeSendButton = binding.expandedThreadSendMessage
-        val compactSendButton = binding.topDetailsCompactExpanded.findViewById<ImageView>(R.id.expandedThreadSendMessageCompact)
 
         largeSendButton.apply {
             when (mode) {
@@ -572,35 +496,7 @@ class ExpandedMessageFragment : Fragment() {
             }
         }
 
-        compactSendButton.apply {
-            when (mode) {
-                ComposeSendMode.SEND -> {
-                    isEnabled = true
-                    isClickable = true
-                    alpha = 1f
-                    contentDescription = getString(R.string.sending)
-                    setOnClickListener { onSendButtonClicked(this) }
-                }
-                ComposeSendMode.SPEECH -> {
-                    isEnabled = true
-                    isClickable = true
-                    alpha = 1f
-                    contentDescription = getString(com.goodwy.strings.R.string.voice_input)
-                    setOnClickListener { onSpeechToText?.invoke() }
-                }
-                ComposeSendMode.DISABLED -> {
-                    isEnabled = false
-                    isClickable = false
-                    alpha = 0.4f
-                    setOnClickListener(null)
-                }
-            }
-        }
         binding.expandedThreadSendMessageWrapper.apply {
-            isClickable = false
-            setOnClickListener(null)
-        }
-        binding.topDetailsCompactExpanded.findViewById<View>(R.id.expandedThreadSendMessageWrapperCompact).apply {
             isClickable = false
             setOnClickListener(null)
         }
@@ -631,9 +527,6 @@ class ExpandedMessageFragment : Fragment() {
         val activity = activity ?: return
         val sendIconTint = activity.getProperTextColor()
         binding.expandedThreadSendMessage.applyColorFilter(sendIconTint)
-        binding.topDetailsCompactExpanded.findViewById<ImageView>(
-            R.id.expandedThreadSendMessageCompact
-        )?.applyColorFilter(sendIconTint)
     }
     
     private fun startSendMessageCountdown(subscriptionId: Int) {
@@ -685,44 +578,6 @@ class ExpandedMessageFragment : Fragment() {
                 onSendMessage?.invoke(subscriptionId)
             }
         }
-        
-        // Handle countdown for compact view
-        val compactSendButton = binding.topDetailsCompactExpanded.findViewById<ImageView>(
-            R.id.expandedThreadSendMessageCompact
-        )
-        val compactCountdown = binding.topDetailsCompactExpanded.findViewById<CircularCountdown>(
-            R.id.expandedThreadSendMessageCountdownCompact
-        )
-        
-        compactSendButton?.beGone()
-        compactCountdown?.apply {
-            beVisible()
-            setOnClickListener {
-                if (isCountdownActive) {
-                    isCountdownActive = false
-                    hideCountdown()
-                    activity.toast(R.string.sending_cancelled)
-                }
-            }
-            try {
-                create(0, delaySeconds, CircularCountdown.TYPE_SECOND)
-                    .listener(object : CircularListener {
-                        override fun onTick(progress: Int) {}
-
-                        override fun onFinish(newCycle: Boolean, cycleCount: Int) {
-                            if (!isCountdownActive) return
-                            isCountdownActive = false
-                            hideCountdown()
-                            onSendMessage?.invoke(subscriptionId)
-                            if (activity.config.soundOnOutGoingMessages) {
-                                val audioManager = activity.getSystemService(Context.AUDIO_SERVICE) as AudioManager
-                                audioManager.playSoundEffect(AudioManager.FX_KEYPRESS_SPACEBAR)
-                            }
-                        }
-                    })
-                    .start()
-            } catch (e: Exception) {}
-        }
     }
 
     private fun hideCountdown() {
@@ -736,22 +591,6 @@ class ExpandedMessageFragment : Fragment() {
             threadAvailableMessageCount.beVisible()
             checkSendMessageAvailability()
         }
-        
-        val compactCountdown = binding.topDetailsCompactExpanded.findViewById<CircularCountdown>(
-            R.id.expandedThreadSendMessageCountdownCompact
-        )
-        val compactSendButton = binding.topDetailsCompactExpanded.findViewById<ImageView>(
-            R.id.expandedThreadSendMessageCompact
-        )
-        
-        compactCountdown?.apply {
-            try {
-                stop()
-            } catch (e: Exception) {}
-            setOnClickListener(null)
-            beGone()
-        }
-        compactSendButton?.beVisible()
     }
 
     override fun onDestroyView() {

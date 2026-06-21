@@ -329,7 +329,7 @@ class MessageHolderHelper(
         if (!isEmojiPickerVisible) return
         isEmojiPickerVisible = false
         binding.messageEmojiPickerHolder.beGone()
-        binding.imvEmoticBtn.setBackgroundResource(R.drawable.ic_sms_emotic)
+        binding.imvEmoticBtn.setBackgroundResource(R.drawable.ic_emotic)
         binding.imvEmoticBtn.contentDescription = activity.getString(com.goodwy.commons.R.string.choose_emoji)
         if (resumeKeyboard) {
             binding.threadTypeMessage.requestFocus()
@@ -532,9 +532,9 @@ class MessageHolderHelper(
         val hasContent = hasText || hasReadyAttachments
         val hasAddress = hasAddressForSend?.invoke() ?: true
         val drawableResId = if (isScheduledMessage) {
-            R.drawable.ic_schedule_send_vector
+            com.android.common.R.drawable.ic_cmn_alarm
         } else if (hasContent || hasAddress) {
-            R.drawable.ic_send_vector
+            com.android.common.R.drawable.ic_cmn_sms_send
         } else if (isSpeechToTextAvailable) {
             com.goodwy.commons.R.drawable.ic_microphone_vector
         } else {

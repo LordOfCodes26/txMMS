@@ -645,12 +645,12 @@ class ThreadAdapter(
         }
     }
 
-    private fun getActionTitleAndIcon(url: String): Pair<Int, Int> {
+    private fun getActionTitleAndIcon(url: String): Int {
         return when {
-            url.startsWith("tel") -> Pair(com.goodwy.commons.R.string.call, com.goodwy.commons.R.drawable.ic_phone_vector)
-            url.startsWith("mailto") -> Pair(com.goodwy.commons.R.string.send_email, com.goodwy.commons.R.drawable.ic_mail_vector)
-            url.startsWith("geo") -> Pair(com.goodwy.strings.R.string.open_in_maps, R.drawable.ic_place_vector)
-            else -> Pair(com.goodwy.strings.R.string.open, R.drawable.ic_launch)
+            url.startsWith("tel") -> com.goodwy.commons.R.string.call
+            url.startsWith("mailto") -> com.goodwy.commons.R.string.send_email
+            url.startsWith("geo") -> com.goodwy.strings.R.string.open_in_maps
+            else -> com.goodwy.strings.R.string.open
         }
     }
 
@@ -659,14 +659,14 @@ class ThreadAdapter(
         var dividerGroupId = 0
         val menu = MenuBuilder(context).apply { enableItemDividers() }
         val text = url.toUri().schemeSpecificPart
-        val (title, icon) = getActionTitleAndIcon(url)
+        val title = getActionTitleAndIcon(url)
 
         // Use only 24dp icons
-        menu.add(dividerGroupId++, 0, 0, text).setIcon(R.drawable.ic_empty)
-        menu.add(dividerGroupId++, 1, 1, title).setIcon(icon)
-        if (title == com.goodwy.commons.R.string.call) menu.add(dividerGroupId++, 2, 2, com.goodwy.strings.R.string.message).setIcon(R.drawable.ic_comment)
-        menu.add(dividerGroupId++, 4, 4, com.goodwy.commons.R.string.share).setIcon(com.goodwy.commons.R.drawable.ic_ios_share)
-        menu.add(dividerGroupId, 5, 5, com.goodwy.commons.R.string.copy).setIcon(com.goodwy.commons.R.drawable.ic_copy_vector)
+        menu.add(dividerGroupId++, 0, 0, text)
+        menu.add(dividerGroupId++, 1, 1, title)
+        if (title == com.goodwy.commons.R.string.call) menu.add(dividerGroupId++, 2, 2, com.goodwy.strings.R.string.message)
+        menu.add(dividerGroupId++, 4, 4, com.goodwy.commons.R.string.share)
+        menu.add(dividerGroupId, 5, 5, com.goodwy.commons.R.string.copy)
 
         val blurTarget = activity.findViewById<eightbitlab.com.blurview.BlurTarget>(com.android.mms.R.id.mainBlurTarget)
         showMPopupMenu(
@@ -1312,7 +1312,7 @@ class ThreadAdapter(
                         beVisible()
                     }
                     android.provider.Telephony.Sms.MESSAGE_TYPE_QUEUED -> {
-                        setImageResource(R.drawable.ic_delay_clock)
+                        setImageResource(com.android.common.R.drawable.ic_cmn_alarm)
                         contentDescription = activity.getString(R.string.sending)
                         beVisible()
                     }

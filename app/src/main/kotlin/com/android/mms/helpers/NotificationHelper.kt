@@ -127,7 +127,7 @@ class NotificationHelper(private val context: Context) {
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
                 )
             replyAction = NotificationCompat.Action.Builder(
-                R.drawable.ic_send_vector,
+                com.android.common.R.drawable.ic_cmn_sms_send,
                 replyLabel,
                 replyPendingIntent
             )

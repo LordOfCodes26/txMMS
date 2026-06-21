@@ -249,11 +249,11 @@ class SearchResultsAdapter(
                 val type = searchResult.lastMessageType
                 when {
                     type == Telephony.Sms.MESSAGE_TYPE_INBOX -> {
-                        setImageResource(R.drawable.ic_sms_in)
+                        setImageResource(com.android.common.R.drawable.ic_cmn_msg_in)
                         beVisible()
                     }
                     type == Telephony.Sms.MESSAGE_TYPE_SENT -> {
-                        setImageResource(R.drawable.ic_sms_out)
+                        setImageResource(com.android.common.R.drawable.ic_cmn_msg_out)
                         beVisible()
                     }
                     type == Telephony.Sms.MESSAGE_TYPE_OUTBOX -> {

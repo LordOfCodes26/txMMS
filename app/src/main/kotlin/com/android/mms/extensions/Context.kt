@@ -2152,15 +2152,6 @@ fun Context.areMultipleSIMsAvailable(): Boolean {
     }
 }
 
-@SuppressLint("UseCompatLoadingForDrawables")
-fun Context.getPackageDrawable(packageName: String): Drawable {
-    return resources.getDrawable(
-        when (packageName) {
-            else -> R.drawable.ic_threema_vector
-        }, theme
-    )
-}
-
 fun Context.getTextSizeMessage() = when (config.fontSizeMessage) {
     FONT_SIZE_SMALL -> resources.getDimension(com.goodwy.commons.R.dimen.smaller_text_size)
     FONT_SIZE_MEDIUM -> resources.getDimension(com.goodwy.commons.R.dimen.normal_text_size)

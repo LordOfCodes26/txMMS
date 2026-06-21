@@ -350,7 +350,7 @@ class ConversationsAdapter(
             R.id.cab_ripple_delete,
         )
         add(
-            R.drawable.ic_sms_address_add,
+            com.android.common.R.drawable.ic_cmn_contact_add,
             activity.getString(com.goodwy.strings.R.string.add_address),
             R.id.cab_ripple_address_add,
             m.findItem(R.id.cab_ripple_address_add)?.isEnabled == true

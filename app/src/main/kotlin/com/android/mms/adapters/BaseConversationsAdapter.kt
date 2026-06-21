@@ -463,13 +463,13 @@ abstract class BaseConversationsAdapter(
             when {
                 lastMessageType == Telephony.Sms.MESSAGE_TYPE_INBOX -> {
                     if (smsDraft == null) {
-                        conversationMessageType.setImageResource(R.drawable.ic_sms_in)
+                        conversationMessageType.setImageResource(com.android.common.R.drawable.ic_cmn_msg_in)
                         conversationMessageType.beVisible()
                     }
                 }
                 lastMessageType == Telephony.Sms.MESSAGE_TYPE_SENT -> {
                     if (smsDraft == null) {
-                        conversationMessageType.setImageResource(R.drawable.ic_sms_out)
+                        conversationMessageType.setImageResource(com.android.common.R.drawable.ic_cmn_msg_out)
                         conversationMessageType.beVisible()
                     }
                 }

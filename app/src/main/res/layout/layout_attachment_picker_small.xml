@@ -288,7 +288,8 @@
                                 android:contentDescription="@null"
                                 android:paddingHorizontal="@dimen/zero"
                                 android:layout_gravity="center"
-                                android:src="@drawable/ic_sms_extra_image"
+                                android:src="@drawable/ic_cmn_gallery"
+                                app:tint="@color/attachment_icon_blue"
                                 app:rippleColor="?attr/colorControlHighlight" />
 
                         </androidx.coordinatorlayout.widget.CoordinatorLayout>
@@ -343,7 +344,8 @@
                                 android:contentDescription="@null"
                                 android:paddingHorizontal="@dimen/zero"
                                 android:layout_gravity="center"
-                                android:src="@drawable/ic_sms_extra_mic"
+                                android:src="@drawable/ic_cmn_mic"
+                                app:tint="@color/attachment_icon_red"
                                 app:rippleColor="?attr/colorControlHighlight" />
 
                         </androidx.coordinatorlayout.widget.CoordinatorLayout>
@@ -400,7 +402,8 @@
                                 android:layout_gravity="center"
                                 android:backgroundTintMode="src_in"
                                 android:backgroundTint="@color/tx_cardview_summary"
-                                android:src="@drawable/ic_sms_extra_camera"
+                                android:src="@drawable/ic_cmn_camera"
+                                app:tint="@color/tx_toolbar_icon"
                                 app:rippleColor="?attr/colorControlHighlight" />
 
                         </androidx.coordinatorlayout.widget.CoordinatorLayout>
@@ -456,7 +459,7 @@
                                 android:gravity="center"
                                 android:src="@drawable/ic_cmn_video"
                                 app:rippleColor="?attr/colorControlHighlight"
-                                app:tint="@color/primary" />
+                                app:tint="@color/attachment_icon_blue" />
 
                         </androidx.coordinatorlayout.widget.CoordinatorLayout>
 
