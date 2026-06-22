@@ -46,7 +46,8 @@
                                 android:layout_height="@dimen/list_icon_size_extra_large"
                                 android:background="@drawable/bg_ic_white"
                                 android:clickable="false"
-                                android:layout_gravity="center" />
+                                android:layout_gravity="center"
+                                android:foreground="@drawable/ripple_all_corners_56dp"/>
                             <ImageView
                                 android:id="@+id/choose_clock_icon"
                                 android:layout_width="@dimen/chips_input_chip_row_height"
@@ -103,7 +104,8 @@
                                 android:layout_height="@dimen/list_icon_size_extra_large"
                                 android:background="@drawable/bg_ic_white"
                                 android:clickable="false"
-                                android:layout_gravity="center" />
+                                android:layout_gravity="center"
+                                android:foreground="@drawable/ripple_all_corners_56dp"/>
                             <ImageView
                                 android:id="@+id/choose_emoji_icon"
                                 android:layout_width="@dimen/chips_input_chip_row_height"
@@ -159,7 +161,8 @@
                                 android:layout_height="@dimen/list_icon_size_extra_large"
                                 android:background="@drawable/bg_ic_white"
                                 android:clickable="false"
-                                android:layout_gravity="center" />
+                                android:layout_gravity="center"
+                                android:foreground="@drawable/ripple_all_corners_56dp"/>
                             <ImageView
                                 android:id="@+id/choose_text_icon"
                                 android:layout_width="@dimen/chips_input_chip_row_height"
@@ -214,7 +217,8 @@
                                 android:layout_height="@dimen/list_icon_size_extra_large"
                                 android:background="@drawable/bg_ic_white"
                                 android:clickable="false"
-                                android:layout_gravity="center" />
+                                android:layout_gravity="center"
+                                android:foreground="@drawable/ripple_all_corners_56dp"/>
                             <ImageView
                                 android:id="@+id/choose_contact_icon"
                                 android:layout_width="@dimen/chips_input_chip_row_height"
@@ -279,7 +283,8 @@
                                 android:layout_height="@dimen/list_icon_size_extra_large"
                                 android:background="@drawable/bg_ic_white"
                                 android:clickable="false"
-                                android:layout_gravity="center" />
+                                android:layout_gravity="center"
+                                android:foreground="@drawable/ripple_all_corners_56dp"/>
                             <ImageView
                                 android:id="@+id/choose_image_icon"
                                 android:layout_width="@dimen/chips_input_chip_row_height"
@@ -335,7 +340,8 @@
                                 android:layout_height="@dimen/list_icon_size_extra_large"
                                 android:background="@drawable/bg_ic_white"
                                 android:clickable="false"
-                                android:layout_gravity="center" />
+                                android:layout_gravity="center"
+                                android:foreground="@drawable/ripple_all_corners_56dp"/>
                             <ImageView
                                 android:id="@+id/choose_voice_icon"
                                 android:layout_width="@dimen/chips_input_chip_row_height"
@@ -391,7 +397,8 @@
                                 android:layout_height="@dimen/list_icon_size_extra_large"
                                 android:background="@drawable/bg_ic_white"
                                 android:clickable="false"
-                                android:layout_gravity="center" />
+                                android:layout_gravity="center"
+                                android:foreground="@drawable/ripple_all_corners_56dp"/>
                             <ImageView
                                 android:id="@+id/choose_camera_icon"
                                 android:layout_width="@dimen/chips_input_chip_row_height"
@@ -448,7 +455,8 @@
                                 android:layout_height="@dimen/list_icon_size_extra_large"
                                 android:background="@drawable/bg_ic_white"
                                 android:clickable="false"
-                                android:layout_gravity="center" />
+                                android:layout_gravity="center"
+                                android:foreground="@drawable/ripple_all_corners_56dp"/>
                             <ImageView
                                 android:id="@+id/choose_record_video_icon"
                                 android:layout_width="@dimen/chips_input_chip_row_height"
