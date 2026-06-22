@@ -245,10 +245,10 @@
     <string name="show_number_blocking_button">수자 잠금단추 표시</string>
     <string name="blocking_type_silence">조용한 전화</string>
     <string name="blocking_type_silence_summary">수신 통화에 대한 종소리를 무음으로 할것인지 설정합니다.</string>
-    <string name="enable_blocking_summary">비활성화하면 모든 통화차단 설정이 제거됩니다. 하지만, 차단 목록에 있는 번호의 통보문은 계속 차단됩니다.\n빠른 설정을 추가하여 편리하게 전환할수 있습니다.</string>
-    <string name="block_unknown_calls_summary">알수 없는 번호로 걸려오는 전화는 차단되고 \"최근 통화\" 목록에 표시됩니다.\n주소록에 있는 사람과 최근에 통화한 사람의 수신전화는 계속 울립니다.</string>
+    <string name="enable_blocking_summary">비활성화하면 모든 통화차단설정이 삭제됩니다. 하지만 차단목록에있는 번호의 통보문은 계속차단됩니다.\n빠른설정을 추가하여 편리하게 전환할수 있습니다.</string>
+    <string name="block_unknown_calls_summary">미정주소로 걸려오는 전화는 차단되고 \"최근 통화\" 목록에 표시됩니다.\n주소록에 있는 사람과 최근에 통화한 사람의 수신전화는 계속울립니다.</string>
     <string name="bottom_indent">하단 들여쓰기</string>
-    <string name="is_do_not_block_contacts_and_recent">주소록 및 최근 통화를 차단하지 마십시오</string>
+    <string name="is_do_not_block_contacts_and_recent">주소록 및 최근통화를 차단하지 마십시오</string>
     <string name="relation_g">관계</string>
     <string name="relations_g">관련자</string>
     <string name="relation_hint_g">관련자</string>

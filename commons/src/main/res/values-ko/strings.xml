@@ -59,7 +59,7 @@
     <string name="favorites">즐겨찾기</string>
     <string name="add_favorites">즐겨찾기 추가</string>
     <string name="add_to_favorites">즐겨찾기에 추가</string>
-    <string name="remove_from_favorites">즐겨찾기에서 제거</string>
+    <string name="remove_from_favorites">즐겨찾기에서 삭제</string>
     <string name="search">검색</string>
     <string name="type_2_characters">최소 한글자를 입력하십시오.</string>
     <string name="filter">주소현시</string>
@@ -197,7 +197,7 @@
     <string name="whats_new">새로운 기능</string>
     <string name="whats_new_disclaimer">* 주요 갱신만 여기에 표시됩니다. 작은 갱신도 항상 진행되고 있습니다</string>
     <string name="delete">삭제</string>
-    <string name="remove">제거</string>
+    <string name="remove">삭제</string>
     <string name="rename">이름 변경</string>
     <string name="share">공유</string>
     <string name="share_via">공유 방법</string>
@@ -422,7 +422,7 @@
     <string name="excluded_folders">제외된 등록부</string>
     <string name="excluded">(제외됨)</string>
     <string name="manage_excluded_folders">제외된 등록부 관리</string>
-    <string name="remove_all">모두 제거</string>
+    <string name="remove_all">모두삭제</string>
     <string name="remove_all_description">제외된 등록부를 모두 해제하시겠습니까\?</string>
     <string name="restore_this_file">이 화일 복원하기</string>
     <string name="restore_selected_files">선택한 화일 복원하기</string>
@@ -641,7 +641,7 @@
     <plurals name="delete_contacts">
         <item quantity="other">%d개 주소록</item>
     </plurals>
-    <string name="remove_exif">EXIF 제거</string>
+    <string name="remove_exif">EXIF삭제</string>
     <string name="apply_to_all_apps">모든 Fossify 응용프로그람에 색상 적용</string>
     <string name="auto_light_dark_theme">자동 밝은/어두운 양상</string>
     <string name="storage">저장공간</string>
@@ -666,7 +666,7 @@
     <string name="last_used_tab">마지막으로 사용한 태브</string>
     <string name="skip_the_recycle_bin">휴지통으로 이동하지 않고, 화일 바로 삭제</string>
     <string name="no_permission">권한 없음</string>
-    <string name="exif_removed">EXIF 값제거 성공</string>
+    <string name="exif_removed">EXIF값삭제 성공</string>
     <string name="light_theme">밝은 양상</string>
     <string name="dark_theme">어두운 양상</string>
     <string name="auto_theme">자동</string>
@@ -728,8 +728,8 @@
     <string name="search_tracks">자리길 검색</string>
     <string name="search_recordings">록음 검색</string>
     <string name="allow_full_screen_notifications_reminders">응용프로그람에 전체 화면 알림 표시를 허용하지 않으면 일부 알림을 놓칠수 있습니다.</string>
-    <string name="remove_exif_confirmation">GPS 좌표, 사진기 모형등과 같은 EXIF 값을 제거하시겠습니까?</string>
-    <string name="app_icon_color_warning">주의: 특정 실행프로그람은 사용자 지정 응용프로그람 아이콘을 정확히 처리하지 못할수 있습니다. 만약 아이콘이 사라지면 봉사기 또는 보조도구을 통해 응용프로그람을 실행해 보십시오(접근할수 있는 경우). 응용프로그람 실행후 기본 록색 아이콘 색상인 #106D1F로 복원하십시오. 극단적인 경우 응용프로그람을 다시 설치해야 할수도 있습니다.</string>
+    <string name="remove_exif_confirmation">GPS좌표, 사진기모형등과 같은 EXIF값을 삭제하겠습니까?</string>
+    <string name="app_icon_color_warning">주의: 특정 실행프로그람은 사용자지정응용프로그람그림기호를 정확히 처리하지못할수있습니다. 만약 그림기호가 사라지면 봉사기 또는 보조도구를 리용하여 응용프로그람을 실행해보십시오(접근할수있는경우). 응용프로그람실행후 기본 록색 아이콘 색상인 #106D1F로 복원하십시오. 극단적인 경우 응용프로그람을 다시 설치해야 할수도 있습니다.</string>
     <string name="system_default">체계 기본값</string>
     <string name="cannot_hide_files">앤드로이드 11부터 더 이상 화일과 등록부를 숨길수 없습니다</string>
     <string name="copying_success_one">화일 복사 성공</string>

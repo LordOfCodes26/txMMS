@@ -238,6 +238,7 @@ class RecipientSelectActivity : SimpleActivity(), RecipientSelectionHost {
     private fun setupAppBar() {
         val blurTarget = findViewById<BlurTarget>(R.id.mainBlurTarget) ?: return
         appBar?.setTitle(getString(R.string.select_contacts))
+        appBar?.forceKeepCollapse()
         appBar?.getBackArrow()?.apply {
             bindBlurTarget(this@RecipientSelectActivity, blurTarget)
             setOnMenuItemClickListener { menuItem ->
@@ -304,7 +305,6 @@ class RecipientSelectActivity : SimpleActivity(), RecipientSelectionHost {
                     layout.setExpanded(false, false)
                 }
                 clearRecipientSearchScrollContentTranslation()
-                syncRecipientSearchFilterBarLayout()
                 finalizeSearchListPaddingIfNeeded()
             }
         }
@@ -346,7 +346,6 @@ class RecipientSelectActivity : SimpleActivity(), RecipientSelectionHost {
         clearRecipientSearchChromeLayoutListener()
         applyRecipientSearchModeChrome(inSearch = true)
         menu?.forceKeepCollapse()
-        menu?.setExpanded(false, false)
         clearFilterBarInsetListener()
         clearRecipientSearchScrollContentTranslation()
         scheduleRecipientSearchChromeLayoutListener()
@@ -372,12 +371,10 @@ class RecipientSelectActivity : SimpleActivity(), RecipientSelectionHost {
         clearRecipientSearchScrollContentTranslation()
         pageFragments.forEach { it?.clearSearch() }
         applyRecipientSearchModeChrome(inSearch = false)
-        applyFilterBarTopMarginForSearch(collapsedMenu = false)
+//        applyFilterBarTopMarginForSearch(collapsedMenu = false)
         listTopInsetPx = -1
         clearFilterBarInsetListener()
-        appBar?.dismissCollapse()
         appBarVerticalOffset = 0
-        appBar?.translationY = 0f
         syncFilterBarTranslation()
         syncListInsets()
     }
@@ -394,27 +391,6 @@ class RecipientSelectActivity : SimpleActivity(), RecipientSelectionHost {
         appBar?.findViewById<View>(com.android.common.R.id.m_app_bar_title)?.visibility =
             if (inSearch) View.INVISIBLE else View.VISIBLE
         appBar?.getBackArrow()?.visibility = if (inSearch) View.GONE else View.VISIBLE
-    }
-
-    private fun applyFilterBarTopMarginForSearch(collapsedMenu: Boolean) {
-        val child = filterBarChild ?: return
-        val lp = child.layoutParams as? ViewGroup.MarginLayoutParams ?: return
-        if (collapsedMenu) {
-            if (filterBarExpandedTopMarginPx == Int.MIN_VALUE) {
-                filterBarExpandedTopMarginPx = lp.topMargin
-            }
-            val target = resources.getDimensionPixelSize(com.android.common.R.dimen.tx_top_bar_toolbar_margin_top) +
-                resources.getDimensionPixelSize(com.android.common.R.dimen.tx_top_bar_toolbar_height)
-            if (lp.topMargin != target) {
-                lp.topMargin = target
-                child.layoutParams = lp
-            }
-            uiLog("filterBarCollapsedMargin=$target expandedSaved=$filterBarExpandedTopMarginPx")
-        } else if (filterBarExpandedTopMarginPx != Int.MIN_VALUE) {
-            lp.topMargin = filterBarExpandedTopMarginPx
-            child.layoutParams = lp
-            uiLog("filterBarRestoredMargin=${lp.topMargin}")
-        }
     }
 
     private fun cancelRecipientSearchLayoutSync() {
@@ -442,11 +418,6 @@ class RecipientSelectActivity : SimpleActivity(), RecipientSelectionHost {
         if (searchOpenedFromExpanded && !isAppBarCollapseSettled()) return
         val topPx = computeSearchListTopInsetPxOnce() ?: return
         searchListPaddingFinalized = true
-        applyRecipientSearchListPaddingDirect(
-            topPx = topPx,
-            stabilizeTopPadding = true,
-            animateStabilization = searchOpenedFromExpanded,
-        )
     }
 
     /** CoordinatorLayout scroll behavior moves [R.id.mainBlurTarget]; list padding owns inset during search. */
@@ -462,7 +433,6 @@ class RecipientSelectActivity : SimpleActivity(), RecipientSelectionHost {
     private fun syncRecipientSearchChromeLayout() {
         if (!isSearchOpen) return
         clearRecipientSearchScrollContentTranslation()
-        syncRecipientSearchFilterBarLayout()
         if (shouldFreezeSearchListPadding()) {
             return
         }
@@ -470,77 +440,7 @@ class RecipientSelectActivity : SimpleActivity(), RecipientSelectionHost {
             finalizeSearchListPaddingIfNeeded()
             return
         }
-        val topPx = computeSearchListTopInsetPxOnce() ?: return
-        applyRecipientSearchListPaddingDirect(topPx, stabilizeTopPadding = true)
     }
-
-    private fun syncRecipientSearchFilterBarLayout() {
-        if (!isSearchOpen) return
-        val searchView = appBar?.getSearchView() ?: return
-        val child = filterBarChild ?: return
-        val bar = filterBar ?: return
-
-        val chromeBottom = searchChromeBottomForSync(searchView)
-        if (chromeBottom <= 0) return
-        val filterBarLoc = IntArray(2)
-        bar.getLocationInWindow(filterBarLoc)
-        var targetMargin = chromeBottom - filterBarLoc[1]
-        if (targetMargin <= 0) return
-        val lp = child.layoutParams as? ViewGroup.MarginLayoutParams ?: return
-        if (filterBarExpandedTopMarginPx == Int.MIN_VALUE) {
-            filterBarExpandedTopMarginPx = lp.topMargin
-        }
-        if (lp.topMargin != targetMargin) {
-            lp.topMargin = targetMargin
-            child.layoutParams = lp
-        }
-    }
-
-    private fun searchChromeBottomForSync(searchView: MSearchView): Int {
-        val container = searchView.findViewById<View>(com.android.common.R.id.search_container)
-        if (
-            container != null &&
-            container.visibility == View.VISIBLE &&
-            container.isLaidOut &&
-            container.height > 0
-        ) {
-            val loc = IntArray(2)
-            container.getLocationInWindow(loc)
-            return loc[1] + container.height
-        }
-        if (searchView.visibility != View.VISIBLE || !searchView.isLaidOut || searchView.height <= 0) {
-            return -1
-        }
-        val toolbar = appBar?.findViewById<View>(com.android.common.R.id.m_app_bar_toolbar) ?: return -1
-        if (!toolbar.isLaidOut || toolbar.height <= 0) return -1
-        val loc = IntArray(2)
-        toolbar.getLocationInWindow(loc)
-        return loc[1] + toolbar.height
-    }
-
-    private fun syncRecipientSearchListPaddingToFilterBar() {
-        val inset = computeSearchListTopInsetPxOnce() ?: return
-        applyRecipientSearchListPaddingDirect(inset)
-    }
-
-    private fun applyRecipientSearchListPaddingDirect(
-        topPx: Int,
-        stabilizeTopPadding: Boolean = false,
-        animateStabilization: Boolean = false,
-    ) {
-        val resolved = maxOf(topPx, recipientSearchMinListTopPaddingPx())
-        if (listTopInsetPx == resolved && !animateStabilization) return
-        searchListTopInsetPx = resolved
-        listTopInsetPx = resolved
-        applyListTopInsetToFragments(
-            topPx = resolved,
-            stabilizeTopPadding = stabilizeTopPadding,
-            animateTopPaddingStabilization = animateStabilization,
-        )
-    }
-
-    private fun recipientSearchMinListTopPaddingPx(): Int =
-        resources.getDimensionPixelSize(com.android.common.R.dimen.tx_nest_bouncy_content_padding_top)
 
     private fun scheduleRecipientSearchChromeLayoutListener() {
         if (recipientSearchChromeLayoutListener != null) return
@@ -595,7 +495,6 @@ class RecipientSelectActivity : SimpleActivity(), RecipientSelectionHost {
     fun onListScrolled() {
         if (isSearchOpen) {
             clearRecipientSearchScrollContentTranslation()
-            syncRecipientSearchFilterBarLayout()
             finalizeSearchListPaddingIfNeeded()
         } else {
             syncListInsets()
@@ -605,11 +504,6 @@ class RecipientSelectActivity : SimpleActivity(), RecipientSelectionHost {
     private fun alignFilterBarChildBelowSearchViewRefine() {
         if (!isSearchOpen) return
         syncRecipientSearchChromeLayout()
-    }
-
-    private fun applySearchListInsetsFromFilterBarLayout() {
-        if (!isSearchOpen) return
-        syncRecipientSearchListPaddingToFilterBar()
     }
 
     private fun isSearchChromeLayoutReady(searchView: MSearchView): Boolean {
@@ -843,28 +737,6 @@ class RecipientSelectActivity : SimpleActivity(), RecipientSelectionHost {
         val nav = ViewCompat.getRootWindowInsets(rootView ?: return)
             ?.getInsets(WindowInsetsCompat.Type.navigationBars())?.bottom ?: 0
         val bottomPx = nav + activityMargin + dp(90)
-        uiLog("syncListInsets top=$listTopInsetPx bottom=$bottomPx searchOpen=false")
-        applyListTopInsetToFragments(listTopInsetPx, bottomPx)
-    }
-
-    private fun applyListTopInsetToFragments(
-        topPx: Int,
-        bottomPx: Int? = null,
-        stabilizeTopPadding: Boolean = false,
-        animateTopPaddingStabilization: Boolean = false,
-    ) {
-        val activityMargin = resources.getDimensionPixelSize(com.goodwy.commons.R.dimen.activity_margin)
-        val nav = ViewCompat.getRootWindowInsets(rootView ?: return)
-            ?.getInsets(WindowInsetsCompat.Type.navigationBars())?.bottom ?: 0
-        val bottom = bottomPx ?: (nav + activityMargin + dp(90))
-        pageFragments.forEach {
-            it?.applyListInsets(
-                topPx,
-                bottom,
-                stabilizeTopPadding,
-                animateTopPaddingStabilization,
-            )
-        }
     }
 
     private fun resolveListTopInsetIfNeeded() {

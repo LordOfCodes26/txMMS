@@ -22,8 +22,10 @@
     <string name="loading_messages">加载消息中…</string>
     <string name="no_reply_support">发信人不支持回复</string>
     <string name="draft">草稿</string>
+    <string name="draft_scheduled_snippet">"定时消息 "</string>
     <string name="message_saved_in_draft">消息已保存到草稿</string>
     <string name="conversation_chogo_label">[草稿]</string>
+    <string name="send">发送</string>
     <string name="sending">发送中…</string>
     <string name="sending_cancelled">发送取消</string>
     <string name="pin_conversation">置顶固定</string>
@@ -44,6 +46,7 @@
     <string name="contacts">联系人</string>
     <string name="no_call_log">无通话记录</string>
     <string name="call_log_permission_required">需要通话记录权限才能从通话记录中选择号码</string>
+    <string name="done">"完成 "</string>
     <string name="suggestions">建议</string>
     <string name="members">成员</string>
     <string name="conversation_name">对话名</string>
@@ -69,6 +72,7 @@
     <string name="new_message">新消息</string>
     <string name="mark_as_read">标记为已读</string>
     <string name="mark_as_unread">标记为未读</string>
+    <string name="decrypt">"解密 "</string>
     <string name="me">自己</string>
     <string name="unarchive">解压缩</string>
     <string name="empty_archive">删除所有已归档对话</string>
@@ -146,6 +150,7 @@
     <string name="unknown_error_occurred_sending_message">无法发送消息。</string>
     <string name="invalid_short_code">无法回复类似这样的短码</string>
     <string name="invalid_short_code_desc">你只能回复类似 \"503501\" 这样的短码，不能回复 \"AB-CD0\" 这样既包含字母又包含数字的短码。</string>
+    <string name="invalid_contact_or_number">无效联系人或号码</string>
     <string name="attachment_sized_exceeds_max_limit">附件大小超出了彩信上限</string>
     <string name="sim_card_not_available">SIM 卡不可用</string>
     <string name="couldnt_download_mms">无法下载彩信</string>
@@ -172,7 +177,7 @@
     <!-- Others -->
     <string name="search">搜索</string>
     <string name="select_conversations">选择</string>
-    <string name="grouped_list_now"></string>
+    <string name="grouped_list_now">"现在 "</string>
     <plurals name="grouped_list_minutes_ago">
         <item quantity="one">%d분전</item>
         <item quantity="other">%d분전</item>
@@ -212,6 +217,7 @@
     <string name="sim_delete_message">从SIM卡中删除</string>
     <string name="sim_confirm_delete">确认从SIM卡上删除此消息吗？</string>
     <string name="sim_message_copied">消息已复制到手机</string>
+    <string name="sim_sms_capacity_unavailable">短信容量不可用</string>
     <string name="sms_storage_location">短信存储位置</string>
     <string name="sms_storage_location_phone">手机</string>
     <string name="sms_storage_location_sim">SIM卡</string>
@@ -220,4 +226,44 @@
     <string name="sms_txt_copy">复制短信</string>
     <string name="sms_thread_delete">删除短信线程</string>
     <string name="sms_no_receiver_address_delete">因为没有有效的接收者短信被删除</string>
+    <string name="secure_box">"安全箱 "</string>
+    <string name="close_secure_box">"关上安全箱 "</string>
+    <string name="encrypt">"加密 "</string>
+    <string name="add_music">"添加音乐 "</string>
+    <string name="attach_ringtone">来电铃声</string>
+    <string name="attach_sound">"音频 "</string>
+    <string name="select_audio">选择音频</string>
+    <string name="space_not_enough">" 消息空间不足"</string>
+    <string name="insert_sdcard">请插入SD卡</string>
+    <string name="view_attachment">"查看 "</string>
+    <string name="replace_attachment">替换</string>
+    <string name="add_picture">添加图片</string>
+    <string name="remove_attachment">删除</string>
+    <string name="play_as_slideshow">播放幻灯片</string>
+    <string name="mms_page_number">第%1$d页</string>
+    <string name="pause">"暂停 "</string>
+    <string name="play">"播放 "</string>
+    <string name="edit_slideshow">"编辑幻灯片 "</string>
+    <string name="edit_slideshow_short">编辑</string>
+    <string name="edit_slide">" 编辑幻灯片 "</string>
+    <string name="slide_number">第%1$s张幻灯片</string>
+    <string name="add_slide">添加幻灯片</string>
+    <string name="add_slide_hint">选择创建新幻灯片</string>
+    <string name="remove_slide">删除幻灯片</string>
+    <string name="move_up">向上移动</string>
+    <string name="move_down">向下移动</string>
+    <string name="discard_slideshow">放弃幻灯片</string>
+    <string name="cannot_add_slide_anymore">无法添加更多幻灯片</string>
+    <string name="no_slides">没有幻灯片</string>
+    <string name="preview">预览</string>
+    <string name="type_image">图片</string>
+    <string name="type_video">视频</string>
+    <string name="previous_slide">上一张幻灯片</string>
+    <string name="sim_copy_to_sim">"复制到SIM卡 "</string>
+    <string name="sim_message_copied_to_sim">"消息已复制到SIM卡 "</string>
+    <string name="sim_storage_full_confirm">SIM卡存储空间已满。您想覆盖吗？</string>
+    <string name="sim_copy_to_sim_mms_not_supported">无法将MMS复制到SIM卡</string>
+    <string name="sim_copy_to_sim_failed">未能将消息复制到SIM卡</string>
+    <string name="sim_show_sms_capacity">容量</string>
+    <string name="sim_sms_storage_capacity">%1$d / %2$d 条消息已使用</string>
 </resources>

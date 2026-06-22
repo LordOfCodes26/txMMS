@@ -13,12 +13,13 @@
     <string name="use_delivery_report_summary">전송한 통보문마다 전송정형에 대하여 알려줍니다</string>
     <string name="mms_file_size_limit">MMS 그림크기 조정</string>
     <string name="send_on_enter">행바꾸기 입력시 통보문 전송</string>
-    <string name="use_simple_characters">통보문 전송시 력점 및 발음부호 제거</string>
+    <string name="use_simple_characters">통보문전송시 력점 및 발음기호삭제</string>
     <string name="mms_file_size_limit_none">제한 없음</string>
     <string name="messages">통보문</string>
     <string name="send_long_message_mms">긴 통보문을 MMS로 전송</string>
     <string name="outgoing_messages">기타</string>
     <string name="group_message_mms">그룹통보문을 MMS로 전송</string>
+    <string name="keywords">건반</string>
     <string name="export_messages">통보문 내보내기</string>
     <string name="export_sms">단문통보문(SMS)</string>
     <string name="export_mms">다매체통보문(MMS)</string>
@@ -32,6 +33,7 @@
     <string name="invalid_short_code">해당 단축코드에는 회답할수 없습니다</string>
     <string name="sim_card_not_available">SIM카드를 사용할수 없습니다</string>
     <string name="couldnt_download_mms">MMS를 내리적재할수 없습니다</string>
+    <string name="invalid_contact_or_number">주소가 정확하지 않습니다.</string>
     <string name="attachment_sized_exceeds_max_limit">첨부화일의 크기가 MMS제한을 초과합니다</string>
     <string name="faq_1_title">왜 인터네트 접근권한이 필요합니까?</string>
     <string name="faq_3_title">예약통보문을 지원합니까?</string>
@@ -56,6 +58,7 @@
     </plurals>
     <string name="not_blocking_keywords">차단한 검색어가 없습니다. 특정 검색어를 포함한 통보문을 차단하려면 여기에 단어를 추가하십시오.</string>
     <string name="lock_screen_visibility">잠금화면알림표시</string>
+    <string name="import_blocked_keywords">차단된 번호 불러들이기</string>
     <string name="empty_destination_address">빈 번호로 통보문을 보낼수 없습니다</string>
     <string name="unable_to_save_message">통보문을 Telephony보관소에 보관할수 없습니다</string>
     <string name="error_service_is_unavailable">통신 봉사를 사용할수 없어 통보문이 전송되지 않았습니다</string>
@@ -76,6 +79,7 @@
     <string name="archive_confirmation">%s을 보관하시겠습니까?</string>
     <string name="restore_confirmation">%s을 복원하시겠습니까?</string>
     <!-- Conversation list date sections -->
+    <string name="faq_4_text">"설정에서 \"모임통보문 MMS로 보내기\"를 활성화해야 합니다. 이렇게 하면 모임통보문이 제대로 MMS로 전송되여 모든 성원들이 서로의 회답을 볼수 있습니다. "</string>
     <string name="today">오늘</string>
     <string name="yesterday">어제</string>
     <string name="previous">이전</string>
@@ -120,8 +124,10 @@
     <string name="loading_messages">통보문 불러오는중…</string>
     <string name="no_reply_support">보낸 사람이 회답기능을 지원하지 않습니다</string>
     <string name="draft">림시보관</string>
+    <string name="draft_scheduled_snippet">예약된 통보문</string>
     <string name="message_saved_in_draft">초고함에 보관됨</string>
     <string name="conversation_chogo_label">[초고함]</string>
+    <string name="send">전송</string>
     <string name="sending">전송중…</string>
     <string name="sending_cancelled">전송 취소됨</string>
     <string name="pin_conversation">우에 고정</string>
@@ -141,6 +147,7 @@
     <string name="contacts">주소록</string>
     <string name="no_call_log">통화기록없음</string>
     <string name="call_log_permission_required">통화기록에서 번호를 선택하려면 통화기록접근권한이 필요합니다</string>
+    <string name="done">완성</string>
     <string name="suggestions">제안</string>
     <string name="conversation_details">대화세부사항</string>
     <string name="rename_conversation">대화명편집</string>
@@ -180,6 +187,7 @@
         <item quantity="one">%d시간전</item>
         <item quantity="other">%d시간전</item>
     </plurals>
+    <string name="minimize_message">축소</string>
     <string name="all_reading">모두 읽기</string>
     <string name="blocked_list">차단목록</string>
     <string name="private_space">보안령역</string>
@@ -193,6 +201,7 @@
     <string name="day">일</string>
     <string name="select_sim_1">10개, 료금:100</string>
     <string name="select_sim_2">2개, 료금:10</string>
+    <string name="ch350_emoji_pack_missing">CH350그림기호를 사용하려면 libresutils.so (jniLibs) 및 .obb(assets/ch350_emoji 또는 화일)가 필요합니다. CH350에는 일반적으로 두가지 모두 포함되여 있지않으므로 APK 또는 OEM에서 복사해야 합니다. jniLibs/README.txt를 참고하십시오.</string>
     <string name="always_use_this_sim">이 주소에 항상사용</string>
     <string name="koryo_label">고려망</string>
     <string name="kangsong_label">강성망</string>
@@ -226,5 +235,39 @@
     <string name="sms_txt_copy">본문복사</string>
     <string name="sms_thread_delete">통보문삭제</string>
     <string name="sms_no_receiver_address_delete">수신자가 없으므로 통보문이 삭제됩니다</string>
+    <string name="export_blocked_keywords">차단된 번호 내보내기</string>
+    <string name="add_music">"음악추가 "</string>
+    <string name="attach_ringtone">알림</string>
+    <string name="attach_sound">음성</string>
+    <string name="select_audio">음악선택</string>
+    <string name="space_not_enough">기억공간이 충분하지 않습니다.</string>
+    <string name="insert_sdcard">기억카드삽입</string>
+    <string name="view_attachment">보기</string>
+    <string name="replace_attachment">교체</string>
+    <string name="add_picture">추가</string>
+    <string name="remove_attachment">삭제</string>
+    <string name="play_as_slideshow">자동보기</string>
+    <string name="mms_page_number">%1$d페지</string>
+    <string name="pause">정지</string>
+    <string name="play">재생</string>
+    <string name="edit_slideshow">자동보기편집</string>
+    <string name="edit_slideshow_short">편집</string>
+    <string name="edit_slide">페지편집</string>
+    <string name="slide_number">%1$s페지</string>
+    <string name="add_slide">페지추가</string>
+    <string name="add_slide_hint">추가할 새페지를 선택하십시오.</string>
+    <string name="remove_slide">페지삭제</string>
+    <string name="move_up">우로</string>
+    <string name="move_down">아래로</string>
+    <string name="discard_slideshow">자동보기무시</string>
+    <string name="cannot_add_slide_anymore">더이상 페지를 추가할수 없습니다.</string>
+    <string name="no_slides">페지가 없습니다.</string>
+    <string name="preview">미리보기</string>
+    <string name="type_image">그림</string>
+    <string name="type_video">동영상</string>
+    <string name="previous_slide">이전페지</string>
+    <string name="expand_message">확대</string>
+    <string name="ch350_emoji_max_stickers">더 이상 추가할수 없습니다</string>
+    <string name="faq_4_title">"모임통보문회답이 다른 사람들에게 개별통보문으로 보이는 리유는 무었입니까? "</string>
 
 </resources>

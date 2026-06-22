@@ -233,7 +233,7 @@
         <item quantity="other">%d secs</item>
     </plurals>
     <string name="sim_card_not_available">SIM card not available</string>
-    <string name="available_sms_count">%1$d</string>
+    <string name="available_sms_count" translatable="false">%1$d</string>
     <string name="couldnt_download_mms">Couldn\'t download MMS</string>
     <!-- FAQ -->
     <string name="faq_1_title">Why does the app require access to the internet?</string>
