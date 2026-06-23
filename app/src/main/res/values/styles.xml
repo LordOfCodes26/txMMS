@@ -3,8 +3,9 @@
     <style name="AppTheme" parent="AppTheme.Base" />
 
     <style name="BlurAppBarTheme" parent="AppTheme">
-        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowIsTranslucent">false</item>
         <item name="android:windowLightStatusBar">true</item>
+<!--        <item name="android:windowBackground">@color/tx_common_bg</item>-->
     </style>
 
     <style name="NewConversationToolbarTitleTextStyle" parent="AppTheme.ActionBar.TitleTextStyle">
