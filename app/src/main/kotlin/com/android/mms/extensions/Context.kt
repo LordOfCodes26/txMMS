@@ -1974,11 +1974,40 @@ fun Context.renameConversation(conversation: Conversation, newTitle: String): Co
     return updatedConv
 }
 
+fun Context.resolveScheduledMessageThreadId(
+    addresses: Collection<String>,
+    existingThreadId: Long = 0L,
+    fallbackThreadId: Long,
+): Long {
+    if (existingThreadId > 0L) {
+        return existingThreadId
+    }
+    return getThreadId(addresses.toSet()).takeIf { it > 0L } ?: fallbackThreadId
+}
+
+fun Context.upsertConversationForScheduledMessage(
+    message: Message,
+    threadId: Long,
+    cachedConv: Conversation? = null,
+    onComplete: (() -> Unit)? = null,
+) {
+    val conv = conversationsDB.getConversationWithThreadId(threadId) ?: cachedConv
+    val nowSeconds = (System.currentTimeMillis() / 1000).toInt()
+    if (conv != null) {
+        conversationsDB.insertOrUpdate(conv.copy(date = nowSeconds, snippet = message.body))
+        onComplete?.invoke()
+        return
+    }
+    val isTemporaryThread = threadId == message.id
+    createTemporaryThread(message, threadId, cachedConv, onComplete, isScheduled = isTemporaryThread)
+}
+
 fun Context.createTemporaryThread(
     message: Message,
     threadId: Long = generateRandomId(),
     cachedConv: Conversation?,
     onComplete: (() -> Unit)? = null,
+    isScheduled: Boolean = true,
 ) {
     val simpleContactHelper = SimpleContactsHelper(this)
     val privateCursor = getMyContactsCursor(favoritesOnly = false, withPhoneNumbersOnly = true)
@@ -2022,7 +2051,7 @@ fun Context.createTemporaryThread(
             photoUri = photoUri,
             isGroupConversation = addresses.size > 1,
             phoneNumber = addresses.first(),
-            isScheduled = true,
+            isScheduled = isScheduled,
             usesCustomTitle = cachedConv?.usesCustomTitle == true,
             isArchived = false,
             unreadCount = 0,
