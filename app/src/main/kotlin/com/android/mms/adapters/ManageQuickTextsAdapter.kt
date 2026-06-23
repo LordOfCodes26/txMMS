@@ -19,6 +19,7 @@ import com.goodwy.commons.extensions.getSurfaceColor
 import com.goodwy.commons.extensions.isDynamicTheme
 import com.goodwy.commons.extensions.isSystemInDarkMode
 import com.goodwy.commons.extensions.setupViewBackground
+import com.goodwy.commons.extensions.trackOpenDialog
 import com.goodwy.commons.interfaces.RefreshRecyclerViewListener
 import com.goodwy.commons.views.CustomActionModeToolbar
 import com.goodwy.commons.views.MyRecyclerView
@@ -111,6 +112,7 @@ class ManageQuickTextsAdapter(
             }
         }
         dialog.show()
+        activity.trackOpenDialog(dialog)
     }
 
     fun isActionModeActive(): Boolean = actModeCallback.isSelectable
