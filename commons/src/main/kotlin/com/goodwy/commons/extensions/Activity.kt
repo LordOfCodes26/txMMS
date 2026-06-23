@@ -59,31 +59,38 @@ import java.util.TreeSet
 import java.util.WeakHashMap
 import androidx.core.net.toUri
 
-private val activeMDialogsByActivity = WeakHashMap<Activity, MutableList<WeakReference<MDialog>>>()
+private val activeDialogsByActivity = WeakHashMap<Activity, MutableList<WeakReference<Dialog>>>()
 
-private fun Activity.trackMDialog(dialog: MDialog) {
-    synchronized(activeMDialogsByActivity) {
-        val refs = activeMDialogsByActivity.getOrPut(this) { mutableListOf() }
+fun Activity.trackOpenDialog(dialog: Dialog) {
+    synchronized(activeDialogsByActivity) {
+        val refs = activeDialogsByActivity.getOrPut(this) { mutableListOf() }
         refs.removeAll { ref ->
             val trackedDialog = ref.get()
-            trackedDialog == null || trackedDialog == dialog || !trackedDialog.isShowing
+            trackedDialog == null || trackedDialog === dialog || !trackedDialog.isShowing
         }
         refs.add(WeakReference(dialog))
     }
 }
 
-fun Activity.dismissTrackedMDialogs() {
-    val dialogsToDismiss = synchronized(activeMDialogsByActivity) {
-        val refs = activeMDialogsByActivity[this].orEmpty()
-        refs.mapNotNull { it.get() }.also {
-            activeMDialogsByActivity.remove(this)
-        }
+private fun Activity.trackMDialog(dialog: MDialog) = trackOpenDialog(dialog)
+
+private fun Activity.trackAlertDialog(dialog: AlertDialog) = trackOpenDialog(dialog)
+
+fun Activity.dismissTrackedMDialogs() = dismissOpenDialogs()
+
+fun Activity.dismissTrackedAlertDialogs() = dismissOpenDialogs()
+
+/** Dismisses any tracked dialog and the blocking progress overlay for this activity. */
+fun Activity.dismissOpenDialogs() {
+    val dialogsToDismiss = synchronized(activeDialogsByActivity) {
+        activeDialogsByActivity.remove(this).orEmpty().mapNotNull { it.get() }
     }
     dialogsToDismiss.forEach { dialog ->
         if (dialog.isShowing) {
             runCatching { dialog.dismiss() }
         }
     }
+    hideBlockingSpinnerOverlay()
 }
 
 fun Activity.appLaunched(appId: String) {
@@ -1601,6 +1608,7 @@ fun Activity.setupDialogStuff(
         window?.setGravity(Gravity.BOTTOM)
         if (!isFinishing) {
             show()
+            trackAlertDialog(this)
         }
         getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(dialogButtonColor)
         getButton(AlertDialog.BUTTON_NEGATIVE).setTextColor(dialogButtonColor)

@@ -433,6 +433,7 @@ class ConversationsAdapter(
             }
         }
         dialog.show()
+        activity.trackOpenDialog(dialog)
     }
 
     override fun actionItemPressed(id: Int) {

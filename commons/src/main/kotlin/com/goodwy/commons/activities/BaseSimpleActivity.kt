@@ -154,6 +154,7 @@ abstract class BaseSimpleActivity : EdgeToEdgeActivity() {
 
     override fun onResume() {
         super.onResume()
+        dismissOpenDialogs()
         if (useDynamicTheme) {
             setTheme(getThemeId())
             updateBackgroundColor(getProperBackgroundColor())

@@ -239,7 +239,6 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         applyThreadTopBarChrome()
         loadConversation()
         maybeSetupRecycleBinView()
-        messageHolderHelper?.clearMessage()
     }
 
     override fun onResume() {
@@ -883,6 +882,9 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             if (notifyConversationsAfter) {
                 bus?.post(Events.RefreshConversations())
             }
+            return
+        }
+        if (messageHolderHelper?.isCountdownActive == true) {
             return
         }
         val draftMessage = messageHolderHelper?.getMessageText() ?: ""
@@ -2168,6 +2170,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             }
         }
         dialog.show()
+        trackOpenDialog(dialog)
     }
 
     private fun isBlockNumbers(): Boolean {
@@ -2500,23 +2503,11 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             ensureBackgroundThread {
                 val messageId = scheduledMessage?.id ?: generateRandomId()
                 val message = buildScheduledMessage(text, subscriptionId, messageId)
-                if (messages.isEmpty()) {
-                    // create a temporary thread until a real message is sent
-                    threadId = message.threadId
-                    createTemporaryThread(message, message.threadId, conversation)
-                }
-                val conversation = conversationsDB.getConversationWithThreadId(threadId)
-                if (conversation != null) {
-                    val nowSeconds = (System.currentTimeMillis() / 1000).toInt()
-                    conversationsDB.insertOrUpdate(
-                        conversation.copy(
-                            date = nowSeconds,
-                            snippet = message.body
-                        )
-                    )
-                }
+                threadId = message.threadId
+                upsertConversationForScheduledMessage(message, threadId, conversation)
                 scheduleMessage(message)
                 insertOrUpdateMessage(message)
+                refreshConversations()
 
                 runOnUiThread {
                     clearCurrentMessage()
@@ -2552,6 +2543,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                 showDeliveredToastOnSuccess = addresses.size == 1,
             )
             ensureBackgroundThread {
+                deleteSmsDraft(threadId)
                 val latestMessages = getMessages(
                     threadId,
                     limit = maxOf(1, attachments.size),
@@ -2862,7 +2854,11 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
     }
 
     private fun buildScheduledMessage(text: String, subscriptionId: Int, messageId: Long): Message {
-        val threadId = if (messages.isEmpty()) messageId else threadId
+        val threadId = resolveScheduledMessageThreadId(
+            addresses = participants.getAddresses(),
+            existingThreadId = threadId,
+            fallbackThreadId = messageId,
+        )
         return Message(
             id = messageId,
             body = text,

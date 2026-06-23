@@ -1906,10 +1906,21 @@ class NewConversationActivity : SimpleActivity() {
                 }
                 val messageId = generateRandomId()
                 val participants = getParticipantsFromNumbers(allNumbers)
-                val message = buildScheduledMessage(processedText, subscriptionId, messageId, participants)
+                val threadId = resolveScheduledMessageThreadId(
+                    addresses = allNumbers,
+                    fallbackThreadId = messageId,
+                )
+                val message = buildScheduledMessage(
+                    processedText,
+                    subscriptionId,
+                    messageId,
+                    participants,
+                    threadId,
+                )
                 scheduleMessage(message)
                 messagesDB.insertOrUpdate(message)
-                createTemporaryThread(message, message.threadId, null) {
+                upsertConversationForScheduledMessage(message, threadId) {
+                    refreshConversations()
                     runOnUiThread {
                         resumedDraftThreadId = 0L
                         messageHolderHelper?.clearMessage()
@@ -1917,7 +1928,7 @@ class NewConversationActivity : SimpleActivity() {
                         hideScheduleSendUi()
                         val numbersString = allNumbers.joinToString(";")
                         val displayName = if (allNumbers.size == 1) allNumbers[0] else "${allNumbers.size} recipients"
-                        launchThreadActivity(numbersString, displayName, body = "", threadId = message.threadId)
+                        launchThreadActivity(numbersString, displayName, body = "", threadId = threadId)
                     }
                 }
             }
@@ -1950,9 +1961,9 @@ class NewConversationActivity : SimpleActivity() {
         text: String,
         subscriptionId: Int,
         messageId: Long,
-        participants: ArrayList<SimpleContact>
+        participants: ArrayList<SimpleContact>,
+        threadId: Long,
     ): Message {
-        val threadId = messageId
         val isGroupMms = participants.size > 1 && config.sendGroupMessageMMS
         val isLongMms = isLongMmsMessage(text)
         val hasAttachments = messageHolderHelper?.getAttachmentSelections()?.isNotEmpty() == true
@@ -2005,22 +2016,32 @@ class NewConversationActivity : SimpleActivity() {
         }
     }
 
-    private fun launchThreadActivity(phoneNumber: String, name: String, body: String = "", photoUri: String = "", threadId: Long? = null) {
+    /**
+     * @param body Compose text for [ThreadActivity]. `null` falls back to [Intent.EXTRA_TEXT] (forward/share).
+     * An explicit empty string means compose must stay empty (e.g. after a successful send).
+     */
+    private fun launchThreadActivity(
+        phoneNumber: String,
+        name: String,
+        body: String? = null,
+        photoUri: String = "",
+        threadId: Long? = null,
+    ) {
         hideKeyboard()
-//        val text = intent.getStringExtra(Intent.EXTRA_TEXT) ?: intent.getStringExtra("sms_body") ?: ""
         val numbers = phoneNumber.split(";").toSet()
         val number = if (numbers.size == 1) phoneNumber else Gson().toJson(numbers)
+        val threadText = body ?: intent.getStringExtra(Intent.EXTRA_TEXT).orEmpty()
         Intent(this, ThreadActivity::class.java).apply {
             putExtra(THREAD_ID, threadId ?: getThreadId(numbers))
             putExtra(THREAD_TITLE, name)
-            putExtra(THREAD_TEXT, body.ifEmpty { intent.getStringExtra(Intent.EXTRA_TEXT) })
+            putExtra(THREAD_TEXT, threadText)
             putExtra(THREAD_NUMBER, number)
             putExtra(THREAD_URI, photoUri)
 
-            if (intent.action == Intent.ACTION_SEND && intent.extras?.containsKey(Intent.EXTRA_STREAM) == true) {
+            if (body != "" && intent.action == Intent.ACTION_SEND && intent.extras?.containsKey(Intent.EXTRA_STREAM) == true) {
                 val uri = intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)
                 putExtra(THREAD_ATTACHMENT_URI, uri?.toString())
-            } else if (intent.action == Intent.ACTION_SEND_MULTIPLE && intent.extras?.containsKey(
+            } else if (body != "" && intent.action == Intent.ACTION_SEND_MULTIPLE && intent.extras?.containsKey(
                     Intent.EXTRA_STREAM
                 ) == true
             ) {
@@ -2393,6 +2414,7 @@ class NewConversationActivity : SimpleActivity() {
             }
         }
         dialog.show()
+        trackOpenDialog(dialog)
     }
 
     private data class NewConversationExitSnapshot(
@@ -2460,6 +2482,9 @@ class NewConversationActivity : SimpleActivity() {
     }
 
     private fun saveNewConversationDraft(showDraftSavedToast: Boolean = false) {
+        if (messageHolderHelper?.isCountdownActive == true) {
+            return
+        }
         val snapshot = newConversationExitSnapshot()
         val staleResumeId = snapshot.staleResumeId
         val allNumbers = snapshot.allNumbers

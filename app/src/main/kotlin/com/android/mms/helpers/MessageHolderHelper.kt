@@ -26,6 +26,7 @@ import androidx.core.net.toUri
 import androidx.core.view.updateLayoutParams
 import com.android.common.dialogs.MDateTimePickerDialog
 import com.android.mms.R
+import com.goodwy.commons.extensions.trackOpenDialog
 import com.android.mms.activities.NewConversationActivity
 import com.android.mms.activities.SimpleActivity
 import com.android.mms.adapters.AttachmentsAdapter
@@ -412,6 +413,7 @@ class MessageHolderHelper(
                     val mDateTimePickerDialog = MDateTimePickerDialog(activity)
                     mDateTimePickerDialog.bindBlurTarget(blurTarget)
                     mDateTimePickerDialog.show()
+                    activity.trackOpenDialog(mDateTimePickerDialog)
                     mDateTimePickerDialog.setOnDateSelectListener { datetime ->
                         insertText(datetime.toLocaleString())
                     }

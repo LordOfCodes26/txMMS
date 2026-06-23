@@ -32,6 +32,7 @@ fun Activity.showMConfirmBlurDialog(
     }
     dialog.setOnCompleteListener { onResult(it) }
     dialog.show()
+    trackOpenDialog(dialog)
     if (useDarkTheme) {
         dialog.applyTxBlurFooterForDarkTheme()
     }
@@ -59,6 +60,7 @@ fun Activity.showMConfirmBlurDialogSingle(
     }
     dialog.setOnCompleteListener { if (it) onConfirm() }
     dialog.show()
+    trackOpenDialog(dialog)
     if (useDarkTheme) {
         dialog.applyTxBlurFooterForDarkTheme()
     }
