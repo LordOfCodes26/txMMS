@@ -2,14 +2,11 @@ package com.android.mms.adapters
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.graphics.Rect
-import android.graphics.drawable.Drawable
 import android.text.format.DateFormat
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
-import androidx.annotation.DrawableRes
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.text.layoutDirection
@@ -19,6 +16,7 @@ import com.android.mms.R
 import com.android.mms.activities.SimpleActivity
 import com.android.mms.databinding.ItemSimMessageBinding
 import com.android.mms.extensions.config
+import com.android.mms.extensions.applyCustomBubbleBackground
 import com.android.mms.extensions.setPaddingBubble
 import com.android.mms.helpers.BUBBLE_STYLE_IOS
 import com.android.mms.helpers.BUBBLE_STYLE_IOS_NEW
@@ -118,26 +116,6 @@ class SimMessageAdapter(
 //        }
     }
 
-    @DrawableRes
-    private fun getCompactBubbleRes(@DrawableRes baseRes: Int): Int {
-        val baseName = runCatching { activity.resources.getResourceEntryName(baseRes) }.getOrNull() ?: return baseRes
-        val compactName = when {
-            baseName.startsWith("bubble_incoming_") -> baseName.replaceFirst("bubble_incoming_", "bubble_incoming_compact_")
-            baseName.startsWith("bubble_outgoing_") -> baseName.replaceFirst("bubble_outgoing_", "bubble_outgoing_compact_")
-            else -> return baseRes
-        }
-        val compactRes = activity.resources.getIdentifier(compactName, "drawable", activity.packageName)
-        return if (compactRes != 0) compactRes else baseRes
-    }
-
-    private fun View.applyDrawablePadding(drawable: Drawable?) {
-        if (drawable == null) return
-        val padding = Rect()
-        if (drawable.getPadding(padding)) {
-            setPadding(padding.left, padding.top, padding.right, padding.bottom)
-        }
-    }
-
     private fun setupReceivedBubble(bubbleWrapper: LinearLayout) {
         val letterBackgroundColors = activity.getLetterBackgroundColors()
         val primaryOrSenderColor =
@@ -151,7 +129,7 @@ class SimMessageAdapter(
         val bubbleStyle = activity.config.bubbleStyle
 
         val bubbleReceived = if (selectedBubbleOption != null) {
-            if (isRtl) getCompactBubbleRes(selectedBubbleOption.outgoingRes) else getCompactBubbleRes(selectedBubbleOption.incomingRes)
+            if (isRtl) selectedBubbleOption.outgoingRes else selectedBubbleOption.incomingRes
         } else {
             when (bubbleStyle) {
                 BUBBLE_STYLE_IOS_NEW -> if (isRtl) R.drawable.item_sent_ios_new_background else R.drawable.item_received_ios_new_background
@@ -160,14 +138,13 @@ class SimMessageAdapter(
                 else -> if (isRtl) R.drawable.item_sent_background else R.drawable.item_received_background
             }
         }
-        val bubbleDrawable = ResourcesCompat.getDrawable(activity.resources, bubbleReceived, activity.theme)
-        bubbleWrapper.background = bubbleDrawable
-        bubbleWrapper.minimumHeight = 0
         if (selectedBubbleOption == null) {
+            val bubbleDrawable = ResourcesCompat.getDrawable(activity.resources, bubbleReceived, activity.theme)
+            bubbleWrapper.background = bubbleDrawable
             bubbleWrapper.setPaddingBubble(activity, bubbleStyle)
             bubbleWrapper.background.applyColorFilter(backgroundReceived)
         } else {
-            bubbleWrapper.applyDrawablePadding(bubbleDrawable)
+            bubbleWrapper.applyCustomBubbleBackground(bubbleReceived)
         }
     }
 
@@ -183,7 +160,7 @@ class SimMessageAdapter(
         val bubbleStyle = activity.config.bubbleStyle
 
         val bubbleReceived = if (selectedBubbleOption != null) {
-            if (isRtl) getCompactBubbleRes(selectedBubbleOption.incomingRes) else getCompactBubbleRes(selectedBubbleOption.outgoingRes)
+            if (isRtl) selectedBubbleOption.incomingRes else selectedBubbleOption.outgoingRes
         } else {
             when (bubbleStyle) {
                 BUBBLE_STYLE_IOS_NEW -> if (isRtl) R.drawable.item_received_ios_new_background else R.drawable.item_sent_ios_new_background
@@ -192,15 +169,13 @@ class SimMessageAdapter(
                 else -> if (isRtl) R.drawable.item_received_background else R.drawable.item_sent_background
             }
         }
-        val bubbleDrawable = AppCompatResources.getDrawable(activity, bubbleReceived)
-        bubbleWrapper.background = bubbleDrawable
-        bubbleWrapper.minimumHeight = 0
         if (selectedBubbleOption == null) {
+            val bubbleDrawable = AppCompatResources.getDrawable(activity, bubbleReceived)
+            bubbleWrapper.background = bubbleDrawable
             bubbleWrapper.setPaddingBubble(activity, bubbleStyle, false)
             bubbleWrapper.background.applyColorFilter(backgroundReceived)
         } else {
-            // Respect 9-patch content padding when using custom bubble drawables.
-            bubbleWrapper.applyDrawablePadding(bubbleDrawable)
+            bubbleWrapper.applyCustomBubbleBackground(bubbleReceived)
         }
     }
 }
