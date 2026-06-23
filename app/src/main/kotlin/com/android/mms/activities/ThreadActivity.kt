@@ -239,6 +239,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         applyThreadTopBarChrome()
         loadConversation()
         maybeSetupRecycleBinView()
+        messageHolderHelper?.clearMessage()
     }
 
     override fun onResume() {
