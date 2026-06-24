@@ -33,6 +33,7 @@ import com.android.mms.messaging.getSmsManager
 import com.android.mms.messaging.isShortCodeWithLetters
 import com.android.mms.models.SimMessage
 import com.goodwy.commons.dialogs.OptionListDialog
+import com.goodwy.commons.dialogs.toOptionListItems
 import com.goodwy.commons.extensions.beGone
 import com.goodwy.commons.extensions.beVisible
 import com.goodwy.commons.extensions.copyToClipboard
@@ -332,7 +333,7 @@ class SimMessagesActivity : SimpleActivity() {
         OptionListDialog(
             activity = this,
             title = "",
-            options = options,
+            options = options.toOptionListItems(),
             blurTarget = blurTarget,
             cancelListener = null
         )

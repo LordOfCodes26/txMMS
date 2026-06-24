@@ -50,6 +50,7 @@ import com.android.mms.helpers.EXTRA_VCARD_URI
 import com.android.mms.helpers.THREAD_ID
 import com.android.mms.helpers.parseVCardFromUri
 import com.goodwy.commons.dialogs.OptionListDialog
+import com.goodwy.commons.dialogs.toOptionListItems
 import ezvcard.property.Telephone
 import com.google.android.material.snackbar.Snackbar
 import eightbitlab.com.blurview.BlurTarget
@@ -297,7 +298,7 @@ fun Activity.launchAddNumberToContactFlow(rawPhoneNumber: String) {
     OptionListDialog(
         activity = this,
         title = "",
-        options = options,
+        options = options.toOptionListItems(),
         blurTarget = blurTarget,
         cancelListener = null,
     )

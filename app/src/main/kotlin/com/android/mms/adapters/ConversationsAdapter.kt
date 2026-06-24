@@ -10,6 +10,7 @@ import android.view.View
 import android.widget.PopupMenu
 import com.android.common.dialogs.MConfirmDialog
 import com.goodwy.commons.dialogs.OptionListDialog
+import com.goodwy.commons.dialogs.toOptionListItems
 import com.goodwy.commons.extensions.*
 import com.goodwy.commons.helpers.ensureBackgroundThread
 import com.goodwy.commons.views.MyRecyclerView
@@ -288,7 +289,7 @@ class ConversationsAdapter(
             OptionListDialog(
                 activity = activity,
                 title = title,
-                options = options,
+                options = options.toOptionListItems(),
                 blurTarget = blurTarget,
                 cancelListener = null
             )

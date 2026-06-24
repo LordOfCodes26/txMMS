@@ -9,6 +9,7 @@ import com.goodwy.commons.activities.BaseSimpleActivity
 import com.goodwy.commons.databinding.DialogOptionListBinding
 import com.goodwy.commons.databinding.ItemOptionListRowBinding
 import com.goodwy.commons.dialogs.OptionListDialog
+import com.goodwy.commons.dialogs.toOptionListItems
 import com.goodwy.commons.extensions.beVisible
 import com.goodwy.commons.extensions.setupMDialogStuff
 import com.android.mms.R
@@ -33,7 +34,7 @@ class QuickTextSelectionDialog(
                 OptionListDialog(
                     activity = activity as Activity,
                     title = title,
-                    options = options,
+                    options = options.toOptionListItems(),
                     blurTarget = blurTarget,
                     cancelListener = null
                 )

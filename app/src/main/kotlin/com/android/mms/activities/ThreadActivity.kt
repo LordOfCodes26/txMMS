@@ -55,6 +55,7 @@ import com.google.gson.reflect.TypeToken
 import com.android.common.dialogs.MConfirmDialog
 import com.android.common.view.MDialog
 import com.goodwy.commons.dialogs.OptionListDialog
+import com.goodwy.commons.dialogs.OptionListItem
 import com.goodwy.commons.dialogs.PermissionRequiredDialog
 import com.goodwy.commons.dialogs.RadioGroupDialog
 import com.goodwy.commons.dialogs.RadioGroupIconDialog
@@ -823,7 +824,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
      */
     fun showMessageOptionsDialog(
         title: CharSequence,
-        options: List<Pair<CharSequence, () -> Unit>>,
+        options: List<OptionListItem>,
         blurTarget: BlurTarget?,
     ) {
         if (isDestroyed || isFinishing || options.isEmpty()) return

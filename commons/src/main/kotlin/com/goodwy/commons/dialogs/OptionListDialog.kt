@@ -18,8 +18,18 @@ import com.goodwy.commons.extensions.getProperTextColor
 import com.goodwy.commons.extensions.setupMDialogStuff
 import eightbitlab.com.blurview.BlurTarget
 
+data class OptionListItem(
+    val label: CharSequence,
+    val action: () -> Unit,
+    val dismissOnSelect: Boolean = true,
+)
+
+fun List<Pair<CharSequence, () -> Unit>>.toOptionListItems(): List<OptionListItem> =
+    map { OptionListItem(it.first, it.second) }
+
 /**
- * Shows an MDialog with a title and a list of options. Tapping an option runs its action and dismisses the dialog.
+ * Shows an MDialog with a title and a list of options. Tapping an option runs its action;
+ * the dialog dismisses unless [OptionListItem.dismissOnSelect] is false.
  *
  * @param activity Activity context
  * @param title Dialog title (optional; if empty, title is hidden)
@@ -31,7 +41,7 @@ import eightbitlab.com.blurview.BlurTarget
 class OptionListDialog(
     private val activity: Activity,
     title: CharSequence,
-    private val options: List<Pair<CharSequence, () -> Unit>>,
+    private val options: List<OptionListItem>,
     blurTarget: BlurTarget? = null,
     cancelListener: (() -> Unit)? = null,
     onDialogPrepared: ((MDialog) -> Unit)? = null,
@@ -43,12 +53,14 @@ class OptionListDialog(
             val view = DialogOptionListBinding.inflate(activity.layoutInflater, null, false)
             val container = view.optionListContainer
 
-            options.forEachIndexed { _, (label, action) ->
+            options.forEachIndexed { _, option ->
                 val rowBinding = ItemOptionListRowBinding.inflate(activity.layoutInflater, null, false)
-                rowBinding.optionRowText.text = label
+                rowBinding.optionRowText.text = option.label
                 rowBinding.root.setOnClickListener {
-                    action.invoke()
-                    dialog?.dismiss()
+                    option.action.invoke()
+                    if (option.dismissOnSelect) {
+                        dialog?.dismiss()
+                    }
                 }
                 container.addView(
                     rowBinding.root,

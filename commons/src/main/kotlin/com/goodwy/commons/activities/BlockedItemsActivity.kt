@@ -28,6 +28,7 @@ import com.android.common.view.MVSideFrame
 import com.goodwy.commons.R
 import com.goodwy.commons.databinding.ActivityBlockedItemsBinding
 import com.goodwy.commons.dialogs.OptionListDialog
+import com.goodwy.commons.dialogs.toOptionListItems
 import com.goodwy.commons.extensions.addBlockedNumber
 import com.goodwy.commons.extensions.blockContact
 import com.goodwy.commons.extensions.onPageChangeListener
@@ -385,7 +386,7 @@ open class BlockedItemsActivity : BaseSimpleActivity(), ActionModeToolbarHost {
                 getString(R.string.pick_contact_number) to { launchSelectContactNumberToBlock() },
                 getString(R.string.pick_recent_number) to { launchSelectRecentNumberToBlock() },
                 getString(R.string.add_contact) to { launchSelectContactsToBlock() },
-            ),
+            ).toOptionListItems(),
             blurTarget = binding.mainBlurTarget,
         )
     }

@@ -17,6 +17,7 @@ import android.widget.LinearLayout
 import android.widget.RelativeLayout
 import androidx.appcompat.view.menu.MenuBuilder
 import com.goodwy.commons.dialogs.OptionListDialog
+import com.goodwy.commons.dialogs.OptionListItem
 import com.goodwy.commons.views.showMPopupMenu
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.constraintlayout.widget.ConstraintSet
@@ -115,6 +116,7 @@ import com.android.mms.dialogs.SelectSIMDialog
 import com.android.mms.helpers.SimMessageCopyHelper
 import com.android.mms.helpers.getLocaleDateFormatPatternMonthDay
 import com.android.mms.helpers.resolveSimIconTint
+import com.goodwy.commons.extensions.dismissTrackedMDialogs
 import com.goodwy.commons.extensions.toast
 import com.goodwy.commons.helpers.DARK_GREY
 import com.goodwy.commons.views.enableItemDividers
@@ -831,11 +833,13 @@ class ThreadAdapter(
                 blurTarget = blurTarget,
                 showNetName = true
             ) { simCard, _ ->
-                proceedCopyToSim(message, address,simCard.subscriptionId)
+                proceedCopyToSim(message, address, simCard.subscriptionId)
+                activity.dismissTrackedMDialogs()
             }
         } else {
             val subscriptionId = SimMessageCopyHelper.resolveSubscriptionId(message)
             proceedCopyToSim(message, address, subscriptionId)
+            activity.dismissTrackedMDialogs()
         }
     }
 
@@ -885,11 +889,11 @@ class ThreadAdapter(
         val text = message.body
         val numbersList = text.getListNumbersFromText()
 
-        val options = mutableListOf<Pair<CharSequence, () -> Unit>>()
+        val options = mutableListOf<OptionListItem>()
         // 본문복사
-        options.add(activity.getString(R.string.sms_txt_copy) to { activity.copyToClipboard(text) })
+        options.add(OptionListItem(activity.getString(R.string.sms_txt_copy), action = { activity.copyToClipboard(text) }))
         // 통보문 전환
-        options.add(activity.getString(R.string.forward_message) to {
+        options.add(OptionListItem(activity.getString(R.string.forward_message), action = {
             val attachments = message.attachment?.attachments.orEmpty()
             Intent(activity, NewConversationActivity::class.java).apply {
                 action = Intent.ACTION_SEND
@@ -902,20 +906,26 @@ class ThreadAdapter(
                 }
                 activity.startActivity(this)
             }
-        })
+        }))
         // 통보문 삭제
-        options.add(activity.getString(R.string.sms_thread_delete) to { askConfirmDelete(message) })
-        // options.add(activity.getString(com.goodwy.commons.R.string.share) to { activity.shareTextIntent(text) })
+        options.add(OptionListItem(activity.getString(R.string.sms_thread_delete), action = { askConfirmDelete(message) }))
+        // options.add(OptionListItem(activity.getString(com.goodwy.commons.R.string.share), action = { activity.shareTextIntent(text) }))
         // copy to sim
         if (!message.isMMS) {
-            options.add(activity.getString(R.string.sim_copy_to_sim) to {copyToSimMessage(message)})
+            options.add(
+                OptionListItem(
+                    label = activity.getString(R.string.sim_copy_to_sim),
+                    dismissOnSelect = false,
+                    action = { copyToSimMessage(message) },
+                )
+            )
         }
         // 상세정보
-        options.add(activity.getString(R.string.message_details) to {
+        options.add(OptionListItem(activity.getString(R.string.message_details), action = {
             activity.findViewById<eightbitlab.com.blurview.BlurTarget>(com.android.mms.R.id.mainBlurTarget)?.let { bt ->
                 MessageDetailsDialog(activity, message, bt)
             }
-        })
+        }))
 //        options.add(activity.getString(android.R.string.selectTextMode) to {
 //            activity.findViewById<eightbitlab.com.blurview.BlurTarget>(com.android.mms.R.id.mainBlurTarget)?.let { bt ->
 //                SelectTextDialog(activity, text, bt)

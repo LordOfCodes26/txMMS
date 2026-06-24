@@ -23,6 +23,7 @@ import com.goodwy.commons.extensions.isSystemInDarkMode
 import com.goodwy.commons.extensions.toast
 import com.goodwy.commons.extensions.updateTextColors
 import com.goodwy.commons.dialogs.OptionListDialog
+import com.goodwy.commons.dialogs.toOptionListItems
 import com.goodwy.commons.views.MyRecyclerView
 import com.android.mms.R
 import com.android.mms.adapters.SlideshowSlidesAdapter
@@ -151,7 +152,7 @@ class ManageSlideshowActivity : SimpleActivity() {
         OptionListDialog(
             activity = this,
             title = title,
-            options = options,
+            options = options.toOptionListItems(),
             blurTarget = binding.mainBlurTarget,
             cancelListener = null,
         )
