@@ -221,7 +221,7 @@
     <string name="sim_message_copied">전화기에 통보문을 복사하였습니다.</string>
     <string name="sim_copy_to_sim">SIM카드에 복사</string>
     <string name="sim_message_copied_to_sim">SIM카드에 복사하였습니다.</string>
-    <string name="sim_storage_full_confirm">SIM카드용량이 다 찼습니다.\n 이미전에 보관된 통보문을 삭제하고 보관합니다.</string>
+    <string name="sim_storage_full_confirm">SIM카드용량이 초과되였습니다.\n 이미전에 보관된 통보문은 삭제됩니다.</string>
     <string name="sim_copy_to_sim_mms_not_supported">다매체통보문은 SIM카드에 보관할수 없습니다.</string>
     <string name="sim_copy_to_sim_failed">SIM카드에 통보문을 보관할수 없습니다.</string>
     <string name="sim_show_sms_capacity">SIM카드 용량보기</string>
