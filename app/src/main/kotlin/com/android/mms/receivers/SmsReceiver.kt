@@ -34,6 +34,7 @@ import com.android.mms.extensions.messagesDB
 import com.android.mms.extensions.shouldUnarchive
 import com.android.mms.extensions.showReceivedMessageNotification
 import com.android.mms.extensions.updateConversationArchivedStatus
+import com.android.mms.activities.ThreadActivity
 import com.android.mms.helpers.ReceiverUtils.isMessageFilteredOut
 import com.android.mms.helpers.FEE_SERVICE_NUMBER
 import com.android.mms.helpers.refreshConversations
@@ -200,8 +201,9 @@ class SmsReceiver : BroadcastReceiver() {
                     refreshMessages()
                     refreshConversations()
                     
-                    // Only show notification if number is not blocked, or if blocked numbers are being shown
-                    if (!isNumberBlocked || context.config.showBlockedNumbers) {
+                    // Only show notification if number is not blocked, or if blocked numbers are being shown,
+                    // and the user is not already viewing this thread.
+                    if ((!isNumberBlocked || context.config.showBlockedNumbers) && !ThreadActivity.isThreadCurrentlyVisible(threadId)) {
                         context.showReceivedMessageNotification(newMessageId, address, body, threadId, bitmap, subscriptionId)
                     }
                 }

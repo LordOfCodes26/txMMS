@@ -254,6 +254,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         applyThreadTopBarChrome()
 
         isActivityVisible = true
+        setVisibleThreadId(threadId)
 
         notificationManager.cancel(threadId.hashCode())
 
@@ -342,6 +343,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         // leaves MainActivity's list without the new draft until the next resume.
         saveDraftMessage(notifyConversationsAfter = true, showDraftSavedToast = isFinishing)
         isActivityVisible = false
+        clearVisibleThreadIdIfMatches(threadId)
     }
 
     override fun onStop() {
@@ -361,6 +363,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
 //    }
 
     override fun onDestroy() {
+        clearVisibleThreadIdIfMatches(threadId)
         releaseThreadListLayoutFreeze(recalculatePadding = false)
         unregisterFeeInfoReceiverIfNeeded()
         if (openedFromSecureConversationList) {
@@ -2692,6 +2695,9 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         if (messages.isNotEmpty() && messages.all { it.isScheduled } && newMessages.isNotEmpty()) {
             // update scheduled messages with real thread id
             threadId = newThreadId
+            if (isActivityVisible) {
+                setVisibleThreadId(threadId)
+            }
             updateScheduledMessagesThreadId(
                 messages = messages.filter { it.threadId != threadId },
                 newThreadId = threadId
@@ -2942,6 +2948,23 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
     }
 
     companion object {
+        @Volatile
+        private var visibleThreadId: Long? = null
+
+        fun isThreadCurrentlyVisible(threadId: Long): Boolean {
+            return visibleThreadId != null && visibleThreadId == threadId
+        }
+
+        private fun setVisibleThreadId(threadId: Long) {
+            visibleThreadId = threadId.takeIf { it > 0L }
+        }
+
+        private fun clearVisibleThreadIdIfMatches(threadId: Long) {
+            if (visibleThreadId == threadId) {
+                visibleThreadId = null
+            }
+        }
+
         private const val ACTION_FEE_INFO_SET = "com.chonha.total.action.ACTION_FEE_INFO_SET"
         const val TYPE_EDIT = 14
         const val TYPE_SEND = 15
