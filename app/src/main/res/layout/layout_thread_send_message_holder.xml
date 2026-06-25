@@ -13,9 +13,7 @@
         android:id="@+id/scheduled_message_holder"
         android:layout_width="236.8dp"
         android:layout_height="@dimen/input_edit_height"
-        android:layout_marginStart="52dp"
         android:layout_marginTop="@dimen/medium_margin"
-        android:layout_marginEnd="@dimen/medium_margin"
         android:background="@drawable/section_holder_stroke"
         android:backgroundTint="@color/tx_cardview_bg"
         android:orientation="horizontal"
@@ -23,12 +21,13 @@
         app:cardCornerRadius="24dp"
         app:cardElevation="3px"
         app:layout_constraintBottom_toTopOf="@id/thread_attachments_recyclerview"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintEnd_toEndOf="@+id/threadTypeMessageWrapper"
         app:layout_constraintHorizontal_weight="1"
+        app:layout_constraintStart_toStartOf="@+id/threadTypeMessageWrapper"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_goneMarginBottom="@dimen/medium_margin"
         app:strokeColor="@color/tx_popup_menu_border"
         app:strokeWidth="@dimen/cardview_stroke"
-        app:layout_goneMarginBottom="@dimen/medium_margin"
         tools:visibility="visible">
 
         <RelativeLayout
@@ -47,8 +46,8 @@
                 android:layout_alignTop="@+id/scheduled_message_button"
                 android:layout_alignBottom="@+id/scheduled_message_button"
                 android:padding="@dimen/medium_margin"
-                android:tint="@color/tx_title_text"
-                android:src="@drawable/ic_cmn_alarm" />
+                android:src="@drawable/ic_cmn_alarm"
+                android:tint="@color/tx_title_text" />
 
             <com.goodwy.commons.views.MyTextView
                 android:id="@+id/scheduled_message_button"
@@ -60,8 +59,8 @@
                 android:gravity="center_vertical"
                 android:paddingEnd="@dimen/activity_margin"
                 android:textSize="@dimen/tx_normal_text"
-                tools:ignore="HardcodedText"
                 app:strokeColor="@color/tx_popup_menu_border"
+                tools:ignore="HardcodedText"
                 tools:text="2026.5.31 12:16" />
 
             <ImageView
@@ -73,8 +72,8 @@
                 android:background="?selectableItemBackgroundBorderless"
                 android:contentDescription="@string/cancel_schedule_send"
                 android:padding="@dimen/medium_margin"
-                android:tint="@color/tx_title_text"
-                android:src="@drawable/ic_cross_vector" />
+                android:src="@drawable/ic_cmn_circle_close"
+                android:tint="@color/tx_title_text" />
 
         </RelativeLayout>
 
@@ -172,7 +171,7 @@
         android:minHeight="@dimen/input_edit_height"
         app:cardCornerRadius="24dp"
         app:cardElevation="3px"
-        app:layout_constraintBottom_toBottomOf="@id/threadAddAttachmentHolder"
+        app:layout_constraintBottom_toBottomOf="@+id/threadSendMessageActionWrapper"
         app:layout_constraintEnd_toStartOf="@id/threadSendMessageActionWrapper"
         app:layout_constraintHorizontal_weight="1"
         app:layout_constraintStart_toEndOf="@+id/threadAddAttachmentHolder"
@@ -187,12 +186,12 @@
             android:gravity="center_vertical"
             android:hint="@string/type_a_message"
             android:inputType="textCapSentences|textMultiLine"
+            android:lineSpacingMultiplier="1.2"
             android:maxHeight="@dimen/input_edit_max_height"
             android:minHeight="@dimen/input_edit_height"
             android:paddingHorizontal="@dimen/normal_margin"
-            android:lineSpacingMultiplier="1.2"
-            android:textColorHighlight="@color/tx_text_selection_highlight"
-            android:paddingVertical="@dimen/medium_margin" />
+            android:paddingVertical="@dimen/medium_margin"
+            android:textColorHighlight="@color/tx_text_selection_highlight" />
     </com.google.android.material.card.MaterialCardView>
 
 
