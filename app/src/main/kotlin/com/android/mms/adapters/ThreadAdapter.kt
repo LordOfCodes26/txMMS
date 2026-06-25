@@ -646,6 +646,7 @@ class ThreadAdapter(
 
     @SuppressLint("RestrictedApi")
     private fun showLinkPopupMenu(context: Context, url: String, view: View) {
+        if (actModeCallback.isSelectable) return
         var dividerGroupId = 0
         val menu = MenuBuilder(context).apply { enableItemDividers() }
         val text = url.toUri().schemeSpecificPart
@@ -1201,6 +1202,7 @@ class ThreadAdapter(
             }
         }
         imageView.root.setOnLongClickListener {
+            if (actModeCallback.isSelectable) return@setOnLongClickListener false
             showPopupMenu(message, it)
             true
         }
