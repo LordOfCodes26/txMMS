@@ -112,11 +112,13 @@ import com.android.mms.models.ThreadItem.ThreadDateTime
 import com.android.common.helper.IconItem
 import android.widget.PopupMenu
 import com.android.common.dialogs.MConfirmDialog
+import com.android.mms.BuildConfig
 import com.android.mms.dialogs.SelectSIMDialog
 import com.android.mms.helpers.SimMessageCopyHelper
 import com.android.mms.helpers.getLocaleDateFormatPatternMonthDay
 import com.android.mms.helpers.resolveSimIconTint
 import com.goodwy.commons.extensions.dismissTrackedMDialogs
+import com.goodwy.commons.extensions.launchCallIntent
 import com.goodwy.commons.extensions.toast
 import com.goodwy.commons.helpers.DARK_GREY
 import com.goodwy.commons.views.enableItemDividers
@@ -670,13 +672,10 @@ class ThreadAdapter(
             listener = MenuItem.OnMenuItemClickListener { item ->
                 when (item.itemId) {
                     0 -> activity.copyToClipboard(text)
-
+                    1 -> activity.launchCallIntent(text, key = BuildConfig.RIGHT_APP_KEY)
                     2 -> activity.launchSendSMSIntent(text)
-
                     4 -> activity.shareTextIntent(text)
-
                     5 -> activity.copyToClipboard(text)
-
                     else -> {
                         val intent = Intent(Intent.ACTION_VIEW, url.toUri())
                         context.startActivity(intent)
