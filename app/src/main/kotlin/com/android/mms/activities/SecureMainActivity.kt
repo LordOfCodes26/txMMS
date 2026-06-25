@@ -94,7 +94,6 @@ class SecureMainActivity : MainActivity() {
         initSecureMainContent()
         setContentView(binding.root)
         refreshMenuItems()
-        visibilityConversationAddBtn()
         loadInitialMessagesIfEnabled()
     }
 
@@ -115,10 +114,6 @@ class SecureMainActivity : MainActivity() {
             else -> getString(R.string.private_space)
         }
         binding.mainAppbar.setTitle(title)
-    }
-
-    private fun visibilityConversationAddBtn() {
-        binding.conversationsFab.isVisible = false
     }
 
     override fun onResume() {

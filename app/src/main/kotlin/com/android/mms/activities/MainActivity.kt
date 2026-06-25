@@ -39,6 +39,7 @@ import androidx.appcompat.widget.SearchView
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.recyclerview.widget.RecyclerView
 import android.widget.EditText
+import androidx.core.view.isVisible
 import com.google.android.material.appbar.AppBarLayout
 import com.google.android.material.appbar.AppBarLayout.ScrollingViewBehavior
 import com.google.android.material.appbar.CollapsingToolbarLayout
@@ -332,6 +333,9 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
             }
         } else {
             binding.root.post { refreshActionModeTopBlurChrome() }
+        }
+        if (config.selectedConversationPin > 0) {
+            binding.conversationsFab.beGone()
         }
         setContentView(binding.root)
 
@@ -1091,7 +1095,8 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         binding.actionModeToolbar.visibility = View.GONE
         binding.mainAppbar.visibility = View.VISIBLE
         binding.actionModeRippleToolbar.visibility = View.GONE
-        binding.conversationsFab.beVisible()
+        if (config.selectedConversationPin > 0) binding.conversationsFab.beGone()
+        else binding.conversationsFab.beVisible()
         applyActionModeListBottomInset(false)
         isStartActionMode = false
         binding.mainAppbar.dismissCollapse()
