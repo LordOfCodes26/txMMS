@@ -70,21 +70,26 @@
                             app:layoutManager="com.goodwy.commons.views.MyLinearLayoutManager"
                             tools:listitem="@layout/item_manage_quick_text" />
 
-                        <com.goodwy.commons.views.MyTextView
-                            android:id="@+id/manage_quick_texts_placeholder"
-                            android:layout_width="match_parent"
-                            android:layout_height="450dp"
-                            android:layout_gravity="center"
-                            android:gravity="center_vertical|center_horizontal"
-                            android:padding="@dimen/activity_margin"
-                            android:text="@string/no_quick_texts"
-                            android:textSize="@dimen/tx_sub_section"
-                            android:textColor="@color/txt_empty_sms"
-                            android:visibility="visible" />
+
 
                     </FrameLayout>
 
                 </androidx.cardview.widget.CardView>
+
+                <com.goodwy.commons.views.MyTextView
+                    android:id="@+id/manage_quick_texts_placeholder"
+                    android:layout_width="match_parent"
+                    android:layout_height="450dp"
+                    android:layout_gravity="center"
+                    android:gravity="center_vertical|center_horizontal"
+                    android:padding="@dimen/activity_margin"
+                    android:text="@string/no_quick_texts"
+                    android:lineSpacingMultiplier="1.2"
+                    android:textSize="@dimen/tx_sub_section"
+                    android:textColor="@color/txt_empty_sms"
+                    android:visibility="visible"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent" />
 
             </androidx.constraintlayout.widget.ConstraintLayout>
         </eightbitlab.com.blurview.BlurTarget>
