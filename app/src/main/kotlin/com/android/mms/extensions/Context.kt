@@ -1999,7 +1999,7 @@ fun Context.upsertConversationForScheduledMessage(
         return
     }
     val isTemporaryThread = threadId == message.id
-    createTemporaryThread(message, threadId, cachedConv, onComplete, isScheduled = isTemporaryThread)
+    createTemporaryThread(message, threadId, cachedConv, onComplete)
 }
 
 fun Context.createTemporaryThread(
