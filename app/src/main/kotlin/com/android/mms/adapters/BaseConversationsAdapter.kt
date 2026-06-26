@@ -10,6 +10,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.core.view.updateLayoutParams
 import android.widget.TextView
+import androidx.core.view.setPadding
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import com.behaviorule.arturdumchev.library.pixels
@@ -480,6 +481,7 @@ abstract class BaseConversationsAdapter(
                 }
                 lastMessageType == Telephony.Sms.MESSAGE_TYPE_FAILED -> {
                         conversationMessageType.setImageResource(R.drawable.ic_sms_send_fail)
+                        conversationMessageType.imageTintList = null
                         conversationMessageType.beVisible()
 
                 }
