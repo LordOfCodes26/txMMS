@@ -17,6 +17,7 @@ import android.text.InputType
 import android.util.Log
 import android.util.TypedValue
 import android.view.KeyEvent
+import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
@@ -52,6 +53,8 @@ import com.goodwy.commons.extensions.*
 import com.goodwy.commons.helpers.*
 import com.goodwy.commons.models.RadioItem
 import com.goodwy.commons.models.contacts.Contact
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import douglasspgyn.com.github.circularcountdown.CircularCountdown
 import douglasspgyn.com.github.circularcountdown.listener.CircularListener
 import eightbitlab.com.blurview.BlurTarget
@@ -60,6 +63,7 @@ import java.io.File
 class MessageHolderHelper(
     private val activity: BaseSimpleActivity,
     private val binding: LayoutThreadSendMessageHolderBinding,
+    private val threadId: Long = 0L,
     private val onSendMessage: (text: String, subscriptionId: Int?, attachments: List<Attachment>) -> Unit,
     private val onSpeechToText: () -> Unit = {},
     private val onExpandMessage: (() -> Unit)? = null,
@@ -71,6 +75,9 @@ class MessageHolderHelper(
     private val hasAddressForSend: (() -> Boolean)? = null
 ) {
     var isCountdownActive = false
+        private set
+    private var countdownView: CircularCountdown? = null
+    private var countdownCompleting = false
     private var isSpeechToTextAvailable = false
     private val availableSIMCards = ArrayList<SIMCard>()
     private var currentSIMCardIndex = 0
@@ -187,7 +194,7 @@ class MessageHolderHelper(
 //                threadSendMessage.background = drawable
 //            }
             threadSendMessage.isClickable = false
-            threadSendMessageCountdown.beGone()
+            hideCountdown()
 
             threadExpandMessage.apply {
                 setOnClickListener {
@@ -554,6 +561,63 @@ class MessageHolderHelper(
         updateSendButtonDrawable()
     }
 
+    fun bindSendMessageCountdownStore() {
+        if (threadId <= 0L) return
+        SendMessageCountdownStore.setFinishListener(threadId) { pending ->
+            activity.runOnUiThread {
+                if (activity.isFinishing || activity.isDestroyed) {
+                    PendingSendCountdownFinisher.finish(activity.applicationContext, pending)
+                    return@runOnUiThread
+                }
+                completeCountdownFromStore(pending)
+            }
+        }
+    }
+
+    fun releaseSendMessageCountdownStore() {
+        if (threadId <= 0L) return
+        SendMessageCountdownStore.removeFinishListener(threadId)
+    }
+
+    fun completeCountdownFromStore(pending: PendingSendCountdown) {
+        completeCountdownAndSend(pending)
+    }
+
+    /** Stops the visible timer when the activity pauses without cancelling the persisted countdown. */
+    fun pauseCountdownUi() {
+        if (!SendMessageCountdownStore.isActive(threadId)) {
+            return
+        }
+        countdownView?.let { view ->
+            try {
+                view.stop()
+            } catch (_: Exception) {
+            }
+            view.setOnClickListener(null)
+            view.beGone()
+        }
+    }
+
+    fun restorePendingCountdownIfAny(): Boolean {
+        if (threadId <= 0L) return false
+        val pending = SendMessageCountdownStore.get(threadId) ?: return false
+        val remainingSeconds = SendMessageCountdownStore.getRemainingSeconds(pending)
+        if (remainingSeconds <= 0) {
+            completeCountdownAndSend(pending)
+            return true
+        }
+        restoreComposeFromPending(pending)
+        pauseCountdownUi()
+        showSendMessageCountdown(
+            subscriptionId = pending.subscriptionId,
+            totalDelaySeconds = pending.totalDelaySeconds,
+            elapsedSeconds = SendMessageCountdownStore.getElapsedSeconds(pending),
+            persistToStore = false,
+        )
+        SendMessageCountdownStore.refreshScheduledFinish(threadId)
+        return true
+    }
+
     fun startSendMessageCountdown(subscriptionId: Int) {
         if (isCountdownActive) return
 
@@ -567,56 +631,169 @@ class MessageHolderHelper(
             return
         }
 
+        showSendMessageCountdown(
+            subscriptionId = subscriptionId,
+            totalDelaySeconds = delaySeconds,
+            elapsedSeconds = 0,
+            persistToStore = true,
+        )
+    }
+
+    private fun showSendMessageCountdown(
+        subscriptionId: Int,
+        totalDelaySeconds: Int,
+        elapsedSeconds: Int,
+        persistToStore: Boolean,
+    ) {
+        if (persistToStore && threadId > 0L) {
+            SendMessageCountdownStore.start(buildPendingSendEntry(subscriptionId, totalDelaySeconds))
+        }
+
         isCountdownActive = true
+        countdownCompleting = false
         binding.apply {
             threadSendMessage.beGone()
             threadAvailableMessageCount.beGone()
-            threadSendMessageCountdown.beVisible()
+        }
 
-            threadSendMessageCountdown.setOnClickListener {
-                if (isCountdownActive) {
-                    isCountdownActive = false
-                    hideCountdown()
-                    activity.toast(R.string.sending_cancelled)
-                }
+        val countdown = ensureCountdownView()
+        try {
+            countdown.stop()
+        } catch (_: Exception) {
+        }
+        countdown.beVisible()
+        countdown.setOnClickListener {
+            if (isCountdownActive) {
+                cancelSendMessageCountdown(showCancelledToast = true)
             }
+        }
 
-            try {
-                threadSendMessageCountdown.create(0, delaySeconds, CircularCountdown.TYPE_SECOND)
-                    .listener(object : CircularListener {
-                        override fun onTick(progress: Int) {}
-                        override fun onFinish(newCycle: Boolean, cycleCount: Int) {
-                            isCountdownActive = false
-                            hideCountdown()
-                            sendMessage(subscriptionId)
-                            if (activity.config.soundOnOutGoingMessages) {
-                                val audioManager = activity.getSystemService(AudioManager::class.java)
-                                audioManager.playSoundEffect(AudioManager.FX_KEYPRESS_SPACEBAR)
-                            }
+        try {
+            countdown.create(elapsedSeconds, totalDelaySeconds, CircularCountdown.TYPE_SECOND)
+                .listener(object : CircularListener {
+                    override fun onTick(progress: Int) {}
+                    override fun onFinish(newCycle: Boolean, cycleCount: Int) {
+                        if (countdownCompleting) return
+                        // The store owns send timing for thread countdowns; the view can finish early when paused.
+                        if (threadId > 0L && SendMessageCountdownStore.isActive(threadId)) {
+                            return
                         }
-                    })
-                    .start()
-            } catch (e: Exception) {
-                isCountdownActive = false
-                hideCountdown()
-                sendMessage(subscriptionId)
-                if (activity.config.soundOnOutGoingMessages) {
-                    val audioManager = activity.getSystemService(AudioManager::class.java)
-                    audioManager.playSoundEffect(AudioManager.FX_KEYPRESS_SPACEBAR)
-                }
+                        val pending = if (threadId > 0L) {
+                            SendMessageCountdownStore.get(threadId)
+                        } else {
+                            null
+                        }
+                        if (pending != null) {
+                            completeCountdownAndSend(pending)
+                        } else {
+                            finishCountdownAndSend(subscriptionId)
+                        }
+                    }
+                })
+                .start()
+        } catch (e: Exception) {
+            if (threadId > 0L) {
+                SendMessageCountdownStore.cancel(threadId, notifyListener = false)
+            }
+            finishCountdownAndSend(subscriptionId)
+        }
+    }
+
+    private fun cancelSendMessageCountdown(showCancelledToast: Boolean) {
+        if (threadId > 0L) {
+            SendMessageCountdownStore.cancel(threadId, notifyListener = false)
+        }
+        isCountdownActive = false
+        hideCountdown()
+        if (showCancelledToast) {
+            activity.toast(R.string.sending_cancelled)
+        }
+    }
+
+    private fun completeCountdownAndSend(pending: PendingSendCountdown) {
+        if (countdownCompleting) return
+        countdownCompleting = true
+        if (threadId > 0L) {
+            SendMessageCountdownStore.cancel(threadId, notifyListener = false)
+        }
+        restoreComposeFromPending(pending)
+        finishCountdownAndSend(pending.subscriptionId)
+    }
+
+    private fun finishCountdownAndSend(subscriptionId: Int) {
+        isCountdownActive = false
+        hideCountdown()
+        sendMessage(subscriptionId)
+        if (activity.config.soundOnOutGoingMessages) {
+            val audioManager = activity.getSystemService(AudioManager::class.java)
+            audioManager.playSoundEffect(AudioManager.FX_KEYPRESS_SPACEBAR)
+        }
+    }
+
+    private fun buildPendingSendEntry(
+        subscriptionId: Int,
+        totalDelaySeconds: Int,
+    ): PendingSendCountdown {
+        val attachmentsJson = getAttachmentSelections().takeIf { it.isNotEmpty() }?.let { selections ->
+            Gson().toJson(
+                selections.map {
+                    DraftStoredAttachment(
+                        uriString = it.uri.toString(),
+                        mimetype = it.mimetype,
+                        filename = it.filename,
+                        isPending = it.isPending,
+                    )
+                },
+            )
+        }
+        return PendingSendCountdown(
+            threadId = threadId,
+            messageText = binding.threadTypeMessage.value.trim(),
+            subscriptionId = subscriptionId,
+            attachmentsJson = attachmentsJson,
+            startedAtMs = System.currentTimeMillis(),
+            totalDelaySeconds = totalDelaySeconds,
+        )
+    }
+
+    private fun restoreComposeFromPending(pending: PendingSendCountdown) {
+        if (binding.threadTypeMessage.value != pending.messageText) {
+            binding.threadTypeMessage.setText(pending.messageText)
+        }
+        val json = pending.attachmentsJson
+        if (!json.isNullOrBlank()) {
+            try {
+                val type = object : TypeToken<List<DraftStoredAttachment>>() {}.type
+                val list: List<DraftStoredAttachment> = Gson().fromJson(json, type) ?: emptyList()
+                replaceAttachmentsFromDraft(list)
+            } catch (_: Exception) {
+                replaceAttachmentsFromDraft(emptyList())
             }
         }
     }
 
+    private fun ensureCountdownView(): CircularCountdown {
+        countdownView?.let { return it }
+
+        val parent = binding.threadSendMessage.parent as ViewGroup
+        val sendButtonIndex = parent.indexOfChild(binding.threadSendMessage)
+        val view = LayoutInflater.from(activity)
+            .inflate(R.layout.layout_thread_send_countdown, parent, false) as CircularCountdown
+        parent.addView(view, sendButtonIndex + 1)
+        countdownView = view
+        return view
+    }
+
     private fun hideCountdown() {
-        binding.apply {
+        countdownView?.let { view ->
             try {
-                threadSendMessageCountdown.stop()
-            } catch (e: Exception) {}
-            threadSendMessageCountdown.setOnClickListener(null)
-            threadSendMessageCountdown.beGone()
-            threadSendMessage.beVisible()
+                view.stop()
+            } catch (_: Exception) {
+            }
+            view.setOnClickListener(null)
+            view.beGone()
         }
+        binding.threadSendMessage.beVisible()
     }
     // added by sun
     // when use multi sim, show dialog sim select
@@ -658,9 +835,14 @@ class MessageHolderHelper(
                 subs?.size == 2 -> defaultSmsSubscriptionId
                 else ->getSubscriptionId()
             }
-            val resolvedSubId = subId?.takeIf { it >= 0 } ?: getSubscriptionId()?.takeIf { it >= 0 } ?: defaultSmsSubscriptionId.takeIf { it >= 0 }
-            if (resolvedSubId != null)
+            val resolvedSubId = SendSubscriptionHelper.firstResolvedOrTestFallback(
+                subId,
+                getSubscriptionId(),
+                defaultSmsSubscriptionId,
+            )
+            if (resolvedSubId != null) {
                 onSubId(resolvedSubId)
+            }
         }
     }
     private fun pickSimAndSendOrSendDirect() {
@@ -696,8 +878,7 @@ class MessageHolderHelper(
         binding.threadTypeMessage.setText("")
         clearAttachments()
         if (isCountdownActive) {
-            isCountdownActive = false
-            hideCountdown()
+            cancelSendMessageCountdown(showCancelledToast = false)
         }
     }
 
@@ -1868,7 +2049,9 @@ class MessageHolderHelper(
     private fun getSubscriptionId(): Int? {
         val availableSIMs = activity.subscriptionManagerCompat().activeSubscriptionInfoList
         if (availableSIMs == null || availableSIMs.isEmpty()) {
-            return SmsManager.getDefaultSmsSubscriptionId().takeIf { it >= 0 }
+            return SendSubscriptionHelper.firstResolvedOrTestFallback(
+                SmsManager.getDefaultSmsSubscriptionId(),
+            )
         }
 
         if (availableSIMCards.isEmpty()) {
@@ -1893,7 +2076,9 @@ class MessageHolderHelper(
         return if (selectedIndex < availableSIMCards.size) {
             availableSIMCards[selectedIndex].subscriptionId
         } else {
-            SmsManager.getDefaultSmsSubscriptionId().takeIf { it >= 0 }
+            SendSubscriptionHelper.firstResolvedOrTestFallback(
+                SmsManager.getDefaultSmsSubscriptionId(),
+            )
         }
     }
 
@@ -1901,7 +2086,9 @@ class MessageHolderHelper(
     fun getSubscriptionIdForNumbers(numbers: List<String>): Int? {
         val availableSIMs = activity.subscriptionManagerCompat().activeSubscriptionInfoList
         if (availableSIMs == null || availableSIMs.isEmpty()) {
-            return SmsManager.getDefaultSmsSubscriptionId().takeIf { it >= 0 }
+            return SendSubscriptionHelper.firstResolvedOrTestFallback(
+                SmsManager.getDefaultSmsSubscriptionId(),
+            )
         }
 
         if (availableSIMCards.isEmpty()) {
@@ -1929,7 +2116,9 @@ class MessageHolderHelper(
         return if (selectedIndex < availableSIMCards.size) {
             availableSIMCards[selectedIndex].subscriptionId
         } else {
-            SmsManager.getDefaultSmsSubscriptionId().takeIf { it >= 0 }
+            SendSubscriptionHelper.firstResolvedOrTestFallback(
+                SmsManager.getDefaultSmsSubscriptionId(),
+            )
         }
     }
 }

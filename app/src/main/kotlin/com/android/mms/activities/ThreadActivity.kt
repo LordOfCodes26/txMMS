@@ -220,6 +220,9 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         isSpeechToTextAvailable = if (config.useSpeechToText) isSpeechToTextAvailable() else false
 
         threadId = intent.getLongExtra(THREAD_ID, 0L)
+        SendMessageCountdownStore.setDefaultFinishListener { pending ->
+            PendingSendCountdownFinisher.finish(applicationContext, pending)
+        }
         applyInitialThreadHeaderFromIntent()
         isRecycleBin = intent.getBooleanExtra(IS_RECYCLE_BIN, false)
         isLaunchedFromShortcut = intent.getBooleanExtra(IS_LAUNCHED_FROM_SHORTCUT, false)
@@ -269,6 +272,10 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
 
             val draftRow = getSmsDraftEntity(threadId)
             runOnUiThread {
+                if (SendMessageCountdownStore.isActive(threadId)) {
+                    restorePendingSendCountdownIfNeeded()
+                    return@runOnUiThread
+                }
                 if (draftRow != null && draftRow.threadHasPersistedComposeContent()) {
                     applyThreadDraftRow(draftRow)
                 }
@@ -284,6 +291,8 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
 //        )
 
         updateAvailableMessageCountForCurrentSim()
+
+        binding.root.post { restorePendingSendCountdownIfNeeded() }
 
         refreshSideFrameBlurAndInsets()
     }
@@ -338,6 +347,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         captureThreadLayoutForKeyboardResume()
         super.onPause()
         composeBarBottomInsetLatch = ComposeBarBottomInsetLatch.NONE
+        messageHolderHelper?.pauseCountdownUi()
         messageHolderHelper?.stopAttachmentAudio()
         // Persist first, then notify: save runs on a background thread; posting before it completes
         // leaves MainActivity's list without the new draft until the next resume.
@@ -363,6 +373,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
 //    }
 
     override fun onDestroy() {
+        messageHolderHelper?.releaseSendMessageCountdownStore()
         clearVisibleThreadIdIfMatches(threadId)
         releaseThreadListLayoutFreeze(recalculatePadding = false)
         unregisterFeeInfoReceiverIfNeeded()
@@ -888,7 +899,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             }
             return
         }
-        if (messageHolderHelper?.isCountdownActive == true) {
+        if (messageHolderHelper?.isCountdownActive == true || SendMessageCountdownStore.isActive(threadId)) {
             return
         }
         val draftMessage = messageHolderHelper?.getMessageText() ?: ""
@@ -988,6 +999,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
 
     private fun applyThreadDraftAfterHelperInitialized() {
         if (isRecycleBin) return
+        if (SendMessageCountdownStore.isActive(threadId)) return
         ensureBackgroundThread {
             val draftRow = getSmsDraftEntity(threadId) ?: return@ensureBackgroundThread
             if (!draftRow.threadHasPersistedComposeContent()) return@ensureBackgroundThread
@@ -1596,12 +1608,20 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         }
     }
 
+    private fun restorePendingSendCountdownIfNeeded() {
+        if (!SendMessageCountdownStore.isActive(threadId)) {
+            return
+        }
+        messageHolderHelper?.restorePendingCountdownIfAny()
+    }
+
     private fun setupMessageHolderHelper() {
         isSpeechToTextAvailable = if (config.useSpeechToText) isSpeechToTextAvailable() else false
 
         messageHolderHelper = MessageHolderHelper(
             activity = this,
             binding = binding.messageHolder,
+            threadId = threadId,
             onSendMessage = { text, subscriptionId, attachments ->
                 sendMessageWithHelper(text, subscriptionId, attachments)
             },
@@ -1635,6 +1655,8 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         )
 
         messageHolderHelper?.setup(isSpeechToTextAvailable)
+        messageHolderHelper?.bindSendMessageCountdownStore()
+        restorePendingSendCountdownIfNeeded()
 
         binding.messageHolder.apply {
             threadTypeMessage.setText(intent.getStringExtra(THREAD_TEXT))
@@ -1733,8 +1755,10 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
     }
 
     private fun sendMessageWithHelper(text: String, subscriptionId: Int?, attachments: List<Attachment>) {
-        val finalSubscriptionId = subscriptionId ?: availableSIMCards.getOrNull(currentSIMCardIndex)?.subscriptionId
-        ?: SmsManager.getDefaultSmsSubscriptionId()
+        val finalSubscriptionId = SendSubscriptionHelper.resolveForSend(
+            explicitSubId = subscriptionId
+                ?: availableSIMCards.getOrNull(currentSIMCardIndex)?.subscriptionId,
+        ) ?: return
 
         if (isScheduledMessage) {
             sendScheduledMessage(text, finalSubscriptionId)
@@ -3074,7 +3098,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                     anchorView = anchorView,
                     anchorPlacement = SelectSimDialogAnchorPlacement. BOTTOM_RIGHT_OF_ANCHOR,
                     onSubId
-                ) ?: onSubId(SmsManager.getDefaultSmsSubscriptionId())
+                ) ?: SendSubscriptionHelper.resolveForSend()?.let(onSubId)
             }
 
         )

@@ -1667,19 +1667,21 @@ class NewConversationActivity : SimpleActivity() {
         }
 
         if (isScheduledMessage) {
-            val finalSubscriptionId = subscriptionId
-                ?: availableSIMCards.getOrNull(currentSIMCardIndex)?.subscriptionId
-                ?: messageHolderHelper?.getSubscriptionIdForNumbers(allNumbers)
-                ?: SmsManager.getDefaultSmsSubscriptionId()
+            val finalSubscriptionId = SendSubscriptionHelper.resolveForSend(
+                explicitSubId = subscriptionId
+                    ?: availableSIMCards.getOrNull(currentSIMCardIndex)?.subscriptionId
+                    ?: messageHolderHelper?.getSubscriptionIdForNumbers(allNumbers),
+            ) ?: return
             sendScheduledMessage(text, finalSubscriptionId, allNumbers)
             return
         }
 
         // Get subscription ID for the numbers if not provided
-        val finalSubscriptionId = subscriptionId
-            ?: availableSIMCards.getOrNull(currentSIMCardIndex)?.subscriptionId
-            ?: messageHolderHelper?.getSubscriptionIdForNumbers(allNumbers)
-            ?: SmsManager.getDefaultSmsSubscriptionId()
+        val finalSubscriptionId = SendSubscriptionHelper.resolveForSend(
+            explicitSubId = subscriptionId
+                ?: availableSIMCards.getOrNull(currentSIMCardIndex)?.subscriptionId
+                ?: messageHolderHelper?.getSubscriptionIdForNumbers(allNumbers),
+        ) ?: return
 
         // Process message text (remove diacritics if needed)
         val processedText = removeDiacriticsIfNeeded(text)
@@ -2092,7 +2094,7 @@ class NewConversationActivity : SimpleActivity() {
                     anchorView = anchorView,
                     anchorPlacement = SelectSimDialogAnchorPlacement.BOTTOM_RIGHT_OF_ANCHOR,
                     onSubId
-                ) ?: onSubId(SmsManager.getDefaultSmsSubscriptionId())
+                ) ?: SendSubscriptionHelper.resolveForSend()?.let(onSubId)
             }
         )
 

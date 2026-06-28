@@ -325,16 +325,6 @@
                     android:padding="@dimen/tiny_margin"
                     android:clickable="false"
                     android:contentDescription="@string/ok" />
-
-                <douglasspgyn.com.github.circularcountdown.CircularCountdown
-                    android:id="@+id/threadSendMessageCountdown"
-                    android:layout_width="@dimen/bigger_margin"
-                    android:layout_height="@dimen/bigger_margin"
-                    android:visibility="gone"
-                    app:countdownBackgroundColor="?attr/colorControlNormal"
-                    app:countdownForegroundColor="?attr/colorPrimary"
-                    app:countdownTextColor="@color/tx_title_text"
-                    app:countdownTextSize="@dimen/tx_small_text" />
             </LinearLayout>
 
         </LinearLayout>

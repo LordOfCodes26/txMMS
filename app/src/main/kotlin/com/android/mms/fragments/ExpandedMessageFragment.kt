@@ -28,6 +28,7 @@ import com.android.mms.extensions.getTextSizeMessage
 import com.android.mms.extensions.indexOfFirstOrNull
 import com.android.mms.extensions.subscriptionManagerCompat
 import com.android.mms.helpers.FeeInfoUtils
+import com.android.mms.helpers.SendSubscriptionHelper
 import com.android.mms.helpers.THREAD_TOP_COMPACT
 import com.android.mms.helpers.THREAD_TOP_LARGE
 import com.android.mms.helpers.bindConversationListAvatar
@@ -519,7 +520,9 @@ class ExpandedMessageFragment : Fragment() {
         if (resolver != null) {
             resolver(anchorView, proceedWithSubscription)
         } else {
-            proceedWithSubscription(SmsManager.getDefaultSmsSubscriptionId())
+            proceedWithSubscription(
+                SendSubscriptionHelper.resolveForSend() ?: SmsManager.getDefaultSmsSubscriptionId(),
+            )
         }
     }
 
