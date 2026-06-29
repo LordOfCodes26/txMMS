@@ -166,6 +166,10 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
     private var frozenThreadListPadding: IntArray? = null
     private var frozenComposeBarInsetBottom = 0
     private var threadListLayoutFreezePreDrawListener: ViewTreeObserver.OnPreDrawListener? = null
+    /** Holds list bottom padding while swapping IME and the attachment picker to prevent a visible flash. */
+    private var overlayTransitionListPadding: IntArray? = null
+    /** Set when + is tapped with the keyboard up; picker opens after IME insets report hidden. */
+    private var pendingAttachmentPickerAfterKeyboardHide = false
     private var isSpeechToTextAvailable = false
     private var expandedMessageFragment: com.android.mms.fragments.ExpandedMessageFragment? = null
     private var messageHolderHelper: MessageHolderHelper? = null
@@ -519,14 +523,74 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             if (!freezeThreadListLayoutOnResume) {
                 binding.root.post { applyComposeBarImePaddingFromInsets() }
             }
+            if (!insets.isVisible(WindowInsetsCompat.Type.ime()) && pendingAttachmentPickerAfterKeyboardHide) {
+                binding.root.post { finishOpeningAttachmentPickerAfterKeyboardHide() }
+            }
             insets
         }
 
         binding.messageHolder.root.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
-            if (!isRecycleBin) {
+            if (!isRecycleBin && overlayTransitionListPadding == null) {
                 binding.messageHolder.root.post { refreshThreadMessagesListPaddingForComposeBarHeight() }
             }
         }
+    }
+
+    private fun beginOverlayTransitionListPaddingFreeze() {
+        if (isRecycleBin || overlayTransitionListPadding != null) return
+        val list = binding.threadMessagesList
+        overlayTransitionListPadding = intArrayOf(
+            list.paddingLeft,
+            list.paddingTop,
+            list.paddingRight,
+            list.paddingBottom,
+        )
+        list.suppressLayout(true)
+    }
+
+    private fun applyOverlayTransitionListPaddingFreeze() {
+        val padding = overlayTransitionListPadding ?: return
+        binding.threadMessagesList.setPadding(padding[0], padding[1], padding[2], padding[3])
+    }
+
+    private fun releaseOverlayTransitionListPaddingFreeze(recalculate: Boolean = true) {
+        if (overlayTransitionListPadding == null) return
+        val frozenBottom = overlayTransitionListPadding!![3]
+        overlayTransitionListPadding = null
+        binding.threadMessagesList.suppressLayout(false)
+        if (recalculate && !isRecycleBin) {
+            val barContainer = binding.messageHolder.root
+            barContainer.post {
+                val composeHeight = resolveComposeStripHeightForThreadList(barContainer)
+                val targetBottom = composeHeight + dp(6)
+                if (kotlin.math.abs(targetBottom - frozenBottom) <= dp(4)) {
+                    return@post
+                }
+                refreshThreadMessagesListPaddingForComposeBarHeight()
+            }
+        }
+    }
+
+    private fun scheduleKeyboardToAttachmentPickerTransitionComplete() {
+        binding.messageHolder.root.post {
+            binding.messageHolder.root.post {
+                releaseOverlayTransitionListPaddingFreeze(recalculate = true)
+                ignoreInputFocusLossInsetSync = false
+                ViewCompat.requestApplyInsets(binding.root)
+            }
+        }
+    }
+
+    private fun finishOpeningAttachmentPickerAfterKeyboardHide() {
+        if (!pendingAttachmentPickerAfterKeyboardHide) return
+        pendingAttachmentPickerAfterKeyboardHide = false
+        messageHolderHelper?.showAttachmentPicker()
+        if (composeBarBottomInsetLatch == ComposeBarBottomInsetLatch.KEYBOARD_TO_ATTACHMENT_PICKER) {
+            composeBarBottomInsetLatch = ComposeBarBottomInsetLatch.NONE
+        }
+        applyComposeBarImePaddingFromInsets()
+        binding.messageHolder.root.requestLayout()
+        scheduleKeyboardToAttachmentPickerTransitionComplete()
     }
 
     /**
@@ -538,6 +602,10 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         if (isRecycleBin) return
         if (freezeThreadListLayoutOnResume) {
             applyFrozenThreadListLayout()
+            return
+        }
+        if (overlayTransitionListPadding != null) {
+            applyOverlayTransitionListPaddingFreeze()
             return
         }
         val rootInsets = ViewCompat.getRootWindowInsets(binding.root) ?: return
@@ -560,39 +628,28 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             applyFrozenThreadListLayout()
             return
         }
+        if (overlayTransitionListPadding != null) {
+            applyOverlayTransitionListPaddingFreeze()
+            return
+        }
         val barContainer = binding.messageHolder.root
         val messagesList = binding.threadMessagesList
         val bottomBarLp = barContainer.layoutParams as ViewGroup.MarginLayoutParams
         val bottomOffset = dp(3).toInt()
         val appBarHeightPx = resources.getDimensionPixelSize(com.android.common.R.dimen.tx_top_bar_expand_height)
         val listTopPadding = appBarHeightPx + dp(10)
-        val inputBarHeight = dp(32)
-        val attachmentStripKeyboardPlaceholder = config.keyboardHeight + inputBarHeight
         val rootInsets = ViewCompat.getRootWindowInsets(binding.root)
         val imeInsetsApplyToList =
             imeBottom > 0 &&
                 rootInsets?.isVisible(WindowInsetsCompat.Type.ime()) == true
-        val extraBottomPadding = when {
-            imeInsetsApplyToList -> imeBottom
-            isAttachmentPickerVisible -> attachmentStripKeyboardPlaceholder
-            composeBarBottomInsetLatch != ComposeBarBottomInsetLatch.NONE -> attachmentStripKeyboardPlaceholder
-            else -> 0
-        }
         val composeBottomGap = dp(6)
 
         fun applyWithComposeHeight(composeHeight: Int) {
             if (isFinishing || isDestroyed) return
-            // When IME or attachment picker is up, [binding.messageHolder] height already reflects that state
-            // (bottom insets on the bar for IME; picker views inside the same root for attachments). The old
-            // logic also added keyboardHeight / ime.bottom here and produced a large empty band in both modes.
-            val composeStripHidden = barContainer.visibility != View.VISIBLE
-            val bottomPadding = when {
-                extraBottomPadding > 0 -> composeHeight + composeBottomGap
-                composeStripHidden -> composeHeight + composeBottomGap
-                else -> composeHeight + composeBottomGap + navHeight
-            }
+            // Compose bar height already includes system-bar padding via [applyComposeBarImePaddingFromInsets].
+            val bottomPadding = composeHeight + composeBottomGap
             messagesList.setPadding(0, listTopPadding, 0, bottomPadding)
-            if (extraBottomPadding > 0) {
+            if (imeInsetsApplyToList) {
                 // Only pin to bottom when IME just opened (same as legacy behavior). Do not auto-scroll on
                 // compose-bar relayouts: findLastCompletelyVisibleItemPosition() is often NO_POSITION (-1),
                 // which compared against (lastIndex - SCROLL_TO_BOTTOM_FAB_LIMIT) wrongly looked "near bottom"
@@ -600,10 +657,9 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                 if (scrollToBottomForIme) {
                     messagesList.scrollToPosition((messagesList.adapter?.itemCount ?: 1) - 1)
                 }
-            } else {
-                bottomBarLp.bottomMargin = bottomOffset
-                barContainer.layoutParams = bottomBarLp
             }
+            bottomBarLp.bottomMargin = bottomOffset
+            barContainer.layoutParams = bottomBarLp
         }
 
         messagesList.apply {
@@ -723,13 +779,65 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
      * [R.id.lyt_action] sits above [R.dimen/ripple_bottom] with the CAB ripple bar — not just the inner view height.
      */
     private fun resolveComposeStripHeightForThreadList(barContainer: View): Int {
-        if (barContainer.visibility == View.VISIBLE && barContainer.height > 0) {
-            return barContainer.height
+        if (barContainer.visibility != View.VISIBLE) {
+            return if (barContainer.height > 0) barContainer.height else dp(30)
         }
-//        if (barContainer.visibility != View.VISIBLE) {
-//            return actionModeBottomOverlayClearancePx()
-//        }
-        return if (barContainer.height > 0) barContainer.height else dp(30)
+
+        val hasBottomPanel = isAttachmentPickerVisible ||
+            messageHolderHelper?.isEmojiPickerPaneVisible() == true ||
+            composeBarBottomInsetLatch != ComposeBarBottomInsetLatch.NONE ||
+            isThreadKeyboardVisible()
+
+        if (!hasBottomPanel) {
+            return if (barContainer.height > 0) barContainer.height else dp(30)
+        }
+
+        val inputStripHeight = resolveComposeInputStripHeight(barContainer)
+        val bottomInsetPadding = barContainer.paddingBottom
+        val overlayHeight = when {
+            isAttachmentPickerVisible || messageHolderHelper?.isEmojiPickerPaneVisible() == true ->
+                config.keyboardHeight + bottomInsetPadding
+            composeBarBottomInsetLatch != ComposeBarBottomInsetLatch.NONE ->
+                composeBarBottomInsetLatchPx
+            else -> {
+                val rootInsets = ViewCompat.getRootWindowInsets(binding.root)
+                val imeBottom = rootInsets?.getInsets(WindowInsetsCompat.Type.ime())?.bottom ?: 0
+                if (imeBottom > 0 && rootInsets?.isVisible(WindowInsetsCompat.Type.ime()) == true) {
+                    imeBottom
+                } else {
+                    config.keyboardHeight + bottomInsetPadding
+                }
+            }
+        }
+
+        if (inputStripHeight > 0) {
+            return inputStripHeight + overlayHeight
+        }
+        return if (barContainer.height > 0) barContainer.height else inputStripHeight + overlayHeight
+    }
+
+    /** Height of the compose row(s) above the attachment/emoji picker or IME inset. */
+    private fun resolveComposeInputStripHeight(barContainer: View): Int {
+        val divider = binding.messageHolder.attachmentPickerDivider
+        if (divider.isLaidOut && divider.top > barContainer.top) {
+            return divider.top - barContainer.top
+        }
+        val holder = binding.messageHolder
+        val candidates = listOf(
+            holder.threadSendMessageActionWrapper,
+            holder.threadTypeMessageWrapper,
+            holder.threadAddAttachmentHolder,
+            holder.threadAttachmentsRecyclerview,
+            holder.scheduledMessageHolder,
+        )
+        var maxBottom = barContainer.top
+        for (view in candidates) {
+            if (view.visibility != View.VISIBLE) continue
+            if (view.isLaidOut && view.bottom > maxBottom) {
+                maxBottom = view.bottom
+            }
+        }
+        return if (maxBottom > barContainer.top) maxBottom - barContainer.top else 0
     }
 
     /** Height from list bottom to clear the floating CAB ripple container ([R.id.lyt_action]) + its bottom margin. */
@@ -778,6 +886,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                 val v = maxOf(rawBottom, composeBarBottomInsetLatchPx)
                 if (reached) {
                     composeBarBottomInsetLatch = ComposeBarBottomInsetLatch.NONE
+                    releaseOverlayTransitionListPaddingFreeze(recalculate = true)
                 }
                 v
             }
@@ -793,6 +902,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
 
     private fun beginKeyboardToAttachmentPickerComposeInsetLatch() {
         if (isRecycleBin) return
+        beginOverlayTransitionListPaddingFreeze()
         val rootInsets = ViewCompat.getRootWindowInsets(binding.root)
             ?: ViewCompat.getRootWindowInsets(window.decorView)
             ?: return
@@ -803,11 +913,11 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         composeBarBottomInsetLatchPx = bottom
         composeBarBottomInsetLatch = ComposeBarBottomInsetLatch.KEYBOARD_TO_ATTACHMENT_PICKER
         applyComposeBarImePaddingFromInsets()
-        refreshThreadMessagesListPaddingForComposeBarHeight()
     }
 
     private fun beginAttachmentPickerToKeyboardComposeInsetLatch() {
         if (isRecycleBin) return
+        beginOverlayTransitionListPaddingFreeze()
         val rootInsets = ViewCompat.getRootWindowInsets(binding.root)
             ?: ViewCompat.getRootWindowInsets(window.decorView)
             ?: return
@@ -815,14 +925,16 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         composeBarBottomInsetLatchPx = config.keyboardHeight + nav
         composeBarBottomInsetLatch = ComposeBarBottomInsetLatch.ATTACHMENT_PICKER_TO_KEYBOARD
         applyComposeBarImePaddingFromInsets()
-        refreshThreadMessagesListPaddingForComposeBarHeight()
     }
 
     private fun clearComposeBarBottomInsetLatch() {
-        if (composeBarBottomInsetLatch == ComposeBarBottomInsetLatch.NONE) return
+        pendingAttachmentPickerAfterKeyboardHide = false
+        val hadLatch = composeBarBottomInsetLatch != ComposeBarBottomInsetLatch.NONE
         composeBarBottomInsetLatch = ComposeBarBottomInsetLatch.NONE
-        applyComposeBarImePaddingFromInsets()
-        refreshThreadMessagesListPaddingForComposeBarHeight()
+        if (hadLatch) {
+            applyComposeBarImePaddingFromInsets()
+        }
+        releaseOverlayTransitionListPaddingFreeze(recalculate = true)
     }
 
     private fun isThreadKeyboardVisible(): Boolean {
@@ -1631,11 +1743,15 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                 messageToResend = null
             },
             onHideAttachmentPickerRequested = {
-                isAttachmentPickerVisible = false
                 messageHolderHelper?.hideAttachmentPicker()
-                binding.messageHolder.messageHolder.postDelayed({
+                binding.messageHolder.root.post {
+                    isAttachmentPickerVisible = false
+                    // Picker→keyboard: keep inset latch + frozen list padding until IME finishes opening.
+                    if (composeBarBottomInsetLatch != ComposeBarBottomInsetLatch.ATTACHMENT_PICKER_TO_KEYBOARD) {
+                        clearComposeBarBottomInsetLatch()
+                    }
                     binding.root.post { ViewCompat.requestApplyInsets(binding.root) }
-                }, 350)
+                }
             },
             onThreadTypeMessageFocusChange = { hasFocus ->
                 if (!hasFocus && !ignoreInputFocusLossInsetSync &&
@@ -1662,36 +1778,29 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             threadTypeMessage.setText(intent.getStringExtra(THREAD_TEXT))
             threadAddAttachmentHolder.setOnClickListener {
                 if (attachmentPickerHolder.isVisible()) {
-                    clearComposeBarBottomInsetLatch()
-                    isAttachmentPickerVisible = false
+                    pendingAttachmentPickerAfterKeyboardHide = false
+                    beginOverlayTransitionListPaddingFreeze()
                     messageHolderHelper?.hideAttachmentPicker()
-
-                    threadTypeMessage.requestApplyInsets()
-                    // Re-apply window insets so message bubbles move up when attachment picker is shown
-                    binding.root.post { ViewCompat.requestApplyInsets(binding.root) }
-                } else {
-                    ignoreInputFocusLossInsetSync = true
-                    beginKeyboardToAttachmentPickerComposeInsetLatch()
-                    hideKeyboard()
-                    threadTypeMessage.clearFocus()
-                    // If keyboard is visible, wait for it to fully hide before showing picker (done in setupMessagingEdgeToEdge insets listener)
-//                    if (!wasKeyboardVisible) {
-//                        messageHolderHelper?.showAttachmentPicker()
-//                    }
-                    binding.messageHolder.messageHolder.postDelayed({
-                        isAttachmentPickerVisible = true
-                        messageHolderHelper?.showAttachmentPicker()
-                        // Release latch in the same pass as showing the picker. Keeping IME-sized bottom padding
-                        // while the picker is already in the layout stacks two "keyboard" heights and flashes the list.
-                        if (composeBarBottomInsetLatch == ComposeBarBottomInsetLatch.KEYBOARD_TO_ATTACHMENT_PICKER) {
-                            composeBarBottomInsetLatch = ComposeBarBottomInsetLatch.NONE
-                            applyComposeBarImePaddingFromInsets()
-                        }
-                        refreshThreadMessagesListPaddingForComposeBarHeight()
+                    binding.messageHolder.root.post {
+                        isAttachmentPickerVisible = false
+                        clearComposeBarBottomInsetLatch()
                         threadTypeMessage.requestApplyInsets()
                         binding.root.post { ViewCompat.requestApplyInsets(binding.root) }
-                        ignoreInputFocusLossInsetSync = false
-                    }, 250)
+                    }
+                } else {
+                    ignoreInputFocusLossInsetSync = true
+                    beginOverlayTransitionListPaddingFreeze()
+                    isAttachmentPickerVisible = true
+                    if (isThreadKeyboardVisible()) {
+                        pendingAttachmentPickerAfterKeyboardHide = true
+                        beginKeyboardToAttachmentPickerComposeInsetLatch()
+                        hideKeyboard()
+                        threadTypeMessage.clearFocus()
+                    } else {
+                        pendingAttachmentPickerAfterKeyboardHide = false
+                        messageHolderHelper?.showAttachmentPicker()
+                        scheduleKeyboardToAttachmentPickerTransitionComplete()
+                    }
                 }
 
             }
@@ -2960,7 +3069,9 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                 if (!freezeThreadListLayoutOnResume) {
                     hadKeyboardLayoutWhenLeaving = false
                 }
-                if (isAttachmentPickerVisible &&
+                if (pendingAttachmentPickerAfterKeyboardHide) {
+                    binding.root.post { finishOpeningAttachmentPickerAfterKeyboardHide() }
+                } else if (isAttachmentPickerVisible &&
                     composeBarBottomInsetLatch != ComposeBarBottomInsetLatch.ATTACHMENT_PICKER_TO_KEYBOARD
                 ) {
                     showAttachmentPicker()
