@@ -94,6 +94,8 @@ class NewConversationActivity : SimpleActivity() {
     private var composeBarBottomInsetLatch = ComposeBarBottomInsetLatch.NONE
     private var composeBarBottomInsetLatchPx = 0
     private var wasKeyboardVisible = false
+    /** Set when + is tapped with the keyboard up; picker opens after IME insets report hidden. */
+    private var pendingAttachmentPickerAfterKeyboardHide = false
     private var messageHolderHelper: MessageHolderHelper? = null
     private var attachmentIntentLauncher: AttachmentIntentLauncher? = null
     private var expandedMessageFragment: com.android.mms.fragments.ExpandedMessageFragment? = null
@@ -356,6 +358,9 @@ class NewConversationActivity : SimpleActivity() {
                 applyComposeBarImePaddingFromInsets()
                 applyNewConversationNestScrollTopPadding()
             }
+            if (!insets.isVisible(WindowInsetsCompat.Type.ime()) && pendingAttachmentPickerAfterKeyboardHide) {
+                binding.root.post { finishOpeningAttachmentPickerAfterKeyboardHide() }
+            }
             insets
         }
 
@@ -414,9 +419,37 @@ class NewConversationActivity : SimpleActivity() {
     }
 
     private fun clearComposeBarBottomInsetLatch() {
+        cancelPendingAttachmentPickerShow()
         if (composeBarBottomInsetLatch == ComposeBarBottomInsetLatch.NONE) return
         composeBarBottomInsetLatch = ComposeBarBottomInsetLatch.NONE
         applyComposeBarImePaddingFromInsets()
+    }
+
+    private fun cancelPendingAttachmentPickerShow() {
+        pendingAttachmentPickerAfterKeyboardHide = false
+    }
+
+    private fun isNewConversationKeyboardVisible(): Boolean {
+        val rootInsets = ViewCompat.getRootWindowInsets(binding.root)
+            ?: ViewCompat.getRootWindowInsets(window.decorView)
+            ?: return false
+        return rootInsets.isVisible(WindowInsetsCompat.Type.ime()) &&
+            rootInsets.getInsets(WindowInsetsCompat.Type.ime()).bottom > 0
+    }
+
+    private fun finishOpeningAttachmentPickerAfterKeyboardHide() {
+        if (!pendingAttachmentPickerAfterKeyboardHide) return
+        pendingAttachmentPickerAfterKeyboardHide = false
+        messageHolderHelper?.showAttachmentPicker()
+        if (composeBarBottomInsetLatch == ComposeBarBottomInsetLatch.KEYBOARD_TO_ATTACHMENT_PICKER) {
+            composeBarBottomInsetLatch = ComposeBarBottomInsetLatch.NONE
+        }
+        applyComposeBarImePaddingFromInsets()
+        binding.messageHolder.root.post {
+            ignoreInputFocusLossInsetSync = false
+            binding.messageHolder.threadTypeMessage.requestApplyInsets()
+            binding.root.post { ViewCompat.requestApplyInsets(binding.root) }
+        }
     }
 
     private fun hasRecipientAddress(): Boolean {
@@ -500,11 +533,12 @@ class NewConversationActivity : SimpleActivity() {
             onSpeechToText = { speechToText() },
             onExpandMessage = { showExpandedMessageFragment() },
             onHideAttachmentPickerRequested = {
+                cancelPendingAttachmentPickerShow()
                 isAttachmentPickerVisible = false
                 messageHolderHelper?.hideAttachmentPicker()
-                binding.messageHolder.messageHolder.postDelayed({
+                binding.messageHolder.messageHolder.post {
                     binding.root.post { ViewCompat.requestApplyInsets(binding.root) }
-                }, 350)
+                }
             },
             onThreadTypeMessageFocusChange = { hasFocus ->
                 if (!hasFocus && !ignoreInputFocusLossInsetSync &&
@@ -520,6 +554,7 @@ class NewConversationActivity : SimpleActivity() {
                 }
             },
             onPrepareKeyboardFromAttachmentPicker = {
+                cancelPendingAttachmentPickerShow()
                 beginAttachmentPickerToKeyboardComposeInsetLatch()
             },
             countdownRecipientNumbers = { collectRecipientNumbers() },
@@ -534,25 +569,31 @@ class NewConversationActivity : SimpleActivity() {
         binding.messageHolder.apply {
             threadAddAttachmentHolder.setOnClickListener {
                 if (attachmentPickerHolder.isVisible()) {
+                    cancelPendingAttachmentPickerShow()
                     clearComposeBarBottomInsetLatch()
                     isAttachmentPickerVisible = false
                     messageHolderHelper?.hideAttachmentPicker()
-                } else {
-                    ignoreInputFocusLossInsetSync = true
-                    beginKeyboardToAttachmentPickerComposeInsetLatch()
-                    hideKeyboard()
-                    threadTypeMessage.clearFocus()
-                    binding.messageHolderWrapper.postDelayed({
-                        isAttachmentPickerVisible = true
-                        messageHolderHelper?.showAttachmentPicker()
-                        if (composeBarBottomInsetLatch == ComposeBarBottomInsetLatch.KEYBOARD_TO_ATTACHMENT_PICKER) {
-                            composeBarBottomInsetLatch = ComposeBarBottomInsetLatch.NONE
-                            applyComposeBarImePaddingFromInsets()
-                        }
+                    binding.messageHolder.root.post {
                         threadTypeMessage.requestApplyInsets()
                         binding.root.post { ViewCompat.requestApplyInsets(binding.root) }
-                        ignoreInputFocusLossInsetSync = false
-                    }, 250)
+                    }
+                } else {
+                    ignoreInputFocusLossInsetSync = true
+                    isAttachmentPickerVisible = true
+                    if (isNewConversationKeyboardVisible()) {
+                        pendingAttachmentPickerAfterKeyboardHide = true
+                        beginKeyboardToAttachmentPickerComposeInsetLatch()
+                        hideKeyboard()
+                        threadTypeMessage.clearFocus()
+                    } else {
+                        pendingAttachmentPickerAfterKeyboardHide = false
+                        messageHolderHelper?.showAttachmentPicker()
+                        binding.messageHolder.root.post {
+                            ignoreInputFocusLossInsetSync = false
+                            threadTypeMessage.requestApplyInsets()
+                            binding.root.post { ViewCompat.requestApplyInsets(binding.root) }
+                        }
+                    }
                 }
             }
 
@@ -599,16 +640,17 @@ class NewConversationActivity : SimpleActivity() {
                 } else {
                     getDefaultKeyboardHeight()
                 }
-                if (!wasKeyboardVisible) {
+                // IME and the attachment picker must never be visible together.
+                messageHolderHelper?.hideAttachmentPicker()
+                if (!pendingAttachmentPickerAfterKeyboardHide) {
                     isAttachmentPickerVisible = false
-                    messageHolderHelper?.hideAttachmentPicker()
                 }
                 wasKeyboardVisible = true
             } else {
                 wasKeyboardVisible = false
-                // Avoid briefly re-showing the picker while IME is animating in (picker → keyboard); that
-                // caused a visible flash on [threadTypeMessage]. Thread re-shows only when not in latch.
-                if (isAttachmentPickerVisible &&
+                if (pendingAttachmentPickerAfterKeyboardHide) {
+                    binding.root.post { finishOpeningAttachmentPickerAfterKeyboardHide() }
+                } else if (isAttachmentPickerVisible &&
                     composeBarBottomInsetLatch != ComposeBarBottomInsetLatch.ATTACHMENT_PICKER_TO_KEYBOARD
                 ) {
                     messageHolderHelper?.showAttachmentPicker()

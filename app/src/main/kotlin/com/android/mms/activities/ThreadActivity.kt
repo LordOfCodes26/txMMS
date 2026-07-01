@@ -932,8 +932,12 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         applyComposeBarImePaddingFromInsets()
     }
 
-    private fun clearComposeBarBottomInsetLatch() {
+    private fun cancelPendingAttachmentPickerShow() {
         pendingAttachmentPickerAfterKeyboardHide = false
+    }
+
+    private fun clearComposeBarBottomInsetLatch() {
+        cancelPendingAttachmentPickerShow()
         val hadLatch = composeBarBottomInsetLatch != ComposeBarBottomInsetLatch.NONE
         composeBarBottomInsetLatch = ComposeBarBottomInsetLatch.NONE
         if (hadLatch) {
@@ -1780,9 +1784,10 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                 messageToResend = null
             },
             onHideAttachmentPickerRequested = {
+                cancelPendingAttachmentPickerShow()
+                isAttachmentPickerVisible = false
                 messageHolderHelper?.hideAttachmentPicker()
                 binding.messageHolder.root.post {
-                    isAttachmentPickerVisible = false
                     // Picker→keyboard: keep inset latch + frozen list padding until IME finishes opening.
                     if (composeBarBottomInsetLatch != ComposeBarBottomInsetLatch.ATTACHMENT_PICKER_TO_KEYBOARD) {
                         clearComposeBarBottomInsetLatch()
@@ -1803,6 +1808,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                 }
             },
             onPrepareKeyboardFromAttachmentPicker = {
+                cancelPendingAttachmentPickerShow()
                 beginAttachmentPickerToKeyboardComposeInsetLatch()
             },
         )
@@ -3131,10 +3137,10 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                 } else {
                     getDefaultKeyboardHeight()
                 }
-                // Only hide the attachment picker when the keyboard *just* became visible (e.g. user focused the input).
-                // When the user taps the attachment button while the keyboard is already visible, we must not hide the picker.
-                if (!wasKeyboardVisible) {
-                    hideAttachmentPicker()
+                // IME and the attachment picker must never be visible together. When + is tapped with the
+                // keyboard up, [pendingAttachmentPickerAfterKeyboardHide] defers showing the picker until IME hides.
+                hideAttachmentPicker()
+                if (!pendingAttachmentPickerAfterKeyboardHide) {
                     isAttachmentPickerVisible = false
                 }
                 wasKeyboardVisible = true
