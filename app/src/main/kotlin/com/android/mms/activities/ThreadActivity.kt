@@ -1300,6 +1300,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             messages.sortWith(compareBy({ it.date }, { it.id }))
 
             setupParticipants()
+            enrichParticipantContactNames()
             setupAdapter()
 
             runOnUiThread {
@@ -1354,6 +1355,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             }
 
             setupParticipants()
+            enrichParticipantContactNames()
 
             // check if no participant came from a privately stored contact in Simple Contacts
             if (privateContacts.isNotEmpty()) {
@@ -1913,6 +1915,43 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         }
     }
 
+    /**
+     * Blocked threads are excluded from the main conversation sync, so cached participants and
+     * [Conversation.title] often keep a raw phone number. Resolve names the same way as
+     * [getThreadContactNames] in the blocked-messages / conversation lists.
+     */
+    private fun enrichParticipantContactNames() {
+        participants.filter { it.doesHavePhoneNumber(it.name) }.forEach { participant ->
+            val number = participant.phoneNumbers.firstOrNull()?.normalizedNumber ?: return@forEach
+            val resolved = getThreadContactNames(listOf(number), privateContacts).firstOrNull() ?: return@forEach
+            if (!participant.doesHavePhoneNumber(resolved)) {
+                participant.name = resolved
+            }
+        }
+    }
+
+    private fun resolveThreadDisplayTitle(): String {
+        val storedTitle = conversation?.title
+        // Do not prefer a stale Room title that is only the phone number (common for blocked threads).
+        val title = storedTitle?.takeUnless { stored ->
+            participants.size == 1 && participants.first().doesHavePhoneNumber(stored)
+        }
+        var threadTitle = if (participants.size > 1) {
+            participants.getThreadTitle(this@ThreadActivity)
+        } else {
+            if (!title.isNullOrEmpty()) title else participants.getThreadTitle(this@ThreadActivity)
+        }
+        if (participants.size == 1) {
+            val participant = participants.first()
+            if (participant.doesHavePhoneNumber(threadTitle)) {
+                intent.getStringExtra(THREAD_TITLE)?.trim()?.takeIf {
+                    it.isNotEmpty() && !participant.doesHavePhoneNumber(it)
+                }?.let { threadTitle = it }
+            }
+        }
+        return threadTitle
+    }
+
     private fun isSpecialNumber(): Boolean {
         val addresses = participants.getAddresses()
         return addresses.any { isShortCodeWithLetters(it) }
@@ -2078,13 +2117,8 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
     }
 
     private fun setupThreadTitle() {
-        val title = conversation?.title
         // For multiple participants always show "first user's name or phone and N others" in sender_name_large/sender_name
-        var threadTitle = if (participants.size > 1) {
-            participants.getThreadTitle(this@ThreadActivity)
-        } else {
-            if (!title.isNullOrEmpty()) title else participants.getThreadTitle(this@ThreadActivity)
-        }
+        var threadTitle = resolveThreadDisplayTitle()
         // Hide country code prefix (e.g. +850) when displaying raw phone number not in contacts
         if (participants.size == 1) {
             val phoneNumber = participants.first().phoneNumbers.firstOrNull()?.normalizedNumber ?: ""
@@ -3123,12 +3157,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
 
         if (senderPhoto == null) return
 
-        val title = conversation?.title
-        var threadTitle = if (!title.isNullOrEmpty()) {
-            title
-        } else {
-            participants.getThreadTitle(this@ThreadActivity)
-        }
+        var threadTitle = resolveThreadDisplayTitle()
         if (threadTitle.isEmpty()) threadTitle = intent.getStringExtra(THREAD_TITLE) ?: ""
 
         if (conversation != null && (!isDestroyed || !isFinishing)) {
@@ -3253,13 +3282,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
     private fun updateFragmentThreadTitle(fragment: com.android.mms.fragments.ExpandedMessageFragment) {
         if (fragment.view == null) return
 
-        val title = conversation?.title
-        // Match setupThreadTitle(): for multiple participants use "Name and N others", else use conversation title or getThreadTitle
-        var threadTitle = if (participants.size > 1) {
-            participants.getThreadTitle(this@ThreadActivity)
-        } else {
-            if (!title.isNullOrEmpty()) title else participants.getThreadTitle(this@ThreadActivity)
-        }
+        var threadTitle = resolveThreadDisplayTitle()
         // Hide country code prefix (e.g. +850) when displaying raw phone number not in contacts
         if (participants.size == 1) {
             val phoneNumber = participants.first().phoneNumbers.firstOrNull()?.normalizedNumber ?: ""
