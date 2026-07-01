@@ -88,6 +88,8 @@ import com.android.mms.extensions.openContactDetailsFromVCardUri
 import com.android.mms.extensions.setPaddingBubble
 import com.android.mms.extensions.applyCustomBubbleBackground
 import com.android.mms.extensions.startContactDetailsIntentRecommendation
+import com.android.mms.extensions.startSendingStatusAnimation
+import com.android.mms.extensions.stopSendingStatusAnimation
 import com.android.mms.extensions.subscriptionManagerCompat
 import com.android.mms.helpers.ACTION_COPY_CODE
 import com.android.mms.helpers.ACTION_COPY_MESSAGE
@@ -1278,6 +1280,7 @@ class ThreadAdapter(
             messageBinding.threadMessageRetryIcon.beGone()
         } else {
             messageBinding.threadMessageStatusIcon.apply {
+                stopSendingStatusAnimation()
                 clearColorFilter()
                 setOnClickListener(null)
                 isClickable = false
@@ -1291,6 +1294,7 @@ class ThreadAdapter(
                     android.provider.Telephony.Sms.MESSAGE_TYPE_OUTBOX -> {
                         setImageResource(R.drawable.ic_circle_progress)
                         contentDescription = activity.getString(R.string.sending)
+                        startSendingStatusAnimation()
                         beVisible()
                     }
                     android.provider.Telephony.Sms.MESSAGE_TYPE_QUEUED -> {
@@ -1373,6 +1377,7 @@ class ThreadAdapter(
         if (!activity.isDestroyed && !activity.isFinishing) {
             val binding = (holder as ThreadViewHolder).binding
             if (binding is ItemMessageBinding) {
+                binding.threadMessageStatusIcon.stopSendingStatusAnimation()
                 Glide.with(activity).clear(binding.threadMessageSenderPhoto)
             }
         }

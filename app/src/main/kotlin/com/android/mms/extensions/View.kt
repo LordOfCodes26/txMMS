@@ -7,6 +7,8 @@ import android.graphics.Rect
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.DrawableWrapper
 import android.view.View
+import android.view.animation.LinearInterpolator
+import android.widget.ImageView
 import androidx.annotation.DrawableRes
 import androidx.core.animation.doOnStart
 import androidx.core.content.res.ResourcesCompat
@@ -15,6 +17,23 @@ import com.goodwy.commons.extensions.isRTLLayout
 import com.android.mms.R
 import com.android.mms.helpers.BUBBLE_STYLE_IOS
 import com.android.mms.helpers.BUBBLE_STYLE_IOS_NEW
+
+fun ImageView.startSendingStatusAnimation() {
+    stopSendingStatusAnimation()
+    val animator = ObjectAnimator.ofFloat(this, View.ROTATION, 0f, 360f).apply {
+        duration = 1000L
+        interpolator = LinearInterpolator()
+        repeatCount = ObjectAnimator.INFINITE
+        start()
+    }
+    tag = animator
+}
+
+fun ImageView.stopSendingStatusAnimation() {
+    (tag as? ObjectAnimator)?.cancel()
+    tag = null
+    rotation = 0f
+}
 
 fun View.showWithAnimation(duration: Long = 250L) {
     if (!isVisible) {
