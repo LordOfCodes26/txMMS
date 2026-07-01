@@ -63,7 +63,9 @@ import com.android.mms.databinding.ActivityMainBinding
 import com.android.mms.extensions.*
 import com.google.gson.Gson
 import com.android.mms.helpers.NEW_CONVERSATION_RESUME_DRAFT
+import com.android.mms.helpers.NewConversationCountdownResume
 import com.android.mms.helpers.SEARCHED_MESSAGE_ID
+import com.android.mms.helpers.SendMessageCountdownStore
 import com.android.mms.helpers.THREAD_ID
 import com.android.mms.helpers.THREAD_OPENED_FROM_SECURE_CONVERSATION_LIST
 import com.android.mms.helpers.THREAD_NUMBER
@@ -2253,6 +2255,19 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         val conversation = any as Conversation
         hideKeyboard()
 
+        val activeNewConversationCountdown = SendMessageCountdownStore.get(conversation.threadId)
+        if (activeNewConversationCountdown?.resumeInNewConversation == true &&
+            SendMessageCountdownStore.isActive(conversation.threadId)
+        ) {
+            NewConversationCountdownResume.buildResumeIntent(this, activeNewConversationCountdown)?.let { intent ->
+                intent.putExtra(THREAD_TITLE, conversation.title)
+                intent.putExtra(THREAD_URI, conversation.photoUri)
+                isLaunchingInternalConversationActivity = true
+                startActivity(intent)
+                return
+            }
+        }
+
         fun startThreadActivity() {
             Intent(this, ThreadActivity::class.java).apply {
                 putExtra(THREAD_ID, conversation.threadId)
@@ -2309,6 +2324,13 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
 
     private fun launchNewConversation() {
         hideKeyboard()
+        SendMessageCountdownStore.findActiveNewConversationPending()?.let { pending ->
+            NewConversationCountdownResume.buildResumeIntent(this, pending)?.let { intent ->
+                isLaunchingInternalConversationActivity = true
+                startActivity(intent)
+                return
+            }
+        }
         Intent(this, NewConversationActivity::class.java).apply {
             isLaunchingInternalConversationActivity = true
             startActivity(this)

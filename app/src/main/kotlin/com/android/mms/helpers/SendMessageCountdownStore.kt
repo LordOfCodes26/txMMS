@@ -11,6 +11,9 @@ data class PendingSendCountdown(
     val attachmentsJson: String?,
     val startedAtMs: Long,
     val totalDelaySeconds: Int,
+    /** JSON array of recipient numbers when compose started from [com.android.mms.activities.NewConversationActivity]. */
+    val recipientNumbersJson: String? = null,
+    val resumeInNewConversation: Boolean = false,
 )
 
 /**
@@ -43,6 +46,12 @@ object SendMessageCountdownStore {
     }
 
     fun get(threadId: Long): PendingSendCountdown? = pendingByThread[threadId]
+
+    fun findActiveNewConversationPending(): PendingSendCountdown? {
+        return pendingByThread.values.firstOrNull { pending ->
+            pending.resumeInNewConversation && getRemainingSeconds(pending) > 0
+        }
+    }
 
     fun setFinishListener(threadId: Long, listener: (PendingSendCountdown) -> Unit) {
         if (threadId > 0L) {

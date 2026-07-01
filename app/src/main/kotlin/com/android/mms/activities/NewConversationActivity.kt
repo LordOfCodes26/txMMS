@@ -139,6 +139,10 @@ class NewConversationActivity : SimpleActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        SendMessageCountdownStore.setDefaultFinishListener { pending ->
+            PendingSendCountdownFinisher.finish(applicationContext, pending)
+        }
+        intent.getLongExtra(THREAD_ID, 0L).takeIf { it > 0L }?.let { resumedDraftThreadId = it }
         setContentView(binding.root)
         binding.nestScroll.isNestedScrollingEnabled = false
         // While app bar insets/height and the chip row are still settling, hide scroll content to avoid
@@ -224,6 +228,7 @@ class NewConversationActivity : SimpleActivity() {
         refreshNewConversationToolbarGeometry()
 
         setupMessageHolder()
+        binding.root.post { restorePendingSendCountdownIfNeeded() }
         handlePermission(PERMISSION_READ_PHONE_STATE) {
             if (it) {
                 setupSIMSelector()
@@ -234,6 +239,7 @@ class NewConversationActivity : SimpleActivity() {
     }
 
     override fun onDestroy() {
+        messageHolderHelper?.releaseSendMessageCountdownStore()
         recipientSearchThrottleRunnable?.let { recipientSearchHandler.removeCallbacks(it) }
         recipientSearchThrottleRunnable = null
         super.onDestroy()
@@ -428,12 +434,65 @@ class NewConversationActivity : SimpleActivity() {
         return allNumbers.isNotEmpty()
     }
 
+    private fun composeCountdownThreadId(): Long {
+        if (resumedDraftThreadId > 0L) {
+            return resumedDraftThreadId
+        }
+        val numbers = collectRecipientNumbers()
+        if (numbers.isEmpty()) {
+            return 0L
+        }
+        return getThreadId(numbers.toSet())
+    }
+
+    private fun collectRecipientNumbers(): List<String> {
+        return newConversationExitSnapshot().allNumbers
+    }
+
+    private fun resolveActiveCountdownThreadId(): Long {
+        SendMessageCountdownStore.findActiveNewConversationPending()
+            ?.threadId
+            ?.takeIf { it > 0L }
+            ?.let { return it }
+
+        intent.getLongExtra(THREAD_ID, 0L)
+            .takeIf { it > 0L && SendMessageCountdownStore.isActive(it) }
+            ?.let { return it }
+
+        if (resumedDraftThreadId > 0L && SendMessageCountdownStore.isActive(resumedDraftThreadId)) {
+            return resumedDraftThreadId
+        }
+
+        val composedThreadId = composeCountdownThreadId()
+        if (composedThreadId > 0L && SendMessageCountdownStore.isActive(composedThreadId)) {
+            return composedThreadId
+        }
+        return 0L
+    }
+
+    private fun messageHolderCountdownThreadId(): Long {
+        return resolveActiveCountdownThreadId().takeIf { it > 0L } ?: composeCountdownThreadId()
+    }
+
+    private fun restorePendingSendCountdownIfNeeded() {
+        val countdownThreadId = resolveActiveCountdownThreadId()
+        if (countdownThreadId <= 0L) {
+            return
+        }
+        resumedDraftThreadId = countdownThreadId
+        messageHolderHelper?.bindSendMessageCountdownStore(countdownThreadId)
+        messageHolderHelper?.restorePendingCountdownIfAny(countdownThreadId)
+    }
+
     private fun setupMessageHolder() {
         isSpeechToTextAvailable = isSpeechToTextAvailable()
+        val countdownThreadId = messageHolderCountdownThreadId()
 
+        messageHolderHelper?.releaseSendMessageCountdownStore()
         messageHolderHelper = MessageHolderHelper(
             activity = this,
             binding = binding.messageHolder,
+            threadId = countdownThreadId,
             onSendMessage = { text, subscriptionId, attachments ->
                 sendMessageAndNavigate(text, subscriptionId, attachments)
             },
@@ -463,9 +522,14 @@ class NewConversationActivity : SimpleActivity() {
             onPrepareKeyboardFromAttachmentPicker = {
                 beginAttachmentPickerToKeyboardComposeInsetLatch()
             },
+            countdownRecipientNumbers = { collectRecipientNumbers() },
+            resumeCountdownInNewConversation = true,
+            countdownThreadIdProvider = { messageHolderCountdownThreadId() },
         )
 
         messageHolderHelper?.setup(isSpeechToTextAvailable)
+        messageHolderHelper?.bindSendMessageCountdownStore(countdownThreadId)
+        restorePendingSendCountdownIfNeeded()
 
         binding.messageHolder.apply {
             threadAddAttachmentHolder.setOnClickListener {
@@ -1067,10 +1131,41 @@ class NewConversationActivity : SimpleActivity() {
                 binding.newConversationAddress.clearText()
                 updateNewConversationTitle()
                 if (meaningfulDraft && draftEntity != null) {
-                    applyNewConversationDraftRow(draftEntity)
+                    if (!SendMessageCountdownStore.isActive(threadId)) {
+                        applyNewConversationDraftIfStillValid(threadId, draftEntity)
+                    }
                 }
+                restorePendingSendCountdownIfNeeded()
             }
         }
+    }
+
+    private fun applyNewConversationDraftIfStillValid(threadId: Long, draft: Draft) {
+        ensureBackgroundThread {
+            if (isStaleSentComposeDraft(draft, threadId)) {
+                deleteSmsDraft(threadId)
+                refreshConversationRowFromTelephony(threadId)
+                return@ensureBackgroundThread
+            }
+            runOnUiThread {
+                if (isDestroyed || isFinishing) return@runOnUiThread
+                applyNewConversationDraftRow(draft)
+            }
+        }
+    }
+
+    private fun isStaleSentComposeDraft(draft: Draft, threadId: Long): Boolean {
+        val draftBody = draft.body.trim()
+        if (draftBody.isEmpty()) return false
+        val latestOutgoing = getMessages(
+            threadId = threadId,
+            limit = 10,
+            includeScheduledMessages = false,
+        ).asSequence()
+            .filter { !it.isReceivedMessage() }
+            .maxByOrNull { it.id }
+            ?: return false
+        return latestOutgoing.body.trim() == draftBody
     }
 
     private fun applyNewConversationDraftRow(draft: Draft) {
@@ -2372,6 +2467,7 @@ class NewConversationActivity : SimpleActivity() {
     override fun onPause() {
         super.onPause()
         composeBarBottomInsetLatch = ComposeBarBottomInsetLatch.NONE
+        messageHolderHelper?.pauseCountdownUi()
         saveNewConversationDraft(showDraftSavedToast = isFinishing)
     }
 
@@ -2484,10 +2580,18 @@ class NewConversationActivity : SimpleActivity() {
     }
 
     private fun saveNewConversationDraft(showDraftSavedToast: Boolean = false) {
-        if (messageHolderHelper?.isCountdownActive == true) {
+        val snapshot = newConversationExitSnapshot()
+        val countdownActive = messageHolderHelper?.isCountdownActive == true ||
+            SendMessageCountdownStore.isActive(composeCountdownThreadId())
+
+        if (countdownActive) {
+            persistNewConversationDraftSnapshot(
+                snapshot = snapshot,
+                showDraftSavedToast = false,
+            )
             return
         }
-        val snapshot = newConversationExitSnapshot()
+
         val staleResumeId = snapshot.staleResumeId
         val allNumbers = snapshot.allNumbers
         val messageText = snapshot.messageText
@@ -2547,6 +2651,51 @@ class NewConversationActivity : SimpleActivity() {
                 runOnUiThread {
                     EventBus.getDefault().post(Events.RefreshConversations(localListRefreshOnly = localOnly))
                 }
+            }
+        }
+    }
+
+    /** Saves draft + list row while a send countdown is running so MainActivity can reopen compose. */
+    private fun persistNewConversationDraftSnapshot(
+        snapshot: NewConversationExitSnapshot,
+        showDraftSavedToast: Boolean,
+    ) {
+        if (!snapshot.shouldPersist) {
+            return
+        }
+        val allNumbers = snapshot.allNumbers
+        ensureBackgroundThread {
+            val threadId = composeCountdownThreadId().takeIf { it > 0L } ?: getThreadId(allNumbers.toSet())
+            if (threadId <= 0L) {
+                return@ensureBackgroundThread
+            }
+            if (!SendMessageCountdownStore.isActive(threadId)) {
+                return@ensureBackgroundThread
+            }
+            saveSmsDraft(
+                body = snapshot.messageText,
+                threadId = threadId,
+                attachmentsJson = snapshot.attachmentsJson,
+                isScheduled = isScheduledMessage,
+                scheduledMillis = snapshot.scheduledMillis,
+            )
+            if (!SendMessageCountdownStore.isActive(threadId)) {
+                deleteSmsDraft(threadId)
+                refreshConversationRowFromTelephony(threadId)
+                runOnUiThread {
+                    val localOnly = config.selectedConversationPin == 0
+                    EventBus.getDefault().post(Events.RefreshConversations(localListRefreshOnly = localOnly))
+                }
+                return@ensureBackgroundThread
+            }
+            refreshConversationRowFromTelephony(threadId)
+            runOnUiThread {
+                resumedDraftThreadId = threadId
+                if (showDraftSavedToast) {
+                    showDraftSavedToastMessage()
+                }
+                val localOnly = config.selectedConversationPin == 0
+                EventBus.getDefault().post(Events.RefreshConversations(localListRefreshOnly = localOnly))
             }
         }
     }

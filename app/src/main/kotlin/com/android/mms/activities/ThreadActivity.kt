@@ -274,14 +274,19 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                 }
             }
 
-            val draftRow = getSmsDraftEntity(threadId)
             runOnUiThread {
                 if (SendMessageCountdownStore.isActive(threadId)) {
                     restorePendingSendCountdownIfNeeded()
                     return@runOnUiThread
                 }
-                if (draftRow != null && draftRow.threadHasPersistedComposeContent()) {
-                    applyThreadDraftRow(draftRow)
+                ensureBackgroundThread {
+                    val freshDraft = getSmsDraftEntity(threadId)
+                    runOnUiThread {
+                        if (isDestroyed || isFinishing) return@runOnUiThread
+                        if (freshDraft != null) {
+                            applyComposeDraftIfStillValid(freshDraft)
+                        }
+                    }
                 }
             }
 
@@ -1117,9 +1122,39 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             if (!draftRow.threadHasPersistedComposeContent()) return@ensureBackgroundThread
             runOnUiThread {
                 if (isFinishing || isDestroyed) return@runOnUiThread
-                applyThreadDraftRow(draftRow)
+                applyComposeDraftIfStillValid(draftRow)
             }
         }
+    }
+
+    private fun applyComposeDraftIfStillValid(draft: Draft) {
+        if (!draft.threadHasPersistedComposeContent()) return
+        ensureBackgroundThread {
+            if (isStaleSentComposeDraft(draft)) {
+                deleteSmsDraft(threadId)
+                refreshConversationRowFromTelephony(threadId)
+                return@ensureBackgroundThread
+            }
+            runOnUiThread {
+                if (isFinishing || isDestroyed) return@runOnUiThread
+                applyThreadDraftRow(draft)
+            }
+        }
+    }
+
+    private fun isStaleSentComposeDraft(draft: Draft): Boolean {
+        val draftBody = draft.body.trim()
+        if (draftBody.isEmpty()) return false
+        val latestOutgoing = getMessages(
+            threadId = threadId,
+            limit = 10,
+            includeScheduledMessages = false,
+            includeBlockedMessages = showBlockedMessagesInThread,
+        ).asSequence()
+            .filter { !it.isReceivedMessage() }
+            .maxByOrNull { it.id }
+            ?: return false
+        return latestOutgoing.body.trim() == draftBody
     }
 
     private fun refreshMenuItems() {
@@ -2836,6 +2871,12 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                 )
             }
         }
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    fun onPendingSendCountdownCompleted(event: Events.PendingSendCountdownCompleted) {
+        if (event.threadId != threadId) return
+        messageHolderHelper?.clearMessage()
     }
 
     @Subscribe(threadMode = ThreadMode.ASYNC)

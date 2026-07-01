@@ -72,10 +72,19 @@ class MessageHolderHelper(
     private val onThreadTypeMessageFocusChange: ((hasFocus: Boolean) -> Unit)? = null,
     /** Invoked before hiding the attachment picker when the field gains focus and the picker is open (keyboard replacing picker). */
     private val onPrepareKeyboardFromAttachmentPicker: (() -> Unit)? = null,
-    private val hasAddressForSend: (() -> Boolean)? = null
+    private val hasAddressForSend: (() -> Boolean)? = null,
+    private val countdownRecipientNumbers: (() -> List<String>)? = null,
+    private val resumeCountdownInNewConversation: Boolean = false,
+    /** Resolves the store key at send/pause time (e.g. after recipients are added in new compose). */
+    private val countdownThreadIdProvider: () -> Long = { threadId },
 ) {
     var isCountdownActive = false
         private set
+
+    private fun storeThreadId(): Long = countdownThreadIdProvider().takeIf { it > 0L } ?: threadId
+
+    private fun resolveCountdownThreadId(override: Long = 0L): Long =
+        override.takeIf { it > 0L } ?: storeThreadId()
     private var countdownView: CircularCountdown? = null
     private var countdownCompleting = false
     private var isSpeechToTextAvailable = false
@@ -561,9 +570,10 @@ class MessageHolderHelper(
         updateSendButtonDrawable()
     }
 
-    fun bindSendMessageCountdownStore() {
-        if (threadId <= 0L) return
-        SendMessageCountdownStore.setFinishListener(threadId) { pending ->
+    fun bindSendMessageCountdownStore(countdownThreadId: Long = 0L) {
+        val storeId = resolveCountdownThreadId(countdownThreadId)
+        if (storeId <= 0L) return
+        SendMessageCountdownStore.setFinishListener(storeId) { pending ->
             activity.runOnUiThread {
                 if (activity.isFinishing || activity.isDestroyed) {
                     PendingSendCountdownFinisher.finish(activity.applicationContext, pending)
@@ -575,8 +585,9 @@ class MessageHolderHelper(
     }
 
     fun releaseSendMessageCountdownStore() {
-        if (threadId <= 0L) return
-        SendMessageCountdownStore.removeFinishListener(threadId)
+        val storeId = storeThreadId()
+        if (storeId <= 0L) return
+        SendMessageCountdownStore.removeFinishListener(storeId)
     }
 
     fun completeCountdownFromStore(pending: PendingSendCountdown) {
@@ -584,8 +595,9 @@ class MessageHolderHelper(
     }
 
     /** Stops the visible timer when the activity pauses without cancelling the persisted countdown. */
-    fun pauseCountdownUi() {
-        if (!SendMessageCountdownStore.isActive(threadId)) {
+    fun pauseCountdownUi(countdownThreadId: Long = 0L) {
+        val storeId = resolveCountdownThreadId(countdownThreadId)
+        if (!SendMessageCountdownStore.isActive(storeId)) {
             return
         }
         countdownView?.let { view ->
@@ -598,23 +610,24 @@ class MessageHolderHelper(
         }
     }
 
-    fun restorePendingCountdownIfAny(): Boolean {
-        if (threadId <= 0L) return false
-        val pending = SendMessageCountdownStore.get(threadId) ?: return false
+    fun restorePendingCountdownIfAny(countdownThreadId: Long = 0L): Boolean {
+        val storeId = resolveCountdownThreadId(countdownThreadId)
+        if (storeId <= 0L) return false
+        val pending = SendMessageCountdownStore.get(storeId) ?: return false
         val remainingSeconds = SendMessageCountdownStore.getRemainingSeconds(pending)
         if (remainingSeconds <= 0) {
             completeCountdownAndSend(pending)
             return true
         }
         restoreComposeFromPending(pending)
-        pauseCountdownUi()
+        pauseCountdownUi(storeId)
         showSendMessageCountdown(
             subscriptionId = pending.subscriptionId,
             totalDelaySeconds = pending.totalDelaySeconds,
             elapsedSeconds = SendMessageCountdownStore.getElapsedSeconds(pending),
             persistToStore = false,
         )
-        SendMessageCountdownStore.refreshScheduledFinish(threadId)
+        SendMessageCountdownStore.refreshScheduledFinish(storeId)
         return true
     }
 
@@ -645,7 +658,8 @@ class MessageHolderHelper(
         elapsedSeconds: Int,
         persistToStore: Boolean,
     ) {
-        if (persistToStore && threadId > 0L) {
+        val storeId = storeThreadId()
+        if (persistToStore && storeId > 0L) {
             SendMessageCountdownStore.start(buildPendingSendEntry(subscriptionId, totalDelaySeconds))
         }
 
@@ -675,11 +689,12 @@ class MessageHolderHelper(
                     override fun onFinish(newCycle: Boolean, cycleCount: Int) {
                         if (countdownCompleting) return
                         // The store owns send timing for thread countdowns; the view can finish early when paused.
-                        if (threadId > 0L && SendMessageCountdownStore.isActive(threadId)) {
+                        val activeStoreId = storeThreadId()
+                        if (activeStoreId > 0L && SendMessageCountdownStore.isActive(activeStoreId)) {
                             return
                         }
-                        val pending = if (threadId > 0L) {
-                            SendMessageCountdownStore.get(threadId)
+                        val pending = if (activeStoreId > 0L) {
+                            SendMessageCountdownStore.get(activeStoreId)
                         } else {
                             null
                         }
@@ -692,16 +707,18 @@ class MessageHolderHelper(
                 })
                 .start()
         } catch (e: Exception) {
-            if (threadId > 0L) {
-                SendMessageCountdownStore.cancel(threadId, notifyListener = false)
+            val storeId = storeThreadId()
+            if (storeId > 0L) {
+                SendMessageCountdownStore.cancel(storeId, notifyListener = false)
             }
             finishCountdownAndSend(subscriptionId)
         }
     }
 
     private fun cancelSendMessageCountdown(showCancelledToast: Boolean) {
-        if (threadId > 0L) {
-            SendMessageCountdownStore.cancel(threadId, notifyListener = false)
+        val storeId = storeThreadId()
+        if (storeId > 0L) {
+            SendMessageCountdownStore.cancel(storeId, notifyListener = false)
         }
         isCountdownActive = false
         hideCountdown()
@@ -713,11 +730,18 @@ class MessageHolderHelper(
     private fun completeCountdownAndSend(pending: PendingSendCountdown) {
         if (countdownCompleting) return
         countdownCompleting = true
-        if (threadId > 0L) {
-            SendMessageCountdownStore.cancel(threadId, notifyListener = false)
+        val storeId = pending.threadId.takeIf { it > 0L } ?: storeThreadId()
+        if (storeId > 0L) {
+            SendMessageCountdownStore.cancel(storeId, notifyListener = false)
         }
-        restoreComposeFromPending(pending)
-        finishCountdownAndSend(pending.subscriptionId)
+        isCountdownActive = false
+        hideCountdown()
+        onSendMessage(
+            pending.messageText,
+            pending.subscriptionId,
+            parsePendingAttachments(pending),
+        )
+        PendingSendCountdownFinisher.clearComposeDraftAfterSend(activity.applicationContext, pending)
     }
 
     private fun finishCountdownAndSend(subscriptionId: Int) {
@@ -747,12 +771,16 @@ class MessageHolderHelper(
             )
         }
         return PendingSendCountdown(
-            threadId = threadId,
+            threadId = storeThreadId(),
             messageText = binding.threadTypeMessage.value.trim(),
             subscriptionId = subscriptionId,
             attachmentsJson = attachmentsJson,
             startedAtMs = System.currentTimeMillis(),
             totalDelaySeconds = totalDelaySeconds,
+            recipientNumbersJson = countdownRecipientNumbers?.invoke()
+                ?.takeIf { it.isNotEmpty() }
+                ?.let { Gson().toJson(it) },
+            resumeInNewConversation = resumeCountdownInNewConversation,
         )
     }
 
@@ -760,6 +788,39 @@ class MessageHolderHelper(
         if (binding.threadTypeMessage.value != pending.messageText) {
             binding.threadTypeMessage.setText(pending.messageText)
         }
+        replaceAttachmentsFromPending(pending)
+    }
+
+    private fun parsePendingAttachments(pending: PendingSendCountdown): List<Attachment> {
+        val json = pending.attachmentsJson ?: return emptyList()
+        return try {
+            val type = object : TypeToken<List<DraftStoredAttachment>>() {}.type
+            val list: List<DraftStoredAttachment> = Gson().fromJson(json, type) ?: emptyList()
+            list.mapNotNull { entry ->
+                if (entry.uriString.isBlank()) return@mapNotNull null
+                val uri = entry.uriString.toUri()
+                val mimeType = entry.mimetype.ifBlank {
+                    activity.contentResolver.getType(uri).orEmpty()
+                }.ifBlank { "application/octet-stream" }
+                val ext = mimeType.substringAfter("/").substringBefore(";").trim().ifBlank { "dat" }
+                Attachment(
+                    id = null,
+                    messageId = -1L,
+                    uriString = uri.toString(),
+                    mimetype = mimeType,
+                    width = 0,
+                    height = 0,
+                    filename = entry.filename
+                        .ifBlank { activity.getFilenameFromUri(uri) }
+                        .ifBlank { "attachment_${System.currentTimeMillis()}.$ext" },
+                )
+            }
+        } catch (_: Exception) {
+            emptyList()
+        }
+    }
+
+    private fun replaceAttachmentsFromPending(pending: PendingSendCountdown) {
         val json = pending.attachmentsJson
         if (!json.isNullOrBlank()) {
             try {
