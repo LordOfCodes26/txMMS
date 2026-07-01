@@ -776,7 +776,6 @@ class SettingsActivity : SimpleActivity() {
         settingsShowPhoneNumber.isChecked = config.showPhoneNumber
         settingsShowPhoneNumber.setOnCheckedChangeListener { isChecked ->
             config.showPhoneNumber = isChecked
-            setNeedRestartIfUserAction()
         }
         settingsShowPhoneNumberHolder.setOnClickListener {
             settingsShowPhoneNumber.toggle()
