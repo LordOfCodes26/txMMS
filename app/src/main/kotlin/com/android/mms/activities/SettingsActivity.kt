@@ -261,6 +261,8 @@ class SettingsActivity : SimpleActivity() {
         setupNotificationSound()
         setupLockScreenVisibility()
         setupNotifyTurnsOnScreen()
+        // Hide "Turn on screen" option
+        binding.settingsNotifyTurnsOnScreenHolder.beGone()
 
         setupShowPhoneNumber()
         setupShowSmsRemainedCount()
