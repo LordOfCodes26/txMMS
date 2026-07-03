@@ -26,7 +26,7 @@ public class EmoTextView extends AppCompatTextView {
 
 	public static final int EMO_IN_NONE = 0;
 	public static final int EMO_IN_GRID_VIEW = 1;
-	public static final int EMO_IN_BIG_CONTACT = 2;
+	public static final int EMO_IN_CALLER_ANIM = 2;
 	public static final int EMO_IN_CALLER_CONTACT = 3;
 	public static final int EMO_IN_MESSAGE = 4;
 	public static final int EMO_IN_CONTACT = 5;
@@ -36,11 +36,12 @@ public class EmoTextView extends AppCompatTextView {
 
 	public static final int EMOICO_SIZE_IN_GRID = 48;
 	public static final int EMOGI_SIZE_IN_GRID = 72;
-	public static final int EMO_SIZE_IN_CALLER_CONTACT = 100;
+	public static final int EMOICO_SIZE_IN_CALLER_ANIM = 96;
+	public static final int EMOGI_SIZE_IN_CALLER_ANIM = 164;
+	public static final int EMO_SIZE_IN_CALLER_CONTACT = 80;
 	public static final int EMOICO_SIZE_IN_MESSAGE = 48;
 	public static final int EMOGI_SIZE_IN_MESSAGE = 96;
-	public static final int EMO_SIZE_IN_CONTACT = 42;
-	public static final int EMO_SIZE_IN_BIG_CONTACT = 80;
+	public static final int EMO_SIZE_IN_CONTACT = 50;
 
 	static int mLastAttachedId = 0;
 	static ArrayList<Integer> mAttachedEmoViews = new ArrayList<>();
@@ -107,7 +108,7 @@ public class EmoTextView extends AppCompatTextView {
 		try {
 			switch (mEmoTextMode) {
 				case EMO_IN_GRID_VIEW:
-				case EMO_IN_BIG_CONTACT:
+				case EMO_IN_CALLER_ANIM:
 				case EMO_IN_CALLER_CONTACT:
 				case EMO_IN_CONTACT:{
 					return parseEmoString();
@@ -260,8 +261,17 @@ public class EmoTextView extends AppCompatTextView {
 				}
 				break;
 			}
-			case EMO_IN_BIG_CONTACT: {
-				emoSize = EMO_SIZE_IN_BIG_CONTACT;
+			case EMO_IN_CALLER_ANIM: {
+				switch (emoType) {
+					case ResManager.RES_TYPE_EMOICO: {
+						emoSize = EMOICO_SIZE_IN_CALLER_ANIM;
+						break;
+					}
+					case ResManager.RES_TYPE_EMOGI: {
+						emoSize = EMOGI_SIZE_IN_CALLER_ANIM;
+						break;
+					}
+				}
 				break;
 			}
 			case EMO_IN_CALLER_CONTACT: {

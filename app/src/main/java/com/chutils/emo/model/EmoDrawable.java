@@ -124,7 +124,7 @@ public class EmoDrawable extends Drawable {
 							mBitmaps[curFrame] = bitmap;
 						}
 						stPos = edPos;
-						CHGlobal.sleep(2);
+						CHGlobal.sleep(20);
 					}
 
 					synchronized (mContentMutex) {

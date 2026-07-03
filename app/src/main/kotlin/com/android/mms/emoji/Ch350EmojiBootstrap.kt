@@ -3,6 +3,7 @@ package com.android.mms.emoji
 import android.content.Context
 import com.chutils.CHGlobal
 import com.chutils.emo.manager.ResManager
+import com.tx.Space
 import java.io.File
 import java.io.FileOutputStream
 
@@ -22,22 +23,22 @@ object Ch350EmojiBootstrap {
     fun ensureInitialized(context: Context): Boolean {
         ResManager.clearEmojiResourceRoots()
 
-        val filesObb = File(context.filesDir, OBB_FOLDER)
-        filesObb.mkdirs()
+        var filesObb = Space.getCommonDir()
+        filesObb = File(filesObb, "config")
         ResManager.addEmojiResourceRoot(filesObb)
 
-        context.getExternalFilesDir(null)?.let { ext ->
-            val exObb = File(ext, OBB_FOLDER)
-            exObb.mkdirs()
-            ResManager.addEmojiResourceRoot(exObb)
-        }
-
-        val productTxDcs = File("/product/txDCS/")
-        if (productTxDcs.isDirectory) {
-            ResManager.addEmojiResourceRoot(productTxDcs)
-        }
-
-        copyBundledObbFromAssets(context, filesObb)
+//        context.getExternalFilesDir(null)?.let { ext ->
+//            val exObb = File(ext, OBB_FOLDER)
+//            exObb.mkdirs()
+//            ResManager.addEmojiResourceRoot(exObb)
+//        }
+//
+//        val productTxDcs = File("/product/txDCS/")
+//        if (productTxDcs.isDirectory) {
+//            ResManager.addEmojiResourceRoot(productTxDcs)
+//        }
+//
+//        copyBundledObbFromAssets(context, filesObb)
 
         return ResManager.initResourceDb() == CHGlobal.AUTH_CODE_SUCCESS
     }
