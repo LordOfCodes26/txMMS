@@ -36,6 +36,8 @@ import com.android.mms.dialogs.SelectSIMDialog
 import com.android.mms.dialogs.SelectSimDialogAnchorPlacement
 import com.android.mms.emoji.Ch350EmojiBootstrap
 import com.android.mms.emoji.ChatPaneEmoji
+import com.android.mms.emoji.Ch350EmojiText.getCh350EncodedText
+import com.android.mms.emoji.Ch350EmojiText.setCh350ComposeText
 import com.android.mms.emoji.RepeatListener
 import com.android.mms.extensions.*
 import com.android.mms.activities.ManageSlideshowActivity
@@ -772,7 +774,7 @@ class MessageHolderHelper(
         }
         return PendingSendCountdown(
             threadId = storeThreadId(),
-            messageText = binding.threadTypeMessage.value.trim(),
+            messageText = binding.threadTypeMessage.getCh350EncodedText(),
             subscriptionId = subscriptionId,
             attachmentsJson = attachmentsJson,
             startedAtMs = System.currentTimeMillis(),
@@ -785,8 +787,8 @@ class MessageHolderHelper(
     }
 
     private fun restoreComposeFromPending(pending: PendingSendCountdown) {
-        if (binding.threadTypeMessage.value != pending.messageText) {
-            binding.threadTypeMessage.setText(pending.messageText)
+        if (binding.threadTypeMessage.getCh350EncodedText() != pending.messageText) {
+            binding.threadTypeMessage.setCh350ComposeText(pending.messageText)
         }
         replaceAttachmentsFromPending(pending)
     }
@@ -914,15 +916,15 @@ class MessageHolderHelper(
     @SuppressLint("SuspiciousIndentation")
     fun sendMessage(subscriptionId: Int) {
         mergeAllSlidesIntoModel()
-        val text = binding.threadTypeMessage.value.trim()
+        val text = binding.threadTypeMessage.getCh350EncodedText()
         val attachments = buildMessageAttachments()
         onSendMessage(text, subscriptionId, attachments)
     }
 
-    fun getMessageText(): String = binding.threadTypeMessage.value
+    fun getMessageText(): String = binding.threadTypeMessage.getCh350EncodedText()
 
     fun setMessageText(text: String) {
-        binding.threadTypeMessage.setText(text)
+        binding.threadTypeMessage.setCh350ComposeText(text)
     }
 
     fun insertText(text: String) {

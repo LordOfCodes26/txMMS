@@ -5,10 +5,9 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.*
 import android.graphics.drawable.Drawable
-import android.text.SpannableString
+import android.text.Spannable
 import android.text.method.LinkMovementMethod
 import android.text.style.URLSpan
-import android.text.util.Linkify
 import android.util.TypedValue
 import android.view.*
 import android.view.MenuItem
@@ -116,7 +115,9 @@ import android.widget.PopupMenu
 import com.android.common.dialogs.MConfirmDialog
 import com.android.mms.BuildConfig
 import com.android.mms.dialogs.SelectSIMDialog
+import com.android.mms.emoji.Ch350EmojiText.bindCh350MessageBody
 import com.android.mms.helpers.SimMessageCopyHelper
+import com.chutils.emo.views.EmoTextView
 import com.android.mms.helpers.getLocaleDateFormatPatternMonthDay
 import com.android.mms.helpers.resolveSimIconTint
 import com.goodwy.commons.extensions.dismissTrackedMDialogs
@@ -704,9 +705,7 @@ class ThreadAdapter(
             // Show body wrapper when we have body or attachments (time+SIM is always shown in wrapper)
             threadMessageBodyWrapper.beVisibleIf(message.body.isNotEmpty() || message.attachment?.attachments?.isNotEmpty() == true)
             threadMessageBody.apply {
-                val spannable = SpannableString(message.body)
-                Linkify.addLinks(spannable, Linkify.ALL)
-                text = spannable
+                bindCh350MessageBody(message.body)
                 val alignment =
                     if (context.config.textAlignment == TEXT_ALIGNMENT_ALONG_EDGES) View.TEXT_ALIGNMENT_VIEW_END else View.TEXT_ALIGNMENT_INHERIT
                 textAlignment = alignment
@@ -780,11 +779,14 @@ class ThreadAdapter(
 
                         val offset = this.getOffsetForPosition(x, y)
                         if (offset != -1) {
-                            val links = spannable.getSpans(offset, offset, URLSpan::class.java)
-                            if (links.isNotEmpty()) {
-                                val url = links[0].url
-                                showLinkPopupMenu(v.context, url, v)
-                                return@setOnTouchListener true
+                            val spannable = text
+                            if (spannable is Spannable) {
+                                val links = spannable.getSpans(offset, offset, URLSpan::class.java)
+                                if (links.isNotEmpty()) {
+                                    val url = links[0].url
+                                    showLinkPopupMenu(v.context, url, v)
+                                    return@setOnTouchListener true
+                                }
                             }
                         }
                     }
@@ -1377,6 +1379,7 @@ class ThreadAdapter(
         if (!activity.isDestroyed && !activity.isFinishing) {
             val binding = (holder as ThreadViewHolder).binding
             if (binding is ItemMessageBinding) {
+                binding.threadMessageBody.deactivateEmoView()
                 binding.threadMessageStatusIcon.stopSendingStatusAnimation()
                 Glide.with(activity).clear(binding.threadMessageSenderPhoto)
             }

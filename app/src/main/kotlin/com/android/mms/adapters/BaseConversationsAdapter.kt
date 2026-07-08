@@ -48,7 +48,9 @@ import com.android.mms.helpers.*
 import com.android.mms.models.Conversation
 import com.android.mms.models.ConversationListItem
 import com.android.mms.databinding.ItemConversationDateHeaderBinding
+import com.android.mms.emoji.Ch350EmojiText.bindCh350Snippet
 import com.android.mms.extensions.conversationsDB
+import com.chutils.emo.views.EmoTextView
 import com.android.mms.extensions.deleteSmsDraft
 import com.android.mms.extensions.getUnreadCountsByThread
 import com.android.mms.extensions.saveSmsDraft
@@ -399,6 +401,7 @@ abstract class BaseConversationsAdapter(
         if (!activity.isDestroyed && !activity.isFinishing) {
             try {
                 val itemView = ItemConversationBinding.bind(holder.itemView)
+                itemView.conversationBodyShort.deactivateEmoView()
                 Glide.with(activity).clear(itemView.conversationImage)
             } catch (_: Exception) { }
         }
@@ -565,7 +568,7 @@ abstract class BaseConversationsAdapter(
             }
 
             conversationBodyShort.apply {
-                text = smsDraft ?: conversation.snippet
+                bindCh350Snippet(smsDraft ?: conversation.snippet)
                 alpha = 0.6f
                 //setTextSize(TypedValue.COMPLEX_UNIT_PX, smallFontSize)
             }

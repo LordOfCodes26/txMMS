@@ -71,6 +71,7 @@ import com.android.mms.adapters.ThreadAdapter
 import com.android.mms.helpers.MessageHolderHelper
 import com.android.mms.databinding.ActivityThreadBinding
 import com.android.mms.dialogs.InvalidNumberDialog
+import com.android.mms.emoji.Ch350EmojiText.setCh350ComposeText
 import com.android.mms.dialogs.RenameConversationDialog
 import com.android.mms.dialogs.showScheduleDateTimePicker
 import com.android.mms.extensions.*
@@ -1105,7 +1106,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             )
             helper.checkSendMessageAvailability()
         } else if (draft.body.isNotEmpty()) {
-            binding.messageHolder.threadTypeMessage.setText(draft.body)
+            binding.messageHolder.threadTypeMessage.setCh350ComposeText(draft.body)
             binding.messageHolder.threadTypeMessage.setSelection(draft.body.length)
             binding.messageHolder.threadCharacterCounter.beVisibleIf(config.showCharacterCounter)
         }

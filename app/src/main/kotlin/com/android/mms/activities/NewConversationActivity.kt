@@ -50,6 +50,7 @@ import com.android.mms.R
 import com.android.mms.adapters.ContactsAdapter
 import com.android.mms.adapters.ContactPhonePair
 import com.android.mms.databinding.ActivityNewConversationBinding
+import com.android.mms.emoji.Ch350EmojiText.setCh350ComposeText
 import com.android.mms.databinding.ItemSuggestedContactBinding
 import com.android.mms.dialogs.showScheduleDateTimePicker
 import com.android.mms.extensions.*
@@ -1229,7 +1230,7 @@ class NewConversationActivity : SimpleActivity() {
             binding.messageHolder.threadTypeMessage.setSelection(draft.body.length)
             helper.checkSendMessageAvailability()
         } else if (draft.body.isNotEmpty()) {
-            binding.messageHolder.threadTypeMessage.setText(draft.body)
+            binding.messageHolder.threadTypeMessage.setCh350ComposeText(draft.body)
             binding.messageHolder.threadTypeMessage.setSelection(draft.body.length)
         }
 

@@ -76,7 +76,7 @@
                     tools:visibility="visible"
                     tools:text="Received message" />
 
-                <TextView
+                <com.chutils.emo.views.EmoTextView
                     android:id="@+id/threadMessageBody"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
