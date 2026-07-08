@@ -579,6 +579,7 @@ class MessageHolderHelper(
                     PendingSendCountdownFinisher.finish(activity.applicationContext, pending)
                     return@runOnUiThread
                 }
+                if (countdownCompleting) return@runOnUiThread
                 completeCountdownFromStore(pending)
             }
         }
@@ -688,21 +689,19 @@ class MessageHolderHelper(
                     override fun onTick(progress: Int) {}
                     override fun onFinish(newCycle: Boolean, cycleCount: Int) {
                         if (countdownCompleting) return
-                        // The store owns send timing for thread countdowns; the view can finish early when paused.
                         val activeStoreId = storeThreadId()
-                        if (activeStoreId > 0L && SendMessageCountdownStore.isActive(activeStoreId)) {
+                        if (activeStoreId > 0L) {
+                            // Persisted countdowns are owned by [SendMessageCountdownStore]; the view can
+                            // finish when remaining hits 0 before/after the store callback — never send twice.
+                            if (SendMessageCountdownStore.isActive(activeStoreId)) {
+                                return
+                            }
+                            SendMessageCountdownStore.get(activeStoreId)?.let { pending ->
+                                completeCountdownAndSend(pending)
+                            }
                             return
                         }
-                        val pending = if (activeStoreId > 0L) {
-                            SendMessageCountdownStore.get(activeStoreId)
-                        } else {
-                            null
-                        }
-                        if (pending != null) {
-                            completeCountdownAndSend(pending)
-                        } else {
-                            finishCountdownAndSend(subscriptionId)
-                        }
+                        finishCountdownAndSend(subscriptionId)
                     }
                 })
                 .start()
@@ -745,6 +744,7 @@ class MessageHolderHelper(
     }
 
     private fun finishCountdownAndSend(subscriptionId: Int) {
+        if (countdownCompleting) return
         isCountdownActive = false
         hideCountdown()
         sendMessage(subscriptionId)
