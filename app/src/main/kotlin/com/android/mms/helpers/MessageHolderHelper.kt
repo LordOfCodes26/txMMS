@@ -690,16 +690,28 @@ class MessageHolderHelper(
                 .listener(object : CircularListener {
                     override fun onTick(progress: Int) {}
                     override fun onFinish(newCycle: Boolean, cycleCount: Int) {
-                        if (countdownCompleting) return
+                        if (countdownCompleting) {
+                            hideCountdown()
+                            return
+                        }
                         val activeStoreId = storeThreadId()
                         if (activeStoreId > 0L) {
-                            // Persisted countdowns are owned by [SendMessageCountdownStore]; the view can
-                            // finish when remaining hits 0 before/after the store callback — never send twice.
+                            // Persisted countdowns are owned by [SendMessageCountdownStore]. The view can
+                            // auto-repeat when a cycle ends; always stop the visual timer here.
                             if (SendMessageCountdownStore.isActive(activeStoreId)) {
+                                try {
+                                    countdown.stop()
+                                } catch (_: Exception) {
+                                }
+                                countdown.beGone()
                                 return
                             }
-                            SendMessageCountdownStore.get(activeStoreId)?.let { pending ->
+                            val pending = SendMessageCountdownStore.get(activeStoreId)
+                            if (pending != null) {
                                 completeCountdownAndSend(pending)
+                            } else {
+                                isCountdownActive = false
+                                hideCountdown()
                             }
                             return
                         }
