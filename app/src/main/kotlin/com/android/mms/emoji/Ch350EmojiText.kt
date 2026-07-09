@@ -58,6 +58,8 @@ object Ch350EmojiText {
             text = rawText
             return
         }
+        // text markers, not animated spans.
+        setUseEmoInText(false)
         setEmoText(rawText, EmoTextView.EMO_IN_MESSAGE)
     }
 }
