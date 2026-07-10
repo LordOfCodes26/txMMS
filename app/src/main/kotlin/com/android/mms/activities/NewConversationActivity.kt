@@ -1227,11 +1227,11 @@ class NewConversationActivity : SimpleActivity() {
             } else {
                 helper.replaceAttachmentsFromDraft(emptyList())
             }
-            binding.messageHolder.threadTypeMessage.setSelection(draft.body.length)
+            binding.messageHolder.threadTypeMessage.setSelection(binding.messageHolder.threadTypeMessage.length())
             helper.checkSendMessageAvailability()
         } else if (draft.body.isNotEmpty()) {
             binding.messageHolder.threadTypeMessage.setCh350ComposeText(draft.body)
-            binding.messageHolder.threadTypeMessage.setSelection(draft.body.length)
+            binding.messageHolder.threadTypeMessage.setSelection(binding.messageHolder.threadTypeMessage.length())
         }
 
         if (draft.isScheduled && draft.scheduledMillis > 0L) {
@@ -2570,7 +2570,7 @@ class NewConversationActivity : SimpleActivity() {
 
     private fun newConversationExitSnapshot(): NewConversationExitSnapshot {
         val chips = binding.newConversationAddress.allChips
-        val messageText = binding.messageHolder.threadTypeMessage.text?.toString()?.trim() ?: ""
+        val messageText = messageHolderHelper?.getMessageText() ?: ""
         val hasAttachments = messageHolderHelper?.getAttachmentSelections()?.isNotEmpty() == true
         val hasMessage =
             messageText.isNotEmpty() || hasAttachments || isScheduledMessage

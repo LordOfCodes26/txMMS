@@ -1100,14 +1100,14 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             } else {
                 helper.replaceAttachmentsFromDraft(emptyList())
             }
-            binding.messageHolder.threadTypeMessage.setSelection(draft.body.length)
+            binding.messageHolder.threadTypeMessage.setSelection(binding.messageHolder.threadTypeMessage.length())
             binding.messageHolder.threadCharacterCounter.beVisibleIf(
                 config.showCharacterCounter && draft.body.isNotEmpty()
             )
             helper.checkSendMessageAvailability()
         } else if (draft.body.isNotEmpty()) {
             binding.messageHolder.threadTypeMessage.setCh350ComposeText(draft.body)
-            binding.messageHolder.threadTypeMessage.setSelection(draft.body.length)
+            binding.messageHolder.threadTypeMessage.setSelection(binding.messageHolder.threadTypeMessage.length())
             binding.messageHolder.threadCharacterCounter.beVisibleIf(config.showCharacterCounter)
         }
 
