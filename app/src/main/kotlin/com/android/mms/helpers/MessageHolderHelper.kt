@@ -72,8 +72,16 @@ class MessageHolderHelper(
     private val onTextChanged: ((String) -> Unit)? = null,
     private val onHideAttachmentPickerRequested: (() -> Unit)? = null,
     private val onThreadTypeMessageFocusChange: ((hasFocus: Boolean) -> Unit)? = null,
-    /** Invoked before hiding the attachment picker when the field gains focus and the picker is open (keyboard replacing picker). */
-    private val onPrepareKeyboardFromAttachmentPicker: (() -> Unit)? = null,
+    /**
+     * Invoked before hiding the attachment or emoji panel when the field gains focus
+     * (keyboard replacing the in-layout bottom panel).
+     */
+    private val onPrepareKeyboardFromBottomPanel: (() -> Unit)? = null,
+    /**
+     * When set, opening the emoji pane is orchestrated by the activity (same deferred IME hide as the
+     * attachment picker). The activity must call [showEmojiPicker] when ready.
+     */
+    private val onOpenEmojiPickerRequested: (() -> Unit)? = null,
     private val hasAddressForSend: (() -> Boolean)? = null,
     private val countdownRecipientNumbers: (() -> List<String>)? = null,
     private val resumeCountdownInNewConversation: Boolean = false,
@@ -215,8 +223,8 @@ class MessageHolderHelper(
 
             threadTypeMessage.setOnFocusChangeListener { _, hasFocus ->
                 if (hasFocus) {
-                    if (binding.attachmentPickerHolder.isVisible()) {
-                        onPrepareKeyboardFromAttachmentPicker?.invoke()
+                    if (binding.attachmentPickerHolder.isVisible() || isEmojiPickerVisible) {
+                        onPrepareKeyboardFromBottomPanel?.invoke()
                     }
                     onHideAttachmentPickerRequested?.invoke()
                     hideAttachmentPicker()
@@ -318,22 +326,36 @@ class MessageHolderHelper(
 
     fun isEmojiPickerPaneVisible(): Boolean = isEmojiPickerVisible
 
+    /** Ensures the emoji pack is loaded; returns false if it cannot be shown. */
+    fun prepareEmojiPicker(): Boolean {
+        ensureCh350EmojiPane()
+        return chatPaneEmoji != null
+    }
+
     private fun toggleEmojiPicker() {
         if (isEmojiPickerVisible) {
+            onPrepareKeyboardFromBottomPanel?.invoke()
             hideEmojiPicker(resumeKeyboard = true)
         } else {
-            showEmojiPicker()
+            val openRequested = onOpenEmojiPickerRequested
+            if (openRequested != null) {
+                openRequested.invoke()
+            } else {
+                showEmojiPicker()
+            }
         }
     }
 
-    private fun showEmojiPicker() {
+    /**
+     * Shows the emoji pane at [config.keyboardHeight]. Does not hide the IME — callers that open from a
+     * visible keyboard must wait until IME insets report hidden (same as [showAttachmentPicker]).
+     * @return false if the emoji pack could not be initialized.
+     */
+    fun showEmojiPicker(): Boolean {
         ensureCh350EmojiPane()
-        if (chatPaneEmoji == null) return
+        if (chatPaneEmoji == null) return false
         hideAttachmentPicker()
-        onHideAttachmentPickerRequested?.invoke()
         isEmojiPickerVisible = true
-        activity.hideKeyboard()
-        binding.threadTypeMessage.clearFocus()
         binding.messageEmojiPickerHolder.updateLayoutParams<ViewGroup.LayoutParams> {
             height = activity.config.keyboardHeight
         }
@@ -342,6 +364,7 @@ class MessageHolderHelper(
         binding.imvEmoticBtn.setBackgroundResource(R.drawable.ic_sms_keyboard)
         binding.imvEmoticBtn.contentDescription = activity.getString(com.goodwy.commons.R.string.keyboard_short)
         binding.root.post { binding.root.requestLayout() }
+        return true
     }
 
     private fun hideEmojiPicker(resumeKeyboard: Boolean) {
@@ -442,7 +465,9 @@ class MessageHolderHelper(
                 action()
             }
             chooseImage.setOnClickListener { hidePickerThen(onChoosePhoto) }
-            chooseEmoji.setOnClickListener { showEmojiPicker() }
+            chooseEmoji.setOnClickListener {
+                onOpenEmojiPickerRequested?.invoke() ?: showEmojiPicker()
+            }
             chooseText.setOnClickListener { hidePickerThen(onPickQuickText) }
             chooseCamera.setOnClickListener { hidePickerThen(onTakePhoto) }
             chooseVoice.setOnClickListener { hidePickerThen(onPickAudio) }

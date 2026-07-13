@@ -83,9 +83,11 @@ class NewConversationActivity : SimpleActivity() {
     private var privateContacts = ArrayList<SimpleContact>()
     private var isSpeechToTextAvailable = false
     private var isAttachmentPickerVisible = false
+    /** Tracks emoji pane intent the same way [isAttachmentPickerVisible] tracks the attachment picker. */
+    private var isEmojiPickerVisible = false
     /** When true, [threadTypeMessage] focus loss is from opening the attachment picker; skip extra inset sync. */
     private var ignoreInputFocusLossInsetSync = false
-    /** Same latch model as [ThreadActivity] for IME ↔ attachment picker transitions. */
+    /** Same latch model as [ThreadActivity] for IME ↔ bottom panel (attachment / emoji) transitions. */
     private enum class ComposeBarBottomInsetLatch {
         NONE,
         KEYBOARD_TO_ATTACHMENT_PICKER,
@@ -95,8 +97,14 @@ class NewConversationActivity : SimpleActivity() {
     private var composeBarBottomInsetLatch = ComposeBarBottomInsetLatch.NONE
     private var composeBarBottomInsetLatchPx = 0
     private var wasKeyboardVisible = false
-    /** Set when + is tapped with the keyboard up; picker opens after IME insets report hidden. */
-    private var pendingAttachmentPickerAfterKeyboardHide = false
+    /** Set when a bottom panel is requested with the keyboard up; panel opens after IME insets report hidden. */
+    private enum class PendingPanelAfterKeyboardHide {
+        NONE,
+        ATTACHMENT_PICKER,
+        EMOJI_PICKER,
+    }
+
+    private var pendingPanelAfterKeyboardHide = PendingPanelAfterKeyboardHide.NONE
     private var messageHolderHelper: MessageHolderHelper? = null
     private var attachmentIntentLauncher: AttachmentIntentLauncher? = null
     private var expandedMessageFragment: com.android.mms.fragments.ExpandedMessageFragment? = null
@@ -359,8 +367,10 @@ class NewConversationActivity : SimpleActivity() {
                 applyComposeBarImePaddingFromInsets()
                 applyNewConversationNestScrollTopPadding()
             }
-            if (!insets.isVisible(WindowInsetsCompat.Type.ime()) && pendingAttachmentPickerAfterKeyboardHide) {
-                binding.root.post { finishOpeningAttachmentPickerAfterKeyboardHide() }
+            if (!insets.isVisible(WindowInsetsCompat.Type.ime()) &&
+                pendingPanelAfterKeyboardHide != PendingPanelAfterKeyboardHide.NONE
+            ) {
+                binding.root.post { finishOpeningPendingPanelAfterKeyboardHide() }
             }
             insets
         }
@@ -420,14 +430,14 @@ class NewConversationActivity : SimpleActivity() {
     }
 
     private fun clearComposeBarBottomInsetLatch() {
-        cancelPendingAttachmentPickerShow()
+        cancelPendingBottomPanelShow()
         if (composeBarBottomInsetLatch == ComposeBarBottomInsetLatch.NONE) return
         composeBarBottomInsetLatch = ComposeBarBottomInsetLatch.NONE
         applyComposeBarImePaddingFromInsets()
     }
 
-    private fun cancelPendingAttachmentPickerShow() {
-        pendingAttachmentPickerAfterKeyboardHide = false
+    private fun cancelPendingBottomPanelShow() {
+        pendingPanelAfterKeyboardHide = PendingPanelAfterKeyboardHide.NONE
     }
 
     private fun isNewConversationKeyboardVisible(): Boolean {
@@ -438,10 +448,20 @@ class NewConversationActivity : SimpleActivity() {
             rootInsets.getInsets(WindowInsetsCompat.Type.ime()).bottom > 0
     }
 
-    private fun finishOpeningAttachmentPickerAfterKeyboardHide() {
-        if (!pendingAttachmentPickerAfterKeyboardHide) return
-        pendingAttachmentPickerAfterKeyboardHide = false
-        messageHolderHelper?.showAttachmentPicker()
+    private fun finishOpeningPendingPanelAfterKeyboardHide() {
+        when (pendingPanelAfterKeyboardHide) {
+            PendingPanelAfterKeyboardHide.NONE -> return
+            PendingPanelAfterKeyboardHide.ATTACHMENT_PICKER -> {
+                pendingPanelAfterKeyboardHide = PendingPanelAfterKeyboardHide.NONE
+                messageHolderHelper?.showAttachmentPicker()
+            }
+            PendingPanelAfterKeyboardHide.EMOJI_PICKER -> {
+                pendingPanelAfterKeyboardHide = PendingPanelAfterKeyboardHide.NONE
+                if (messageHolderHelper?.showEmojiPicker() != true) {
+                    isEmojiPickerVisible = false
+                }
+            }
+        }
         if (composeBarBottomInsetLatch == ComposeBarBottomInsetLatch.KEYBOARD_TO_ATTACHMENT_PICKER) {
             composeBarBottomInsetLatch = ComposeBarBottomInsetLatch.NONE
         }
@@ -450,6 +470,32 @@ class NewConversationActivity : SimpleActivity() {
             ignoreInputFocusLossInsetSync = false
             binding.messageHolder.threadTypeMessage.requestApplyInsets()
             binding.root.post { ViewCompat.requestApplyInsets(binding.root) }
+        }
+    }
+
+    /** Same deferred IME swap as opening the attachment picker from a visible keyboard. */
+    private fun openEmojiPickerFromCompose() {
+        if (messageHolderHelper?.prepareEmojiPicker() != true) return
+        ignoreInputFocusLossInsetSync = true
+        isAttachmentPickerVisible = false
+        isEmojiPickerVisible = true
+        if (isNewConversationKeyboardVisible()) {
+            pendingPanelAfterKeyboardHide = PendingPanelAfterKeyboardHide.EMOJI_PICKER
+            beginKeyboardToAttachmentPickerComposeInsetLatch()
+            hideKeyboard()
+            binding.messageHolder.threadTypeMessage.clearFocus()
+        } else {
+            pendingPanelAfterKeyboardHide = PendingPanelAfterKeyboardHide.NONE
+            if (messageHolderHelper?.showEmojiPicker() != true) {
+                isEmojiPickerVisible = false
+                ignoreInputFocusLossInsetSync = false
+                return
+            }
+            binding.messageHolder.root.post {
+                ignoreInputFocusLossInsetSync = false
+                binding.messageHolder.threadTypeMessage.requestApplyInsets()
+                binding.root.post { ViewCompat.requestApplyInsets(binding.root) }
+            }
         }
     }
 
@@ -534,7 +580,7 @@ class NewConversationActivity : SimpleActivity() {
             onSpeechToText = { speechToText() },
             onExpandMessage = { showExpandedMessageFragment() },
             onHideAttachmentPickerRequested = {
-                cancelPendingAttachmentPickerShow()
+                cancelPendingBottomPanelShow()
                 isAttachmentPickerVisible = false
                 messageHolderHelper?.hideAttachmentPicker()
                 binding.messageHolder.messageHolder.post {
@@ -547,16 +593,21 @@ class NewConversationActivity : SimpleActivity() {
                 ) {
                     clearComposeBarBottomInsetLatch()
                 }
-                if (!hasFocus && !isAttachmentPickerVisible && !ignoreInputFocusLossInsetSync &&
+                if (!hasFocus && !isAttachmentPickerVisible && !isEmojiPickerVisible &&
+                    !ignoreInputFocusLossInsetSync &&
                     messageHolderHelper?.isEmojiPickerPaneVisible() != true
                 ) {
                     applyComposeBarImePaddingFromInsets()
                     binding.root.post { ViewCompat.requestApplyInsets(binding.root) }
                 }
             },
-            onPrepareKeyboardFromAttachmentPicker = {
-                cancelPendingAttachmentPickerShow()
+            onPrepareKeyboardFromBottomPanel = {
+                cancelPendingBottomPanelShow()
+                isEmojiPickerVisible = false
                 beginAttachmentPickerToKeyboardComposeInsetLatch()
+            },
+            onOpenEmojiPickerRequested = {
+                openEmojiPickerFromCompose()
             },
             countdownRecipientNumbers = { collectRecipientNumbers() },
             resumeCountdownInNewConversation = true,
@@ -570,7 +621,7 @@ class NewConversationActivity : SimpleActivity() {
         binding.messageHolder.apply {
             threadAddAttachmentHolder.setOnClickListener {
                 if (attachmentPickerHolder.isVisible()) {
-                    cancelPendingAttachmentPickerShow()
+                    cancelPendingBottomPanelShow()
                     clearComposeBarBottomInsetLatch()
                     isAttachmentPickerVisible = false
                     messageHolderHelper?.hideAttachmentPicker()
@@ -580,14 +631,15 @@ class NewConversationActivity : SimpleActivity() {
                     }
                 } else {
                     ignoreInputFocusLossInsetSync = true
+                    isEmojiPickerVisible = false
                     isAttachmentPickerVisible = true
                     if (isNewConversationKeyboardVisible()) {
-                        pendingAttachmentPickerAfterKeyboardHide = true
+                        pendingPanelAfterKeyboardHide = PendingPanelAfterKeyboardHide.ATTACHMENT_PICKER
                         beginKeyboardToAttachmentPickerComposeInsetLatch()
                         hideKeyboard()
                         threadTypeMessage.clearFocus()
                     } else {
-                        pendingAttachmentPickerAfterKeyboardHide = false
+                        pendingPanelAfterKeyboardHide = PendingPanelAfterKeyboardHide.NONE
                         messageHolderHelper?.showAttachmentPicker()
                         binding.messageHolder.root.post {
                             ignoreInputFocusLossInsetSync = false
@@ -641,20 +693,29 @@ class NewConversationActivity : SimpleActivity() {
                 } else {
                     getDefaultKeyboardHeight()
                 }
-                // IME and the attachment picker must never be visible together.
+                // IME and bottom panels must never be visible together.
                 messageHolderHelper?.hideAttachmentPicker()
-                if (!pendingAttachmentPickerAfterKeyboardHide) {
+                if (pendingPanelAfterKeyboardHide != PendingPanelAfterKeyboardHide.ATTACHMENT_PICKER) {
                     isAttachmentPickerVisible = false
+                }
+                if (pendingPanelAfterKeyboardHide != PendingPanelAfterKeyboardHide.EMOJI_PICKER) {
+                    if (messageHolderHelper?.dismissEmojiPicker() == true) {
+                        isEmojiPickerVisible = false
+                    }
                 }
                 wasKeyboardVisible = true
             } else {
                 wasKeyboardVisible = false
-                if (pendingAttachmentPickerAfterKeyboardHide) {
-                    binding.root.post { finishOpeningAttachmentPickerAfterKeyboardHide() }
+                if (pendingPanelAfterKeyboardHide != PendingPanelAfterKeyboardHide.NONE) {
+                    binding.root.post { finishOpeningPendingPanelAfterKeyboardHide() }
                 } else if (isAttachmentPickerVisible &&
                     composeBarBottomInsetLatch != ComposeBarBottomInsetLatch.ATTACHMENT_PICKER_TO_KEYBOARD
                 ) {
                     messageHolderHelper?.showAttachmentPicker()
+                } else if (isEmojiPickerVisible &&
+                    composeBarBottomInsetLatch != ComposeBarBottomInsetLatch.ATTACHMENT_PICKER_TO_KEYBOARD
+                ) {
+                    messageHolderHelper?.showEmojiPicker()
                 }
             }
             insets
@@ -2748,7 +2809,11 @@ class NewConversationActivity : SimpleActivity() {
     }
 
     override fun onBackPressedCompat(): Boolean {
-        if (messageHolderHelper?.dismissEmojiPicker() == true) return true
+        if (messageHolderHelper?.dismissEmojiPicker() == true) {
+            isEmojiPickerVisible = false
+            clearComposeBarBottomInsetLatch()
+            return true
+        }
         if (expandedMessageFragment != null) {
             hideExpandedMessageFragment()
             return true

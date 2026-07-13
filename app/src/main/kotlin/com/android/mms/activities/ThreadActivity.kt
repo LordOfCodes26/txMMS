@@ -142,12 +142,15 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
     private var scheduledDateTime: DateTime = DateTime.now().plusMinutes(5)
 
     private var isAttachmentPickerVisible = false
+    /** Tracks emoji pane intent the same way [isAttachmentPickerVisible] tracks the attachment picker. */
+    private var isEmojiPickerVisible = false
 
     /** When true, [threadTypeMessage] focus loss is from opening the attachment picker; skip inset sync. */
     private var ignoreInputFocusLossInsetSync = false
     /**
-     * Stabilizes compose-bar bottom padding while swapping IME and the in-layout attachment picker so the
-     * message list does not jump (IME animates out before the picker is shown, or picker hides before IME insets apply).
+     * Stabilizes compose-bar bottom padding while swapping IME and an in-layout bottom panel (attachment or
+     * emoji) so the message list does not jump (IME animates out before the panel is shown, or panel hides
+     * before IME insets apply).
      */
     private enum class ComposeBarBottomInsetLatch {
         NONE,
@@ -167,10 +170,16 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
     private var frozenThreadListPadding: IntArray? = null
     private var frozenComposeBarInsetBottom = 0
     private var threadListLayoutFreezePreDrawListener: ViewTreeObserver.OnPreDrawListener? = null
-    /** Holds list bottom padding while swapping IME and the attachment picker to prevent a visible flash. */
+    /** Holds list bottom padding while swapping IME and a bottom panel to prevent a visible flash. */
     private var overlayTransitionListPadding: IntArray? = null
-    /** Set when + is tapped with the keyboard up; picker opens after IME insets report hidden. */
-    private var pendingAttachmentPickerAfterKeyboardHide = false
+    /** Set when a bottom panel is requested with the keyboard up; panel opens after IME insets report hidden. */
+    private enum class PendingPanelAfterKeyboardHide {
+        NONE,
+        ATTACHMENT_PICKER,
+        EMOJI_PICKER,
+    }
+
+    private var pendingPanelAfterKeyboardHide = PendingPanelAfterKeyboardHide.NONE
     private var isSpeechToTextAvailable = false
     private var expandedMessageFragment: com.android.mms.fragments.ExpandedMessageFragment? = null
     private var messageHolderHelper: MessageHolderHelper? = null
@@ -529,8 +538,10 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             if (!freezeThreadListLayoutOnResume) {
                 binding.root.post { applyComposeBarImePaddingFromInsets() }
             }
-            if (!insets.isVisible(WindowInsetsCompat.Type.ime()) && pendingAttachmentPickerAfterKeyboardHide) {
-                binding.root.post { finishOpeningAttachmentPickerAfterKeyboardHide() }
+            if (!insets.isVisible(WindowInsetsCompat.Type.ime()) &&
+                pendingPanelAfterKeyboardHide != PendingPanelAfterKeyboardHide.NONE
+            ) {
+                binding.root.post { finishOpeningPendingPanelAfterKeyboardHide() }
             }
             insets
         }
@@ -577,7 +588,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         }
     }
 
-    private fun scheduleKeyboardToAttachmentPickerTransitionComplete() {
+    private fun scheduleKeyboardToBottomPanelTransitionComplete() {
         binding.messageHolder.root.post {
             binding.messageHolder.root.post {
                 releaseOverlayTransitionListPaddingFreeze(recalculate = true)
@@ -587,16 +598,26 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         }
     }
 
-    private fun finishOpeningAttachmentPickerAfterKeyboardHide() {
-        if (!pendingAttachmentPickerAfterKeyboardHide) return
-        pendingAttachmentPickerAfterKeyboardHide = false
-        messageHolderHelper?.showAttachmentPicker()
+    private fun finishOpeningPendingPanelAfterKeyboardHide() {
+        when (pendingPanelAfterKeyboardHide) {
+            PendingPanelAfterKeyboardHide.NONE -> return
+            PendingPanelAfterKeyboardHide.ATTACHMENT_PICKER -> {
+                pendingPanelAfterKeyboardHide = PendingPanelAfterKeyboardHide.NONE
+                messageHolderHelper?.showAttachmentPicker()
+            }
+            PendingPanelAfterKeyboardHide.EMOJI_PICKER -> {
+                pendingPanelAfterKeyboardHide = PendingPanelAfterKeyboardHide.NONE
+                if (messageHolderHelper?.showEmojiPicker() != true) {
+                    isEmojiPickerVisible = false
+                }
+            }
+        }
         if (composeBarBottomInsetLatch == ComposeBarBottomInsetLatch.KEYBOARD_TO_ATTACHMENT_PICKER) {
             composeBarBottomInsetLatch = ComposeBarBottomInsetLatch.NONE
         }
         applyComposeBarImePaddingFromInsets()
         binding.messageHolder.root.requestLayout()
-        scheduleKeyboardToAttachmentPickerTransitionComplete()
+        scheduleKeyboardToBottomPanelTransitionComplete()
     }
 
     /**
@@ -790,6 +811,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         }
 
         val hasBottomPanel = isAttachmentPickerVisible ||
+            isEmojiPickerVisible ||
             messageHolderHelper?.isEmojiPickerPaneVisible() == true ||
             composeBarBottomInsetLatch != ComposeBarBottomInsetLatch.NONE ||
             isThreadKeyboardVisible()
@@ -801,7 +823,8 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         val inputStripHeight = resolveComposeInputStripHeight(barContainer)
         val bottomInsetPadding = barContainer.paddingBottom
         val overlayHeight = when {
-            isAttachmentPickerVisible || messageHolderHelper?.isEmojiPickerPaneVisible() == true ->
+            isAttachmentPickerVisible || isEmojiPickerVisible ||
+                messageHolderHelper?.isEmojiPickerPaneVisible() == true ->
                 config.keyboardHeight + bottomInsetPadding
             composeBarBottomInsetLatch != ComposeBarBottomInsetLatch.NONE ->
                 composeBarBottomInsetLatchPx
@@ -933,12 +956,12 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         applyComposeBarImePaddingFromInsets()
     }
 
-    private fun cancelPendingAttachmentPickerShow() {
-        pendingAttachmentPickerAfterKeyboardHide = false
+    private fun cancelPendingBottomPanelShow() {
+        pendingPanelAfterKeyboardHide = PendingPanelAfterKeyboardHide.NONE
     }
 
     private fun clearComposeBarBottomInsetLatch() {
-        cancelPendingAttachmentPickerShow()
+        cancelPendingBottomPanelShow()
         val hadLatch = composeBarBottomInsetLatch != ComposeBarBottomInsetLatch.NONE
         composeBarBottomInsetLatch = ComposeBarBottomInsetLatch.NONE
         if (hadLatch) {
@@ -1785,11 +1808,11 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                 messageToResend = null
             },
             onHideAttachmentPickerRequested = {
-                cancelPendingAttachmentPickerShow()
+                cancelPendingBottomPanelShow()
                 isAttachmentPickerVisible = false
                 messageHolderHelper?.hideAttachmentPicker()
                 binding.messageHolder.root.post {
-                    // Picker→keyboard: keep inset latch + frozen list padding until IME finishes opening.
+                    // Panel→keyboard: keep inset latch + frozen list padding until IME finishes opening.
                     if (composeBarBottomInsetLatch != ComposeBarBottomInsetLatch.ATTACHMENT_PICKER_TO_KEYBOARD) {
                         clearComposeBarBottomInsetLatch()
                     }
@@ -1802,15 +1825,20 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                 ) {
                     clearComposeBarBottomInsetLatch()
                 }
-                if (!hasFocus && !isAttachmentPickerVisible && !ignoreInputFocusLossInsetSync &&
+                if (!hasFocus && !isAttachmentPickerVisible && !isEmojiPickerVisible &&
+                    !ignoreInputFocusLossInsetSync &&
                     messageHolderHelper?.isEmojiPickerPaneVisible() != true
                 ) {
                     syncMessageInputBarToBottomAfterFocusLoss()
                 }
             },
-            onPrepareKeyboardFromAttachmentPicker = {
-                cancelPendingAttachmentPickerShow()
+            onPrepareKeyboardFromBottomPanel = {
+                cancelPendingBottomPanelShow()
+                isEmojiPickerVisible = false
                 beginAttachmentPickerToKeyboardComposeInsetLatch()
+            },
+            onOpenEmojiPickerRequested = {
+                openEmojiPickerFromCompose()
             },
         )
 
@@ -1822,7 +1850,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             threadTypeMessage.setText(intent.getStringExtra(THREAD_TEXT))
             threadAddAttachmentHolder.setOnClickListener {
                 if (attachmentPickerHolder.isVisible()) {
-                    pendingAttachmentPickerAfterKeyboardHide = false
+                    pendingPanelAfterKeyboardHide = PendingPanelAfterKeyboardHide.NONE
                     beginOverlayTransitionListPaddingFreeze()
                     messageHolderHelper?.hideAttachmentPicker()
                     binding.messageHolder.root.post {
@@ -1834,16 +1862,17 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                 } else {
                     ignoreInputFocusLossInsetSync = true
                     beginOverlayTransitionListPaddingFreeze()
+                    isEmojiPickerVisible = false
                     isAttachmentPickerVisible = true
                     if (isThreadKeyboardVisible()) {
-                        pendingAttachmentPickerAfterKeyboardHide = true
+                        pendingPanelAfterKeyboardHide = PendingPanelAfterKeyboardHide.ATTACHMENT_PICKER
                         beginKeyboardToAttachmentPickerComposeInsetLatch()
                         hideKeyboard()
                         threadTypeMessage.clearFocus()
                     } else {
-                        pendingAttachmentPickerAfterKeyboardHide = false
+                        pendingPanelAfterKeyboardHide = PendingPanelAfterKeyboardHide.NONE
                         messageHolderHelper?.showAttachmentPicker()
-                        scheduleKeyboardToAttachmentPickerTransitionComplete()
+                        scheduleKeyboardToBottomPanelTransitionComplete()
                     }
                 }
 
@@ -3106,6 +3135,30 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         messageHolderHelper?.showAttachmentPicker()
     }
 
+    /** Same deferred IME swap as opening the attachment picker from a visible keyboard. */
+    private fun openEmojiPickerFromCompose() {
+        if (messageHolderHelper?.prepareEmojiPicker() != true) return
+        ignoreInputFocusLossInsetSync = true
+        beginOverlayTransitionListPaddingFreeze()
+        isAttachmentPickerVisible = false
+        isEmojiPickerVisible = true
+        if (isThreadKeyboardVisible()) {
+            pendingPanelAfterKeyboardHide = PendingPanelAfterKeyboardHide.EMOJI_PICKER
+            beginKeyboardToAttachmentPickerComposeInsetLatch()
+            hideKeyboard()
+            binding.messageHolder.threadTypeMessage.clearFocus()
+        } else {
+            pendingPanelAfterKeyboardHide = PendingPanelAfterKeyboardHide.NONE
+            if (messageHolderHelper?.showEmojiPicker() != true) {
+                isEmojiPickerVisible = false
+                ignoreInputFocusLossInsetSync = false
+                releaseOverlayTransitionListPaddingFreeze(recalculate = true)
+                return
+            }
+            scheduleKeyboardToBottomPanelTransitionComplete()
+        }
+    }
+
     private fun maybeSetupRecycleBinView() {
         if (isRecycleBin) {
             binding.messageHolder.root.beGone()
@@ -3138,11 +3191,16 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                 } else {
                     getDefaultKeyboardHeight()
                 }
-                // IME and the attachment picker must never be visible together. When + is tapped with the
-                // keyboard up, [pendingAttachmentPickerAfterKeyboardHide] defers showing the picker until IME hides.
+                // IME and bottom panels must never be visible together. When a panel is requested with the
+                // keyboard up, [pendingPanelAfterKeyboardHide] defers showing until IME hides.
                 hideAttachmentPicker()
-                if (!pendingAttachmentPickerAfterKeyboardHide) {
+                if (pendingPanelAfterKeyboardHide != PendingPanelAfterKeyboardHide.ATTACHMENT_PICKER) {
                     isAttachmentPickerVisible = false
+                }
+                if (pendingPanelAfterKeyboardHide != PendingPanelAfterKeyboardHide.EMOJI_PICKER) {
+                    if (messageHolderHelper?.dismissEmojiPicker() == true) {
+                        isEmojiPickerVisible = false
+                    }
                 }
                 wasKeyboardVisible = true
                 hadKeyboardLayoutWhenLeaving = true
@@ -3151,12 +3209,16 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                 if (!freezeThreadListLayoutOnResume) {
                     hadKeyboardLayoutWhenLeaving = false
                 }
-                if (pendingAttachmentPickerAfterKeyboardHide) {
-                    binding.root.post { finishOpeningAttachmentPickerAfterKeyboardHide() }
+                if (pendingPanelAfterKeyboardHide != PendingPanelAfterKeyboardHide.NONE) {
+                    binding.root.post { finishOpeningPendingPanelAfterKeyboardHide() }
                 } else if (isAttachmentPickerVisible &&
                     composeBarBottomInsetLatch != ComposeBarBottomInsetLatch.ATTACHMENT_PICKER_TO_KEYBOARD
                 ) {
                     showAttachmentPicker()
+                } else if (isEmojiPickerVisible &&
+                    composeBarBottomInsetLatch != ComposeBarBottomInsetLatch.ATTACHMENT_PICKER_TO_KEYBOARD
+                ) {
+                    messageHolderHelper?.showEmojiPicker()
                 }
             }
 
@@ -3365,7 +3427,11 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
     }
 
     override fun onBackPressedCompat(): Boolean {
-        if (messageHolderHelper?.dismissEmojiPicker() == true) return true
+        if (messageHolderHelper?.dismissEmojiPicker() == true) {
+            isEmojiPickerVisible = false
+            clearComposeBarBottomInsetLatch()
+            return true
+        }
         if (finishThreadMessageSelectionIfActive()) return true
         return if (expandedMessageFragment != null) {
             hideExpandedMessageFragment()
