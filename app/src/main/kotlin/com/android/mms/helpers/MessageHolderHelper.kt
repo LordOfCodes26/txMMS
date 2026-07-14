@@ -576,14 +576,12 @@ class MessageHolderHelper(
         val storeId = resolveCountdownThreadId(countdownThreadId)
         if (storeId <= 0L) return
         SendMessageCountdownStore.setFinishListener(storeId) { pending ->
-            activity.runOnUiThread {
-                if (activity.isFinishing || activity.isDestroyed) {
-                    PendingSendCountdownFinisher.finish(activity.applicationContext, pending)
-                    return@runOnUiThread
-                }
-                if (countdownCompleting) return@runOnUiThread
-                completeCountdownFromStore(pending)
+            if (activity.isFinishing || activity.isDestroyed) {
+                PendingSendCountdownFinisher.finish(activity.applicationContext, pending)
+                return@setFinishListener
             }
+            if (countdownCompleting) return@setFinishListener
+            completeCountdownFromStore(pending)
         }
     }
 
@@ -663,6 +661,7 @@ class MessageHolderHelper(
     ) {
         val storeId = storeThreadId()
         if (persistToStore && storeId > 0L) {
+            bindSendMessageCountdownStore(storeId)
             SendMessageCountdownStore.start(buildPendingSendEntry(subscriptionId, totalDelaySeconds))
         }
 
@@ -694,18 +693,14 @@ class MessageHolderHelper(
                             hideCountdown()
                             return
                         }
+                        // Persisted countdowns are owned by [SendMessageCountdownStore]. The view can
+                        // auto-repeat when a cycle ends; always stop the visual timer here.
+                        try {
+                            countdown.stop()
+                        } catch (_: Exception) {
+                        }
                         val activeStoreId = storeThreadId()
                         if (activeStoreId > 0L) {
-                            // Persisted countdowns are owned by [SendMessageCountdownStore]. The view can
-                            // auto-repeat when a cycle ends; always stop the visual timer here.
-                            if (SendMessageCountdownStore.isActive(activeStoreId)) {
-                                try {
-                                    countdown.stop()
-                                } catch (_: Exception) {
-                                }
-                                countdown.beGone()
-                                return
-                            }
                             val pending = SendMessageCountdownStore.get(activeStoreId)
                             if (pending != null) {
                                 completeCountdownAndSend(pending)

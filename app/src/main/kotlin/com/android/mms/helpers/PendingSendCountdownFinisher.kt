@@ -1,98 +1,1 @@
-package com.android.mms.helpers
-
-import android.content.Context
-import androidx.core.net.toUri
-import com.android.mms.extensions.config
-import com.android.mms.extensions.deleteSmsDraft
-import com.android.mms.extensions.getAddresses
-import com.android.mms.extensions.getThreadId
-import com.android.mms.extensions.getThreadParticipants
-import com.android.mms.extensions.refreshConversationRowFromTelephony
-import com.android.mms.messaging.sendMessageCompat
-import com.android.mms.models.Attachment
-import com.android.mms.models.DraftStoredAttachment
-import com.android.mms.models.Events
-import com.goodwy.commons.extensions.getFilenameFromUri
-import com.goodwy.commons.helpers.ensureBackgroundThread
-import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
-import org.greenrobot.eventbus.EventBus
-
-/** Sends a pending countdown when [ThreadActivity] is no longer alive to handle it in-process. */
-object PendingSendCountdownFinisher {
-    fun finish(context: Context, pending: PendingSendCountdown) {
-        ensureBackgroundThread {
-            val addresses = resolveRecipientAddresses(context, pending)
-            if (addresses.isEmpty()) {
-                return@ensureBackgroundThread
-            }
-            val attachments = parseAttachments(context, pending.attachmentsJson)
-            context.sendMessageCompat(
-                text = pending.messageText,
-                addresses = addresses,
-                subId = pending.subscriptionId,
-                attachments = attachments,
-                showDeliveredToastOnSuccess = addresses.size == 1,
-            )
-            clearComposeDraftAfterSend(context, pending)
-            val localOnly = context.config.selectedConversationPin == 0
-            EventBus.getDefault().post(Events.RefreshConversations(localListRefreshOnly = localOnly))
-        }
-    }
-
-    fun clearComposeDraftAfterSend(context: Context, pending: PendingSendCountdown) {
-        val threadIds = linkedSetOf(pending.threadId)
-        NewConversationCountdownResume.parseRecipientNumbers(pending).takeIf { it.isNotEmpty() }?.let { numbers ->
-            val canonicalId = context.getThreadId(numbers.toSet())
-            if (canonicalId > 0L) {
-                threadIds.add(canonicalId)
-            }
-        }
-        threadIds.filter { it > 0L }.forEach { threadId ->
-            context.deleteSmsDraft(threadId)
-            context.refreshConversationRowFromTelephony(threadId)
-        }
-        EventBus.getDefault().post(Events.PendingSendCountdownCompleted(pending.threadId))
-    }
-
-    private fun resolveRecipientAddresses(context: Context, pending: PendingSendCountdown): List<String> {
-        val fromThread = context.getThreadParticipants(pending.threadId, null).getAddresses()
-        if (fromThread.isNotEmpty()) {
-            return fromThread
-        }
-        return NewConversationCountdownResume.parseRecipientNumbers(pending)
-    }
-
-    private fun parseAttachments(context: Context, json: String?): List<Attachment> {
-        if (json.isNullOrBlank()) {
-            return emptyList()
-        }
-        return try {
-            val type = object : TypeToken<List<DraftStoredAttachment>>() {}.type
-            val stored: List<DraftStoredAttachment> = Gson().fromJson(json, type) ?: emptyList()
-            stored
-                .filter { it.slideshowJson.isNullOrBlank() && it.uriString.isNotBlank() }
-                .map { entry ->
-                    val uri = entry.uriString.toUri()
-                    val mimeType = entry.mimetype.ifBlank {
-                        context.contentResolver.getType(uri).orEmpty()
-                    }.ifBlank { "application/octet-stream" }
-                    val ext = mimeType.substringAfter("/").substringBefore(";").trim().ifBlank { "dat" }
-                    Attachment(
-                        id = null,
-                        messageId = -1L,
-                        uriString = uri.toString(),
-                        mimetype = mimeType,
-                        width = 0,
-                        height = 0,
-                        filename = entry.filename
-                            .ifBlank { context.getFilenameFromUri(uri) }
-                            .ifBlank { "attachment_${System.currentTimeMillis()}.$ext" },
-                    )
-                }
-        } catch (_: Exception) {
-            emptyList()
-        }
-    }
-}
-
+package com.android.mms.helpersimport android.content.Contextimport androidx.core.net.toUriimport com.android.mms.extensions.configimport com.android.mms.extensions.deleteSmsDraftimport com.android.mms.extensions.getAddressesimport com.android.mms.extensions.getThreadIdimport com.android.mms.extensions.getThreadParticipantsimport com.android.mms.extensions.refreshConversationRowFromTelephonyimport com.android.mms.messaging.sendMessageCompatimport com.android.mms.models.Attachmentimport com.android.mms.models.DraftStoredAttachmentimport com.android.mms.models.Eventsimport com.goodwy.commons.extensions.getFilenameFromUriimport com.goodwy.commons.helpers.ensureBackgroundThreadimport com.google.gson.Gsonimport com.google.gson.reflect.TypeTokenimport org.greenrobot.eventbus.EventBus/** Sends a pending countdown when [ThreadActivity] is no longer alive to handle it in-process. */object PendingSendCountdownFinisher {    fun finish(context: Context, pending: PendingSendCountdown) {        ensureBackgroundThread {            val addresses = resolveRecipientAddresses(context, pending)            if (addresses.isEmpty()) {                return@ensureBackgroundThread            }            val attachments = parseAttachments(context, pending.attachmentsJson)            context.sendMessageCompat(                text = pending.messageText,                addresses = addresses,                subId = pending.subscriptionId,                attachments = attachments,                showDeliveredToastOnSuccess = addresses.size == 1,            )            clearComposeDraftAfterSend(context, pending)            val localOnly = context.config.selectedConversationPin == 0            EventBus.getDefault().post(Events.RefreshConversations(localListRefreshOnly = localOnly))        }    }    fun clearComposeDraftAfterSend(context: Context, pending: PendingSendCountdown) {        ensureBackgroundThread {            val threadIds = linkedSetOf(pending.threadId)            NewConversationCountdownResume.parseRecipientNumbers(pending).takeIf { it.isNotEmpty() }?.let { numbers ->                val canonicalId = context.getThreadId(numbers.toSet())                if (canonicalId > 0L) {                    threadIds.add(canonicalId)                }            }            threadIds.filter { it > 0L }.forEach { threadId ->                context.deleteSmsDraft(threadId)                context.refreshConversationRowFromTelephony(threadId)            }            EventBus.getDefault().post(Events.PendingSendCountdownCompleted(pending.threadId))        }    }    private fun resolveRecipientAddresses(context: Context, pending: PendingSendCountdown): List<String> {        val fromThread = context.getThreadParticipants(pending.threadId, null).getAddresses()        if (fromThread.isNotEmpty()) {            return fromThread        }        return NewConversationCountdownResume.parseRecipientNumbers(pending)    }    private fun parseAttachments(context: Context, json: String?): List<Attachment> {        if (json.isNullOrBlank()) {            return emptyList()        }        return try {            val type = object : TypeToken<List<DraftStoredAttachment>>() {}.type            val stored: List<DraftStoredAttachment> = Gson().fromJson(json, type) ?: emptyList()            stored                .filter { it.slideshowJson.isNullOrBlank() && it.uriString.isNotBlank() }                .map { entry ->                    val uri = entry.uriString.toUri()                    val mimeType = entry.mimetype.ifBlank {                        context.contentResolver.getType(uri).orEmpty()                    }.ifBlank { "application/octet-stream" }                    val ext = mimeType.substringAfter("/").substringBefore(";").trim().ifBlank { "dat" }                    Attachment(                        id = null,                        messageId = -1L,                        uriString = uri.toString(),                        mimetype = mimeType,                        width = 0,                        height = 0,                        filename = entry.filename                            .ifBlank { context.getFilenameFromUri(uri) }                            .ifBlank { "attachment_${System.currentTimeMillis()}.$ext" },                    )                }        } catch (_: Exception) {            emptyList()        }    }}
