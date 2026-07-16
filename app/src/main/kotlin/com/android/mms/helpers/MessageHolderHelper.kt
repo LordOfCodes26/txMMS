@@ -465,7 +465,7 @@ class MessageHolderHelper(
 //            chooseTitle
             chooseClock.setOnClickListener {
                 if (onScheduleMessage != null) {
-                    onHideAttachmentPickerRequested?.invoke() ?: hideAttachmentPicker()
+                    // Keep attachment picker open so the schedule dialog overlays it.
                     onScheduleMessage.invoke()
                 } else {
                     val blurTarget = activity.findViewById<eightbitlab.com.blurview.BlurTarget>(R.id.mainBlurTarget)
@@ -487,7 +487,8 @@ class MessageHolderHelper(
             chooseEmoji.setOnClickListener {
                 onOpenEmojiPickerRequested?.invoke() ?: showEmojiPicker()
             }
-            chooseText.setOnClickListener { hidePickerThen(onPickQuickText) }
+            // Keep attachment picker open so the quick texts dialog overlays it.
+            chooseText.setOnClickListener { onPickQuickText() }
             chooseCamera.setOnClickListener { hidePickerThen(onTakePhoto) }
             chooseVoice.setOnClickListener { hidePickerThen(onPickAudio) }
             chooseContact.setOnClickListener { hidePickerThen(onPickContact) }
