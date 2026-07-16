@@ -26,6 +26,7 @@ import com.android.mms.emoji.RepeatListener
 import com.android.mms.extensions.config
 import com.android.mms.extensions.getTextSizeMessage
 import com.android.mms.extensions.indexOfFirstOrNull
+import com.android.mms.extensions.isAirplaneModeOn
 import com.android.mms.extensions.subscriptionManagerCompat
 import com.android.mms.helpers.FeeInfoUtils
 import com.android.mms.helpers.SendSubscriptionHelper
@@ -364,10 +365,12 @@ class ExpandedMessageFragment : Fragment() {
 
         val requiresAddress = hasAddressForSend != null
         val hasAddress = hasAddressForSend?.invoke() ?: true
-        val canSend = hasContent && hasAddress
+        val inAirplaneMode = requireContext().isAirplaneModeOn()
+        val canSend = hasContent && hasAddress && !inAirplaneMode
 
         val newMode = when {
             canSend -> ComposeSendMode.SEND
+            hasContent && hasAddress && inAirplaneMode -> ComposeSendMode.DISABLED
             isSpeechToTextAvailable && (!requiresAddress || hasAddress) -> ComposeSendMode.SPEECH
             else -> ComposeSendMode.DISABLED
         }
@@ -505,6 +508,11 @@ class ExpandedMessageFragment : Fragment() {
 
     private fun onSendButtonClicked(anchorView: View) {
         val activity = activity ?: return
+        if (activity.isAirplaneModeOn()) {
+            activity.toast(R.string.cannot_send_in_airplane_mode)
+            checkSendMessageAvailability()
+            return
+        }
         val proceedWithSubscription = { subscriptionId: Int ->
             if (activity.config.messageSendDelay > 0 && !isCountdownActive){
                 startSendMessageCountdown(subscriptionId)

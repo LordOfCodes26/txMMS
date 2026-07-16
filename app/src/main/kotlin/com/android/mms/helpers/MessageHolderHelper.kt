@@ -507,10 +507,16 @@ class MessageHolderHelper(
 
         val requiresAddress = hasAddressForSend != null
         val hasAddress = hasAddressForSend?.invoke() ?: true
-        val canSend = hasContent &&  hasAddress
+        val inAirplaneMode = activity.isAirplaneModeOn()
+        if (inAirplaneMode && isCountdownActive) {
+            cancelSendMessageCountdown(showCancelledToast = false)
+        }
+        val canSend = hasContent && hasAddress && !inAirplaneMode
 
         val newMode = when {
             canSend -> ComposeSendMode.SEND
+            // Ready to send but radio is off: keep disabled (do not switch to mic).
+            hasContent && hasAddress && inAirplaneMode -> ComposeSendMode.DISABLED
             isSpeechToTextAvailable && (!requiresAddress || hasAddress) -> ComposeSendMode.SPEECH
             else -> ComposeSendMode.DISABLED
         }
@@ -678,6 +684,11 @@ class MessageHolderHelper(
 
     fun startSendMessageCountdown(subscriptionId: Int) {
         if (isCountdownActive) return
+        if (activity.isAirplaneModeOn()) {
+            activity.toast(R.string.cannot_send_in_airplane_mode)
+            checkSendMessageAvailability()
+            return
+        }
 
         val delaySeconds = activity.config.messageSendDelay
         if (delaySeconds <= 0) {
@@ -781,6 +792,12 @@ class MessageHolderHelper(
 
     private fun completeCountdownAndSend(pending: PendingSendCountdown) {
         if (countdownCompleting) return
+        if (activity.isAirplaneModeOn()) {
+            cancelSendMessageCountdown(showCancelledToast = false)
+            activity.toast(R.string.cannot_send_in_airplane_mode)
+            checkSendMessageAvailability()
+            return
+        }
         countdownCompleting = true
         val storeId = pending.threadId.takeIf { it > 0L } ?: storeThreadId()
         if (storeId > 0L) {
@@ -966,6 +983,11 @@ class MessageHolderHelper(
 
     @SuppressLint("SuspiciousIndentation")
     fun sendMessage(subscriptionId: Int) {
+        if (activity.isAirplaneModeOn()) {
+            activity.toast(R.string.cannot_send_in_airplane_mode)
+            checkSendMessageAvailability()
+            return
+        }
         mergeAllSlidesIntoModel()
         val text = binding.threadTypeMessage.getCh350EncodedText()
         val attachments = buildMessageAttachments()

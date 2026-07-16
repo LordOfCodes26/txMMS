@@ -193,6 +193,15 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             }
         }
     }
+    private var isAirplaneModeReceiverRegistered = false
+    private val airplaneModeReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            if (intent.action == Intent.ACTION_AIRPLANE_MODE_CHANGED) {
+                messageHolderHelper?.checkSendMessageAvailability()
+                expandedMessageFragment?.checkSendMessageAvailability()
+            }
+        }
+    }
 
     private val binding by viewBinding(ActivityThreadBinding::inflate)
 
@@ -314,6 +323,9 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
 
         binding.root.post { restorePendingSendCountdownIfNeeded() }
 
+        messageHolderHelper?.checkSendMessageAvailability()
+        expandedMessageFragment?.checkSendMessageAvailability()
+
         refreshSideFrameBlurAndInsets()
     }
 
@@ -361,6 +373,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
     override fun onStart() {
         super.onStart()
         registerFeeInfoReceiverIfNeeded()
+        registerAirplaneModeReceiverIfNeeded()
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
@@ -392,6 +405,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
     override fun onStop() {
         super.onStop()
         unregisterFeeInfoReceiverIfNeeded()
+        unregisterAirplaneModeReceiverIfNeeded()
         saveDraftMessage()
     }
 
@@ -410,6 +424,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         clearVisibleThreadIdIfMatches(threadId)
         releaseThreadListLayoutFreeze(recalculatePadding = false)
         unregisterFeeInfoReceiverIfNeeded()
+        unregisterAirplaneModeReceiverIfNeeded()
         if (openedFromSecureConversationList) {
             ProcessLifecycleOwner.get().lifecycle.removeObserver(secureConversationListProcessObserver)
         }
@@ -449,6 +464,23 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             unregisterReceiver(feeInfoReceiver)
         }
         isFeeInfoReceiverRegistered = false
+    }
+
+    @SuppressLint("UnspecifiedRegisterReceiverFlag")
+    private fun registerAirplaneModeReceiverIfNeeded() {
+        if (isAirplaneModeReceiverRegistered) return
+        runCatching {
+            registerReceiver(airplaneModeReceiver, IntentFilter(Intent.ACTION_AIRPLANE_MODE_CHANGED))
+            isAirplaneModeReceiverRegistered = true
+        }
+    }
+
+    private fun unregisterAirplaneModeReceiverIfNeeded() {
+        if (!isAirplaneModeReceiverRegistered) return
+        runCatching {
+            unregisterReceiver(airplaneModeReceiver)
+        }
+        isAirplaneModeReceiverRegistered = false
     }
 
     private fun initTheme() {
@@ -1989,6 +2021,13 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
     }
 
     private fun sendMessageWithHelper(text: String, subscriptionId: Int?, attachments: List<Attachment>) {
+        if (isAirplaneModeOn()) {
+            toast(R.string.cannot_send_in_airplane_mode)
+            messageHolderHelper?.checkSendMessageAvailability()
+            expandedMessageFragment?.checkSendMessageAvailability()
+            return
+        }
+
         val finalSubscriptionId = SendSubscriptionHelper.resolveForSend(
             explicitSubId = subscriptionId
                 ?: availableSIMCards.getOrNull(currentSIMCardIndex)?.subscriptionId,

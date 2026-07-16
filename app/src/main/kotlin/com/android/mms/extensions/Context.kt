@@ -17,6 +17,7 @@ import android.os.Looper
 import android.provider.ContactsContract
 import android.provider.ContactsContract.PhoneLookup
 import android.provider.OpenableColumns
+import android.provider.Settings
 import android.provider.Telephony.Mms
 import android.provider.Telephony.MmsSms
 import android.provider.Telephony.Sms
@@ -77,6 +78,9 @@ import java.util.Locale
 
 val Context.config: Config
     get() = Config.newInstance(applicationContext)
+
+fun Context.isAirplaneModeOn(): Boolean =
+    Settings.Global.getInt(contentResolver, Settings.Global.AIRPLANE_MODE_ON, 0) != 0
 
 fun Context.getMessagesDB() = MessagesDatabase.getInstance(this)
 

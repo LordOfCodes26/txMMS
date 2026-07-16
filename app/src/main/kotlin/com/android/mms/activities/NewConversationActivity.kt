@@ -3,7 +3,10 @@ package com.android.mms.activities
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.AlarmManager
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.graphics.Color
 import android.content.res.Configuration
 import android.media.AudioManager
@@ -108,6 +111,15 @@ class NewConversationActivity : SimpleActivity() {
     private var messageHolderHelper: MessageHolderHelper? = null
     private var attachmentIntentLauncher: AttachmentIntentLauncher? = null
     private var expandedMessageFragment: com.android.mms.fragments.ExpandedMessageFragment? = null
+    private var isAirplaneModeReceiverRegistered = false
+    private val airplaneModeReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            if (intent.action == Intent.ACTION_AIRPLANE_MODE_CHANGED) {
+                messageHolderHelper?.checkSendMessageAvailability()
+                expandedMessageFragment?.checkSendMessageAvailability()
+            }
+        }
+    }
     // Map to store chip display text -> phone number mapping
     public val chipDisplayToPhoneNumber = mutableMapOf<String, String>()
     // Flag to prevent recursive calls when updating chips
@@ -252,13 +264,34 @@ class NewConversationActivity : SimpleActivity() {
         }
 
         updateSuggestionsOverlayVisibility()
+        registerAirplaneModeReceiverIfNeeded()
+        messageHolderHelper?.checkSendMessageAvailability()
+        expandedMessageFragment?.checkSendMessageAvailability()
     }
 
     override fun onDestroy() {
         messageHolderHelper?.releaseSendMessageCountdownStore()
+        unregisterAirplaneModeReceiverIfNeeded()
         recipientSearchThrottleRunnable?.let { recipientSearchHandler.removeCallbacks(it) }
         recipientSearchThrottleRunnable = null
         super.onDestroy()
+    }
+
+    @SuppressLint("UnspecifiedRegisterReceiverFlag")
+    private fun registerAirplaneModeReceiverIfNeeded() {
+        if (isAirplaneModeReceiverRegistered) return
+        runCatching {
+            registerReceiver(airplaneModeReceiver, IntentFilter(Intent.ACTION_AIRPLANE_MODE_CHANGED))
+            isAirplaneModeReceiverRegistered = true
+        }
+    }
+
+    private fun unregisterAirplaneModeReceiverIfNeeded() {
+        if (!isAirplaneModeReceiverRegistered) return
+        runCatching {
+            unregisterReceiver(airplaneModeReceiver)
+        }
+        isAirplaneModeReceiverRegistered = false
     }
 
     private fun initTheme() {
@@ -1820,6 +1853,11 @@ class NewConversationActivity : SimpleActivity() {
 
 
     private fun sendMessageAndNavigate(text: String, subscriptionId: Int?, attachments: List<Attachment>) {
+        if (isAirplaneModeOn()) {
+            toast(R.string.cannot_send_in_airplane_mode)
+            messageHolderHelper?.checkSendMessageAvailability()
+            return
+        }
         hideKeyboard()
         val chips = binding.newConversationAddress.allChips
         val allNumbers = mutableListOf<String>()
@@ -2599,6 +2637,7 @@ class NewConversationActivity : SimpleActivity() {
 
     override fun onPause() {
         super.onPause()
+        unregisterAirplaneModeReceiverIfNeeded()
         composeBarBottomInsetLatch = ComposeBarBottomInsetLatch.NONE
         messageHolderHelper?.pauseCountdownUi()
         saveNewConversationDraft(showDraftSavedToast = isFinishing)
