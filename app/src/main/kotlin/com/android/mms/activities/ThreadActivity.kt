@@ -294,7 +294,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                     val freshDraft = getSmsDraftEntity(threadId)
                     runOnUiThread {
                         if (isDestroyed || isFinishing) return@runOnUiThread
-                        if (freshDraft != null) {
+                        if (freshDraft != null && !hasLocalComposeAttachmentsAheadOfDraft()) {
                             applyComposeDraftIfStillValid(freshDraft)
                         }
                     }
@@ -1160,6 +1160,20 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         }
     }
 
+    private fun hasLocalComposeAttachmentsAheadOfDraft(): Boolean =
+        messageHolderHelper?.hasComposeAttachments() == true
+
+    private fun isComposeAttachmentPickerResult(requestCode: Int): Boolean {
+        return requestCode == MessageHolderHelper.PICK_DOCUMENT_INTENT ||
+            requestCode == MessageHolderHelper.PICK_PHOTO_INTENT ||
+            requestCode == MessageHolderHelper.PICK_VIDEO_INTENT ||
+            requestCode == MessageHolderHelper.PICK_SOUND_INTENT ||
+            requestCode == MessageHolderHelper.PICK_RINGTONE_INTENT ||
+            requestCode == MessageHolderHelper.CAPTURE_PHOTO_INTENT ||
+            requestCode == MessageHolderHelper.CAPTURE_VIDEO_INTENT ||
+            requestCode == MessageHolderHelper.CAPTURE_AUDIO_INTENT
+    }
+
     private fun applyComposeDraftIfStillValid(draft: Draft) {
         if (!draft.threadHasPersistedComposeContent()) return
         ensureBackgroundThread {
@@ -1170,6 +1184,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             }
             runOnUiThread {
                 if (isFinishing || isDestroyed) return@runOnUiThread
+                if (hasLocalComposeAttachmentsAheadOfDraft()) return@runOnUiThread
                 applyThreadDraftRow(draft)
             }
         }
@@ -1298,10 +1313,16 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         super.onActivityResult(requestCode, resultCode, resultData)
         if (requestCode == MessageHolderHelper.CAPTURE_VIDEO_INTENT) {
             messageHolderHelper?.handleCaptureVideoResult(resultCode, resultData)
+            if (resultCode == RESULT_OK) {
+                saveDraftMessage()
+            }
             return
         }
         if (requestCode == MessageHolderHelper.CAPTURE_PHOTO_INTENT) {
             messageHolderHelper?.handleCapturePhotoResult(resultCode, resultData)
+            if (resultCode == RESULT_OK) {
+                saveDraftMessage()
+            }
             return
         }
         if (requestCode == REQUEST_EDIT_SLIDESHOW && resultCode == RESULT_OK) {
@@ -1339,6 +1360,9 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
 
         // Handle attachments via helper
         messageHolderHelper?.handleActivityResult(requestCode, resultCode, resultData)
+        if (isComposeAttachmentPickerResult(requestCode)) {
+            saveDraftMessage()
+        }
 
         when (requestCode) {
             MessageHolderHelper.PICK_CONTACT_INTENT ->

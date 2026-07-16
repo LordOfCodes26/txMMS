@@ -2067,6 +2067,9 @@ class MessageHolderHelper(
         return adapter as? AttachmentsAdapter
     }
 
+    /** True when compose already has attachment rows that must not be cleared by a stale draft reload. */
+    fun hasComposeAttachments(): Boolean = getAttachmentSelections().isNotEmpty()
+
     fun getAttachmentSelections(): List<AttachmentSelection> {
         mergeAllSlidesIntoModel()
         val adapter = getAttachmentsAdapter() ?: return emptyList()

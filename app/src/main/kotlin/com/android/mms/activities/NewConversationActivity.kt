@@ -238,7 +238,12 @@ class NewConversationActivity : SimpleActivity() {
 
         refreshNewConversationToolbarGeometry()
 
-        setupMessageHolder()
+        if (messageHolderHelper == null) {
+            setupMessageHolder()
+        } else {
+            messageHolderHelper?.bindSendMessageCountdownStore(messageHolderCountdownThreadId())
+            restorePendingSendCountdownIfNeeded()
+        }
         binding.root.post { restorePendingSendCountdownIfNeeded() }
         handlePermission(PERMISSION_READ_PHONE_STATE) {
             if (it) {
@@ -726,10 +731,16 @@ class NewConversationActivity : SimpleActivity() {
         super.onActivityResult(requestCode, resultCode, resultData)
         if (requestCode == MessageHolderHelper.CAPTURE_VIDEO_INTENT) {
             messageHolderHelper?.handleCaptureVideoResult(resultCode, resultData)
+            if (resultCode == RESULT_OK) {
+                saveNewConversationDraft()
+            }
             return
         }
         if (requestCode == MessageHolderHelper.CAPTURE_PHOTO_INTENT) {
             messageHolderHelper?.handleCapturePhotoResult(resultCode, resultData)
+            if (resultCode == RESULT_OK) {
+                saveNewConversationDraft()
+            }
             return
         }
         if (requestCode == REQUEST_EDIT_SLIDESHOW && resultCode == RESULT_OK) {
@@ -749,6 +760,9 @@ class NewConversationActivity : SimpleActivity() {
             applyRecipientsFromContactPickerResult(resultData)
         } else {
             messageHolderHelper?.handleActivityResult(requestCode, resultCode, resultData)
+            if (isComposeAttachmentPickerResult(requestCode)) {
+                saveNewConversationDraft()
+            }
 
             if (requestCode == MessageHolderHelper.PICK_CONTACT_INTENT) {
                 messageHolderHelper?.handlePickContactAttachmentResult("NewConversationActivity", resultCode, resultData)
@@ -1244,6 +1258,20 @@ class NewConversationActivity : SimpleActivity() {
         }
     }
 
+    private fun hasLocalComposeAttachmentsAheadOfDraft(): Boolean =
+        messageHolderHelper?.hasComposeAttachments() == true
+
+    private fun isComposeAttachmentPickerResult(requestCode: Int): Boolean {
+        return requestCode == MessageHolderHelper.PICK_DOCUMENT_INTENT ||
+            requestCode == MessageHolderHelper.PICK_PHOTO_INTENT ||
+            requestCode == MessageHolderHelper.PICK_VIDEO_INTENT ||
+            requestCode == MessageHolderHelper.PICK_SOUND_INTENT ||
+            requestCode == MessageHolderHelper.PICK_RINGTONE_INTENT ||
+            requestCode == MessageHolderHelper.CAPTURE_PHOTO_INTENT ||
+            requestCode == MessageHolderHelper.CAPTURE_VIDEO_INTENT ||
+            requestCode == MessageHolderHelper.CAPTURE_AUDIO_INTENT
+    }
+
     private fun applyNewConversationDraftIfStillValid(threadId: Long, draft: Draft) {
         ensureBackgroundThread {
             if (isStaleSentComposeDraft(draft, threadId)) {
@@ -1253,6 +1281,7 @@ class NewConversationActivity : SimpleActivity() {
             }
             runOnUiThread {
                 if (isDestroyed || isFinishing) return@runOnUiThread
+                if (hasLocalComposeAttachmentsAheadOfDraft()) return@runOnUiThread
                 applyNewConversationDraftRow(draft)
             }
         }
