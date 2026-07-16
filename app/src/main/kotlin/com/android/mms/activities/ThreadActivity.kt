@@ -1535,9 +1535,19 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                 val layoutManager = binding.threadMessagesList.layoutManager as LinearLayoutManager
                 val lastPosition = itemCount - 1
                 val lastVisiblePosition = layoutManager.findLastVisibleItemPosition()
+                // Near bottom: last item visible, or one above it (last bubble can sit under the
+                // compose bar and not count as visible). Scroll to the new last index — not the
+                // pre-update lastPosition — so incoming messages move above the message holder.
+                val isNearBottom = lastVisiblePosition == RecyclerView.NO_POSITION ||
+                    lastPosition < 0 ||
+                    lastVisiblePosition >= lastPosition - 1
+                val hasNewerBottomItem = currentList.lastOrNull() != threadItems.lastOrNull()
                 val shouldScrollToBottom =
-                    currentList.lastOrNull() != threadItems.lastOrNull() && lastPosition - lastVisiblePosition == 1
-                updateMessages(threadItems, if (shouldScrollToBottom) lastPosition else -1)
+                    hasNewerBottomItem && isNearBottom && threadItems.isNotEmpty()
+                updateMessages(
+                    threadItems,
+                    if (shouldScrollToBottom) threadItems.lastIndex else -1
+                )
             }
             binding.threadMessagesList.post {
                 applyThreadListBackgroundColors()
