@@ -336,6 +336,7 @@ fun Context.getMMS(
     val projection = arrayOf(
         Mms._ID,
         Mms.DATE,
+        Mms.DATE_SENT,
         Mms.READ,
         Mms.MESSAGE_BOX,
         Mms.THREAD_ID,
@@ -365,7 +366,7 @@ fun Context.getMMS(
         val mmsId = cursor.getLongValue(Mms._ID)
         val type = cursor.getIntValue(Mms.MESSAGE_BOX)
         val date = cursor.getLongValue(Mms.DATE).toInt()
-        val dateSent = cursor.getLongValue(Mms.DATE_SENT).toInt()
+        val dateSent = cursor.getLongValueOr(Mms.DATE_SENT, date.toLong()).toInt()
         val read = cursor.getIntValue(Mms.READ) == 1
         val threadId = cursor.getLongValue(Mms.THREAD_ID)
         val subscriptionId = cursor.getIntValue(Mms.SUBSCRIPTION_ID)
