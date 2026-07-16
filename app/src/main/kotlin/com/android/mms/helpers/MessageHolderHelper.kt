@@ -20,6 +20,7 @@ import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.WindowManager
 import android.view.inputmethod.EditorInfo
 import android.widget.Toast
 import androidx.core.content.res.ResourcesCompat
@@ -229,7 +230,8 @@ class MessageHolderHelper(
                     onHideAttachmentPickerRequested?.invoke()
                     hideAttachmentPicker()
                     hideEmojiPicker(resumeKeyboard = false)
-                    activity.showKeyboard(threadTypeMessage)
+                    // Focus alone does not guarantee the IME (e.g. after toolbar popup dismiss).
+                    showComposeKeyboard()
                 }
                 onThreadTypeMessageFocusChange?.invoke(hasFocus)
             }
@@ -374,9 +376,26 @@ class MessageHolderHelper(
         binding.imvEmoticBtn.setBackgroundResource(R.drawable.ic_emotic)
         binding.imvEmoticBtn.contentDescription = activity.getString(com.goodwy.commons.R.string.choose_emoji)
         if (resumeKeyboard) {
-            binding.threadTypeMessage.requestFocus()
-            activity.showKeyboard(binding.threadTypeMessage)
+            showComposeKeyboard()
         }
+    }
+
+    /**
+     * Ensure the IME is shown while [binding.threadTypeMessage] is focused.
+     * Matches NewConversation recipients: soft-input mode + posted [showKeyboard], because focus
+     * alone does not always bring the keyboard back (toolbar/popup dismiss).
+     */
+    fun showComposeKeyboard() {
+        val messageInput = binding.threadTypeMessage
+        if (!messageInput.hasFocus()) {
+            messageInput.requestFocus()
+        }
+        val softInputMode = activity.window.attributes.softInputMode
+        val adjust = softInputMode and WindowManager.LayoutParams.SOFT_INPUT_MASK_ADJUST
+        activity.window.setSoftInputMode(
+            adjust or WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE
+        )
+        messageInput.post { activity.showKeyboard(messageInput) }
     }
 
     fun setupAttachmentPicker(

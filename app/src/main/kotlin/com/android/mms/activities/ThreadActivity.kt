@@ -363,6 +363,19 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         registerFeeInfoReceiverIfNeeded()
     }
 
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        // Toolbar more-menu can hide the IME without clearing compose focus. When the window
+        // regains focus and the message field is still focused, bring the keyboard back.
+        if (!hasFocus || isRecycleBin || isDestroyed || isFinishing) return
+        if (isAttachmentPickerVisible || isEmojiPickerVisible) return
+        if (messageHolderHelper?.isEmojiPickerPaneVisible() == true) return
+        val messageInput = binding.messageHolder.threadTypeMessage
+        if (messageInput.hasFocus() && !isThreadKeyboardVisible()) {
+            messageHolderHelper?.showComposeKeyboard() ?: showKeyboard(messageInput)
+        }
+    }
+
     override fun onPause() {
         captureThreadLayoutForKeyboardResume()
         super.onPause()

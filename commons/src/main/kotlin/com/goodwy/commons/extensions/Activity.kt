@@ -37,6 +37,7 @@ import androidx.biometric.auth.AuthPromptCallback
 import androidx.biometric.auth.AuthPromptHost
 import androidx.biometric.auth.Class2BiometricAuthPrompt
 import androidx.core.content.res.ResourcesCompat
+import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.FragmentActivity
 import com.android.common.view.MDialog
@@ -1329,8 +1330,23 @@ fun Activity.hideKeyboardSync() {
 
 fun Activity.showKeyboard(et: EditText) {
     et.requestFocus()
+    // hideKeyboard() sets SOFT_INPUT_STATE_ALWAYS_HIDDEN, which prevents SHOW_IMPLICIT from
+    // bringing the IME back even when the EditText is focused again.
+    val softInputMode = window.attributes.softInputMode
+    val state = softInputMode and WindowManager.LayoutParams.SOFT_INPUT_MASK_STATE
+    if (state == WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN ||
+        state == WindowManager.LayoutParams.SOFT_INPUT_STATE_HIDDEN
+    ) {
+        val adjust = softInputMode and WindowManager.LayoutParams.SOFT_INPUT_MASK_ADJUST
+        window.setSoftInputMode(adjust or WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE)
+    }
     val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-    imm.showSoftInput(et, InputMethodManager.SHOW_IMPLICIT)
+    et.post {
+        if (!et.hasFocus()) return@post
+        if (!imm.showSoftInput(et, InputMethodManager.SHOW_IMPLICIT)) {
+            WindowCompat.getInsetsController(window, et).show(WindowInsetsCompat.Type.ime())
+        }
+    }
 }
 
 fun Activity.hideKeyboard(view: View) {
