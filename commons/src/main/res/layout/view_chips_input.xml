@@ -49,7 +49,7 @@
                 app:layout_minWidth="120dp"
                 app:layout_alignSelf="flex_start">
 
-                <com.goodwy.commons.views.MyEditText
+                <com.goodwy.commons.views.ChipsEditText
                     android:id="@+id/chips_edit_text"
                     android:layout_width="match_parent"
                     android:layout_height="@dimen/chips_input_chip_row_height"
