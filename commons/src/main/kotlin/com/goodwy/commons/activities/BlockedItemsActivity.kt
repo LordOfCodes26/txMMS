@@ -359,14 +359,7 @@ open class BlockedItemsActivity : BaseSimpleActivity(), ActionModeToolbarHost {
                 true
             }
             R.id.settings -> {
-                try {
-                    startActivity(
-                        Intent().setComponent(
-                            ComponentName(packageName, "$packageName.activities.SettingsActivity")
-                        )
-                    )
-                } catch (_: Exception) {
-                }
+                openSettingsFromBlockedItems()
                 true
             }
             R.id.more -> {
@@ -524,8 +517,8 @@ open class BlockedItemsActivity : BaseSimpleActivity(), ActionModeToolbarHost {
 
     /**
      * Shows [R.menu.block_menu] as an MPopup anchored to the [MAppBarLayout]'s action-bar pill.
-     * Mirrors the dialer `MainActivity.showMoreActionsPopup` flow: build the menu, hide
-     * settings on the messages tab, then dispatch through [onBlockToolbarMenuItemClick].
+     * Mirrors the dialer `MainActivity.showMoreActionsPopup` flow: build the menu, then
+     * dispatch through [onBlockToolbarMenuItemClick].
      */
     private fun showMoreActionsPopup() {
         val actionBar = binding.mainMenu.getActionBarView() ?: return
@@ -533,8 +526,6 @@ open class BlockedItemsActivity : BaseSimpleActivity(), ActionModeToolbarHost {
         val blurTarget = binding.mainBlurTarget
         val menu = MenuBuilder(this)
         menuInflater.inflate(R.menu.block_menu, menu)
-        val currentTab = binding.blockedItemsViewPager.currentItem
-        menu.findItem(R.id.settings)?.isVisible = currentTab != TAB_BLOCKED_MESSAGES
         showMPopupMenu(
             context = this,
             anchor = anchor,
@@ -543,6 +534,23 @@ open class BlockedItemsActivity : BaseSimpleActivity(), ActionModeToolbarHost {
             blurTarget = blurTarget,
             listener = { item -> onBlockToolbarMenuItemClick(item) },
         )
+    }
+
+    /**
+     * Opens settings from the overflow menu. On the blocked-messages tab, hosts should open
+     * blocked-message settings (e.g. notification toggle); otherwise opens the app Settings screen.
+     */
+    protected open fun openSettingsFromBlockedItems() {
+        val currentTab = binding.blockedItemsViewPager.currentItem
+        val activityClass = if (currentTab == TAB_BLOCKED_MESSAGES) {
+            "$packageName.activities.BlockedSettingsActivity"
+        } else {
+            "$packageName.activities.SettingsActivity"
+        }
+        try {
+            startActivity(Intent().setComponent(ComponentName(packageName, activityClass)))
+        } catch (_: Exception) {
+        }
     }
 
 

@@ -67,6 +67,11 @@ class Config(context: Context) : BaseConfig(context) {
             }
         }
 
+    /** When true, incoming messages from blocked numbers still post a notification. */
+    var showBlockedNotifications: Boolean
+        get() = prefs.getBoolean(SHOW_BLOCKED_NOTIFICATIONS, false)
+        set(showBlockedNotifications) = prefs.edit { putBoolean(SHOW_BLOCKED_NOTIFICATIONS, showBlockedNotifications) }
+
     /** URI string to play for delivery reports, or null if silent / unavailable. */
     fun getEffectiveDeliveryReportSoundUri(): String? {
         val sound = deliveryReportSound

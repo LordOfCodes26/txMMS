@@ -94,9 +94,9 @@ class MmsReceiver : MmsReceivedReceiver() {
         }
 
         Handler(Looper.getMainLooper()).post {
-            // Only show notification if number is not blocked, or if blocked numbers are being shown,
-            // and the user is not already viewing this thread.
-            if ((!isNumberBlocked || context.config.showBlockedNumbers) && !ThreadActivity.isThreadCurrentlyVisible(mms.threadId)) {
+            // Only show notification if number is not blocked, or blocked-message notifications
+            // are enabled, and the user is not already viewing this thread.
+            if ((!isNumberBlocked || context.config.showBlockedNotifications) && !ThreadActivity.isThreadCurrentlyVisible(mms.threadId)) {
                 context.showReceivedMessageNotification(
                     messageId = mms.id,
                     address = address,

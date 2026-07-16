@@ -40,6 +40,8 @@ const val LOCK_SCREEN_VISIBILITY = "lock_screen_visibility"
 const val ENABLE_DELIVERY_REPORTS = "enable_delivery_reports"
 const val DELIVERY_REPORT_SOUND = "delivery_report_sound"
 const val NOTIFICATION_SOUND = "notification_sound"
+/** When true, show a notification for incoming messages from blocked numbers. */
+const val SHOW_BLOCKED_NOTIFICATIONS = "show_blocked_notifications"
 const val SEND_LONG_MESSAGE_MMS = "send_long_message_mms"
 const val SEND_GROUP_MESSAGE_MMS = "send_group_message_mms"
 const val MMS_FILE_SIZE_LIMIT = "mms_file_size_limit"
