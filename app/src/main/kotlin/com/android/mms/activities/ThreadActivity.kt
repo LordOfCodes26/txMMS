@@ -177,6 +177,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         NONE,
         ATTACHMENT_PICKER,
         EMOJI_PICKER,
+        SCHEDULE_DATE_TIME_PICKER,
     }
 
     private var pendingPanelAfterKeyboardHide = PendingPanelAfterKeyboardHide.NONE
@@ -610,6 +611,10 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                 if (messageHolderHelper?.showEmojiPicker() != true) {
                     isEmojiPickerVisible = false
                 }
+            }
+            PendingPanelAfterKeyboardHide.SCHEDULE_DATE_TIME_PICKER -> {
+                pendingPanelAfterKeyboardHide = PendingPanelAfterKeyboardHide.NONE
+                showScheduleDateTimePickerAfterPermission()
             }
         }
         if (composeBarBottomInsetLatch == ComposeBarBottomInsetLatch.KEYBOARD_TO_ATTACHMENT_PICKER) {
@@ -3051,12 +3056,23 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
 
     private fun launchScheduleSendDialog() {
         askForExactAlarmPermissionIfNeeded {
-            val blurTarget = findViewById<eightbitlab.com.blurview.BlurTarget>(R.id.mainBlurTarget)
-                ?: throw IllegalStateException("mainBlurTarget not found")
-            showScheduleDateTimePicker(blurTarget) { newDateTime ->
-                scheduledDateTime = newDateTime
-                showScheduleMessageDialog()
+            val messageInput = binding.messageHolder.threadTypeMessage
+            if (isThreadKeyboardVisible() || messageInput.hasFocus()) {
+                pendingPanelAfterKeyboardHide = PendingPanelAfterKeyboardHide.SCHEDULE_DATE_TIME_PICKER
+                hideKeyboard()
+                messageInput.clearFocus()
+                return@askForExactAlarmPermissionIfNeeded
             }
+            showScheduleDateTimePickerAfterPermission()
+        }
+    }
+
+    private fun showScheduleDateTimePickerAfterPermission() {
+        val blurTarget = findViewById<eightbitlab.com.blurview.BlurTarget>(R.id.mainBlurTarget)
+            ?: throw IllegalStateException("mainBlurTarget not found")
+        showScheduleDateTimePicker(blurTarget) { newDateTime ->
+            scheduledDateTime = newDateTime
+            showScheduleMessageDialog()
         }
     }
 

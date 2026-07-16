@@ -1,5 +1,6 @@
 package com.android.mms.dialogs
 
+import android.view.WindowManager
 import com.android.common.dialogs.MDateTimePickerDialog
 import com.goodwy.commons.activities.BaseSimpleActivity
 import com.goodwy.commons.extensions.toast
@@ -19,6 +20,7 @@ fun BaseSimpleActivity.showScheduleDateTimePicker(
 ) {
     val dialog = MDateTimePickerDialog(this)
     dialog.bindBlurTarget(blurTarget)
+    dialog.window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING)
     dialog.show()
     trackOpenDialog(dialog)
     dialog.setOnDateSelectListener { datetime ->
