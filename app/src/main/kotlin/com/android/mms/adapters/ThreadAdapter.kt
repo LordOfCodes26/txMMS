@@ -148,42 +148,81 @@ class ThreadAdapter(
     private val hasMultipleSIMCards = (activity.subscriptionManagerCompat().activeSubscriptionInfoList?.size ?: 0) > 1
     private val maxChatBubbleWidth = (activity.usableScreenSize.x * 0.8f).toInt()
     
-    // Shared scale gesture detector for pinch-to-zoom
+    private var isPinchZooming = false
+
+    // Shared scale gesture detector for pinch-to-zoom.
+    // Avoid notifyItemRangeChanged during the gesture — full rebinds thrash layout and let
+    // neighbouring bubbles keep stale heights, which looks like overlap while pinching.
     private val scaleGestureDetector = ScaleGestureDetector(activity, object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
         override fun onScale(detector: ScaleGestureDetector): Boolean {
             val scaleFactor = detector.scaleFactor
             val newMultiplier = (fontSizeMessageMultiplier * scaleFactor).coerceIn(minFontSizeMultiplier, maxFontSizeMultiplier)
-            
-            if (kotlin.math.abs(newMultiplier - fontSizeMessageMultiplier) > 0.01f) {
+
+            if (abs(newMultiplier - fontSizeMessageMultiplier) > 0.01f) {
                 fontSizeMessageMultiplier = newMultiplier
-                activity.config.fontSizeMessageMultiplier = fontSizeMessageMultiplier
-                
-                // Update all visible message bubbles
-                notifyItemRangeChanged(0, itemCount)
+                applyFontSizeToVisibleBubbles()
             }
             return true
         }
+
+        override fun onScaleEnd(detector: ScaleGestureDetector) {
+            activity.config.fontSizeMessageMultiplier = fontSizeMessageMultiplier
+        }
     })
+
+    /** Resize visible message text and force a layout pass so row heights/positions stay in sync. */
+    private fun applyFontSizeToVisibleBubbles() {
+        val bodySize = fontSizeMessage * fontSizeMessageMultiplier
+        val senderSize = fontSizeMessage * 0.9f * fontSizeMessageMultiplier
+        for (i in 0 until recyclerView.childCount) {
+            val child = recyclerView.getChildAt(i) ?: continue
+            val binding = (recyclerView.getChildViewHolder(child) as? ThreadViewHolder)?.binding as? ItemMessageBinding
+                ?: continue
+            binding.threadMessageBody.setTextSize(TypedValue.COMPLEX_UNIT_PX, bodySize)
+            binding.threadMessageSenderName.setTextSize(TypedValue.COMPLEX_UNIT_PX, senderSize)
+            child.forceLayout()
+        }
+        recyclerView.requestLayout()
+    }
+
+    private fun cancelBubbleLongPress(view: View) {
+        view.cancelLongPress()
+        var v: View? = view
+        while (v != null) {
+            if (v.id == R.id.thread_message_holder) {
+                v.cancelLongPress()
+                break
+            }
+            v = v.parent as? View
+        }
+    }
+
+    /** True when this touch event should be consumed by the pinch-zoom detector. */
+    private fun handlePinchZoomTouch(view: View, event: MotionEvent): Boolean {
+        val action = event.actionMasked
+        if (event.pointerCount >= 2) {
+            isPinchZooming = true
+            cancelBubbleLongPress(view)
+            recyclerView.requestDisallowInterceptTouchEvent(true)
+            scaleGestureDetector.onTouchEvent(event)
+            return true
+        }
+        if (isPinchZooming) {
+            // Keep feeding the detector until the gesture fully ends (final pointer up/cancel).
+            scaleGestureDetector.onTouchEvent(event)
+            if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
+                isPinchZooming = false
+                recyclerView.requestDisallowInterceptTouchEvent(false)
+            }
+            return true
+        }
+        return false
+    }
 
     /** Touch listener for pinch-to-zoom font size on message bubbles. Attach to wrapper, spacer, time holder and body so pinches anywhere on the bubble work. */
     @SuppressLint("ClickableViewAccessibility")
     val pinchToZoomTouchListener = View.OnTouchListener { view, event ->
-        if (event.pointerCount >= 2) {
-            view.cancelLongPress()
-            var v: View? = view
-            while (v != null) {
-                if (v.id == R.id.thread_message_holder) {
-                    v.cancelLongPress()
-                    break
-                }
-                v = v.parent as? View
-            }
-            recyclerView.requestDisallowInterceptTouchEvent(true)
-            scaleGestureDetector.onTouchEvent(event)
-            true
-        } else {
-            false
-        }
+        handlePinchZoomTouch(view, event)
     }
 
     companion object {
@@ -758,18 +797,7 @@ class ThreadAdapter(
                 }
 
                 setOnTouchListener { v, event ->
-                    if (event.pointerCount >= 2) {
-                        v.cancelLongPress()
-                        var itemView: View? = v
-                        while (itemView != null) {
-                            if (itemView.id == R.id.thread_message_holder) {
-                                itemView.cancelLongPress()
-                                break
-                            }
-                            itemView = itemView.parent as? View
-                        }
-                        recyclerView.requestDisallowInterceptTouchEvent(true)
-                        scaleGestureDetector.onTouchEvent(event)
+                    if (handlePinchZoomTouch(v, event)) {
                         return@setOnTouchListener true
                     }
                     val action = event.action
