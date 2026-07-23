@@ -35,9 +35,12 @@ import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.bumptech.glide.load.engine.GlideException
 import com.bumptech.glide.load.resource.bitmap.DownsampleStrategy
 import com.bumptech.glide.load.resource.bitmap.FitCenter
+import com.bumptech.glide.load.resource.bitmap.RoundedCorners
 import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.RequestOptions
 import com.bumptech.glide.request.target.Target
+import com.google.android.material.shape.CornerFamily
+import com.google.android.material.shape.ShapeAppearanceModel
 import com.goodwy.commons.adapters.MyRecyclerViewListAdapter
 import com.goodwy.commons.models.RecyclerSelectionPayload
 import com.goodwy.commons.extensions.applyColorFilter
@@ -741,8 +744,13 @@ class ThreadAdapter(
                     if (isInActionMode) holder.itemView.performClick()
                 }
             }
-            // Show body wrapper when we have body or attachments (time+SIM is always shown in wrapper)
-            threadMessageBodyWrapper.beVisibleIf(message.body.isNotEmpty() || message.attachment?.attachments?.isNotEmpty() == true)
+            // Show body wrapper when we have body or attachments (time+SIM lives in the wrapper).
+            // Attachment-only: keep wrapper for status/time, but hide empty text + bubble chrome.
+            val hasBodyText = message.body.isNotEmpty()
+            val hasAttachments = message.attachment?.attachments?.isNotEmpty() == true
+            threadMessageBodyWrapper.beVisibleIf(hasBodyText || hasAttachments)
+            threadMessageBody.beVisibleIf(hasBodyText)
+            threadMessageBodySpacer.beVisibleIf(hasBodyText)
             threadMessageBody.apply {
                 bindCh350MessageBody(message.body)
                 val alignment =
@@ -1041,26 +1049,34 @@ class ThreadAdapter(
                 setOnTouchListener(pinchToZoomTouchListener)
             }
             threadMessageBodyWrapper.apply {
-                val isRtl = activity.isRTLLayout
-                val bubbleStyle = activity.config.bubbleStyle
+                // Image/file-only MMS: no empty bubble — status/time sit under the attachment.
+                if (message.body.isEmpty() && message.attachment?.attachments?.isNotEmpty() == true) {
+                    background = null
+                    setPadding(0, 0, 0, 0)
+                    minimumHeight = 0
+                    minimumWidth = 0
+                } else {
+                    val isRtl = activity.isRTLLayout
+                    val bubbleStyle = activity.config.bubbleStyle
 
-                val bubbleReceived = if (selectedBubbleOption != null) {
-                    if (isRtl) selectedBubbleOption.outgoingRes else selectedBubbleOption.incomingRes
-                } else {
-                    when (bubbleStyle) {
-                        BUBBLE_STYLE_IOS_NEW -> if (isRtl) R.drawable.item_sent_ios_new_background else R.drawable.item_received_ios_new_background
-                        BUBBLE_STYLE_IOS -> if (isRtl) R.drawable.item_sent_ios_background else R.drawable.item_received_ios_background
-                        BUBBLE_STYLE_ROUNDED -> if (isRtl) R.drawable.item_sent_rounded_background else R.drawable.item_received_rounded_background
-                        else -> if (isRtl) R.drawable.item_sent_background else R.drawable.item_received_background
+                    val bubbleReceived = if (selectedBubbleOption != null) {
+                        if (isRtl) selectedBubbleOption.outgoingRes else selectedBubbleOption.incomingRes
+                    } else {
+                        when (bubbleStyle) {
+                            BUBBLE_STYLE_IOS_NEW -> if (isRtl) R.drawable.item_sent_ios_new_background else R.drawable.item_received_ios_new_background
+                            BUBBLE_STYLE_IOS -> if (isRtl) R.drawable.item_sent_ios_background else R.drawable.item_received_ios_background
+                            BUBBLE_STYLE_ROUNDED -> if (isRtl) R.drawable.item_sent_rounded_background else R.drawable.item_received_rounded_background
+                            else -> if (isRtl) R.drawable.item_sent_background else R.drawable.item_received_background
+                        }
                     }
-                }
-                if (selectedBubbleOption == null) {
-                    val bubbleDrawable = ResourcesCompat.getDrawable(resources, bubbleReceived, activity.theme)
-                    background = bubbleDrawable
-                    setPaddingBubble(activity, bubbleStyle)
-                    background.applyColorFilter(backgroundReceived)
-                } else {
-                    applyCustomBubbleBackground(bubbleReceived)
+                    if (selectedBubbleOption == null) {
+                        val bubbleDrawable = ResourcesCompat.getDrawable(resources, bubbleReceived, activity.theme)
+                        background = bubbleDrawable
+                        setPaddingBubble(activity, bubbleStyle)
+                        background.applyColorFilter(backgroundReceived)
+                    } else {
+                        applyCustomBubbleBackground(bubbleReceived)
+                    }
                 }
 
 //                messageBinding.threadMessageBodySpacer.layoutParams.height = 40
@@ -1131,26 +1147,34 @@ class ThreadAdapter(
                     addRule(RelativeLayout.ALIGN_PARENT_END)
                 }
 
-                val isRtl = Locale.getDefault().layoutDirection == ViewCompat.LAYOUT_DIRECTION_RTL
-                val bubbleStyle = activity.config.bubbleStyle
+                // Image/file-only MMS: no empty bubble — status/time sit under the attachment.
+                if (message.body.isEmpty() && message.attachment?.attachments?.isNotEmpty() == true) {
+                    background = null
+                    setPadding(0, 0, 0, 0)
+                    minimumHeight = 0
+                    minimumWidth = 0
+                } else {
+                    val isRtl = Locale.getDefault().layoutDirection == ViewCompat.LAYOUT_DIRECTION_RTL
+                    val bubbleStyle = activity.config.bubbleStyle
 
-                val bubbleReceived = if (selectedBubbleOption != null) {
-                    if (isRtl) selectedBubbleOption.incomingRes else selectedBubbleOption.outgoingRes
-                } else {
-                    when (bubbleStyle) {
-                        BUBBLE_STYLE_IOS_NEW -> if (isRtl) R.drawable.item_received_ios_new_background else R.drawable.item_sent_ios_new_background
-                        BUBBLE_STYLE_IOS -> if (isRtl) R.drawable.item_received_ios_background else R.drawable.item_sent_ios_background
-                        BUBBLE_STYLE_ROUNDED -> if (isRtl) R.drawable.item_received_rounded_background else R.drawable.item_sent_rounded_background
-                        else -> if (isRtl) R.drawable.item_received_background else R.drawable.item_sent_background
+                    val bubbleReceived = if (selectedBubbleOption != null) {
+                        if (isRtl) selectedBubbleOption.incomingRes else selectedBubbleOption.outgoingRes
+                    } else {
+                        when (bubbleStyle) {
+                            BUBBLE_STYLE_IOS_NEW -> if (isRtl) R.drawable.item_received_ios_new_background else R.drawable.item_sent_ios_new_background
+                            BUBBLE_STYLE_IOS -> if (isRtl) R.drawable.item_received_ios_background else R.drawable.item_sent_ios_background
+                            BUBBLE_STYLE_ROUNDED -> if (isRtl) R.drawable.item_received_rounded_background else R.drawable.item_sent_rounded_background
+                            else -> if (isRtl) R.drawable.item_received_background else R.drawable.item_sent_background
+                        }
                     }
-                }
-                if (selectedBubbleOption == null) {
-                    val bubbleDrawable = AppCompatResources.getDrawable(activity, bubbleReceived)
-                    background = bubbleDrawable
-                    setPaddingBubble(activity, bubbleStyle, false)
-                    background.applyColorFilter(backgroundReceived)
-                } else {
-                    applyCustomBubbleBackground(bubbleReceived)
+                    if (selectedBubbleOption == null) {
+                        val bubbleDrawable = AppCompatResources.getDrawable(activity, bubbleReceived)
+                        background = bubbleDrawable
+                        setPaddingBubble(activity, bubbleStyle, false)
+                        background.applyColorFilter(backgroundReceived)
+                    } else {
+                        applyCustomBubbleBackground(bubbleReceived)
+                    }
                 }
             }
             setupMessageTimeSim(messageBinding, message, contrastColorReceived)
@@ -1185,11 +1209,23 @@ class ThreadAdapter(
         val imageView = ItemAttachmentImageBinding.inflate(layoutInflater)
         threadMessageAttachmentsHolder.addView(imageView.root)
 
+        // Stay within the attachments holder (80% bubble). A fixed screen*0.8 width is wider than
+        // the padded wrapper, so the parent clips the end and right corners look square.
+        val cornerRadiusPx = root.resources.getDimensionPixelSize(com.goodwy.commons.R.dimen.normal_margin)
+
+        imageView.attachmentImage.shapeAppearanceModel = ShapeAppearanceModel.builder()
+            .setAllCorners(CornerFamily.ROUNDED, cornerRadiusPx.toFloat())
+            .build()
+        imageView.attachmentImage.updateLayoutParams<ViewGroup.LayoutParams> {
+            width = ViewGroup.LayoutParams.MATCH_PARENT
+            height = ViewGroup.LayoutParams.WRAP_CONTENT
+        }
+
         val placeholderDrawable = Color.TRANSPARENT.toDrawable()
         val options = RequestOptions()
             .diskCacheStrategy(DiskCacheStrategy.RESOURCE)
             .placeholder(placeholderDrawable)
-            .transform(FitCenter())
+            .transform(FitCenter(), RoundedCorners(cornerRadiusPx))
 
         Glide.with(root.context)
             .load(uri)
@@ -1207,11 +1243,6 @@ class ThreadAdapter(
                 override fun onResourceReady(dr: Drawable, a: Any, t: Target<Drawable>, d: DataSource, i: Boolean) = false
             })
             .into(imageView.attachmentImage)
-
-        imageView.attachmentImage.updateLayoutParams<ViewGroup.LayoutParams> {
-            width = maxChatBubbleWidth
-            height = ViewGroup.LayoutParams.WRAP_CONTENT
-        }
 
         imageView.attachmentImage.setOnClickListener {
             if (actModeCallback.isSelectable) {
