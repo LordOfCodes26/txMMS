@@ -167,10 +167,9 @@ class NewConversationActivity : SimpleActivity() {
         }
         intent.getLongExtra(THREAD_ID, 0L).takeIf { it > 0L }?.let { resumedDraftThreadId = it }
         setContentView(binding.root)
-        binding.nestScroll.isNestedScrollingEnabled = false
         // While app bar insets/height and the chip row are still settling, hide scroll content to avoid
         // an overlapped first frame; [revealNewConversationScrollContentAfterAppBar] runs after the lock.
-        binding.nestScroll.beInvisible()
+        binding.newConversationContent.beInvisible()
         updateTextColors(binding.conversationWrapper)
         initTheme()
         applyNewConversationWindowBackgroundsAndTopChrome()
@@ -180,8 +179,13 @@ class NewConversationActivity : SimpleActivity() {
             animateIme = false,
         )
         setupNewConversationComposeWindowInsets()
-        binding.nestScroll.post {
-            scrollingView = binding.nestScroll
+        binding.contactsList.post {
+            scrollingView = binding.contactsList
+        }
+        binding.newConversationHolder.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
+            if (binding.contactsListWrapper.isVisible()) {
+                applyContactsListWrapperMaxHeight()
+            }
         }
 
         window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE)
@@ -324,7 +328,7 @@ class NewConversationActivity : SimpleActivity() {
     }
 
     /**
-     * Top padding so [nest_scroll] content starts below the collapsed [MAppBarLayout].
+     * Top padding so [new_conversation_content] (chips + list) starts below the collapsed [MAppBarLayout].
      * Accounts for [conversation_scroll_blur] negative [R.dimen.tx_blur_target_margin_top].
      */
     private fun getNewConversationNestScrollTopPaddingPx(): Int {
@@ -333,12 +337,13 @@ class NewConversationActivity : SimpleActivity() {
             ?: appBar.measuredHeight.takeIf { it > 0 }
             ?: resources.getDimensionPixelSize(com.android.common.R.dimen.tx_nest_bouncy_content_padding_top)
 
+        val content = binding.newConversationContent
         val appBarLoc = IntArray(2)
-        val scrollLoc = IntArray(2)
-        if (appBar.isLaidOut && binding.nestScroll.isLaidOut) {
+        val contentLoc = IntArray(2)
+        if (appBar.isLaidOut && content.isLaidOut) {
             appBar.getLocationInWindow(appBarLoc)
-            binding.nestScroll.getLocationInWindow(scrollLoc)
-            val belowAppBar = appBarLoc[1] + appBar.height - scrollLoc[1]
+            content.getLocationInWindow(contentLoc)
+            val belowAppBar = appBarLoc[1] + appBar.height - contentLoc[1]
             if (belowAppBar > 0) {
                 return belowAppBar + newConversationNestScrollBasePaddingTopPx
             }
@@ -350,8 +355,38 @@ class NewConversationActivity : SimpleActivity() {
 
     private fun applyNewConversationNestScrollTopPadding() {
         val topPadding = getNewConversationNestScrollTopPaddingPx()
-        if (binding.nestScroll.paddingTop != topPadding) {
-            binding.nestScroll.updatePadding(top = topPadding)
+        val content = binding.newConversationContent
+        if (content.paddingTop != topPadding) {
+            content.updatePadding(top = topPadding)
+        }
+    }
+
+    /**
+     * Caps the query-result card at the holder height so long lists scroll inside the card,
+     * while [wrap_content] still shrinks the card when there are few results.
+     */
+    private fun applyContactsListWrapperMaxHeight() {
+        val holderHeight = binding.newConversationHolder.height
+        if (holderHeight <= 0) return
+        val wrapper = binding.contactsListWrapper
+        val lp = wrapper.layoutParams as? ViewGroup.MarginLayoutParams ?: return
+        val maxH = holderHeight - lp.topMargin - lp.bottomMargin
+        if (maxH <= 0) return
+
+        val width = when {
+            wrapper.width > 0 -> wrapper.width
+            binding.newConversationHolder.width > 0 ->
+                binding.newConversationHolder.width - lp.leftMargin - lp.rightMargin
+            else -> return
+        }
+        wrapper.measure(
+            View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+        )
+        val targetHeight = minOf(wrapper.measuredHeight, maxH)
+        if (lp.height != targetHeight) {
+            lp.height = targetHeight
+            wrapper.layoutParams = lp
         }
     }
 
@@ -368,7 +403,7 @@ class NewConversationActivity : SimpleActivity() {
         binding.root.setBackgroundColor(backgroundColor)
         binding.mainBlurTarget.setBackgroundColor(backgroundColor)
         binding.conversationScrollBlur.setBackgroundColor(backgroundColor)
-        scrollingView = binding.nestScroll
+        scrollingView = binding.contactsList
         applyTransparentMAppBarChrome()
     }
 
@@ -964,10 +999,10 @@ class NewConversationActivity : SimpleActivity() {
         recipientEditText.post { showKeyboard(recipientEditText) }
     }
 
-    /** After [updateNewConversationTitle] locks the app bar, show the nested scroll and focus the chip field. */
+    /** After [updateNewConversationTitle] locks the app bar, show the content and focus the chip field. */
     private fun revealNewConversationScrollContentAfterAppBar() {
-        binding.nestScroll.post {
-            binding.nestScroll.beVisible()
+        binding.newConversationContent.post {
+            binding.newConversationContent.beVisible()
             binding.newConversationAddress.requestEditTextFocus()
             showRecipientKeyboard()
         }
@@ -1449,6 +1484,9 @@ class NewConversationActivity : SimpleActivity() {
         val hasContacts = contactPhonePairs.isNotEmpty()
 //        binding.contactsList.beVisibleIf(hasContacts)
         binding.contactsListWrapper.beVisibleIf(hasContacts && showSearchResults)
+        if (hasContacts && showSearchResults) {
+            binding.contactsListWrapper.post { applyContactsListWrapperMaxHeight() }
+        }
         binding.noContactsPlaceholder.beVisibleIf(!hasContacts && showSearchResults)
         binding.noContactsPlaceholder2.beVisibleIf(
             showSearchResults && !hasContacts && !hasPermission(
