@@ -37,23 +37,69 @@ class AttachmentIntentLauncher(
         private const val MIN_SIZE_FOR_CAPTURE_VIDEO = 10 * 1024L
     }
 
+    /**
+     * Gallery pick — same as txNote [AttachmentSelector.gotoSelectImage]:
+     * [Intent.ACTION_PICK] on the images store with crop, falling back to [Intent.ACTION_GET_CONTENT].
+     */
     fun launchSelectImage() {
-        val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
+        activity.hideKeyboard()
+        val intent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI).apply {
             type = "image/*"
-            addCategory(Intent.CATEGORY_OPENABLE)
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            putExtra("crop", true)
         }
-        launchActivityForResult(Intent.createChooser(intent, null), MessageHolderHelper.PICK_PHOTO_INTENT)
+        try {
+            activity.startActivityForResult(intent, MessageHolderHelper.PICK_PHOTO_INTENT)
+        } catch (_: ActivityNotFoundException) {
+            val fallback = Intent(Intent.ACTION_GET_CONTENT).apply {
+                type = "image/*"
+                addCategory(Intent.CATEGORY_OPENABLE)
+            }
+            try {
+                activity.startActivityForResult(
+                    Intent.createChooser(fallback, null),
+                    MessageHolderHelper.PICK_PHOTO_INTENT,
+                )
+            } catch (_: ActivityNotFoundException) {
+                activity.showErrorToast(activity.getString(com.goodwy.commons.R.string.no_app_found))
+            } catch (e: Exception) {
+                activity.showErrorToast(e)
+            }
+        } catch (e: Exception) {
+            activity.showErrorToast(e)
+        }
     }
 
+    /**
+     * Video pick — same pattern as [launchSelectImage]:
+     * [Intent.ACTION_PICK] on the video store, falling back to [Intent.ACTION_GET_CONTENT].
+     */
     fun launchSelectVideo() {
-        val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
+        activity.hideKeyboard()
+        val intent = Intent(Intent.ACTION_PICK, MediaStore.Video.Media.EXTERNAL_CONTENT_URI).apply {
             type = "video/*"
-            addCategory(Intent.CATEGORY_OPENABLE)
             putExtra(Intent.EXTRA_LOCAL_ONLY, true)
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
-        launchActivityForResult(Intent.createChooser(intent, null), MessageHolderHelper.PICK_VIDEO_INTENT)
+        try {
+            activity.startActivityForResult(intent, MessageHolderHelper.PICK_VIDEO_INTENT)
+        } catch (_: ActivityNotFoundException) {
+            val fallback = Intent(Intent.ACTION_GET_CONTENT).apply {
+                type = "video/*"
+                addCategory(Intent.CATEGORY_OPENABLE)
+                putExtra(Intent.EXTRA_LOCAL_ONLY, true)
+            }
+            try {
+                activity.startActivityForResult(
+                    Intent.createChooser(fallback, null),
+                    MessageHolderHelper.PICK_VIDEO_INTENT,
+                )
+            } catch (_: ActivityNotFoundException) {
+                activity.showErrorToast(activity.getString(com.goodwy.commons.R.string.no_app_found))
+            } catch (e: Exception) {
+                activity.showErrorToast(e)
+            }
+        } catch (e: Exception) {
+            activity.showErrorToast(e)
+        }
     }
 
     fun launchCapturePhoto() {
