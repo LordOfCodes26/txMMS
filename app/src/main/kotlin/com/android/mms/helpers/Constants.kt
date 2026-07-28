@@ -85,6 +85,7 @@ const val SOUND_ON_OUT_GOING_MESSAGE = "sound_on_out_going_messages"
 const val NOTIFY_TURN_ON_SCREEN = "notify_turns_on_screen"
 const val INIT_CALL_BLOCKING_SETUP = "init_call_blocking_setup"
 const val BLOCK_NEXT_FEE_SERVICE_MESSAGE = "block_next_fee_service_message"
+const val PENDING_BLOCK_NEXT_FEE_SERVICE_MESSAGE = "pending_block_next_fee_service_message"
 const val FEE_SERVICE_NUMBER = "919"
 
 private const val PATH = "com.android.mms.action."

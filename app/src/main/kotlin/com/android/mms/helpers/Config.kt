@@ -349,6 +349,12 @@ class Config(context: Context) : BaseConfig(context) {
         get() = prefs.getBoolean(BLOCK_NEXT_FEE_SERVICE_MESSAGE, false)
         set(blockNextFeeServiceMessage) = prefs.edit { putBoolean(BLOCK_NEXT_FEE_SERVICE_MESSAGE, blockNextFeeServiceMessage) }
 
+    var pendingBlockNextFeeServiceMessage: Boolean
+        get() = prefs.getBoolean(PENDING_BLOCK_NEXT_FEE_SERVICE_MESSAGE, false)
+        set(pendingBlockNextFeeServiceMessage) = prefs.edit {
+            putBoolean(PENDING_BLOCK_NEXT_FEE_SERVICE_MESSAGE, pendingBlockNextFeeServiceMessage)
+        }
+
     //Swipe
     var swipeRightAction: Int
         get() = prefs.getInt(SWIPE_RIGHT_ACTION, SWIPE_ACTION_CALL)

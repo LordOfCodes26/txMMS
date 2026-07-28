@@ -434,6 +434,7 @@
             android:exported="true">
             <intent-filter>
                 <action android:name="com.chonha.total.action.ACTION_MESSAGE_BLOCK" />
+                <action android:name="android.intent.action.AIRPLANE_MODE" />
             </intent-filter>
         </receiver>
 
