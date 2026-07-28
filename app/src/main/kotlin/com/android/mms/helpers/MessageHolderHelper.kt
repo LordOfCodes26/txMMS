@@ -1072,13 +1072,17 @@ class MessageHolderHelper(
         pendingReplaceAttachmentId = null
     }
 
-    fun addAttachment(uri: Uri) {
-        val mimeType = activity.getMimeTypeFromUri(uri)
-        if (mimeType.isBlank()) {
+    fun addAttachment(uri: Uri, mimeType: String? = null, filename: String? = null) {
+        val resolvedMime = mimeType?.takeIf { it.isNotBlank() } ?: activity.getMimeTypeFromUri(uri)
+        if (resolvedMime.isBlank()) {
             activity.toast(com.goodwy.commons.R.string.unknown_error_occurred)
             return
         }
-        finishAttachmentFromPicker(uri, mimeType, activity.getFilenameFromUri(uri))
+        finishAttachmentFromPicker(
+            uri,
+            resolvedMime,
+            filename?.takeIf { it.isNotBlank() } ?: activity.getFilenameFromUri(uri),
+        )
     }
 
     fun addContactAttachment(contactUri: Uri) {

@@ -731,7 +731,7 @@ class NewConversationActivity : SimpleActivity() {
                     onChooseVideo = { launcher.launchSelectVideo() },
                     onTakePhoto = { launcher.launchCapturePhoto() },
                     onRecordVideo = { launcher.showPickVideoDialog() },
-                    onPickAudio = { launcher.showPickAudioDialog() },
+                    onPickAudio = { launcher.launchVoiceRecord() },
                     onPickFile = { launcher.launchPickDocument() },
                     onPickContact = { launcher.launchPickContact() },
                     onScheduleMessage = { launchScheduleSendDialog() },

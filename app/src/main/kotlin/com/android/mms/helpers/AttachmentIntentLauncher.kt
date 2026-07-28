@@ -21,6 +21,7 @@ import com.goodwy.commons.extensions.getMyFileUri
 import com.goodwy.commons.extensions.hideKeyboard
 import com.goodwy.commons.extensions.showErrorToast
 import com.goodwy.commons.extensions.toast
+import com.goodwy.commons.helpers.PERMISSION_RECORD_AUDIO
 import com.goodwy.commons.models.RadioItem
 import eightbitlab.com.blurview.BlurTarget
 import java.io.File
@@ -139,26 +140,34 @@ class AttachmentIntentLauncher(
         launchActivityForResult(intent, MessageHolderHelper.CAPTURE_VIDEO_INTENT)
     }
 
-    fun showPickAudioDialog() {
-        val items = arrayListOf(
-            RadioItem(0, activity.getString(R.string.attach_ringtone)),
-            RadioItem(1, activity.getString(R.string.attach_sound)),
-        )
-        val blurTarget = activity.findViewById<BlurTarget>(R.id.mainBlurTarget)
-            ?: throw IllegalStateException("mainBlurTarget not found")
-        RadioGroupDialog(
-            activity = activity,
-            items = items,
-            checkedItemId = 0,
-            titleId = R.string.add_music,
-            requireConfirmButton = true,
-            blurTarget = blurTarget,
-        ) { choice ->
-            when (choice as Int) {
-                0 -> launchSelectRingtone()
-                1 -> launchSelectAudio()
+    /**
+     * Voice record — same as txNote [NewNoteActivity.selectSound] /
+     * [com.tx.note.app.attachment.AttachmentSelector.gotoRecordSound]:
+     * request mic permission, then open the in-app [SoundRecorder] dialog.
+     */
+    fun launchVoiceRecord() {
+        activity.hideKeyboard()
+        activity.handlePermission(PERMISSION_RECORD_AUDIO) { granted ->
+            if (!granted) {
+                activity.toast(R.string.attachment_record_permission_hint, length = Toast.LENGTH_SHORT)
+                return@handlePermission
             }
+            val blurTarget = activity.findViewById<BlurTarget>(R.id.mainBlurTarget)
+                ?: throw IllegalStateException("mainBlurTarget not found")
+            SoundRecorder(activity, blurTarget) { soundPath, _ ->
+                val file = File(soundPath)
+                if (!file.exists() || file.length() <= 0L) {
+                    activity.toast(R.string.attachment_record_hint, length = Toast.LENGTH_SHORT)
+                    return@SoundRecorder
+                }
+                val uri = activity.getMyFileUri(file)
+                messageHolderHelper.addAttachment(uri, mimeType = "audio/amr", filename = file.name)
+            }.launchRecording()
         }
+    }
+
+    fun showPickAudioDialog() {
+        launchVoiceRecord()
     }
 
     fun showPickVideoDialog() {

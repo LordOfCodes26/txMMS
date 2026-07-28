@@ -201,7 +201,15 @@
     <string name="add_music">Add music</string>
     <string name="attach_ringtone">Ringtone</string>
     <string name="attach_sound">Audio</string>
+    <string name="voice_record">Voice Record</string>
     <string name="select_audio">Select audio</string>
+    <string name="attachment_record_hint">Current recording equipment is not available, please check it.</string>
+    <string name="attachment_record_permission_hint">Please check that sound recording permission is granted</string>
+    <string name="sound_recorder_dialog_title">Record sound</string>
+    <string name="sound_recorder_while">Recording</string>
+    <string name="sound_recorder_pause">Pause</string>
+    <string name="sound_recorder_resume">Resume</string>
+    <string name="sound_recorder_stop">Stop</string>
     <string name="attach_video_record">Record</string>
     <string name="attach_video_select">Select</string>
     <string name="space_not_enough">Not enough space left in the message</string>

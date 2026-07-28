@@ -234,6 +234,14 @@
     <string name="add_music">"添加音乐 "</string>
     <string name="attach_ringtone">来电铃声</string>
     <string name="attach_sound">"音频 "</string>
+    <string name="voice_record">录音</string>
+    <string name="attachment_record_hint">当前录音设备不可用，请检查是否已开启</string>
+    <string name="attachment_record_permission_hint">录音失败，是否开启本地录音权限</string>
+    <string name="sound_recorder_dialog_title">录音</string>
+    <string name="sound_recorder_while">录音中</string>
+    <string name="sound_recorder_pause">暂停录音</string>
+    <string name="sound_recorder_resume">继续录音</string>
+    <string name="sound_recorder_stop">停止并保存</string>
     <string name="attach_video_record">录制</string>
     <string name="attach_video_select">选择</string>
     <string name="select_audio">选择音频</string>

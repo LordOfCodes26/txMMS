@@ -13,4 +13,7 @@
     <color name="attachment_icon_blue">#3865b4</color>
     <color name="attachment_icon_red">#bb4343</color>
     <color name="attachment_icon_brown">#865b2d</color>
+
+    <color name="sound_recorder_dialog_point_color">#f3522c</color>
+    <color name="sound_recorder_dialog_stop_point_color">#b2b2b2</color>
 </resources>

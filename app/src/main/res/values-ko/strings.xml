@@ -241,6 +241,14 @@
     <string name="add_music">"음악추가 "</string>
     <string name="attach_ringtone">알림</string>
     <string name="attach_sound">음성</string>
+    <string name="voice_record">록음</string>
+    <string name="attachment_record_hint">록음장치가 없습니다.</string>
+    <string name="attachment_record_permission_hint">음성록음권한을 설정하십시오.</string>
+    <string name="sound_recorder_dialog_title">록음</string>
+    <string name="sound_recorder_while">록음중</string>
+    <string name="sound_recorder_pause">정지</string>
+    <string name="sound_recorder_resume">계속</string>
+    <string name="sound_recorder_stop">중지</string>
     <string name="attach_video_record">록화</string>
     <string name="attach_video_select">동영상 선택</string>
     <string name="select_audio">음악선택</string>
