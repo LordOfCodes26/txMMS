@@ -115,6 +115,28 @@ class AttachmentIntentLauncher(
         }
     }
 
+    fun showPickVideoDialog() {
+        val items = arrayListOf(
+            RadioItem(0, activity.getString(R.string.attach_video_record)),
+            RadioItem(1, activity.getString(R.string.attach_video_select)),
+        )
+        val blurTarget = activity.findViewById<BlurTarget>(R.id.mainBlurTarget)
+            ?: throw IllegalStateException("mainBlurTarget not found")
+        RadioGroupDialog(
+            activity = activity,
+            items = items,
+            checkedItemId = 0,
+            titleId = R.string.type_video,
+            requireConfirmButton = true,
+            blurTarget = blurTarget,
+        ) { choice ->
+            when (choice as Int) {
+                0 -> launchCaptureVideo()
+                1 -> launchSelectVideo()
+            }
+        }
+    }
+
     fun launchSelectAudio() {
         if (!Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) {
             activity.toast(R.string.insert_sdcard, length = Toast.LENGTH_LONG)

@@ -234,6 +234,8 @@
     <string name="add_music">"添加音乐 "</string>
     <string name="attach_ringtone">来电铃声</string>
     <string name="attach_sound">"音频 "</string>
+    <string name="attach_video_record">录制</string>
+    <string name="attach_video_select">选择</string>
     <string name="select_audio">选择音频</string>
     <string name="space_not_enough">" 消息空间不足"</string>
     <string name="insert_sdcard">请插入SD卡</string>

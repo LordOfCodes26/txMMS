@@ -439,7 +439,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:orientation="vertical"
-                    android:contentDescription="@string/record_video">
+                    android:contentDescription="@string/type_video">
                     <RelativeLayout
                         android:layout_width="match_parent"
                         android:layout_height="@dimen/list_icon_size_extra_large"
@@ -482,7 +482,7 @@
                         android:layout_marginTop="@dimen/small_margin"
                         android:ellipsize="end"
                         android:maxLines="1"
-                        android:text="@string/record_video"
+                        android:text="@string/type_video"
                         android:textAlignment="center"
                         android:textColor="@color/default_text_color"
                         android:textSize="@dimen/smaller_text_size"

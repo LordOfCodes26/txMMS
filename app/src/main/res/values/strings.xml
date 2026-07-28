@@ -202,6 +202,8 @@
     <string name="attach_ringtone">Ringtone</string>
     <string name="attach_sound">Audio</string>
     <string name="select_audio">Select audio</string>
+    <string name="attach_video_record">Record</string>
+    <string name="attach_video_select">Select</string>
     <string name="space_not_enough">Not enough space left in the message</string>
     <string name="insert_sdcard">Please insert an SD card</string>
     <string name="view_attachment">View</string>

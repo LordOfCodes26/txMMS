@@ -241,6 +241,8 @@
     <string name="add_music">"음악추가 "</string>
     <string name="attach_ringtone">알림</string>
     <string name="attach_sound">음성</string>
+    <string name="attach_video_record">록화</string>
+    <string name="attach_video_select">동영상 선택</string>
     <string name="select_audio">음악선택</string>
     <string name="space_not_enough">기억공간이 충분하지 않습니다.</string>
     <string name="insert_sdcard">기억카드삽입</string>
