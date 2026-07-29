@@ -765,8 +765,10 @@ class ThreadAdapter(
                     resources.displayMetrics
                 )
                 setLineSpacing(lineSpacingExtra, 1.1f)
+                var messageWasLongPressed = false
                 setOnLongClickListener {
                     if (actModeCallback.isSelectable) return@setOnLongClickListener false
+                    messageWasLongPressed = true
                     showPopupMenu(message, this)
                     true
                 }
@@ -809,6 +811,15 @@ class ThreadAdapter(
                         return@setOnTouchListener true
                     }
                     val action = event.action
+                    if (action == MotionEvent.ACTION_DOWN) {
+                        messageWasLongPressed = false
+                    } else if (action == MotionEvent.ACTION_CANCEL) {
+                        messageWasLongPressed = false
+                    } else if (action == MotionEvent.ACTION_UP && messageWasLongPressed) {
+                        messageWasLongPressed = false
+                        return@setOnTouchListener true
+                    }
+
                     if (action == MotionEvent.ACTION_UP) {
                         val x = event.x
                         val y = event.y
