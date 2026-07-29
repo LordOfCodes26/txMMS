@@ -9,6 +9,7 @@ import android.net.Uri
 import android.provider.Telephony.Sms
 import android.telephony.SmsManager
 import android.telephony.SmsMessage
+import android.webkit.MimeTypeMap
 import android.widget.Toast
 import com.klinker.android.send_message.Message
 import com.klinker.android.send_message.Settings
@@ -180,7 +181,17 @@ class MessagingUtils(val context: Context) {
                     } else {
                         attachment.mimetype
                     }
-                    val name = attachment.filename
+                    // Parts read back from the MMS provider (for example when retrying a failed
+                    // attachment-only MMS) often have no filename. android-smsmms also uses this
+                    // argument as the part's content ID, which must not be empty.
+                    val name = attachment.filename.trim().ifEmpty {
+                        val extension = MimeTypeMap.getSingleton()
+                            .getExtensionFromMimeType(mimeType.substringBefore(';').lowercase())
+                            ?.takeIf { it.isNotBlank() }
+                            ?.let { ".$it" }
+                            .orEmpty()
+                        "attachment_${attachment.id ?: attachment.messageId}$extension"
+                    }
                     message.addMedia(bytes, mimeType, name, name)
                 }
             } catch (e: Exception) {
