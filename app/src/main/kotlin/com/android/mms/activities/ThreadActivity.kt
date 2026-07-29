@@ -3084,12 +3084,18 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         )
         val blurTarget = findViewById<eightbitlab.com.blurview.BlurTarget>(R.id.mainBlurTarget)
             ?: throw IllegalStateException("mainBlurTarget not found")
+        val keyboardVisibleAtShow = isThreadKeyboardVisible()
         RadioGroupDialog(
             activity = this,
             items = items,
             titleId = R.string.scheduled_message,
             blurTarget = blurTarget,
-            requireConfirmButton = true
+            requireConfirmButton = true,
+            onDialogPrepared = { dialog ->
+                if (keyboardVisibleAtShow) {
+                    keepKeyboardVisibleForOverlayDialog(dialog)
+                }
+            },
         ) { any ->
             when (any as Int) {
                 TYPE_DELETE -> cancelScheduledMessageAndRefresh(message.id)

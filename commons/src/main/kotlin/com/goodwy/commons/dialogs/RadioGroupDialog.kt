@@ -52,6 +52,7 @@ class RadioGroupDialog(
     val defaultItemId: Int? = null,
     val cancelCallback: (() -> Unit)? = null,
     blurTarget: BlurTarget,
+    val onDialogPrepared: ((MDialog) -> Unit)? = null,
     val callback: (newValue: Any) -> Unit
 ) {
     private var dialog: MDialog? = null
@@ -230,9 +231,12 @@ class RadioGroupDialog(
             blurView = blurView,
             blurTarget = blurTarget,
             titleText = "",
-            cancelListener = { cancelCallback?.invoke() }
+            cancelListener = { cancelCallback?.invoke() },
+            beforeShow = { mDialog ->
+                dialog = mDialog
+                onDialogPrepared?.invoke(mDialog)
+            },
         ) { mDialog ->
-            dialog = mDialog
             val cancelTarget: View? = cancelButton ?: negativeButton
             cancelTarget?.setOnClickListener {
                 mDialog.dismiss()
