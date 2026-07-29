@@ -27,7 +27,7 @@
     <string name="import_sms">단문통보문(SMS)</string>
     <string name="import_mms">다매체통보문(MMS)</string>
     <string name="no_option_selected">한개이상의 항목을 선택해야합니다</string>
-    <string name="error_radio_turned_off">무선통신이 사용중지되여 있어 통보문이 전송되지 않았습니다</string>
+    <string name="error_radio_turned_off">망련결상태를 확인하고 다시 시도해주십시오</string>
     <string name="carrier_send_error">통신오유로 인해 통보문이 전송되지 않았습니다</string>
     <string name="unknown_error_occurred_sending_message">통보문전송이 실패하였습니다.</string>
     <string name="invalid_short_code">해당 단축코드에는 회답할수 없습니다</string>
