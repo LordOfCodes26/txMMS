@@ -16,6 +16,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.ViewOutlineProvider
+import android.view.inputmethod.BaseInputConnection
 import android.view.inputmethod.EditorInfo
 import android.widget.FrameLayout
 import android.widget.ImageView
@@ -36,7 +37,7 @@ class ChipsInputView @JvmOverloads constructor(
     private var contentFrame: View? = null
     private val flexContainer: FlexboxLayout
     private val chipsScrollView: MaxHeightScrollView?
-    private val editText: ChipsEditText
+    private val editText: MyEditText
 //    private val clearButton: ImageView
     private val addressBookButton: ImageView
     private val speechToTextButton: ImageView
@@ -129,11 +130,15 @@ class ChipsInputView @JvmOverloads constructor(
             }
         }
 
-        // Hardware / emulator keyboards send KeyEvents; soft IMEs use InputConnection (see ChipsEditText).
-        editText.onEmptyDeleteListener = { removeLastChipIfPresent() }
         editText.setOnKeyListener { _, keyCode, event ->
             if (keyCode == KeyEvent.KEYCODE_DEL && event.action == KeyEvent.ACTION_DOWN) {
-                removeLastChipIfPresent()
+                val text = editText.text?.toString() ?: ""
+                if (text.isEmpty() && chips.isNotEmpty()) {
+                    removeChip(chips.last())
+                    true
+                } else {
+                    false
+                }
             } else {
                 false
             }
@@ -200,14 +205,6 @@ class ChipsInputView @JvmOverloads constructor(
             onChipsChangedListener?.invoke(chips.toList())
             updatePlaceholderVisibility()
         }
-    }
-
-    /** Removes the last chip when the edit field is empty (backspace). Returns true if a chip was removed. */
-    private fun removeLastChipIfPresent(): Boolean {
-        val text = editText.text?.toString() ?: ""
-        if (text.isNotEmpty() || chips.isEmpty()) return false
-        removeChip(chips.last())
-        return true
     }
 
     fun clearChips() {
@@ -365,7 +362,7 @@ class ChipsInputView @JvmOverloads constructor(
         }
     }
 
-    fun getEditText(): ChipsEditText = editText
+    fun getEditText(): MyEditText = editText
 //    fun getClearButton(): ImageView = clearButton
     fun getAddressBookButton(): ImageView = addressBookButton
 //    fun getSpeechToTextButton(): ImageView = speechToTextButton
