@@ -700,7 +700,9 @@ class ThreadAdapter(
         val title = getActionTitleAndIcon(url)
 
         // Use only 24dp icons
-        menu.add(dividerGroupId++, 0, 0, text)
+//        if (!url.startsWith("tel", ignoreCase = true)) {
+//            menu.add(dividerGroupId++, 0, 0, text)
+//        }
         menu.add(dividerGroupId++, 1, 1, title)
         if (title == com.goodwy.commons.R.string.call) menu.add(dividerGroupId++, 2, 2, com.goodwy.strings.R.string.message)
         menu.add(dividerGroupId++, 4, 4, com.goodwy.commons.R.string.share)

@@ -1,6 +1,6 @@
 package com.android.mms.emoji
 
-import android.text.Spannable
+import android.text.SpannableString
 import android.text.util.Linkify
 import android.widget.EditText
 import com.chutils.CHGlobal
@@ -36,17 +36,18 @@ object Ch350EmojiText {
             text = ""
             return
         }
+        // Links must be added before [EmoTextView.setEmoText]: the emoticon parser only runs once the
+        // view is attached, and it carries existing spans over into its parsed result.
+        val body: CharSequence = if (linkify) {
+            SpannableString(rawText).also { Linkify.addLinks(it, Linkify.ALL) }
+        } else {
+            rawText
+        }
         if (!ensureResources(context)) {
-            text = rawText
+            text = body
             return
         }
-        setEmoText(rawText, EmoTextView.EMO_IN_MESSAGE)
-        if (linkify) {
-            val current = text
-            if (current is Spannable) {
-                Linkify.addLinks(current, Linkify.ALL)
-            }
-        }
+        setEmoText(body, EmoTextView.EMO_IN_MESSAGE)
     }
 
     fun EmoTextView.bindCh350Snippet(rawText: String) {
