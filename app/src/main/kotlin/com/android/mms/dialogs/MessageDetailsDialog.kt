@@ -153,10 +153,10 @@ class MessageDetailsDialog(val activity: BaseSimpleActivity, val message: Messag
             Sms.STATUS_FAILED -> activity.getString(R.string.failed)
             Sms.MESSAGE_TYPE_FAILED -> activity.getString(R.string.failed)
             Sms.STATUS_PENDING -> activity.getString(R.string.pending)
-            else -> activity.getString(com.goodwy.commons.R.string.unknown)
+            else -> activity.getString(R.string.failed)
         }
         if (isReceivedMessage()) txtStatus = activity.getString(R.string.receipt)
-        if (isScheduled) txtStatus = activity.getString(R.string.scheduled_message)
+        if (isScheduled) txtStatus = activity.getString(R.string.scheduled_message_status)
         return txtStatus
     }
 }

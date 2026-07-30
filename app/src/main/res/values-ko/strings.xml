@@ -155,6 +155,7 @@
     <string name="rename_conversation">대화명편집</string>
     <string name="rename_conversation_warning">대화명은 다른 사람에게 표시되지 않습니다</string>
     <string name="scheduled_message">예약된 통보문</string>
+    <string name="scheduled_message_status">예약됨</string>
     <string name="schedule_message">통보문예약</string>
     <string name="schedule_send">예약전송</string>
     <string name="cancel_schedule_send">예약전송취소</string>
@@ -173,8 +174,8 @@
     <string name="mark_as_unread">읽지않음으로 표시</string>
     <string name="secure_box">비밀함</string>
     <string name="close_secure_box">비밀함 닫기</string>
-    <string name="encrypt">비밀함에 넣기</string>
-    <string name="decrypt">비밀함에서 꺼내기</string>
+    <string name="encrypt">비밀함에 추가</string>
+    <string name="decrypt">비밀함에서 삭제</string>
     <string name="me">나</string>
     <string name="archive">보관</string>
     <!-- Others -->
@@ -197,7 +198,7 @@
     <string name="private_space_add">보안령역에 추가</string>
     <string name="private_space_delete">보안령역에서 꺼내기</string>
     <string name="dial_number_copy">전화번호복사</string>
-    <string name="history_delete">리력삭제</string>
+    <string name="history_delete">삭제</string>
     <string name="message_conversion">통보문전환</string>
     <string name="month">월</string>
     <string name="day">일</string>

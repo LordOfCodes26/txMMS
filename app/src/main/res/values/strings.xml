@@ -72,6 +72,7 @@
     <string name="rename_conversation_warning">Only you can see this conversation name</string>
     <!-- Schedule send -->
     <string name="scheduled_message">Scheduled message</string>
+    <string name="scheduled_message_status">Scheduled message</string>
     <string name="schedule_message">Schedule message</string>
     <string name="schedule_send">Schedule send</string>
     <string name="cancel_schedule_send">Cancel schedule send</string>
