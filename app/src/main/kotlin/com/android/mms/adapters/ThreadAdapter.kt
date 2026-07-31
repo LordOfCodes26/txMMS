@@ -26,6 +26,7 @@ import androidx.recyclerview.widget.SimpleItemAnimator
 import androidx.core.net.toUri
 import androidx.core.text.layoutDirection
 import androidx.core.view.ViewCompat
+import androidx.core.view.children
 import androidx.core.view.updateLayoutParams
 import androidx.recyclerview.widget.DiffUtil
 import androidx.viewbinding.ViewBinding
@@ -39,6 +40,7 @@ import com.bumptech.glide.load.resource.bitmap.RoundedCorners
 import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.RequestOptions
 import com.bumptech.glide.request.target.Target
+import com.google.android.material.imageview.ShapeableImageView
 import com.google.android.material.shape.CornerFamily
 import com.google.android.material.shape.ShapeAppearanceModel
 import com.goodwy.commons.adapters.MyRecyclerViewListAdapter
@@ -139,8 +141,10 @@ class ThreadAdapter(
     val isRecycleBin: Boolean,
     val isGroupChat: Boolean,
     val retryFailedMessage: (Message) -> Unit,
-    val deleteMessages: (messages: List<Message>, toRecycleBin: Boolean, fromRecycleBin: Boolean, isPopupMenu: Boolean) -> Unit
-) : MyRecyclerViewListAdapter<ThreadItem>(activity, recyclerView, ThreadItemDiffCallback(), itemClick) {
+    val deleteMessages: (messages: List<Message>, toRecycleBin: Boolean, fromRecycleBin: Boolean, isPopupMenu: Boolean) -> Unit,
+    /** Message id to the id of the row it takes over, see [Message.getStableId]. */
+    private val rowIdAliases: Map<Long, Long> = emptyMap(),
+) : MyRecyclerViewListAdapter<ThreadItem>(activity, recyclerView, ThreadItemDiffCallback(rowIdAliases), itemClick) {
     private var fontSizeSmall = activity.getTextSizeSmall()
     private var fontSizeMessage = activity.getTextSizeMessage()
     private var fontSizeMessageMultiplier = activity.config.fontSizeMessageMultiplier
@@ -501,7 +505,7 @@ class ThreadAdapter(
 
     override fun getItemId(position: Int): Long {
         return when (val item = getItem(position)) {
-            is Message -> item.getStableId()
+            is Message -> stableRowId(item)
             is ThreadDateTime -> {
                 val sim = (item.simID.hashCode().toLong() and SIM_MASK)
                 val key = (item.date.toLong() shl SIM_BITS) or sim
@@ -510,6 +514,8 @@ class ThreadAdapter(
             else -> 0L
         }
     }
+
+    private fun stableRowId(message: Message) = message.getStableId(rowIdAliases[message.id] ?: message.id)
 
     override fun getItemViewType(position: Int): Int {
         return when (val item = getItem(position)) {
@@ -849,24 +855,54 @@ class ThreadAdapter(
                 setupSentMessageView(messageBinding = this, message = message)
             }
 
-            if (message.attachment?.attachments?.isNotEmpty() == true) {
-                threadMessageAttachmentsHolder.beVisible()
-                threadMessageAttachmentsHolder.removeAllViews()
-                for (attachment in message.attachment.attachments) {
-                    val mimetype = attachment.mimetype
-                    when {
-                        mimetype.isImageMimeType() || mimetype.isVideoMimeType() -> setupImageView(holder, binding = this, message, attachment)
-                        mimetype.isVCardMimeType() -> setupVCardView(holder, threadMessageAttachmentsHolder, message, attachment)
-                        else -> setupFileView(holder, threadMessageAttachmentsHolder, message, attachment)
-                    }
+            setupAttachments(holder, binding = this, message = message)
+        }
+    }
 
-                    threadMessagePlayOutline.beVisibleIf(mimetype.startsWith("video/"))
+    /**
+     * Recreating the attachment views on every bind empties the bubble for a frame, which shows up as
+     * a blink whenever the row is rebound: on a send status change, or when a resent MMS takes over the
+     * row of the failed message. Media views are therefore reused as long as the row stays the same.
+     */
+    private fun setupAttachments(holder: ViewHolder, binding: ItemMessageBinding, message: Message) = binding.apply {
+        val attachments = message.attachment?.attachments.orEmpty()
+        if (attachments.isEmpty()) {
+            threadMessageAttachmentsHolder.removeAllViews()
+            threadMessageAttachmentsHolder.beGone()
+            threadMessagePlayOutline.beGone()
+            threadMessageAttachmentsHolder.setTag(R.id.tag_attachments_row_id, null)
+            threadMessageAttachmentsHolder.setTag(R.id.tag_attachments_signature, null)
+            return@apply
+        }
+
+        threadMessageAttachmentsHolder.beVisible()
+        val rowId = stableRowId(message)
+        val signature = attachments.joinToString("|") { "${it.uriString}:${it.mimetype}" }
+        val mediaViews = threadMessageAttachmentsHolder.children.filterIsInstance<ShapeableImageView>().toList()
+        val isSameRow = (threadMessageAttachmentsHolder.getTag(R.id.tag_attachments_row_id) as? Long) == rowId
+        val isMediaOnly = attachments.all { it.mimetype.isImageMimeType() || it.mimetype.isVideoMimeType() }
+        val hasMediaViewsOnly = mediaViews.size == threadMessageAttachmentsHolder.childCount
+
+        if (isSameRow && isMediaOnly && hasMediaViewsOnly && mediaViews.size == attachments.size) {
+            val reload = threadMessageAttachmentsHolder.getTag(R.id.tag_attachments_signature) != signature
+            attachments.forEachIndexed { index, attachment ->
+                setupImageView(holder, binding = this, message, attachment, mediaViews[index], reload)
+            }
+        } else {
+            threadMessageAttachmentsHolder.removeAllViews()
+            for (attachment in attachments) {
+                val mimetype = attachment.mimetype
+                when {
+                    mimetype.isImageMimeType() || mimetype.isVideoMimeType() -> setupImageView(holder, binding = this, message, attachment)
+                    mimetype.isVCardMimeType() -> setupVCardView(holder, threadMessageAttachmentsHolder, message, attachment)
+                    else -> setupFileView(holder, threadMessageAttachmentsHolder, message, attachment)
                 }
-            } else {
-                threadMessageAttachmentsHolder.beGone()
-                threadMessagePlayOutline.beGone()
             }
         }
+
+        threadMessagePlayOutline.beVisibleIf(attachments.last().mimetype.startsWith("video/"))
+        threadMessageAttachmentsHolder.setTag(R.id.tag_attachments_row_id, rowId)
+        threadMessageAttachmentsHolder.setTag(R.id.tag_attachments_signature, signature)
     }
 
     private fun copyToSimMessage(message: Message) {
@@ -1215,49 +1251,61 @@ class ThreadAdapter(
         }
     }
 
-    private fun setupImageView(holder: ViewHolder, binding: ItemMessageBinding, message: Message, attachment: Attachment) = binding.apply {
+    private fun setupImageView(
+        holder: ViewHolder,
+        binding: ItemMessageBinding,
+        message: Message,
+        attachment: Attachment,
+        reusedImageView: ShapeableImageView? = null,
+        reload: Boolean = true,
+    ) = binding.apply {
         val mimetype = attachment.mimetype
         val uri = attachment.getUri()
 
-        val imageView = ItemAttachmentImageBinding.inflate(layoutInflater)
-        threadMessageAttachmentsHolder.addView(imageView.root)
+        val imageView = reusedImageView ?: ItemAttachmentImageBinding.inflate(layoutInflater).root.also {
+            threadMessageAttachmentsHolder.addView(it)
+        }
 
         // Stay within the attachments holder (80% bubble). A fixed screen*0.8 width is wider than
         // the padded wrapper, so the parent clips the end and right corners look square.
         val cornerRadiusPx = root.resources.getDimensionPixelSize(com.goodwy.commons.R.dimen.normal_margin)
 
-        imageView.attachmentImage.shapeAppearanceModel = ShapeAppearanceModel.builder()
+        imageView.shapeAppearanceModel = ShapeAppearanceModel.builder()
             .setAllCorners(CornerFamily.ROUNDED, cornerRadiusPx.toFloat())
             .build()
-        imageView.attachmentImage.updateLayoutParams<ViewGroup.LayoutParams> {
+        imageView.updateLayoutParams<ViewGroup.LayoutParams> {
             width = ViewGroup.LayoutParams.MATCH_PARENT
             height = ViewGroup.LayoutParams.WRAP_CONTENT
         }
 
-        val placeholderDrawable = Color.TRANSPARENT.toDrawable()
-        val options = RequestOptions()
-            .diskCacheStrategy(DiskCacheStrategy.RESOURCE)
-            .placeholder(placeholderDrawable)
-            .transform(FitCenter(), RoundedCorners(cornerRadiusPx))
+        if (reload) {
+            // A resent MMS points at a new provider part, so keep the image that is already shown as
+            // the placeholder instead of emptying the bubble until the new one is decoded.
+            val placeholderDrawable = imageView.drawable ?: Color.TRANSPARENT.toDrawable()
+            val options = RequestOptions()
+                .diskCacheStrategy(DiskCacheStrategy.RESOURCE)
+                .placeholder(placeholderDrawable)
+                .transform(FitCenter(), RoundedCorners(cornerRadiusPx))
 
-        Glide.with(root.context)
-            .load(uri)
-            .apply(options)
-            .dontAnimate()
-            .override(maxChatBubbleWidth, maxChatBubbleWidth * MAX_MEDIA_HEIGHT_RATIO)
-            .downsample(DownsampleStrategy.AT_MOST)
-            .listener(object : RequestListener<Drawable> {
-                override fun onLoadFailed(e: GlideException?, model: Any?, target: Target<Drawable>, isFirstResource: Boolean): Boolean {
-                    threadMessagePlayOutline.beGone()
-                    threadMessageAttachmentsHolder.removeView(imageView.root)
-                    return false
-                }
+            Glide.with(root.context)
+                .load(uri)
+                .apply(options)
+                .dontAnimate()
+                .override(maxChatBubbleWidth, maxChatBubbleWidth * MAX_MEDIA_HEIGHT_RATIO)
+                .downsample(DownsampleStrategy.AT_MOST)
+                .listener(object : RequestListener<Drawable> {
+                    override fun onLoadFailed(e: GlideException?, model: Any?, target: Target<Drawable>, isFirstResource: Boolean): Boolean {
+                        threadMessagePlayOutline.beGone()
+                        threadMessageAttachmentsHolder.removeView(imageView)
+                        return false
+                    }
 
-                override fun onResourceReady(dr: Drawable, a: Any, t: Target<Drawable>, d: DataSource, i: Boolean) = false
-            })
-            .into(imageView.attachmentImage)
+                    override fun onResourceReady(dr: Drawable, a: Any, t: Target<Drawable>, d: DataSource, i: Boolean) = false
+                })
+                .into(imageView)
+        }
 
-        imageView.attachmentImage.setOnClickListener {
+        imageView.setOnClickListener {
             if (actModeCallback.isSelectable) {
                 holder.viewClicked(message)
             } else {
@@ -1276,7 +1324,7 @@ class ThreadAdapter(
                 }
             }
         }
-        imageView.root.setOnLongClickListener {
+        imageView.setOnLongClickListener {
             if (actModeCallback.isSelectable) return@setOnLongClickListener false
             showPopupMenu(message, it)
             true
@@ -1461,12 +1509,14 @@ class ThreadAdapter(
     inner class ThreadViewHolder(val binding: ViewBinding) : ViewHolder(binding.root)
 }
 
-private class ThreadItemDiffCallback : DiffUtil.ItemCallback<ThreadItem>() {
+private class ThreadItemDiffCallback(
+    private val rowIdAliases: Map<Long, Long>,
+) : DiffUtil.ItemCallback<ThreadItem>() {
 
     override fun areItemsTheSame(oldItem: ThreadItem, newItem: ThreadItem): Boolean {
         if (oldItem::class.java != newItem::class.java) return false
         return when (oldItem) {
-            is Message -> Message.areItemsTheSame(oldItem, newItem as Message)
+            is Message -> Message.areItemsTheSame(oldItem, newItem as Message, rowIdAliases)
             is ThreadDateTime -> {
                 val new = newItem as ThreadDateTime
                 oldItem.date == new.date && oldItem.simID == new.simID

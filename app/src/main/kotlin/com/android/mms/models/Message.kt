@@ -38,9 +38,13 @@ data class Message(
             ?: participants.firstOrNull { it.name == senderName }
             ?: participants.firstOrNull()
 
-    fun getStableId(): Long {
+    /**
+     * [rowId] may differ from [id] when a message takes over the list row of another one, for
+     * example a resent MMS replacing the failed message it was created from.
+     */
+    fun getStableId(rowId: Long = id): Long {
         val providerBit = if (isMMS) 1L else 0L
-        val key = (id shl 1) or providerBit
+        val key = (rowId shl 1) or providerBit
         val type = if (isReceivedMessage()) THREAD_RECEIVED_MESSAGE else THREAD_SENT_MESSAGE
         return generateStableId(type, key)
     }
@@ -50,8 +54,8 @@ data class Message(
     }
 
     companion object {
-        fun areItemsTheSame(old: Message, new: Message): Boolean {
-            return old.id == new.id
+        fun areItemsTheSame(old: Message, new: Message, rowIdAliases: Map<Long, Long> = emptyMap()): Boolean {
+            return (rowIdAliases[old.id] ?: old.id) == (rowIdAliases[new.id] ?: new.id)
         }
 
         fun areContentsTheSame(old: Message, new: Message): Boolean {

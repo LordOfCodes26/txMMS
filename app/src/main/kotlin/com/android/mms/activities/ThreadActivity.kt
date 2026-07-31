@@ -90,6 +90,7 @@ import org.joda.time.DateTime
 import eightbitlab.com.blurview.BlurTarget
 import java.io.File
 import java.util.*
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
 import kotlin.collections.set
@@ -138,6 +139,13 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
 
     private var isScheduledMessage: Boolean = false
     private var messageToResend: Long? = null
+    /** MMS retries create a new provider row, unlike SMS retries which reuse the failed row. */
+    private data class PendingMmsRetry(val highestMmsIdBeforeRetry: Long, val startedAt: Long)
+
+    /** Failed message id to the retry that is resending it, see [applyMmsRetryReplacements]. */
+    private val pendingMmsRetries = ConcurrentHashMap<Long, PendingMmsRetry>()
+    /** Resent MMS id to the id of the failed row it replaces, see [ThreadAdapter] row id aliases. */
+    private val mmsRetryRowIdAliases = ConcurrentHashMap<Long, Long>()
     private var scheduledMessage: Message? = null
     private var scheduledDateTime: DateTime = DateTime.now().plusMinutes(5)
 
@@ -1592,7 +1600,8 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                 retryFailedMessage = { retryFailedMessage(it) },
                 deleteMessages = { messages, toRecycleBin, fromRecycleBin, isPopupMenu ->
                     deleteMessages(messages, toRecycleBin, fromRecycleBin, isPopupMenu)
-                }
+                },
+                rowIdAliases = mmsRetryRowIdAliases,
             )
 
             binding.threadMessagesList.adapter = currAdapter
@@ -1704,6 +1713,17 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             ?: SmsManager.getDefaultSmsSubscriptionId()
         val attachments = message.attachment?.attachments ?: emptyList()
 
+        if (message.isMMS) {
+            pendingMmsRetries[message.id] = PendingMmsRetry(
+                highestMmsIdBeforeRetry = messages.filter { it.isMMS }.maxOfOrNull { it.id } ?: message.id,
+                startedAt = System.currentTimeMillis(),
+            )
+            if (applyMmsRetryReplacements()) {
+                val updatedItems = getThreadItems()
+                getOrCreateThreadAdapter().updateMessages(updatedItems, scrollPosition = -1)
+            }
+        }
+
         sendNormalMessage(
             text = message.body,
             subscriptionId = subscriptionId,
@@ -1711,6 +1731,42 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             messageId = message.id,
             clearCompose = false,
         )
+    }
+
+    /**
+     * Keeps [messages] showing a single bubble per pending MMS retry: the failed row stays until the
+     * resend row exists, then it is dropped and the resend takes over its list row so the bubble is
+     * updated in place instead of being removed and inserted again. Returns whether anything changed.
+     */
+    private fun applyMmsRetryReplacements(): Boolean {
+        if (pendingMmsRetries.isEmpty()) return false
+
+        var changed = false
+        for ((failedId, retry) in pendingMmsRetries) {
+            val resentMessage = messages
+                .filter { it.isMMS && !it.isReceivedMessage() && it.id > retry.highestMmsIdBeforeRetry }
+                .minByOrNull { it.id }
+
+            if (resentMessage != null) {
+                val rowId = mmsRetryRowIdAliases[failedId] ?: failedId
+                if (resentMessage.id != rowId) {
+                    mmsRetryRowIdAliases[resentMessage.id] = rowId
+                }
+                changed = messages.removeAll { it.isMMS && it.id == failedId } || changed
+            } else if (System.currentTimeMillis() - retry.startedAt > MMS_RETRY_TIMEOUT_MS) {
+                // The resend never reached the provider, let the row show its real state again.
+                pendingMmsRetries.remove(failedId)
+            } else {
+                // Until the resend row shows up the failed row stands in for it, so keep it in the
+                // sending state instead of letting a refresh flip it back to the error state.
+                val failedIndex = messages.indexOfFirst { it.isMMS && it.id == failedId }
+                if (failedIndex >= 0 && messages[failedIndex].type != Telephony.Mms.MESSAGE_BOX_OUTBOX) {
+                    messages[failedIndex] = messages[failedIndex].copy(type = Telephony.Mms.MESSAGE_BOX_OUTBOX)
+                    changed = true
+                }
+            }
+        }
+        return changed
     }
 
     private fun deleteMessages(
@@ -2921,6 +2977,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         } else {
             messages.add(message)
         }
+        applyMmsRetryReplacements()
 
         val newItems = getThreadItems()
         runOnUiThread {
@@ -3048,6 +3105,10 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                 removeAll(recycledMessages)
             }
         }
+        // A retry is only pending while the provider still holds the failed row it replaces.
+        val providerMmsIds = messages.filter { it.isMMS }.map { it.id }.toSet()
+        applyMmsRetryReplacements()
+        pendingMmsRetries.keys.retainAll(providerMmsIds)
 
         messages.filter { !it.isScheduled && !it.isReceivedMessage() && it.id > lastMaxId }
             .forEach { latestMessage ->
@@ -3353,6 +3414,9 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         }
 
         private const val ACTION_FEE_INFO_SET = "com.chonha.total.action.ACTION_FEE_INFO_SET"
+
+        /** How long a retried MMS may stay in the sending state before its real state is shown again. */
+        private const val MMS_RETRY_TIMEOUT_MS = 2 * 60 * 1000L
         const val TYPE_EDIT = 14
         const val TYPE_SEND = 15
         const val TYPE_DELETE = 16
