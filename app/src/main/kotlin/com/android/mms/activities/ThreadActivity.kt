@@ -359,17 +359,19 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
     }
 
     /**
-     * Same idea as [com.android.mms.extensions.postSyncMySearchMenuToolbarGeometry] / MainActivity blur
-     * sync: [mainBlurTarget] needs a negative top margin and the top [MVSideFrame] height must match the
-     * app bar so BlurView samples the list region under transparent toolbar chrome correctly.
+     * Match [MainActivity.syncTopSideFrameHeight]: top [MVSideFrame] uses collapsed toolbar height
+     * (not expanded app-bar height). [mainBlurTarget] still gets a negative top margin from the laid-out
+     * app bar so BlurView samples the list under transparent toolbar chrome.
      */
     private fun syncThreadTopBlurStripGeometry() {
         binding.threadAppbar.post {
             val appBar = binding.threadAppbar
             val h = appBar.height.takeIf { it > 0 } ?: appBar.measuredHeight.takeIf { it > 0 } ?: return@post
-            val feather = resources.getDimensionPixelSize(R.dimen.tx_my_search_menu_top_blur_feather)
+            val collapsed = resources.getDimensionPixelSize(com.android.common.R.dimen.tx_top_bar_toolbar_margin_top) +
+                resources.getDimensionPixelSize(com.android.common.R.dimen.tx_top_bar_toolbar_height)
+
             binding.mVerticalSideFrameTop.updateLayoutParams<ViewGroup.LayoutParams> {
-                val newHeight = h + maxOf(0, feather)
+                val newHeight = collapsed
                 if (height != newHeight) height = newHeight
             }
             syncBlurTargetTopMarginForMenu(binding.mainBlurTarget, h)
