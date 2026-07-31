@@ -5,6 +5,6 @@
     android:layout_height="@dimen/bigger_margin"
     android:visibility="gone"
     app:countdownBackgroundColor="?attr/colorControlNormal"
-    app:countdownForegroundColor="?attr/colorPrimary"
+    app:countdownForegroundColor="@color/tx_main_blue"
     app:countdownTextColor="@color/tx_title_text"
     app:countdownTextSize="@dimen/tx_small_text" />
