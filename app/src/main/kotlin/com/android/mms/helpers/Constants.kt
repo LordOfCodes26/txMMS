@@ -16,6 +16,8 @@ const val THREAD_ID = "thread_id"
 const val THREAD_SHOW_BLOCKED_MESSAGES = "thread_show_blocked_messages"
 /** When true, [com.android.mms.activities.ThreadActivity] was opened from the main list while PIN-scoped (secure) mode was active; exiting that scope is deferred until the app returns from the background. */
 const val THREAD_OPENED_FROM_SECURE_CONVERSATION_LIST = "thread_opened_from_secure_conversation_list"
+/** When true with [THREAD_OPENED_FROM_SECURE_CONVERSATION_LIST], keep PIN scope after app background (system private space). */
+const val THREAD_PERSIST_SECURE_PIN = "thread_persist_secure_pin"
 const val THREAD_TITLE = "thread_title"
 const val THREAD_TEXT = "thread_text"
 const val THREAD_NUMBER = "thread_number"

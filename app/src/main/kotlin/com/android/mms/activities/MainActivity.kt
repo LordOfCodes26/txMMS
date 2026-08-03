@@ -68,6 +68,7 @@ import com.android.mms.helpers.SEARCHED_MESSAGE_ID
 import com.android.mms.helpers.SendMessageCountdownStore
 import com.android.mms.helpers.THREAD_ID
 import com.android.mms.helpers.THREAD_OPENED_FROM_SECURE_CONVERSATION_LIST
+import com.android.mms.helpers.THREAD_PERSIST_SECURE_PIN
 import com.android.mms.helpers.THREAD_NUMBER
 import com.android.mms.helpers.THREAD_TITLE
 import com.android.mms.helpers.THREAD_URI
@@ -126,6 +127,12 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
     private var isLaunchingSecretBox = false
     /** True while starting Thread/NewConversation from this screen; avoids treating that as leaving the app ([onUserLeaveHint]). */
     private var isLaunchingInternalConversationActivity = false
+
+    /**
+     * When true, leaving the app (home / recents) must not clear PIN scope on the next [onResume].
+     * Used when [SecureMainActivity] was opened from system private space (`android.intent.action.mms.private`).
+     */
+    open fun shouldPersistSecureModeAcrossAppBackground(): Boolean = false
 
     var unreadCountHash = HashMap<Long, Int>(128)
 
@@ -406,7 +413,8 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         if (
             config.selectedConversationPin > 0 &&
             !isLaunchingSecretBox &&
-            !isLaunchingInternalConversationActivity
+            !isLaunchingInternalConversationActivity &&
+            !shouldPersistSecureModeAcrossAppBackground()
         ) {
             shouldExitSecureModeOnResume = true
         }
@@ -434,7 +442,8 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         if (
             config.selectedConversationPin > 0 &&
             !isLaunchingSecretBox &&
-            !isLaunchingInternalConversationActivity
+            !isLaunchingInternalConversationActivity &&
+            !shouldPersistSecureModeAcrossAppBackground()
         ) {
             closeSecureBox()
             return true
@@ -2276,6 +2285,9 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
                 putExtra(THREAD_URI, conversation.photoUri)
                 if (config.selectedConversationPin > 0) {
                     putExtra(THREAD_OPENED_FROM_SECURE_CONVERSATION_LIST, true)
+                    if (shouldPersistSecureModeAcrossAppBackground()) {
+                        putExtra(THREAD_PERSIST_SECURE_PIN, true)
+                    }
                 }
                 isLaunchingInternalConversationActivity = true
                 startActivity(this)
@@ -2495,6 +2507,9 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
                         putExtra(SEARCHED_MESSAGE_ID, it.messageId)
                         if (config.selectedConversationPin > 0) {
                             putExtra(THREAD_OPENED_FROM_SECURE_CONVERSATION_LIST, true)
+                            if (shouldPersistSecureModeAcrossAppBackground()) {
+                                putExtra(THREAD_PERSIST_SECURE_PIN, true)
+                            }
                         }
                         isLaunchingInternalConversationActivity = true
                         startActivity(this)

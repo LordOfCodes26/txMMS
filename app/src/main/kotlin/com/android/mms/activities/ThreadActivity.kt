@@ -117,6 +117,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
     private var isLaunchedFromShortcut = false
     /** Main list was in PIN-scoped (secure) mode when this thread was opened; leave that scope when the whole app returns from the background. */
     private var openedFromSecureConversationList = false
+    private var persistSecurePinAcrossAppBackground = false
     /** Opened from blocked-messages list: load provider SMS/MMS from blocked numbers even when they are hidden elsewhere. */
     private var showBlockedMessagesInThread = false
     private var appEnteredBackgroundWhileOnThisThread = false
@@ -133,6 +134,8 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             if (!appEnteredBackgroundWhileOnThisThread) return
             appEnteredBackgroundWhileOnThisThread = false
             if (config.selectedConversationPin <= 0 || isFinishing) return
+            // System private space: keep PIN and stay on this thread after app background.
+            if (persistSecurePinAcrossAppBackground) return
             openMainInNormalModeAfterAppResumeFromSecureThread()
         }
     }
@@ -260,6 +263,8 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         isLaunchedFromShortcut = intent.getBooleanExtra(IS_LAUNCHED_FROM_SHORTCUT, false)
         openedFromSecureConversationList =
             intent.getBooleanExtra(THREAD_OPENED_FROM_SECURE_CONVERSATION_LIST, false)
+        persistSecurePinAcrossAppBackground =
+            intent.getBooleanExtra(THREAD_PERSIST_SECURE_PIN, false)
         showBlockedMessagesInThread = intent.getBooleanExtra(THREAD_SHOW_BLOCKED_MESSAGES, false)
         if (openedFromSecureConversationList) {
             ProcessLifecycleOwner.get().lifecycle.addObserver(secureConversationListProcessObserver)

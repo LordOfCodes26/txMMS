@@ -9,6 +9,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.android.common.helper.IconItem
 import com.android.common.view.MRippleToolBar
 import com.android.mms.R
+import com.android.mms.activities.MainActivity
 import com.android.mms.activities.NewConversationActivity
 import com.android.mms.activities.ThreadActivity
 import com.android.mms.adapters.ConversationsAdapter
@@ -22,6 +23,7 @@ import com.android.mms.helpers.NEW_CONVERSATION_RESUME_DRAFT
 import com.android.mms.helpers.THREAD_ID
 import com.android.mms.helpers.THREAD_NUMBER
 import com.android.mms.helpers.THREAD_OPENED_FROM_SECURE_CONVERSATION_LIST
+import com.android.mms.helpers.THREAD_PERSIST_SECURE_PIN
 import com.android.mms.helpers.THREAD_SHOW_BLOCKED_MESSAGES
 import com.android.mms.helpers.THREAD_TITLE
 import com.android.mms.helpers.THREAD_URI
@@ -222,6 +224,9 @@ class BlockedConversationsFragment : BlockedMessagesFragment() {
             putExtra(THREAD_SHOW_BLOCKED_MESSAGES, true)
             if (act.config.selectedConversationPin > 0) {
                 putExtra(THREAD_OPENED_FROM_SECURE_CONVERSATION_LIST, true)
+                if ((act as? MainActivity)?.shouldPersistSecureModeAcrossAppBackground() == true) {
+                    putExtra(THREAD_PERSIST_SECURE_PIN, true)
+                }
             }
             act.startActivity(this)
         }
