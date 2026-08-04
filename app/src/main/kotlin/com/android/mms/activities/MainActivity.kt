@@ -413,10 +413,13 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         if (
             config.selectedConversationPin > 0 &&
             !isLaunchingSecretBox &&
-            !isLaunchingInternalConversationActivity &&
-            !shouldPersistSecureModeAcrossAppBackground()
+            !isLaunchingInternalConversationActivity
         ) {
-            shouldExitSecureModeOnResume = true
+            if (shouldPersistSecureModeAcrossAppBackground()) {
+                setConversationPinScope(0)
+            } else {
+                shouldExitSecureModeOnResume = true
+            }
         }
     }
 
