@@ -268,6 +268,7 @@ class SettingsActivity : SimpleActivity() {
         setupShowSmsRemainedCount()
         setupShowCharacterCounter()
         setupMessageSendDelay()
+        setupMmsLimitSize()
 
         setupMessageBubble()
         setupManageQuickTexts()
@@ -309,6 +310,7 @@ class SettingsActivity : SimpleActivity() {
             arrayOf(
                 settingsNotificationsHolder,
                 settingsMessagesHolder,
+                settingsMmsHolder,
                 settingsOutgoingMessagesHolder,
                 settingsBackupsHolder
             ).forEach {
@@ -828,6 +830,48 @@ class SettingsActivity : SimpleActivity() {
             5 -> R.string.delay_5s
             10 -> R.string.delay_10s
             else -> R.string.no_delay
+        }
+    )
+
+    private fun setupMmsLimitSize() = binding.apply {
+        settingsMmsLimitSize.text = getMmsLimitSizeText()
+        settingsMmsLimitSizeHolder.setOnClickListener {
+            val items = arrayListOf(
+                RadioItem(FILE_SIZE_100_KB.toInt(), getString(R.string.mms_file_size_limit_100kb), FILE_SIZE_100_KB),
+                RadioItem(FILE_SIZE_200_KB.toInt(), getString(R.string.mms_file_size_limit_200kb), FILE_SIZE_200_KB),
+                RadioItem(FILE_SIZE_300_KB.toInt(), getString(R.string.mms_file_size_limit_300kb), FILE_SIZE_300_KB),
+                RadioItem(FILE_SIZE_600_KB.toInt(), getString(R.string.mms_file_size_limit_600kb), FILE_SIZE_600_KB)
+            )
+
+            val checkedId = when (config.mmsFileSizeLimit) {
+                FILE_SIZE_100_KB -> FILE_SIZE_100_KB.toInt()
+                FILE_SIZE_200_KB -> FILE_SIZE_200_KB.toInt()
+                FILE_SIZE_600_KB -> FILE_SIZE_600_KB.toInt()
+                else -> FILE_SIZE_300_KB.toInt()
+            }
+
+            val blurTarget = findViewById<BlurTarget>(R.id.mainBlurTarget)
+                ?: throw IllegalStateException("mainBlurTarget not found")
+            RadioGroupDialog(
+                this@SettingsActivity,
+                items,
+                checkedId,
+                R.string.mms_limit_size,
+                requireConfirmButton = true,
+                blurTarget = blurTarget
+            ) {
+                config.mmsFileSizeLimit = it as Long
+                settingsMmsLimitSize.text = getMmsLimitSizeText()
+            }
+        }
+    }
+
+    private fun getMmsLimitSizeText() = getString(
+        when (config.mmsFileSizeLimit) {
+            FILE_SIZE_100_KB -> R.string.mms_file_size_limit_100kb
+            FILE_SIZE_200_KB -> R.string.mms_file_size_limit_200kb
+            FILE_SIZE_600_KB -> R.string.mms_file_size_limit_600kb
+            else -> R.string.mms_file_size_limit_300kb
         }
     )
 

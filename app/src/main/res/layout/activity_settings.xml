@@ -461,6 +461,43 @@
                             </LinearLayout>
                         </androidx.cardview.widget.CardView>
 
+                        <TextView
+                            android:id="@+id/settingsMmsLabel"
+                            style="@style/SettingsSectionLabelStyle"
+                            android:text="@string/mms"/>
+
+                        <androidx.cardview.widget.CardView
+                            android:id="@+id/settingsMmsHolder"
+                            style="@style/SettingsSectionHolder"
+                            app:cardElevation="0dp">
+
+                            <LinearLayout
+                                android:id="@+id/settingsMmsWrapper"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:orientation="vertical">
+
+                                <RelativeLayout
+                                    android:id="@+id/settings_mms_limit_size_holder"
+                                    style="@style/SettingsHolderSwitchStyle">
+
+                                    <com.goodwy.commons.views.MyTextView
+                                        android:id="@+id/settings_mms_limit_size_label"
+                                        style="@style/SettingsTextLabelStyle"
+                                        android:layout_alignParentStart="true"
+                                        android:layout_centerVertical="true"
+                                        android:layout_toStartOf="@+id/settings_mms_limit_size"
+                                        android:text="@string/mms_limit_size" />
+
+                                    <com.goodwy.commons.views.MyTextView
+                                        android:id="@+id/settings_mms_limit_size"
+                                        style="@style/SettingsTextValueStyle"
+                                        android:layout_alignParentEnd="true"
+                                        tools:text="@string/mms_file_size_limit_200kb" />
+                                </RelativeLayout>
+                            </LinearLayout>
+                        </androidx.cardview.widget.CardView>
+
                     <TextView
                         android:id="@+id/settingsSIMMessagesLabel"
                         style="@style/SettingsSectionLabelStyle"

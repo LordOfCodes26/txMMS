@@ -132,6 +132,7 @@
     <string name="use_simple_characters">发送消息时删除重音和变音符号</string>
     <string name="send_on_enter">按下 Enter 键发送消息</string>
     <string name="mms_file_size_limit">调整发送的彩信图片的大小</string>
+    <string name="mms_limit_size">限制大小</string>
     <string name="mms_file_size_limit_none">无限制</string>
     <string name="outgoing_messages">其他</string>
     <string name="group_message_mms">将群组信息作为彩信发送</string>
