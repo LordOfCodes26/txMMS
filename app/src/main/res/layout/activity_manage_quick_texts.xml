@@ -23,60 +23,65 @@
             android:background="@color/tx_common_bg"
             app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
-            <androidx.constraintlayout.widget.ConstraintLayout
-                android:id="@+id/manage_quick_texts_wrapper"
+            <!-- Outer nested scroll drives AppBar collapse/expand (same pattern as Settings). -->
+            <com.android.common.nestbouncy.BouncyScrollView
+                android:id="@+id/manage_quick_texts_scroll"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:clipToPadding="false"
+                android:fillViewport="true"
                 android:paddingStart="@dimen/activity_padding_left_right"
                 android:paddingTop="@dimen/tx_nest_bouncy_content_padding_top"
                 android:paddingEnd="@dimen/activity_padding_left_right"
                 android:paddingBottom="@dimen/activity_margin"
-                tools:context=".activities.ManageQuickTextsActivity">
+                android:scrollbars="none">
 
-                <androidx.cardview.widget.CardView
-                    android:id="@+id/manage_quick_texts_card"
-                    style="@style/SettingsSectionHolder"
-                    android:layout_width="0dp"
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:id="@+id/manage_quick_texts_wrapper"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:clipChildren="true"
-                    android:clipToPadding="true"
-                    app:cardBackgroundColor="@color/tx_cardview_bg"
-                    app:cardElevation="0dp"
-                    app:layout_constrainedHeight="true"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="parent"
-                    app:layout_constraintVertical_bias="0">
+                    tools:context=".activities.ManageQuickTextsActivity">
 
-                    <FrameLayout
-                        android:id="@+id/manage_quick_texts_card_content"
-                        android:layout_width="match_parent"
+                    <androidx.cardview.widget.CardView
+                        android:id="@+id/manage_quick_texts_card"
+                        style="@style/SettingsSectionHolder"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:background="@android:color/transparent">
+                        android:clipChildren="true"
+                        android:clipToPadding="true"
+                        app:cardBackgroundColor="@color/tx_cardview_bg"
+                        app:cardElevation="0dp"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent">
 
-                        <com.goodwy.commons.views.MyRecyclerView
-                            android:id="@+id/manage_quick_texts_list"
+                        <FrameLayout
+                            android:id="@+id/manage_quick_texts_card_content"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:background="@android:color/transparent"
-                            android:clipToPadding="true"
-                            android:nestedScrollingEnabled="false"
-                            android:paddingStart="@dimen/medium_margin"
-                            android:paddingTop="@dimen/activity_margin"
-                            android:paddingEnd="@dimen/medium_margin"
-                            android:scrollbars="none"
-                            android:visibility="gone"
-                            app:layoutManager="com.goodwy.commons.views.MyLinearLayoutManager"
-                            tools:listitem="@layout/item_manage_quick_text" />
+                            android:background="@android:color/transparent">
 
+                            <com.goodwy.commons.views.MyRecyclerView
+                                android:id="@+id/manage_quick_texts_list"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:background="@android:color/transparent"
+                                android:clipToPadding="true"
+                                android:nestedScrollingEnabled="false"
+                                android:paddingStart="@dimen/medium_margin"
+                                android:paddingTop="@dimen/activity_margin"
+                                android:paddingEnd="@dimen/medium_margin"
+                                android:scrollbars="none"
+                                android:visibility="gone"
+                                app:layoutManager="com.goodwy.commons.views.MyLinearLayoutManager"
+                                tools:listitem="@layout/item_manage_quick_text" />
 
+                        </FrameLayout>
 
-                    </FrameLayout>
+                    </androidx.cardview.widget.CardView>
 
-                </androidx.cardview.widget.CardView>
-
-            </androidx.constraintlayout.widget.ConstraintLayout>
+                </androidx.constraintlayout.widget.ConstraintLayout>
+            </com.android.common.nestbouncy.BouncyScrollView>
         </eightbitlab.com.blurview.BlurTarget>
 
         <com.android.common.view.MVSideFrame

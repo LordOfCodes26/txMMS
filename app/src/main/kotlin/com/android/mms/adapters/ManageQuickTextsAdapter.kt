@@ -169,13 +169,11 @@ class ManageQuickTextsAdapter(
         toolbar?.updateColorsForBackground(cabBackgroundColor)
 
         notifyDataSetChanged()
-        (activity as? ManageQuickTextsActivity)?.scheduleSyncQuickTextsCardHeight()
     }
 
     @SuppressLint("NotifyDataSetChanged")
     override fun onActionModeDestroyed() {
         notifyDataSetChanged()
-        (activity as? ManageQuickTextsActivity)?.scheduleSyncQuickTextsCardHeight()
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
