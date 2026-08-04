@@ -150,10 +150,19 @@ class SmsReceiver : BroadcastReceiver() {
                         copyMessageToSim(context, subscriptionId, body, address, scAddress, date)
                     }
 
-                    val conversation = context.getConversations(threadId).firstOrNull() ?: return@getAvailableContacts
-                    try {
-                        context.insertOrUpdateConversation(conversation)
-                    } catch (_: Exception) {
+                    // getConversations() hides blocked threads when showBlockedNumbers is false.
+                    // Still resolve them so we can update Room and (when enabled) notify.
+                    val conversation = context.getConversations(threadId, privateContacts = privateContacts).firstOrNull()
+                        ?: context.getConversations(
+                            threadId = threadId,
+                            privateContacts = privateContacts,
+                            threadsWithBlockedNumbersOnly = true,
+                        ).firstOrNull()
+                    if (conversation != null) {
+                        try {
+                            context.insertOrUpdateConversation(conversation)
+                        } catch (_: Exception) {
+                        }
                     }
 
                     val senderName = context.getNameFromAddress(address, privateCursor)

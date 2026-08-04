@@ -30,7 +30,15 @@ class MmsReceiver : MmsReceivedReceiver() {
 
     override fun isAddressBlocked(context: Context, address: String): Boolean {
         val normalizedAddress = address.normalizePhoneNumber()
-        return context.isNumberBlocked(normalizedAddress) || context.isCustomerServiceBlockNumber(normalizedAddress)
+        if (context.isCustomerServiceBlockNumber(normalizedAddress)) {
+            return true
+        }
+        // Returning true here deletes the MMS before onMessageReceived. When the user wants
+        // notifications for blocked senders, allow receive and gate the notification later.
+        if (context.config.showBlockedNotifications) {
+            return false
+        }
+        return context.isNumberBlocked(normalizedAddress)
     }
 
     override fun isContentBlocked(context: Context, content: String): Boolean {
@@ -108,8 +116,13 @@ class MmsReceiver : MmsReceivedReceiver() {
             }
             ensureBackgroundThread {
                 val conversation = context.getConversations(mms.threadId).firstOrNull()
-                    ?: return@ensureBackgroundThread
-                context.insertOrUpdateConversation(conversation)
+                    ?: context.getConversations(
+                        threadId = mms.threadId,
+                        threadsWithBlockedNumbersOnly = true,
+                    ).firstOrNull()
+                if (conversation != null) {
+                    context.insertOrUpdateConversation(conversation)
+                }
                 if (context.shouldUnarchive()) {
                     context.updateConversationArchivedStatus(mms.threadId, false)
                 }
