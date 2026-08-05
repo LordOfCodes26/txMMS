@@ -419,7 +419,12 @@ class ExpandedMessageFragment : Fragment() {
                     senderNameView?.text = threadTitle
                     senderNameView?.setTextColor(textColor)
                 }
-                senderNumberView?.beGoneIf(threadSubtitle.isEmpty() || threadTitle == threadSubtitle || participantsCount > 1)
+                // Same rule as [ThreadActivity.bindThreadHeaderUi]: a number identical to the title is
+                // redundant, so it is dropped unless the user asked to always see it.
+                val hideSubtitle = threadSubtitle.isEmpty() ||
+                    participantsCount > 1 ||
+                    (threadTitle == threadSubtitle && !requireActivity().config.showPhoneNumber)
+                senderNumberView?.beGoneIf(hideSubtitle)
                 senderNumberView?.text = threadSubtitle
                 senderNumberView?.setTextColor(textColor)
                 

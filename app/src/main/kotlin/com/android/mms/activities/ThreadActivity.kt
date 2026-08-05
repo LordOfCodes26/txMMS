@@ -2239,7 +2239,11 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                     ) {
                         threadTitle = getDisplayNumberWithoutCountryCode(phoneNumber)
                     }
-                    val displayPhone = getDisplayNumberWithoutCountryCode(phoneNumber)
+                    val displayPhone = if (phoneNumber.startsWith("+")) {
+                        getDisplayNumberWithoutCountryCode(phoneNumber)
+                    } else {
+                        phoneNumber
+                    }
                     val showPhoneSubtitle = config.showPhoneNumber ||
                         threadTitle.isEmpty() ||
                         normalizedTitle == normalizedPhone ||
@@ -2248,6 +2252,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                         threadSubtitle = displayPhone
                     }
                     if (threadSubtitle.isNotEmpty() &&
+                        !config.showPhoneNumber &&
                         (threadSubtitle == threadTitle || displayPhone == threadTitle)
                     ) {
                         threadSubtitle = ""
@@ -2286,6 +2291,10 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         bindInteractions: Boolean,
     ) = binding.apply {
         val textColor = getProperTextColor()
+        // A number identical to the title is redundant, so it is dropped unless the user asked to always see it.
+        val hideSubtitle = threadSubtitle.isEmpty() ||
+            participantCount > 1 ||
+            (threadTitle == threadSubtitle && !config.showPhoneNumber)
         threadToolbar.title = ""
         when (config.threadTopStyle) {
             THREAD_TOP_COMPACT -> {
@@ -2297,9 +2306,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                         senderName.text = threadTitle
                         senderName.setTextColor(textColor)
                     }
-                    senderNumber.beGoneIf(
-                        threadSubtitle.isEmpty() || threadTitle == threadSubtitle || participantCount > 1,
-                    )
+                    senderNumber.beGoneIf(hideSubtitle)
                     senderNumber.text = threadSubtitle
                     senderNumber.setTextColor(textColor)
                     if (bindInteractions) {
@@ -2323,9 +2330,7 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                         senderNameLarge.isSelected = true
                         senderNameLarge.post { senderNameLarge.isSelected = true }
                     }
-                    senderNumberLarge.beGoneIf(
-                        threadSubtitle.isEmpty() || threadTitle == threadSubtitle || participantCount > 1,
-                    )
+                    senderNumberLarge.beGoneIf(hideSubtitle)
                     senderNumberLarge.text = threadSubtitle
                     senderNumberLarge.setTextColor(textColor)
                     if (bindInteractions) {
@@ -3577,7 +3582,10 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             val phoneNumber = participants.first().phoneNumbers.firstOrNull()?.normalizedNumber ?: ""
             val normalizedTitle = threadTitle.normalizePhoneNumber()
             val normalizedPhone = phoneNumber.normalizePhoneNumber()
-            if (phoneNumber.isNotEmpty() && (normalizedTitle == normalizedPhone || threadTitle == phoneNumber)) {
+            if (phoneNumber.isNotEmpty() &&
+                (normalizedTitle == normalizedPhone || threadTitle == phoneNumber) &&
+                threadTitle.startsWith("+")
+            ) {
                 threadTitle = getDisplayNumberWithoutCountryCode(phoneNumber)
             }
         }
