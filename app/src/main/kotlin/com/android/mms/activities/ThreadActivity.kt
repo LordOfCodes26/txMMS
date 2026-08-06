@@ -2251,12 +2251,6 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                     if (showPhoneSubtitle && displayPhone.isNotEmpty()) {
                         threadSubtitle = displayPhone
                     }
-                    if (threadSubtitle.isNotEmpty() &&
-                        !config.showPhoneNumber &&
-                        (threadSubtitle == threadTitle || displayPhone == threadTitle)
-                    ) {
-                        threadSubtitle = ""
-                    }
                 }
             }
             else -> {
@@ -2291,10 +2285,12 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
         bindInteractions: Boolean,
     ) = binding.apply {
         val textColor = getProperTextColor()
-        // A number identical to the title is redundant, so it is dropped unless the user asked to always see it.
-        val hideSubtitle = threadSubtitle.isEmpty() ||
-            participantCount > 1 ||
-            (threadTitle == threadSubtitle && !config.showPhoneNumber)
+        // A number that is not in contacts has no name, so it is already the title and the subtitle
+        // would only repeat it. Compare normalized so a formatted title matches the raw subtitle.
+        val normalizedTitle = threadTitle.normalizePhoneNumber()
+        val titleIsPhoneNumber = threadTitle == threadSubtitle ||
+            (normalizedTitle.isNotEmpty() && normalizedTitle == threadSubtitle.normalizePhoneNumber())
+        val hideSubtitle = threadSubtitle.isEmpty() || participantCount > 1 || titleIsPhoneNumber
         threadToolbar.title = ""
         when (config.threadTopStyle) {
             THREAD_TOP_COMPACT -> {

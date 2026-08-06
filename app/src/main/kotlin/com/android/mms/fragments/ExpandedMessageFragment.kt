@@ -419,11 +419,12 @@ class ExpandedMessageFragment : Fragment() {
                     senderNameView?.text = threadTitle
                     senderNameView?.setTextColor(textColor)
                 }
-                // Same rule as [ThreadActivity.bindThreadHeaderUi]: a number identical to the title is
-                // redundant, so it is dropped unless the user asked to always see it.
-                val hideSubtitle = threadSubtitle.isEmpty() ||
-                    participantsCount > 1 ||
-                    (threadTitle == threadSubtitle && !requireActivity().config.showPhoneNumber)
+                // Same rule as [ThreadActivity.bindThreadHeaderUi]: a number that is not in contacts has
+                // no name, so it is already the title and the subtitle would only repeat it.
+                val normalizedTitle = threadTitle.normalizePhoneNumber()
+                val titleIsPhoneNumber = threadTitle == threadSubtitle ||
+                    (normalizedTitle.isNotEmpty() && normalizedTitle == threadSubtitle.normalizePhoneNumber())
+                val hideSubtitle = threadSubtitle.isEmpty() || participantsCount > 1 || titleIsPhoneNumber
                 senderNumberView?.beGoneIf(hideSubtitle)
                 senderNumberView?.text = threadSubtitle
                 senderNumberView?.setTextColor(textColor)
