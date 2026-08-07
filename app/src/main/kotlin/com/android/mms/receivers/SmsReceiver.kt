@@ -150,7 +150,7 @@ class SmsReceiver : BroadcastReceiver() {
                         copyMessageToSim(context, subscriptionId, body, address, scAddress, date)
                     }
 
-                    // getConversations() hides blocked threads when showBlockedNumbers is false.
+                    // getConversations() always hides blocked threads from the main list.
                     // Still resolve them so we can update Room and (when enabled) notify.
                     val conversation = context.getConversations(threadId, privateContacts = privateContacts).firstOrNull()
                         ?: context.getConversations(
@@ -210,9 +210,9 @@ class SmsReceiver : BroadcastReceiver() {
                     refreshMessages()
                     refreshConversations()
                     
-                    // Only show notification if number is not blocked, or blocked-message notifications
-                    // are enabled, and the user is not already viewing this thread.
-                    if ((!isNumberBlocked || context.config.showBlockedNotifications) && !ThreadActivity.isThreadCurrentlyVisible(threadId)) {
+                    // Only show notification if number is not blocked, or if blocked numbers are being shown,
+                    // and the user is not already viewing this thread.
+                    if ((!isNumberBlocked || context.config.showBlockedNumbers) && !ThreadActivity.isThreadCurrentlyVisible(threadId)) {
                         context.showReceivedMessageNotification(newMessageId, address, body, threadId, bitmap, subscriptionId)
                     }
                 }

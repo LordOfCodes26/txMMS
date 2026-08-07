@@ -1976,13 +1976,10 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
     }
 
     /**
-     * When blocked threads are hidden, keep them out of the recents list even if Room or the
-     * telephony merge has not yet dropped the row (same rules as [getConversations]).
+     * Keep blocked threads out of the recents list even if Room or the telephony merge has not
+     * yet dropped the row (same rules as [getConversations]).
      */
     private fun filterHiddenBlockedConversationsIfNeeded(conversations: ArrayList<Conversation>) {
-        if (config.showBlockedNumbers) {
-            return
-        }
         val blockedNumbers = getBlockedNumbers()
         conversations.removeAll { conv ->
             if (conv.isGroupConversation) {

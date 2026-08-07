@@ -219,16 +219,19 @@ fun Context.getMessages(
     }
     queryCursor(uri, projection, selection, selectionArgs, sortOrder, showErrors = true) { cursor ->
         val senderNumber = cursor.getStringValue(Sms.ADDRESS) ?: return@queryCursor
+        val type = cursor.getIntValue(Sms.TYPE)
 
-        val isNumberBlocked = blockStatus.getOrPut(senderNumber) { isNumberBlocked(senderNumber, blockedNumbers) }
-
-        if (!includeBlockedMessages && isNumberBlocked && !config.showBlockedNumbers) {
-            return@queryCursor
+        // Only hide messages FROM blocked numbers. Outgoing SMS store the recipient in ADDRESS,
+        // so filtering all types would drop sent/failed SMS while failed MMS still appear.
+        if (type == Sms.MESSAGE_TYPE_INBOX) {
+            val isNumberBlocked = blockStatus.getOrPut(senderNumber) { isNumberBlocked(senderNumber, blockedNumbers) }
+            if (!includeBlockedMessages && isNumberBlocked) {
+                return@queryCursor
+            }
         }
 
         val id = cursor.getLongValue(Sms._ID)
         val body = cursor.getStringValue(Sms.BODY)
-        val type = cursor.getIntValue(Sms.TYPE)
         val namePhoto = getNameAndPhotoFromPhoneNumber(senderNumber)
         val senderName = namePhoto.name
         val photoUri = namePhoto.photoUri ?: ""
@@ -390,9 +393,10 @@ fun Context.getMMS(
             senderName = namePhoto.name
             senderPhotoUri = namePhoto.photoUri ?: ""
             
-            // Filter out messages from blocked numbers if showBlockedNumbers is false
+            // Filter out messages from blocked numbers (blocked list / THREAD_SHOW_BLOCKED_MESSAGES
+            // loads with includeBlockedMessages = true).
             val isNumberBlocked = blockStatus.getOrPut(senderNumber) { isNumberBlocked(senderNumber, blockedNumbers) }
-            if (!includeBlockedMessages && isNumberBlocked && !config.showBlockedNumbers) {
+            if (!includeBlockedMessages && isNumberBlocked) {
                 return@queryCursor
             }
         }
@@ -562,7 +566,7 @@ fun Context.getConversations(
                     if (!isBlocked) {
                         return@queryCursorUnsafe
                     }
-                } else if (isBlocked && !config.showBlockedNumbers) {
+                } else if (isBlocked) {
                     return@queryCursorUnsafe
                 }
 
@@ -1155,7 +1159,7 @@ fun Context.getSuggestedContacts(
         val photoUri = namePhoto.photoUri ?: ""
         var company = ""
         var jobPosition = ""
-        if (isNumberBlocked(senderNumber, blockedNumbers) && !config.showBlockedNumbers) {
+        if (isNumberBlocked(senderNumber, blockedNumbers)) {
             return@queryCursor
         } else if (namePhoto.name == senderNumber) {
             if (privateContacts.isNotEmpty()) {

@@ -121,9 +121,9 @@ class BlockedSettingsActivity : SimpleActivity() {
     }
 
     private fun setupShowNotification() = binding.apply {
-        settingsShowNotification.isChecked = config.showBlockedNotifications
+        settingsShowNotification.isChecked = config.showBlockedNumbers
         settingsShowNotification.setOnCheckedChangeListener { isChecked ->
-            config.showBlockedNotifications = isChecked
+            config.showBlockedNumbers = isChecked
         }
         settingsShowNotificationHolder.setOnClickListener {
             settingsShowNotification.toggle()

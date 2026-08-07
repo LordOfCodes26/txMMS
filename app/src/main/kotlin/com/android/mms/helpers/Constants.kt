@@ -12,7 +12,7 @@ import kotlin.math.abs
 import kotlin.random.Random
 
 const val THREAD_ID = "thread_id"
-/** When true, [com.android.mms.activities.ThreadActivity] loads SMS/MMS from blocked senders even if [com.android.mms.helpers.Config.showBlockedNumbers] is false (e.g. opened from the blocked-messages list). */
+/** When true, [com.android.mms.activities.ThreadActivity] loads SMS/MMS from blocked senders (e.g. opened from the blocked-messages list). */
 const val THREAD_SHOW_BLOCKED_MESSAGES = "thread_show_blocked_messages"
 /** When true, [com.android.mms.activities.ThreadActivity] was opened from the main list while PIN-scoped (secure) mode was active; exiting that scope is deferred until the app returns from the background. */
 const val THREAD_OPENED_FROM_SECURE_CONVERSATION_LIST = "thread_opened_from_secure_conversation_list"
@@ -42,8 +42,6 @@ const val LOCK_SCREEN_VISIBILITY = "lock_screen_visibility"
 const val ENABLE_DELIVERY_REPORTS = "enable_delivery_reports"
 const val DELIVERY_REPORT_SOUND = "delivery_report_sound"
 const val NOTIFICATION_SOUND = "notification_sound"
-/** When true, show a notification for incoming messages from blocked numbers. */
-const val SHOW_BLOCKED_NOTIFICATIONS = "show_blocked_notifications"
 const val SEND_LONG_MESSAGE_MMS = "send_long_message_mms"
 const val SEND_GROUP_MESSAGE_MMS = "send_group_message_mms"
 const val MMS_FILE_SIZE_LIMIT = "mms_file_size_limit"
