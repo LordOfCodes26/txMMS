@@ -21,10 +21,7 @@ import com.android.common.view.MActionBar
 import com.google.android.material.appbar.AppBarLayout.ScrollingViewBehavior
 import com.goodwy.commons.extensions.beVisibleIf
 import com.goodwy.commons.extensions.getTempFile
-import com.goodwy.commons.extensions.getProperBackgroundColor
-import com.goodwy.commons.extensions.getSurfaceColor
 import com.goodwy.commons.extensions.hideKeyboard
-import com.goodwy.commons.extensions.isDynamicTheme
 import com.goodwy.commons.extensions.isSystemInDarkMode
 import com.goodwy.commons.extensions.showErrorToast
 import com.goodwy.commons.extensions.toast
@@ -63,7 +60,8 @@ class ManageQuickTextsActivity : SimpleActivity(), RefreshRecyclerViewListener, 
         makeSystemBarsToTransparent()
         setupQuickTextsTopAppBar()
         setupNestBouncyScroll()
-        applyQuickTextsWindowSurfacesAndChrome()
+        // Screen background comes from layout @color/tx_card_bg (same as SettingsActivity / txDial).
+        applyQuickTextsTopChrome()
         setupBottomAddQuickTextButton()
         updateQuickTexts()
         scrollingView = binding.manageQuickTextsScroll
@@ -95,7 +93,7 @@ class ManageQuickTextsActivity : SimpleActivity(), RefreshRecyclerViewListener, 
                 )
         }
 
-        applyQuickTextsWindowSurfacesAndChrome()
+        applyQuickTextsTopChrome()
         updateTextColors(binding.rootView)
         setupQuickTextsTopAppBar()
         setupBottomAddQuickTextButton()
@@ -138,12 +136,8 @@ class ManageQuickTextsActivity : SimpleActivity(), RefreshRecyclerViewListener, 
         binding.quickTextsActionModeToolbar.bindBlurTarget(this, binding.mainBlurTarget)
     }
 
-    private fun applyQuickTextsWindowSurfacesAndChrome() {
-        val useSurfaceColor = isDynamicTheme() && !isSystemInDarkMode()
-        val backgroundColor = if (useSurfaceColor) getSurfaceColor() else getProperBackgroundColor()
-        binding.root.setBackgroundColor(backgroundColor)
-        binding.rootView.setBackgroundColor(backgroundColor)
-        binding.mainBlurTarget.setBackgroundColor(backgroundColor)
+    /** Transparent top chrome only — activity surface is layout `tx_card_bg`, cards use `tx_cardview_bg`. */
+    private fun applyQuickTextsTopChrome() {
         binding.manageQuickTextsList.setBackgroundColor(Color.TRANSPARENT)
         binding.manageQuickTextsScroll.setBackgroundColor(Color.TRANSPARENT)
         scrollingView = binding.manageQuickTextsScroll

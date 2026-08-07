@@ -4,7 +4,6 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.graphics.Color
-import android.graphics.drawable.ColorDrawable
 import android.net.Uri
 import android.os.Build
 import android.media.AudioManager
@@ -135,15 +134,14 @@ class SettingsActivity : SimpleActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Theme.Material3.Dark windowBackground is dark; paint window + decor before inflation so edge-to-edge does not flash behind transparent bars.
-        paintSettingsWindowBeforeContentView()
         setContentView(binding.root)
         initTheme()
         setupEdgeToEdge()
         makeSystemBarsToTransparent()
         setupSettingsTopAppBar()
         setupNestBouncyScroll()
-        applySettingsWindowBackgroundsAndTopChrome()
+        // Screen background comes from layout @color/tx_card_bg (same as txDial SettingsActivity).
+        applySettingsTopChrome()
         scrollingView = binding.settingsNestedScrollview
         binding.settingsMenu.addOnOffsetChangedListener { _, _ ->
             binding.mVerticalSideFrameTop.update()
@@ -155,30 +153,9 @@ class SettingsActivity : SimpleActivity() {
         }
     }
 
-    /** Same surface / background logic as [MainActivity.mainContentBackgroundColor]. */
-    private fun mainContentBackgroundColor(): Int {
-        val useSurfaceColor = isDynamicTheme() && !isSystemInDarkMode()
-        return if (useSurfaceColor) getSurfaceColor() else getProperBackgroundColor()
-    }
-
-    /**
-     * Runs after [super.onCreate] and **before** [setContentView]: replaces the dark Material3 Dark
-     * `windowBackground` so transparent system bars do not reveal it before settings content loads.
-     */
-    private fun paintSettingsWindowBeforeContentView() {
-        val backgroundColor = mainContentBackgroundColor()
-        window.setBackgroundDrawable(ColorDrawable(backgroundColor))
-        window.decorView.setBackgroundColor(backgroundColor)
-    }
-
-    private fun applySettingsWindowBackgroundsAndTopChrome() {
-        val backgroundColor = mainContentBackgroundColor()
-        window.setBackgroundDrawable(ColorDrawable(backgroundColor))
-        window.decorView.setBackgroundColor(backgroundColor)
-        binding.root.setBackgroundColor(backgroundColor)
-        binding.rootView.setBackgroundColor(backgroundColor)
+    /** Transparent top chrome only — activity surface is layout `tx_card_bg`, cards use `tx_cardview_bg` (txDial). */
+    private fun applySettingsTopChrome() {
         binding.settingsNestedScrollview.setBackgroundColor(Color.TRANSPARENT)
-        binding.settingsHolder.setBackgroundColor(backgroundColor)
         scrollingView = binding.settingsNestedScrollview
         applyTransparentMAppBarChrome()
     }
@@ -249,7 +226,7 @@ class SettingsActivity : SimpleActivity() {
                 )
         }
 
-        applySettingsWindowBackgroundsAndTopChrome()
+        applySettingsTopChrome()
 
         isRebindingSettings = true
         stopCurrentlyPlayingRingtone()

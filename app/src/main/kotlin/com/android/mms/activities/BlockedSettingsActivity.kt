@@ -1,7 +1,6 @@
 package com.android.mms.activities
 
 import android.graphics.Color
-import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.view.View
 import androidx.core.view.ViewCompat
@@ -9,10 +8,7 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import com.android.mms.databinding.ActivityBlockedSettingsBinding
 import com.android.mms.extensions.config
-import com.goodwy.commons.extensions.getProperBackgroundColor
-import com.goodwy.commons.extensions.getSurfaceColor
 import com.goodwy.commons.extensions.hideKeyboard
-import com.goodwy.commons.extensions.isDynamicTheme
 import com.goodwy.commons.extensions.isSystemInDarkMode
 import com.goodwy.commons.extensions.updateTextColors
 import com.goodwy.commons.extensions.viewBinding
@@ -22,14 +18,14 @@ class BlockedSettingsActivity : SimpleActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        paintSettingsWindowBeforeContentView()
         setContentView(binding.root)
         initTheme()
         setupEdgeToEdge()
         makeSystemBarsToTransparent()
         setupSettingsTopAppBar()
         setupNestBouncyScroll()
-        applySettingsWindowBackgroundsAndTopChrome()
+        // Screen background comes from layout @color/tx_card_bg (same as SettingsActivity / txDial).
+        applySettingsTopChrome()
         scrollingView = binding.settingsNestedScrollview
         binding.settingsMenu.addOnOffsetChangedListener { _, _ ->
             binding.mVerticalSideFrameTop.update()
@@ -41,25 +37,9 @@ class BlockedSettingsActivity : SimpleActivity() {
         }
     }
 
-    private fun mainContentBackgroundColor(): Int {
-        val useSurfaceColor = isDynamicTheme() && !isSystemInDarkMode()
-        return if (useSurfaceColor) getSurfaceColor() else getProperBackgroundColor()
-    }
-
-    private fun paintSettingsWindowBeforeContentView() {
-        val backgroundColor = mainContentBackgroundColor()
-        window.setBackgroundDrawable(ColorDrawable(backgroundColor))
-        window.decorView.setBackgroundColor(backgroundColor)
-    }
-
-    private fun applySettingsWindowBackgroundsAndTopChrome() {
-        val backgroundColor = mainContentBackgroundColor()
-        window.setBackgroundDrawable(ColorDrawable(backgroundColor))
-        window.decorView.setBackgroundColor(backgroundColor)
-        binding.root.setBackgroundColor(backgroundColor)
-        binding.rootView.setBackgroundColor(backgroundColor)
+    /** Transparent top chrome only — activity surface is layout `tx_card_bg`, cards use `tx_cardview_bg`. */
+    private fun applySettingsTopChrome() {
         binding.settingsNestedScrollview.setBackgroundColor(Color.TRANSPARENT)
-        binding.settingsHolder.setBackgroundColor(backgroundColor)
         scrollingView = binding.settingsNestedScrollview
         applyTransparentMAppBarChrome()
     }
@@ -130,7 +110,7 @@ class BlockedSettingsActivity : SimpleActivity() {
                 )
         }
 
-        applySettingsWindowBackgroundsAndTopChrome()
+        applySettingsTopChrome()
         setupSettingsTopAppBar()
         scrollingView = binding.settingsNestedScrollview
         setupShowNotification()
