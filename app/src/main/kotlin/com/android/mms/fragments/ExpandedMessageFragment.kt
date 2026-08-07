@@ -420,11 +420,14 @@ class ExpandedMessageFragment : Fragment() {
                     senderNameView?.setTextColor(textColor)
                 }
                 // Same rule as [ThreadActivity.bindThreadHeaderUi]: a number that is not in contacts has
-                // no name, so it is already the title and the subtitle would only repeat it.
+                // no name, so it is already the title and the subtitle would only repeat it — unless
+                // the user asked to always show the phone number.
                 val normalizedTitle = threadTitle.normalizePhoneNumber()
                 val titleIsPhoneNumber = threadTitle == threadSubtitle ||
                     (normalizedTitle.isNotEmpty() && normalizedTitle == threadSubtitle.normalizePhoneNumber())
-                val hideSubtitle = threadSubtitle.isEmpty() || participantsCount > 1 || titleIsPhoneNumber
+                val hideSubtitle = threadSubtitle.isEmpty() ||
+                    participantsCount > 1 ||
+                    (titleIsPhoneNumber && !requireActivity().config.showPhoneNumber)
                 senderNumberView?.beGoneIf(hideSubtitle)
                 senderNumberView?.text = threadSubtitle
                 senderNumberView?.setTextColor(textColor)

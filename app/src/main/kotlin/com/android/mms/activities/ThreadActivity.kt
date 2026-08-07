@@ -2286,11 +2286,14 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
     ) = binding.apply {
         val textColor = getProperTextColor()
         // A number that is not in contacts has no name, so it is already the title and the subtitle
-        // would only repeat it. Compare normalized so a formatted title matches the raw subtitle.
+        // would only repeat it — unless the user asked to always show the phone number.
+        // Compare normalized so a formatted title matches the raw subtitle.
         val normalizedTitle = threadTitle.normalizePhoneNumber()
         val titleIsPhoneNumber = threadTitle == threadSubtitle ||
             (normalizedTitle.isNotEmpty() && normalizedTitle == threadSubtitle.normalizePhoneNumber())
-        val hideSubtitle = threadSubtitle.isEmpty() || participantCount > 1 || titleIsPhoneNumber
+        val hideSubtitle = threadSubtitle.isEmpty() ||
+            participantCount > 1 ||
+            (titleIsPhoneNumber && !config.showPhoneNumber)
         threadToolbar.title = ""
         when (config.threadTopStyle) {
             THREAD_TOP_COMPACT -> {
