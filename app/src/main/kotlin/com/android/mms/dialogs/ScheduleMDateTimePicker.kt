@@ -4,7 +4,6 @@ import android.view.WindowManager
 import com.android.common.dialogs.MDateTimePickerDialog
 import com.goodwy.commons.activities.BaseSimpleActivity
 import com.goodwy.commons.extensions.toast
-import com.goodwy.commons.extensions.trackOpenDialog
 import com.android.mms.R
 import eightbitlab.com.blurview.BlurTarget
 import org.joda.time.DateTime
@@ -22,7 +21,6 @@ fun BaseSimpleActivity.showScheduleDateTimePicker(
     dialog.bindBlurTarget(blurTarget)
     dialog.window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING)
     dialog.show()
-    trackOpenDialog(dialog)
     dialog.setOnDateSelectListener { datetime ->
         val picked = datetime.toJodaDateTime() ?: return@setOnDateSelectListener
         if (picked.millis < System.currentTimeMillis() + 1000L) {

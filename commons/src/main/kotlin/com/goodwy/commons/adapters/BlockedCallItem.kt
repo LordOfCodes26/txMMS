@@ -6,8 +6,10 @@ data class BlockedCallItem(
     val phoneNumber: String,
     val timestamp: Long,
     val simId: Int = -1,
+    /** Telephony SIM tint; 0 means unresolved (adapter falls back like recents). */
+    val simColor: Int = 0,
     val groupedCount: Int = 1,
-    /** Every CallLog row represented by this list row (required when rows are grouped by contact). */
+    /** Every CallLog row represented by this list row (required when rows are grouped by number). */
     val allCallLogIds: List<Long> = emptyList(),
 ) {
     fun callLogIdsForDeletion(): List<Long> {

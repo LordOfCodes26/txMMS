@@ -2569,7 +2569,6 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
             }
         }
         dialog.show()
-        trackOpenDialog(dialog)
     }
 
     private fun isBlockNumbers(): Boolean {

@@ -28,6 +28,19 @@ import com.goodwy.commons.views.*
 import kotlin.math.abs
 
 /**
+ * Cache for avatar gradient drawable ConstantStates
+ * (27 light + 27 dark + 27 light-small + 27 dark-small = 108 max entries).
+ * Caching ConstantState avoids re-parsing the vector/gradient XML on every bind (~120ms each).
+ * newDrawable() from a cached ConstantState is near-instant.
+ * Write once per unique (index, dark, forList) pair; never cleared (drawables are stateless gradients).
+ */
+private val avatarGradientConstantStateCache = android.util.SparseArray<Drawable.ConstantState>()
+
+/** Cache key bands: full light 0–26, full dark 27–53, list light 81–107, list dark 108–134. */
+private const val AVATAR_CACHE_DARK_OFFSET = 27
+private const val AVATAR_CACHE_LIST_OFFSET = 81
+
+/**
  * Explicit IDs for light/dark avatar rings. Do not use [Resources.getIdentifier] here: it often returns 0
  * for library drawables at runtime, which incorrectly fell back to legacy [R.drawable.contact_avatar_bg_1]
  * (dark-looking browns) even when light mode was requested.
@@ -56,10 +69,57 @@ private val CONTACT_AVATAR_BG_DARK_RES_IDS = intArrayOf(
     R.drawable.contact_avatar_bg_dark_25, R.drawable.contact_avatar_bg_dark_26, R.drawable.contact_avatar_bg_dark_27
 )
 
-private fun contactAvatarBgResId(drawableIndex: Int, isDarkMode: Boolean): Int {
+/** Compact 48dp avatar rings for recents/contacts list rows (same colors as the full-size vectors). */
+private val CONTACT_AVATAR_BG_LIGHT_SMALL_RES_IDS = intArrayOf(
+    R.drawable.contact_avatar_bg_light_small_1, R.drawable.contact_avatar_bg_light_small_2, R.drawable.contact_avatar_bg_light_small_3,
+    R.drawable.contact_avatar_bg_light_small_4, R.drawable.contact_avatar_bg_light_small_5, R.drawable.contact_avatar_bg_light_small_6,
+    R.drawable.contact_avatar_bg_light_small_7, R.drawable.contact_avatar_bg_light_small_8, R.drawable.contact_avatar_bg_light_small_9,
+    R.drawable.contact_avatar_bg_light_small_10, R.drawable.contact_avatar_bg_light_small_11, R.drawable.contact_avatar_bg_light_small_12,
+    R.drawable.contact_avatar_bg_light_small_13, R.drawable.contact_avatar_bg_light_small_14, R.drawable.contact_avatar_bg_light_small_15,
+    R.drawable.contact_avatar_bg_light_small_16, R.drawable.contact_avatar_bg_light_small_17, R.drawable.contact_avatar_bg_light_small_18,
+    R.drawable.contact_avatar_bg_light_small_19, R.drawable.contact_avatar_bg_light_small_20, R.drawable.contact_avatar_bg_light_small_21,
+    R.drawable.contact_avatar_bg_light_small_22, R.drawable.contact_avatar_bg_light_small_23, R.drawable.contact_avatar_bg_light_small_24,
+    R.drawable.contact_avatar_bg_light_small_25, R.drawable.contact_avatar_bg_light_small_26, R.drawable.contact_avatar_bg_light_small_27
+)
+
+private val CONTACT_AVATAR_BG_DARK_SMALL_RES_IDS = intArrayOf(
+    R.drawable.contact_avatar_bg_dark_small_1, R.drawable.contact_avatar_bg_dark_small_2, R.drawable.contact_avatar_bg_dark_small_3,
+    R.drawable.contact_avatar_bg_dark_small_4, R.drawable.contact_avatar_bg_dark_small_5, R.drawable.contact_avatar_bg_dark_small_6,
+    R.drawable.contact_avatar_bg_dark_small_7, R.drawable.contact_avatar_bg_dark_small_8, R.drawable.contact_avatar_bg_dark_small_9,
+    R.drawable.contact_avatar_bg_dark_small_10, R.drawable.contact_avatar_bg_dark_small_11, R.drawable.contact_avatar_bg_dark_small_12,
+    R.drawable.contact_avatar_bg_dark_small_13, R.drawable.contact_avatar_bg_dark_small_14, R.drawable.contact_avatar_bg_dark_small_15,
+    R.drawable.contact_avatar_bg_dark_small_16, R.drawable.contact_avatar_bg_dark_small_17, R.drawable.contact_avatar_bg_dark_small_18,
+    R.drawable.contact_avatar_bg_dark_small_19, R.drawable.contact_avatar_bg_dark_small_20, R.drawable.contact_avatar_bg_dark_small_21,
+    R.drawable.contact_avatar_bg_dark_small_22, R.drawable.contact_avatar_bg_dark_small_23, R.drawable.contact_avatar_bg_dark_small_24,
+    R.drawable.contact_avatar_bg_dark_small_25, R.drawable.contact_avatar_bg_dark_small_26, R.drawable.contact_avatar_bg_dark_small_27
+)
+
+private fun contactAvatarBgResId(drawableIndex: Int, isDarkMode: Boolean, forList: Boolean): Int {
     val idx = ((drawableIndex % 27) + 27) % 27
-    return if (isDarkMode) CONTACT_AVATAR_BG_DARK_RES_IDS[idx] else CONTACT_AVATAR_BG_LIGHT_RES_IDS[idx]
+    return when {
+        forList && isDarkMode -> CONTACT_AVATAR_BG_DARK_SMALL_RES_IDS[idx]
+        forList -> CONTACT_AVATAR_BG_LIGHT_SMALL_RES_IDS[idx]
+        isDarkMode -> CONTACT_AVATAR_BG_DARK_RES_IDS[idx]
+        else -> CONTACT_AVATAR_BG_LIGHT_RES_IDS[idx]
+    }
 }
+
+/**
+ * Explicit IDs for the contact-detail full-screen background photos, for the same reason as
+ * [CONTACT_AVATAR_BG_LIGHT_RES_IDS]: [android.content.res.Resources.getIdentifier] often returns 0 for
+ * library drawables at runtime, which silently collapsed every contact to [R.drawable.contact_background_1].
+ */
+private val CONTACT_BACKGROUND_RES_IDS = intArrayOf(
+    R.drawable.contact_background_1, R.drawable.contact_background_2, R.drawable.contact_background_3,
+    R.drawable.contact_background_4, R.drawable.contact_background_5, R.drawable.contact_background_6,
+    R.drawable.contact_background_7, R.drawable.contact_background_8, R.drawable.contact_background_9,
+    R.drawable.contact_background_10, R.drawable.contact_background_11, R.drawable.contact_background_12,
+    R.drawable.contact_background_13, R.drawable.contact_background_14, R.drawable.contact_background_15,
+    R.drawable.contact_background_16, R.drawable.contact_background_17, R.drawable.contact_background_18,
+    R.drawable.contact_background_19, R.drawable.contact_background_20, R.drawable.contact_background_21,
+    R.drawable.contact_background_22, R.drawable.contact_background_23, R.drawable.contact_background_24,
+    R.drawable.contact_background_25, R.drawable.contact_background_26, R.drawable.contact_background_27
+)
 
 /** Same ordering as [CONTACT_AVATAR_BG_*] / contact_background: index 0 → color_1, …, index 26 → color_27 */
 private val CONTACT_CARD_OVERLAY_COLOR_RES_IDS = intArrayOf(
@@ -421,48 +481,54 @@ fun Context.getContactCardOverlayColorForDrawableIndex(drawableIndex: Int): Int 
 }
 
 /**
- * Creates a gradient drawable for activity background based on avatar color.
- * The gradient is similar to iOS 26 contacts background style with a glow effect.
+ * Creates a circular avatar gradient drawable for the given color index.
  *
- * @param avatarColor The base avatar color to create gradient from
- * @param blendWithSurface If true, blends the gradient with surface color for light themes (default: true)
- * @param glowIntensity The intensity of the glow effect (0.0 to 1.0, default: 0.4)
- * @return A LayerDrawable with linear gradient base and radial glow overlay
+ * @param forList When true, uses compact 48dp list drawables (recents/contacts rows).
+ *                When false, uses the full-size vectors (detail/edit/photo screens).
  */
 @SuppressLint("UseCompatLoadingForDrawables")
 fun Context.createAvatarGradientDrawable(
     drawableIndex: Int,
     isDarkMode: Boolean = isNightDisplay(),
+    initials: String = "",
     blendWithSurface: Boolean = true,
-    glowIntensity: Float = 0.4f
+    glowIntensity: Float = 0.4f,
+    forList: Boolean = false,
 ): Drawable {
-//    val (topColor, bottomColor) = avatarColor.createGradientColors()
+    val idx = ((drawableIndex % 27) + 27) % 27
+    val cacheKey = when {
+        forList && isDarkMode -> AVATAR_CACHE_LIST_OFFSET + AVATAR_CACHE_DARK_OFFSET + idx
+        forList -> AVATAR_CACHE_LIST_OFFSET + idx
+        isDarkMode -> AVATAR_CACHE_DARK_OFFSET + idx
+        else -> idx
+    }
+    avatarGradientConstantStateCache.get(cacheKey)?.let { return it.newDrawable(resources) }
 
+    Log.d("CHero-createAvatarDrawable", "idx=$drawableIndex dark=$isDarkMode list=$forList initials=$initials (cache miss)")
 
-    val resId = contactAvatarBgResId(drawableIndex, isDarkMode)
-    return getDrawable(resId) ?: getDrawable(R.drawable.contact_avatar_bg_1)!!
+    val resId = contactAvatarBgResId(drawableIndex, isDarkMode, forList)
+    val drawable = getDrawable(resId) ?: getDrawable(R.drawable.contact_avatar_bg_1)!!
+    drawable.constantState?.let { avatarGradientConstantStateCache.put(cacheKey, it) }
+    return drawable
 }
+// Cache key offset for createContactGradientDrawable: use range 54–80 to avoid colliding with
+// full avatar cache keys (0–53). List avatar keys start at [AVATAR_CACHE_LIST_OFFSET].
+private const val CONTACT_BG_CACHE_OFFSET = 54
+
 fun Context.createContactGradientDrawable(
     drawableIndex: Int,
     blendWithSurface: Boolean = true,
     glowIntensity: Float = 0.4f
 ): Drawable {
-//    val (topColor, bottomColor) = avatarColor.createGradientColors()
+    val idx = ((drawableIndex % 27) + 27) % 27
+    val cacheKey = CONTACT_BG_CACHE_OFFSET + idx
+    avatarGradientConstantStateCache.get(cacheKey)?.let { return it.newDrawable(resources) }
 
+    Log.d("CHero-createAvatarDrawable", "$drawableIndex (cache miss)")
 
-    // Convert drawableIndex to resource number (1-27)
-    // drawableIndex 0 -> contact_avatar_bg_1, drawableIndex 1 -> contact_avatar_bg_2, etc.
-    val resourceNumber = (drawableIndex % 27) + 1
-    val resourceName = "contact_background_$resourceNumber"
-
-    val resourceId = resources.getIdentifier(resourceName, "drawable", packageName)
-
-    return if (resourceId != 0) {
-        getDrawable(resourceId)!!
-    } else {
-        // Fallback to contact_avatar_bg_1 if resource not found
-        getDrawable(R.drawable.contact_background_1)!!
-    }
+    val drawable = getDrawable(CONTACT_BACKGROUND_RES_IDS[idx])!!
+    drawable.constantState?.let { avatarGradientConstantStateCache.put(cacheKey, it) }
+    return drawable
 }
 
 /** Same corner radius as contact detail card drawables when [tx_cardview_corner_radius] exists in the app theme. */

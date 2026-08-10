@@ -66,6 +66,12 @@ abstract class BaseSimpleActivity : EdgeToEdgeActivity() {
     var isAskingPermissions = false
     var useDynamicTheme = true
     var useChangeAutoTheme = true
+    /**
+     * When false, [onResume] still applies [getThemeId] but does not reset
+     * [window.decorView] to [getProperBackgroundColor]. Contact detail screens opt out so a light
+     * theme does not flash white over the contact gradient during activity transitions.
+     */
+    open var updateBackgroundOnResume = true
     var checkedDocumentPath = ""
     var configItemsToExport = LinkedHashMap<String, Any>()
 
@@ -154,10 +160,11 @@ abstract class BaseSimpleActivity : EdgeToEdgeActivity() {
 
     override fun onResume() {
         super.onResume()
-        dismissOpenDialogs()
         if (useDynamicTheme) {
             setTheme(getThemeId())
-            updateBackgroundColor(getProperBackgroundColor())
+            if (updateBackgroundOnResume) {
+                updateBackgroundColor(getProperBackgroundColor())
+            }
         }
 
         updateRecentsAppIcon()

@@ -30,6 +30,7 @@ import com.goodwy.commons.databinding.ActivityBlockedItemsBinding
 import com.goodwy.commons.dialogs.OptionListDialog
 import com.goodwy.commons.dialogs.toOptionListItems
 import com.goodwy.commons.extensions.addBlockedNumber
+import com.goodwy.commons.extensions.bindBlurTargetFrozen
 import com.goodwy.commons.extensions.blockContact
 import com.goodwy.commons.extensions.onPageChangeListener
 import com.goodwy.commons.extensions.toast
@@ -126,8 +127,8 @@ open class BlockedItemsActivity : BaseSimpleActivity(), ActionModeToolbarHost {
      * at the bottom edge (and sits under the sibling tab bar), so the outer target restores the bottom glass effect.
      */
     private fun setupVerticalSideFrameBlur() {
-        binding.mVerticalSideFrameTop.bindBlurTarget(binding.blurTarget)
-        binding.mVerticalSideFrameBottom.bindBlurTarget(binding.blurTarget)
+        binding.mVerticalSideFrameTop.bindBlurTargetFrozen(binding.blurTarget)
+        binding.mVerticalSideFrameBottom.bindBlurTargetFrozen(binding.blurTarget)
     }
 
     private fun syncVerticalSideFrameBlurState() {
@@ -271,7 +272,10 @@ open class BlockedItemsActivity : BaseSimpleActivity(), ActionModeToolbarHost {
         syncBlurTargetTopMarginForAppBar()
         syncActionModeRippleToolbarInsetWithTabBar()
         syncVerticalSideFrameBlurState()
+        syncCurrentPageListTopInset(inActionMode = true)
         binding.root.post {
+            // Re-sync after CAB layout so measured chrome bottom is available.
+            syncCurrentPageListTopInset(inActionMode = true)
             syncMainHolderBottomPaddingForTabBar()
             refreshActionModeRippleToolbarIfNeeded()
         }
@@ -282,11 +286,26 @@ open class BlockedItemsActivity : BaseSimpleActivity(), ActionModeToolbarHost {
         binding.mainMenu.visibility = View.VISIBLE
         binding.actionModeRippleToolbar.visibility = View.GONE
         binding.blockedItemsTabBar.visibility = View.VISIBLE
-        binding.mainMenu.dismissCollapse()
+        // Expand without animation — animated dismissCollapse() + deferred margin sync left one
+        // frame of wrong layering (ScrollingViewBehavior on, topMargin still 0) and flashed.
+        binding.mainMenu.setExpanded(true, false)
+        // Apply behavior + negative top margin in the same pass as showing [mainMenu], matching
+        // [showActionModeToolbar]. Deferring only [syncMainAppBarLayer] to post caused a visible jump.
         syncBlurTargetScrollingBehavior()
+        syncBlurTargetTopMarginForAppBar()
+        syncCurrentPageListTopInset(inActionMode = false)
+        syncVerticalSideFrameBlurState()
+        syncMainHolderBottomPaddingForTabBar()
         binding.root.post {
-            syncMainAppBarLayer()
+            // Tab bar may not have a height until laid out again after VISIBLE.
             syncMainHolderBottomPaddingForTabBar()
+        }
+    }
+
+    private fun syncCurrentPageListTopInset(inActionMode: Boolean) {
+        when (val page = currentBlockedPageFragment()) {
+            is BlockedCallsFragment -> page.syncListTopInset(inActionMode)
+            is BlockListFragment -> page.syncListTopInset(inActionMode)
         }
     }
 
@@ -359,7 +378,22 @@ open class BlockedItemsActivity : BaseSimpleActivity(), ActionModeToolbarHost {
                 true
             }
             R.id.settings -> {
-                openSettingsFromBlockedItems()
+                try {
+                    startActivity(
+                        Intent().setComponent(
+                            ComponentName(packageName, "$packageName.activities.BlockedSettingsActivity")
+                        )
+                    )
+                } catch (_: Exception) {
+                    try {
+                        startActivity(
+                            Intent().setComponent(
+                                ComponentName(packageName, "$packageName.activities.SettingsActivity")
+                            )
+                        )
+                    } catch (_: Exception) {
+                    }
+                }
                 true
             }
             R.id.more -> {
@@ -517,8 +551,8 @@ open class BlockedItemsActivity : BaseSimpleActivity(), ActionModeToolbarHost {
 
     /**
      * Shows [R.menu.block_menu] as an MPopup anchored to the [MAppBarLayout]'s action-bar pill.
-     * Mirrors the dialer `MainActivity.showMoreActionsPopup` flow: build the menu, then
-     * dispatch through [onBlockToolbarMenuItemClick].
+     * Mirrors the dialer `MainActivity.showMoreActionsPopup` flow: build the menu, hide
+     * settings on the messages tab, then dispatch through [onBlockToolbarMenuItemClick].
      */
     private fun showMoreActionsPopup() {
         val actionBar = binding.mainMenu.getActionBarView() ?: return
@@ -534,23 +568,6 @@ open class BlockedItemsActivity : BaseSimpleActivity(), ActionModeToolbarHost {
             blurTarget = blurTarget,
             listener = { item -> onBlockToolbarMenuItemClick(item) },
         )
-    }
-
-    /**
-     * Opens settings from the overflow menu. On the blocked-messages tab, hosts should open
-     * blocked-message settings (e.g. notification toggle); otherwise opens the app Settings screen.
-     */
-    protected open fun openSettingsFromBlockedItems() {
-        val currentTab = binding.blockedItemsViewPager.currentItem
-        val activityClass = if (currentTab == TAB_BLOCKED_MESSAGES) {
-            "$packageName.activities.BlockedSettingsActivity"
-        } else {
-            "$packageName.activities.SettingsActivity"
-        }
-        try {
-            startActivity(Intent().setComponent(ComponentName(packageName, activityClass)))
-        } catch (_: Exception) {
-        }
     }
 
 

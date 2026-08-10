@@ -38,7 +38,10 @@ data class Contact(
     var organization: Organization = Organization("",""),
     var IMs: ArrayList<IM> = ArrayList(),
     var mimetype: String = "",
-    var ringtone: String? = ""
+    var ringtone: String? = null,
+    /** Precomputed bind payload from [contact_display_cache]; null on legacy paths. */
+    @kotlinx.serialization.Transient
+    var displayBind: ContactDisplayBind? = null,
 ) : Comparable<Contact> {
     val rawId = id
     val name = getNameToDisplay()
@@ -80,7 +83,14 @@ data class Contact(
         var startWithSurname = false
         var showNicknameInsteadNames = false
         var sortingSymbolsFirst = false
+        // Each thread in Dispatchers.Default gets its own Collator clone so concurrent
+        // paging workers don't serialize on RuleBasedCollator.compare() monitor.
+        private val _threadLocalCollator = ThreadLocal<Collator>()
         var collator: Collator? = null
+            set(value) {
+                field = value
+                if (value != null) _threadLocalCollator.set(value.clone() as Collator)
+            }
 
         // Optimised comparator for fast sorting
         val optimizedComparator = Comparator<Contact> { c1, c2 ->
@@ -129,9 +139,9 @@ data class Contact(
             if (first.isEmpty() && second.isEmpty()) return 0
             if (first.isEmpty()) return 1
             if (second.isEmpty()) return -1
-
-            // A simple quick comparison
-            return collator?.compare(first, second) ?: first.compareTo(second, true)
+            val c = _threadLocalCollator.get()
+                ?: (collator?.clone() as? Collator)?.also { _threadLocalCollator.set(it) }
+            return c?.compare(first, second) ?: first.compareTo(second, true)
         }
     }
 
@@ -350,6 +360,12 @@ data class Contact(
     /** Fast-scroll rail label; shorter than [getFirstLetter] when many scripts/symbols exist. */
     fun getFastScrollBucket(): String = getFirstLetter().toFastScrollBucket()
 
+    /** Uses precomputed [ContactDisplayBind.sectionLetter] when display cache is loaded. */
+    fun resolvedFastScrollBucket(): String {
+        val cached = displayBind?.sectionLetter
+        return if (!cached.isNullOrEmpty()) cached else getFastScrollBucket()
+    }
+
     fun getNameToDisplay(): String {
         // Use only firstName - prefix, middleName, surname, suffix, nickname removed
         val organization = getFullCompany()
@@ -395,7 +411,7 @@ data class Contact(
             groups = ArrayList(),
             organization = Organization("", ""),
             IMs = ArrayList(),
-            ringtone = ""
+            ringtone = null
         ).toString()
     }
 
@@ -446,29 +462,61 @@ data class Contact(
     fun doesContainPhoneNumberCheck(text: String, convertLetters: Boolean = false, search: Boolean = false): Boolean {
         if (text.isEmpty() || phoneNumbers.isEmpty()) return false
 
-        val normalizedText = if (convertLetters) text.normalizePhoneNumber() else text
+        val normalizedText = text.normalizePhoneNumber().ifEmpty { text }
 
         return if (search) {
             phoneNumbers.any { phoneNumber ->
-                PhoneNumberUtils.compare(phoneNumber.normalizedNumber, normalizedText) ||
+                val storedNorm = phoneNumber.normalizedNumber.ifEmpty { phoneNumber.value.normalizePhoneNumber() }
+                PhoneNumberUtils.compare(storedNorm, normalizedText) ||
                     phoneNumber.value.contains(text) ||
-                    phoneNumber.normalizedNumber.contains(normalizedText) ||
+                    storedNorm.contains(normalizedText) ||
                     phoneNumber.value.normalizePhoneNumber().contains(normalizedText)
             }
         } else {
             phoneNumbers.any { phoneNumber ->
-                // TODO Does not work correctly if only some digits of the number match
-                // TODO Replaced contains with endsWith, may be helpful
-                PhoneNumberUtils.compare(phoneNumber.normalizedNumber, normalizedText)
-//                    (phoneNumber.value.contains(text) && text.length > 7) ||
-//                    (phoneNumber.normalizedNumber.contains(normalizedText) && normalizedText.length > 7) ||
-//                    (phoneNumber.value.normalizePhoneNumber().contains(normalizedText) && normalizedText.length > 7)
-                    || (phoneNumber.value.endsWith(text) && text.length > 7)
-                    || (phoneNumber.normalizedNumber.endsWith(normalizedText) && normalizedText.length > 7)
-                    // TODO I think the following line is unnecessary
-//                    || (phoneNumber.value.normalizePhoneNumber().endsWith(normalizedText) && normalizedText.length > 7)
+                val storedNorm = phoneNumber.normalizedNumber.ifEmpty { phoneNumber.value.normalizePhoneNumber() }
+                val valueNorm = phoneNumber.value.normalizePhoneNumber()
+                PhoneNumberUtils.compare(storedNorm, normalizedText) ||
+                    (valueNorm.isNotEmpty() && PhoneNumberUtils.compare(valueNorm, normalizedText)) ||
+                    digitsExactlyMatch(storedNorm, normalizedText) ||
+                    digitsExactlyMatch(valueNorm, normalizedText) ||
+                    numbersMatchWithNetworkPrefix(storedNorm, normalizedText) ||
+                    numbersMatchWithNetworkPrefix(valueNorm, normalizedText)
             }
         }
+    }
+
+    private fun digitsExactlyMatch(left: String, right: String): Boolean {
+        if (left.isBlank() || right.isBlank()) return false
+        val leftDigits = left.filter { it.isDigit() }
+        val rightDigits = right.filter { it.isDigit() }
+        return leftDigits.isNotEmpty() && leftDigits == rightDigits
+    }
+
+    /** Matches 191/195-prefixed call-log numbers against contacts saved without the prefix. */
+    private fun numbersMatchWithNetworkPrefix(stored: String, dialed: String): Boolean {
+        if (stored.isBlank() || dialed.isBlank()) return false
+        val storedDigits = stored.filter { it.isDigit() }
+        val dialedDigits = dialed.filter { it.isDigit() }
+        if (storedDigits.isEmpty() || dialedDigits.isEmpty()) return false
+        if (storedDigits == dialedDigits) return true
+        if (storedDigits.startsWith("1") && storedDigits.length == 11 && storedDigits.substring(1) == dialedDigits) {
+            return true
+        }
+        if (dialedDigits.startsWith("1") && dialedDigits.length == 11 && dialedDigits.substring(1) == storedDigits) {
+            return true
+        }
+        for (prefix in listOf("191", "195")) {
+            if (dialedDigits.startsWith(prefix) && dialedDigits.length >= 10) {
+                val stripped = dialedDigits.substring(prefix.length)
+                if (storedDigits == stripped) return true
+            }
+            if (storedDigits.startsWith(prefix) && storedDigits.length >= 10) {
+                val stripped = storedDigits.substring(prefix.length)
+                if (dialedDigits == stripped) return true
+            }
+        }
+        return false
     }
 
     fun doesHavePhoneNumber(text: String): Boolean {

@@ -10,5 +10,6 @@
         android:layout_gravity="center"
         android:gravity="center"
         android:padding="@dimen/activity_margin"
-        android:text="@string/no_blocked_contacts" />
+        android:text="@string/no_blocked_contacts"
+        android:textColor="@color/empty_placeholder" />
 </FrameLayout>

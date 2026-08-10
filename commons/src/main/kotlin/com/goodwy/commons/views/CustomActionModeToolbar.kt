@@ -113,6 +113,7 @@ class CustomActionModeToolbar @JvmOverloads constructor(
 
     /** Blur target for overflow popups and the MActionBar pills; set via [bindBlurTarget]. */
     private var boundBlurTarget: BlurTarget? = null
+    private var boundBlurActivity: Activity? = null
 
     private fun navigationActionBarView(): View? = binding?.root?.findViewById(R.id.navigationIconView)
 
@@ -323,25 +324,31 @@ class CustomActionModeToolbar @JvmOverloads constructor(
      * overflow [MPopup] shown by this toolbar.
      */
     fun bindBlurTarget(activity: Activity, blurTarget: BlurTarget) {
+        boundBlurActivity = activity
         boundBlurTarget = blurTarget
-        navigationMActionBar()?.bindBlurTarget(activity, blurTarget)
-        actionMActionBar()?.bindBlurTarget(activity, blurTarget)
+        rebindActionBarBlur()
     }
 
     /**
      * Binds blur target with optional overlay tint (`0` keeps each bar’s current resolved overlay).
+     * Non-zero [overlayColor] is persisted via [MActionBar.setOverlay] before re-bind so theme
+     * changes do not wipe the tint.
      */
     fun bindBlurTarget(activity: Activity, blurTarget: BlurTarget, @ColorInt overlayColor: Int) {
+        boundBlurActivity = activity
         boundBlurTarget = blurTarget
-        val nav = navigationMActionBar()
-        val action = actionMActionBar()
         if (overlayColor != 0) {
-            nav?.bindBlurTarget(activity, blurTarget, overlayColor)
-            action?.bindBlurTarget(activity, blurTarget, overlayColor)
-        } else {
-            nav?.bindBlurTarget(activity, blurTarget)
-            action?.bindBlurTarget(activity, blurTarget)
+            navigationMActionBar()?.setOverlay(overlayColor)
+            actionMActionBar()?.setOverlay(overlayColor)
         }
+        rebindActionBarBlur()
+    }
+
+    private fun rebindActionBarBlur() {
+        val activity = boundBlurActivity ?: return
+        val blurTarget = boundBlurTarget ?: return
+        navigationMActionBar()?.bindBlurTarget(activity, blurTarget)
+        actionMActionBar()?.bindBlurTarget(activity, blurTarget)
     }
 
     /**
@@ -563,73 +570,60 @@ class CustomActionModeToolbar @JvmOverloads constructor(
 
     /**
      * Updates the select all button icon based on selection state.
-     * If all items are selected, shows a checkmark icon; otherwise shows select all icon.
-     * When [hasSelection] is false, the icon is fully transparent but keeps its size so the
-     * action bar layout does not collapse.
+     * - All selected: invisible placeholder (stable slot size)
+     * - None or some selected: `ic_cmn_multi_check`
+     *
+     * Drawable IDs must be resolved via [resolveAppDrawable]: `com.android.common.R` from the
+     * file AAR is all `0x0` stubs, so passing those IDs to [MActionBar.setMenuItemIcon] clears the glyph.
      *
      * @param menuItemId The menu item ID for the select all button
      * @param allSelected True if all items are selected, false otherwise
-     * @param hasSelection True if at least one item is selected; when false the icon is transparent
+     * @param hasSelection True if at least one item is selected (kept for call-site API; icon stays visible either way)
      */
-
-    // changed function by sun 20260611
     fun updateSelectAllButtonIcon(menuItemId: Int, allSelected: Boolean, hasSelection: Boolean = true) {
-        val actionBar = actionMActionBar() ?: return
-        val iconRes = if (allSelected) {
-            R.drawable.ic_action_mode_select_all_placeholder
+        val barIconRes = if (allSelected) {
+            resolveAppDrawable("ic_action_mode_select_all_placeholder")
         } else {
-            com.android.common.R.drawable.ic_cmn_multi_check
+            resolveAppDrawable("ic_cmn_multi_check")
         }
-        runCatching {
-            (actionBar as Any).javaClass.getMethod("setMenuItemIcon", Int::class.javaPrimitiveType, Int::class.javaPrimitiveType)
-                .invoke(actionBar, R.id.cab_select_all, iconRes)
+        if (barIconRes == 0) return
+
+        fun applyToItem(menuItem: MenuItem) {
+            menuItem.isVisible = true
+            val icon = ContextCompat.getDrawable(context, barIconRes)?.mutate() ?: return
+            if (cachedTextColor == -1) {
+                cachedTextColor = context.getProperTextColor()
+            }
+            icon.applyColorFilter(cachedTextColor)
+            menuItem.icon = icon
         }
 
-//        val visibleIconRes = if (allSelected) {
-//            com.android.common.R.drawable.ic_cmn_multi_check
-//        } else {
-//            com.android.common.R.drawable.ic_cmn_multi_check
-//        }
-//
-//        val barIconRes = if (!hasSelection) { // changed by sun if (hasSelection) -> if (!hasSelection)
-//            visibleIconRes
-//        } else {
-//            R.drawable.ic_action_mode_select_all_placeholder
-//        }
-//
-//        fun applyToItem(menuItem: MenuItem) {
-//            menuItem.isVisible = true
-//            val icon = ContextCompat.getDrawable(context, barIconRes)?.mutate() ?: return
-//            if (!hasSelection) {
-//                if (cachedTextColor == -1) {
-//                    cachedTextColor = context.getProperTextColor()
-//                }
-//                icon.applyColorFilter(cachedTextColor)
-//            }
-//            menuItem.icon = icon
-//        }
-//
-//        // Menu model (used by [updateMenuDisplay] sync).
-//        _action_menu?.findItem(menuItemId)?.let { applyToItem(it) }
-//        menuActionBarMenu()?.findItem(menuItemId)?.let { applyToItem(it) }
-//        _menu?.findItem(menuItemId)?.let { applyToItem(it) }
-//
-//        // MActionBar renders icons via [setMenuItemIcon], not MenuItem.icon — that is what the user sees.
-//        applySelectAllIconToMActionBar(menuItemId, barIconRes, hasSelection)
-//        invalidateMenu()
+        // Menu model (used by [updateMenuDisplay] sync).
+        _action_menu?.findItem(menuItemId)?.let { applyToItem(it) }
+        menuActionBarMenu()?.findItem(menuItemId)?.let { applyToItem(it) }
+        _menu?.findItem(menuItemId)?.let { applyToItem(it) }
+
+        // MActionBar renders icons via [setMenuItemIcon], not MenuItem.icon — that is what the user sees.
+        applySelectAllIconToMActionBar(menuItemId, barIconRes)
+        invalidateMenu()
     }
 
-    private fun applySelectAllIconToMActionBar(menuItemId: Int, @androidx.annotation.DrawableRes iconRes: Int, hasSelection: Boolean) {
+    /**
+     * Runtime ID for a drawable merged into the host app. Prefer this over `com.android.common.R`
+     * (file AAR stubs are `0x0`) or dependency R fields that stay zero in library bytecode.
+     */
+    private fun resolveAppDrawable(name: String): Int =
+        resources.getIdentifier(name, "drawable", context.packageName)
+
+    private fun applySelectAllIconToMActionBar(menuItemId: Int, @androidx.annotation.DrawableRes iconRes: Int) {
         val actionBar = actionMActionBar() ?: return
         val apply = {
             actionBar.setMenuItemIcon(menuItemId, iconRes)
-            if (!hasSelection) {
-                if (cachedTextColor == -1) {
-                    cachedTextColor = context.getProperTextColor()
-                }
-                actionBar.setMenuItemIconTint(menuItemId, cachedTextColor)
+            if (cachedTextColor == -1) {
+                cachedTextColor = context.getProperTextColor()
             }
-            setMActionBarMenuItemGlyphAlpha(menuItemId, if (!hasSelection) 1f else 0f) // changed by sun if (hasSelection) -> if (!hasSelection)
+            actionBar.setMenuItemIconTint(menuItemId, cachedTextColor)
+            setMActionBarMenuItemGlyphAlpha(menuItemId, 1f)
         }
         apply()
         actionBar.post { apply() }

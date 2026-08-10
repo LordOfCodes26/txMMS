@@ -330,10 +330,21 @@ fun Context.getFilePublicUri(file: File, applicationId: String): Uri {
     }
 
     if (uri == null) {
-        uri = FileProvider.getUriForFile(this, "$applicationId.provider", file)
+        uri = getFileProviderUri(file, applicationId)
     }
 
     return uri!!
+}
+
+/** Dialer uses [applicationId].fileprovider; older Goodwy apps use [applicationId].provider. */
+private fun Context.getFileProviderUri(file: File, applicationId: String): Uri? {
+    for (authority in listOf("$applicationId.fileprovider", "$applicationId.provider")) {
+        try {
+            return FileProvider.getUriForFile(this, authority, file)
+        } catch (_: IllegalArgumentException) {
+        }
+    }
+    return null
 }
 
 fun Context.getMediaContentUri(path: String): Uri? {
@@ -1139,19 +1150,20 @@ fun Context.getBlockedNumbers(): ArrayList<BlockedNumber> {
 }
 
 fun Context.addBlockedNumber(number: String): Boolean {
-    ContentValues().apply {
+    if (!isDefaultDialer()) return false
+
+    val values = ContentValues().apply {
         put(BlockedNumbers.COLUMN_ORIGINAL_NUMBER, number)
         if (number.isPhoneNumber()) {
             put(BlockedNumbers.COLUMN_E164_NUMBER, PhoneNumberUtils.normalizeNumber(number))
         }
-        try {
-            contentResolver.insert(BlockedNumbers.CONTENT_URI, this)
-        } catch (e: Exception) {
-            showErrorToast(e)
-            return false
-        }
     }
-    return true
+    return try {
+        contentResolver.insert(BlockedNumbers.CONTENT_URI, values) != null
+    } catch (e: Exception) {
+        showErrorToast(e)
+        false
+    }
 }
 
 fun Context.deleteBlockedNumber(number: String): Boolean {
@@ -1216,11 +1228,13 @@ fun Context.isNumberBlockedByPattern(number: String, blockedNumbers: ArrayList<B
     return false
 }
 
-fun Context.copyToClipboard(text: String) {
+fun Context.copyToClipboard(text: String, showToast: Boolean = true) {
     val clip = ClipData.newPlainText(getString(R.string.simple_commons), text)
     (getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager).setPrimaryClip(clip)
-//    val toastText = String.format(getString(R.string.value_copied_to_clipboard_show), text)
-//    toast(toastText)
+    if (showToast) {
+        val toastText = String.format(getString(R.string.value_copied_to_clipboard_show), text)
+        toast(toastText)
+    }
 }
 
 fun Context.getPhoneNumberTypeText(type: Int, label: String): String {

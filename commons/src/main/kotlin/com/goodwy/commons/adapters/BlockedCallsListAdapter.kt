@@ -15,14 +15,19 @@ import com.goodwy.commons.activities.BaseSimpleActivity
 import com.goodwy.commons.activities.BlockedItemsActivity
 import com.goodwy.commons.databinding.ItemRecentCallBinding
 import com.goodwy.commons.extensions.adjustAlpha
+import com.goodwy.commons.extensions.applyColorFilter
+import com.goodwy.commons.extensions.baseConfig
 import com.goodwy.commons.extensions.getContrastColor
 import com.goodwy.commons.extensions.getProperBackgroundColor
+import com.goodwy.commons.extensions.getProperPrimaryColor
 import com.goodwy.commons.extensions.getTextSize
 import com.goodwy.commons.extensions.getTextSizeSmall
 import com.goodwy.commons.extensions.setHeightAndWidth
+import com.goodwy.commons.extensions.telecomManager
 import com.goodwy.commons.helpers.AvatarResolver
 import com.goodwy.commons.helpers.PERMISSION_WRITE_CALL_LOG
 import com.goodwy.commons.helpers.ensureBackgroundThread
+import com.goodwy.commons.helpers.resolveSimAccountIconTintForSimCardIndex
 import com.goodwy.commons.models.RecyclerSelectionPayload
 import com.goodwy.commons.views.MyRecyclerView
 import eightbitlab.com.blurview.BlurTarget
@@ -42,7 +47,6 @@ private fun selectionKey(item: BlockedCallItem): Int = when {
 class BlockedCallsListAdapter(
     activity: BaseSimpleActivity,
     recyclerView: MyRecyclerView,
-    private val isMultiSimSupported: Boolean,
     private val onOpenItem: (BlockedCallItem) -> Unit,
     onListRefresh: () -> Unit = {},
 ) : MyRecyclerViewListAdapter<BlockedCallItem>(
@@ -212,7 +216,9 @@ class BlockedCallsListAdapter(
                 AvatarResolver.resolve(
                     photoUri = null,
                     displayName = displayName ?: displayNumber,
-                    preferProfileIconForPhoneIdentity = true,
+                    // Saved contact (even if name looks like a number) → monogram; unknown → person icon.
+                    preferProfileIconForPhoneIdentity = displayName == null,
+                    context = activity,
                 ),
                 previewMode = true,
             )
@@ -231,10 +237,25 @@ class BlockedCallsListAdapter(
                 binding.itemRecentsCallCount.isVisible = false
             }
 
-            val showSim = isMultiSimSupported && blockedCall.simId > 0
+            // Match RecentCallsAdapter: SIM badge only on dual-SIM devices with a known slot.
+            val showSim = areMultipleSIMsAvailable() && blockedCall.simId != -1
             binding.itemRecentsSimImage.isVisible = showSim
             binding.itemRecentsSimId.isVisible = showSim
-            binding.itemRecentsSimId.text = if (showSim) blockedCall.simId.toString() else ""
+            if (showSim) {
+                val colorSimIcons = activity.baseConfig.colorSimIcons
+                val resolvedTint = when {
+                    blockedCall.simColor != 0 -> blockedCall.simColor
+                    else -> activity.resolveSimAccountIconTintForSimCardIndex(blockedCall.simId)
+                        ?: activity.getProperPrimaryColor()
+                }
+                val simColor = if (!colorSimIcons) secondaryTextColor else resolvedTint
+                binding.itemRecentsSimImage.applyColorFilter(simColor)
+                binding.itemRecentsSimImage.alpha = if (!colorSimIcons) 0.6f else 1f
+                binding.itemRecentsSimId.setTextColor(simColor.getContrastColor())
+                binding.itemRecentsSimId.text = blockedCall.simId.toString()
+            } else {
+                binding.itemRecentsSimId.text = ""
+            }
             binding.itemRecentsDateTime.text = android.text.format.DateUtils.getRelativeTimeSpanString(
                 blockedCall.timestamp,
                 System.currentTimeMillis(),
@@ -246,6 +267,8 @@ class BlockedCallsListAdapter(
 
             binding.itemRecentsCheckbox.isVisible = inSelection
             binding.itemRecentsCheckbox.isChecked = isRowSelected
+            // Don't change background on selection - checkbox shows selection state instead.
+            binding.root.isSelected = false
 
             binding.itemRecentsInfo.isVisible = !inSelection
             binding.itemRecentsInfoHolder.isVisible = true
@@ -261,11 +284,19 @@ class BlockedCallsListAdapter(
         }
     }
 
+    @SuppressLint("MissingPermission")
+    private fun areMultipleSIMsAvailable(): Boolean =
+        try {
+            activity.telecomManager.callCapablePhoneAccounts.size > 1
+        } catch (_: Exception) {
+            false
+        }
+
     override fun onBindViewHolder(holder: ViewHolder, position: Int, payloads: MutableList<Any>) {
         val payload = payloads.firstOrNull()
         if (payload is RecyclerSelectionPayload && holder is BlockedCallViewHolder) {
             holder.binding.itemRecentsCheckbox.isChecked = payload.selected
-            holder.itemView.isSelected = payload.selected
+            holder.itemView.isSelected = false
         } else {
             super.onBindViewHolder(holder, position, payloads)
         }

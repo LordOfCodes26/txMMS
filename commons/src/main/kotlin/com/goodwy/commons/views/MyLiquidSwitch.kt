@@ -1,131 +1,165 @@
-    package com.goodwy.commons.views
+package com.goodwy.commons.views
 
-    import android.content.Context
-    import android.util.AttributeSet
-    import android.widget.FrameLayout
-    import androidx.compose.foundation.isSystemInDarkTheme
-    import androidx.compose.foundation.layout.*
-    import androidx.compose.material3.MaterialTheme
-    import androidx.compose.material3.Text
-    import androidx.compose.runtime.*
-    import androidx.compose.ui.Alignment
-    import androidx.compose.ui.Modifier
-    import androidx.compose.ui.graphics.Color
-    import androidx.compose.ui.platform.ComposeView
-    import androidx.compose.ui.platform.ViewCompositionStrategy
-    import androidx.compose.ui.unit.dp
-    import androidx.lifecycle.compose.LocalLifecycleOwner
-    import androidx.lifecycle.findViewTreeLifecycleOwner
-    import com.kyant.backdrop.backdrops.rememberCanvasBackdrop
-    import androidx.core.content.withStyledAttributes
-    import com.kyant.backdrop.catalog.components.LiquidToggle
+import android.content.Context
+import android.graphics.drawable.ColorDrawable
+import android.util.AttributeSet
+import android.view.Gravity
+import android.view.View
+import android.widget.FrameLayout
+import android.widget.LinearLayout
+import android.widget.TextView
+import androidx.cardview.widget.CardView
+import com.android.common.view.MSwitch
+import com.qmdeve.liquidglass.view.LiquidGlassSwitch
 
-    class MyLiquidSwitch @JvmOverloads constructor(
-        context: Context,
-        attrs: AttributeSet? = null
-    ) : FrameLayout(context, attrs) {
+/**
+ * Kotlin-friendly wrapper laying out a label [TextView] + txCommon [MSwitch] (LiquidGlassSwitch
+ * with Dialer/CardView-friendly height clamping and pre-toggle click dispatch) in a row.
+ *
+ * [MSwitch] / [LiquidGlassSwitch] always centers its fixed-size track pill within whatever width
+ * it is given (it isn't a label-aware [android.widget.CompoundButton] row like stock
+ * [android.widget.Switch]), so the label can't be rendered via its own `android:text`; instead
+ * this wrapper positions a separate start-aligned label next to a compact, wrap-content-sized
+ * switch pinned to the end — mirroring the old Compose `Row` (label with weight 1f + toggle).
+ *
+ * The wrapper (rather than subclassing [MSwitch] directly) also keeps the listener API as a
+ * simple `(Boolean) -> Unit`; [LiquidGlassSwitch] exposes two overloaded
+ * `setOnCheckedChangeListener` methods (for [android.widget.CompoundButton.OnCheckedChangeListener]
+ * and its own `OnCheckedChangeListener`) that would make a single-arg Kotlin lambda ambiguous.
+ *
+ * [MSwitch] draws an opaque [switchBackgroundColor] rectangle behind the track (larger than the
+ * pill). That color must match the surface behind the switch (typically the parent [CardView]);
+ * otherwise a white box shows around the green track. This wrapper syncs from the nearest
+ * [CardView] after attach, matching txCommon SampleActivity / `layout_pager_control.xml`.
+ */
+class MyLiquidSwitch @JvmOverloads constructor(
+    context: Context,
+    attrs: AttributeSet? = null
+) : FrameLayout(context, attrs) {
 
-        private val composeView = ComposeView(context)
-        private var listener: ((Boolean) -> Unit)? = null
+    private val labelView: TextView = TextView(context, attrs)
 
-        // Correct: state-backed label so Compose updates
-        private var labelTextState = mutableStateOf("")
+    // Pass attrs through so LiquidGlassSwitch-specific XML attributes (trackOnColor,
+    // trackOffColor, thumbColor, switchBackgroundColor, touchable) and base View attributes
+    // (clickable, focusable, etc.) declared on the <MyLiquidSwitch> tag still apply to the real
+    // switch. android:text is harmless here too: MSwitch always centers its track pill
+    // within whatever width it's given rather than reserving space for a CompoundButton label, so
+    // it never actually renders text (hence labelView above).
+    val liquidSwitch: MSwitch = MSwitch(context, attrs)
 
-        private val checkedState = mutableStateOf(false)
+    private var listener: ((Boolean) -> Unit)? = null
+    private var switchBackgroundExplicitlySet = false
 
-        init {
-            // Read android:text
-            attrs?.let {
-                context.withStyledAttributes(
-                    it,
-                    intArrayOf(android.R.attr.text)
-                ) {
-                    labelTextState.value = getString(0) ?: ""
-                }
+    init {
+        clipChildren = false
+        clipToPadding = false
+
+        if (attrs != null) {
+            val a = context.obtainStyledAttributes(attrs, intArrayOf(com.android.common.R.attr.switchBackgroundColor))
+            try {
+                switchBackgroundExplicitlySet = a.hasValue(0)
+            } finally {
+                a.recycle()
             }
-
-            addView(
-                composeView,
-                LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
+        }
+        // Default to settings card surface so the glass backdrop is not white-on-gray during toggle.
+        if (!switchBackgroundExplicitlySet) {
+            liquidSwitch.setSwitchBackgroundColor(
+                context.getColor(com.android.common.R.color.tx_cardview_bg)
             )
-
-            composeView.setViewCompositionStrategy(
-                ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed
-            )
-
-            setupContent()
         }
 
-        private fun setupContent() {
-            composeView.setContent {
-                val lifecycleOwner = findViewTreeLifecycleOwner()
+        val rowLayout = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
 
-                if (lifecycleOwner != null) {
-                    CompositionLocalProvider(LocalLifecycleOwner provides lifecycleOwner) {
-                        MaterialTheme {
-                            val isLight = !isSystemInDarkTheme()
-                            val textColor = if (isLight) Color.Black else Color.White
-                            val backgroundColor = if (isLight) Color.White else Color(0xFF121212)
+        labelView.layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+            marginEnd = dpToPx(8f)
+        }
+        rowLayout.addView(labelView)
 
-                            val backdrop = rememberCanvasBackdrop {
-                                drawRect(backgroundColor)
-                            }
+        // Match txCommon sample host size (60x30dp) so CardView AT_MOST measure stays stable.
+        liquidSwitch.layoutParams = LinearLayout.LayoutParams(dpToPx(60f), dpToPx(30f))
+        liquidSwitch.setOnCheckedChangeListener(object : LiquidGlassSwitch.OnCheckedChangeListener {
+            override fun onCheckedChanged(view: LiquidGlassSwitch, isChecked: Boolean) {
+                listener?.invoke(isChecked)
+            }
+        })
+        rowLayout.addView(liquidSwitch)
 
-                            val hasLabel = labelTextState.value.isNotEmpty()
+        addView(rowLayout, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
 
-                            // One final Modifier based on label visibility
-                            val rowModifier = Modifier
-                                .then(
-                                    if (hasLabel) Modifier.fillMaxWidth() else Modifier.wrapContentWidth()
-                                )
-                                .padding(0.dp, 4.dp, 4.dp, 4.dp)
-                                .wrapContentHeight()
+        updateLabelVisibility()
+    }
 
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = rowModifier,
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        // Post so Activity theme code (e.g. setCardBackgroundColor) can run first in onCreate.
+        if (!switchBackgroundExplicitlySet) {
+            post { syncSwitchBackgroundFromAncestor() }
+        }
+    }
 
-                                if (hasLabel) {
-                                    Text(
-                                        text = labelTextState.value,
-                                        color = textColor,
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                }
+    var isChecked: Boolean
+        get() = liquidSwitch.isChecked
+        set(value) {
+            liquidSwitch.isChecked = value
+        }
 
-                                LiquidToggle(
-                                    selected = { checkedState.value },
-                                    onSelect = {
-                                        checkedState.value = it
-                                        listener?.invoke(it)
-                                    },
-                                    backdrop = backdrop
-                                )
-                            }
-                        }
+    fun toggle() {
+        liquidSwitch.setCheckedWithAnim(!liquidSwitch.isChecked)
+    }
+
+    fun setOnCheckedChangeListener(l: (Boolean) -> Unit) {
+        listener = l
+    }
+
+    fun setLabelText(text: String) {
+        labelView.text = text
+        updateLabelVisibility()
+    }
+
+    /** Matches the opaque glass backdrop to the surface behind this switch (see class KDoc). */
+    fun setSwitchBackgroundColor(color: Int) {
+        switchBackgroundExplicitlySet = true
+        liquidSwitch.setSwitchBackgroundColor(color)
+    }
+
+    override fun setEnabled(enabled: Boolean) {
+        super.setEnabled(enabled)
+        liquidSwitch.isEnabled = enabled
+    }
+
+    override fun setClickable(clickable: Boolean) {
+        super.setClickable(clickable)
+        liquidSwitch.isClickable = clickable
+    }
+
+    private fun syncSwitchBackgroundFromAncestor() {
+        if (switchBackgroundExplicitlySet) return
+        var current: View? = this
+        while (current != null) {
+            when (current) {
+                is CardView -> {
+                    liquidSwitch.setSwitchBackgroundColor(current.cardBackgroundColor.defaultColor)
+                    return
+                }
+                else -> {
+                    val bg = current.background
+                    if (bg is ColorDrawable && current !== this) {
+                        liquidSwitch.setSwitchBackgroundColor(bg.color)
+                        return
                     }
                 }
             }
-        }
-
-        var isChecked: Boolean
-            get() = checkedState.value
-            set(value) {
-                checkedState.value = value
-                listener?.invoke(value)
-            }
-
-        fun toggle() {
-            isChecked = !isChecked
-        }
-
-        fun setOnCheckedChangeListener(l: (Boolean) -> Unit) {
-            listener = l
-        }
-
-        fun setLabelText(text: String) {
-            labelTextState.value = text   // recomposes correctly
+            current = current.parent as? View
         }
     }
+
+    private fun updateLabelVisibility() {
+        labelView.visibility = if (labelView.text.isNullOrEmpty()) GONE else VISIBLE
+    }
+
+    private fun dpToPx(dp: Float): Int = (dp * resources.displayMetrics.density + 0.5f).toInt()
+}

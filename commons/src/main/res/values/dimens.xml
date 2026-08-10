@@ -202,4 +202,9 @@
     <dimen name="select_sim_dialog_anchor_overlap">25dp</dimen>
     <dimen name="select_sim_row_gap">10dp</dimen>
 
+    <!-- Referenced by commons swipe layouts (item_recent_call_swipe.xml) -->
+    <dimen name="swipe_icon_motion_host_width">34dp</dimen>
+    <dimen name="swipe_icon_motion_host_width_max">140dp</dimen>
+    <dimen name="swipe_icon_motion_host_height">34dp</dimen>
+
 </resources>

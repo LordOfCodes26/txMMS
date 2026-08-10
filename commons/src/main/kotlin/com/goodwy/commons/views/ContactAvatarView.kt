@@ -19,8 +19,12 @@ import android.widget.TextView
 import androidx.core.view.isVisible
 import com.goodwy.commons.R
 import com.goodwy.commons.extensions.createAvatarGradientDrawable
+import com.goodwy.commons.extensions.getNameLetter
 import com.goodwy.commons.extensions.isNightDisplay
 import com.goodwy.commons.helpers.AvatarSource
+import com.goodwy.commons.helpers.AvatarBindLogger
+import com.goodwy.commons.helpers.ContactAvatarInvalidUriTracker
+import com.goodwy.commons.helpers.ContactListPhotoUriPolicy
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.DataSource
 import com.bumptech.glide.load.engine.DiskCacheStrategy
@@ -29,6 +33,7 @@ import com.bumptech.glide.request.RequestOptions
 import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.target.Target
 import com.bumptech.glide.signature.ObjectKey
+import java.io.FileNotFoundException
 
 /**
  * Custom view for displaying contact avatars with support for multiple sources.
@@ -61,6 +66,11 @@ class ContactAvatarView @JvmOverloads constructor(
 
     // Current Glide request for memory leak prevention
     private var currentImageRequest: Any? = null
+    private var currentPhotoUri: String? = null
+    private var currentCacheSignature: Long? = null
+    private var currentSourceType: String? = null
+    private var currentMonogramKey: String? = null
+    private var onPhotoLoadFailedCallback: ((String) -> Unit)? = null
 
     // Thumbnail size for performance optimization (used when view size not yet known)
     private val THUMBNAIL_SIZE = 200
@@ -80,6 +90,12 @@ class ContactAvatarView @JvmOverloads constructor(
 
     fun setAvatarDarkModeOverride(isDarkMode: Boolean?) {
         avatarDarkModeOverride = isDarkMode
+    }
+
+    fun refreshMonogramLetterIfNeeded() {
+        if (!avatarInitials.isVisible) return
+        if (width > 0 && height > 0) updateMonogramTextSize()
+        else post { updateMonogramTextSize() }
     }
 
     private fun isAvatarDarkMode(): Boolean = avatarDarkModeOverride ?: context.isNightDisplay()
@@ -135,40 +151,64 @@ class ContactAvatarView @JvmOverloads constructor(
      * @param cacheSignature Optional signature for Glide cache busting (e.g. list refresh time).
      * @param previewMode When true (e.g. contact list), decodes at most PREVIEW_MAX_SIZE for fast scrolling; full photo in contact view.
      */
-    fun bind(source: AvatarSource, cacheSignature: Long? = null, previewMode: Boolean = false) {
-        // Detect same-photo reload BEFORE clearing anything.
-        // If the incoming URI equals the currently-tracked request, cancel the in-flight Glide
-        // load without wiping the displayed bitmap so the photo stays visible on screen
-        // (e.g. returning to ViewContactActivity from EditContactActivity without saving).
-        // For RecyclerView, onDetachedFromWindow() resets currentImageRequest to null, so this
-        // path is only taken when the same view instance re-binds the same URI without detaching.
-        val incomingUri = (source as? AvatarSource.Photo)
-            ?.let { try { Uri.parse(it.photoUri) } catch (_: Exception) { null } }
-        val isSamePhotoReload = incomingUri != null && incomingUri == currentImageRequest
+    fun bind(
+        source: AvatarSource,
+        cacheSignature: Long? = null,
+        previewMode: Boolean = false,
+        onPhotoLoadFailed: ((uri: String) -> Unit)? = null,
+    ) {
+        currentPreviewMode = previewMode
+        onPhotoLoadFailedCallback = onPhotoLoadFailed
+        val sourceType = when (source) {
+            is AvatarSource.Photo -> "PHOTO"
+            is AvatarSource.Drawable -> "DRAWABLE"
+            is AvatarSource.Monogram -> if (source.showProfileIcon) "PROFILE" else "MONOGRAM"
+        }
+        val incomingUri = (source as? AvatarSource.Photo)?.photoUri
+        val incomingSignature = cacheSignature
+        val isSamePhotoReload = source is AvatarSource.Photo &&
+            incomingUri != null &&
+            incomingUri == currentPhotoUri &&
+            incomingSignature == currentCacheSignature &&
+            sourceType == currentSourceType &&
+            !ContactAvatarInvalidUriTracker.isInvalidUri(incomingUri)
 
         if (isSamePhotoReload) {
-            try { Glide.with(context.applicationContext).clear(avatarImage) } catch (_: IllegalArgumentException) {}
-            currentImageRequest = null
-        } else {
-            clearImageRequest()
+            AvatarBindLogger.bindSkipped("SAME_URI_AND_VERSION")
+            return
         }
 
+        currentPhotoUri = incomingUri
+        currentCacheSignature = incomingSignature
+        currentSourceType = sourceType
+
         when (source) {
-            is AvatarSource.Photo -> bindPhoto(source, cacheSignature, previewMode, isSamePhotoReload)
-            is AvatarSource.Drawable -> bindDrawable(
-                source.drawableResId,
-                source.tintColor,
-                source.backgroundColor,
-                source.backgroundDrawableIndex,
-                source.iconInsetRatio,
-                source.iconSizePx
-            )
-            is AvatarSource.Monogram -> bindMonogram(
-                source.initials,
-                source.gradientColors,
-                source.drawableIndex,
-                source.showProfileIcon
-            )
+            is AvatarSource.Photo -> {
+                // Do not Glide.clear / blank the ImageView first — into() replaces the request and
+                // keeps the previous frame until the new load paints (avoids monogram/empty flash).
+                bindPhoto(source, cacheSignature, previewMode, onPhotoLoadFailed)
+            }
+            is AvatarSource.Drawable -> {
+                clearImageRequest(keepBindState = true)
+                bindDrawable(
+                    source.drawableResId,
+                    source.tintColor,
+                    source.backgroundColor,
+                    source.backgroundDrawableIndex,
+                    source.iconInsetRatio,
+                    source.iconSizePx
+                )
+            }
+            is AvatarSource.Monogram -> {
+                clearImageRequest(keepBindState = true)
+                bindMonogram(
+                    source.initials,
+                    source.gradientColors,
+                    source.drawableIndex,
+                    source.showProfileIcon,
+                    source.displayName,
+                )
+            }
         }
     }
 
@@ -181,13 +221,15 @@ class ContactAvatarView @JvmOverloads constructor(
         source: AvatarSource.Photo,
         cacheSignature: Long? = null,
         previewMode: Boolean = false,
-        isSamePhotoReload: Boolean = false
+        onPhotoLoadFailed: ((uri: String) -> Unit)? = null,
     ) {
         showingDefaultProfileIcon = false
+        currentMonogramKey = null
         drawableIconInsetRatio = null
         background = null
         avatarBackgroundLayer.background = null
         avatarBackgroundLayer.isVisible = false
+        avatarInitials.isVisible = false
         // Reset ImageView sizing state in case this recycled view previously displayed
         // a drawable/default icon (which uses FIT_CENTER + insets).
         avatarImage.layoutParams = FrameLayout.LayoutParams(
@@ -207,62 +249,125 @@ class ContactAvatarView @JvmOverloads constructor(
         }
 
         if (imageUri != null) {
-            if (isSamePhotoReload) {
-                avatarInitials.isVisible = false
-                avatarImage.isVisible = true
-            } else {
-                val fallback = source.fallbackMonogram
+            val fallback = source.fallbackMonogram
+            val skipGlide = ContactAvatarInvalidUriTracker.isInvalidUri(source.photoUri)
+            if (skipGlide) {
                 if (fallback != null) {
+                    clearImageRequest(keepBindState = true)
                     bindMonogram(
                         initials = fallback.initials,
                         gradientColors = fallback.gradientColors,
-                        drawableIndex = fallback.drawableIndex
+                        drawableIndex = fallback.drawableIndex,
+                        showProfileIcon = fallback.showProfileIcon,
+                        displayName = fallback.displayName,
                     )
                 }
-                avatarImage.isVisible = false
-                avatarInitials.isVisible = fallback != null
+                return
             }
+
+            // Keep ImageView visible and do not paint monogram first. Showing the fallback while
+            // Glide loads caused a monogram→photo flash on detail/edit entry.
+            avatarImage.isVisible = true
 
             currentImageRequest = imageUri
             val size = if (previewMode) minOf(avatarLoadSize(), PREVIEW_MAX_SIZE) else avatarLoadSize()
-            val requestOptions = if (cacheSignature != null) {
-                RequestOptions().diskCacheStrategy(DiskCacheStrategy.RESOURCE).override(size, size).circleCrop().error(null).signature(ObjectKey(cacheSignature))
-            } else {
-                RequestOptions().diskCacheStrategy(DiskCacheStrategy.RESOURCE).override(size, size).circleCrop().error(null)
-            }
-            Glide.with(this)
+            val requestOptions = photoRequestOptions(size, cacheSignature)
+            var request = Glide.with(this)
                 .load(imageUri)
                 .apply(requestOptions)
+                .dontAnimate()
                 .listener(object : RequestListener<Drawable> {
-                    override fun onLoadFailed(e: GlideException?, model: Any?, target: Target<Drawable>, isFirstResource: Boolean): Boolean {
-                        if (model != currentImageRequest) return true
+                    override fun onLoadFailed(
+                        e: GlideException?,
+                        model: Any?,
+                        target: Target<Drawable>,
+                        isFirstResource: Boolean,
+                    ): Boolean {
+                        // Superseded bind, or thumbnail miss while full request continues.
+                        if (currentImageRequest != imageUri) return true
+                        if (model != currentImageRequest) return false
+                        if (e.hasFileNotFoundCause()) {
+                            (onPhotoLoadFailed ?: onPhotoLoadFailedCallback)?.invoke(source.photoUri)
+                        }
                         val fb = source.fallbackMonogram
                         return if (fb != null) {
-                            bindMonogram(fb.initials, fb.gradientColors, fb.drawableIndex)
+                            clearImageRequest(keepBindState = true)
+                            bindMonogram(
+                                fb.initials,
+                                fb.gradientColors,
+                                fb.drawableIndex,
+                                fb.showProfileIcon,
+                                displayName = fb.displayName,
+                            )
                             true
                         } else false
                     }
-                    override fun onResourceReady(resource: Drawable, model: Any, target: Target<Drawable>?, dataSource: DataSource, isFirstResource: Boolean): Boolean {
-                        if (model != currentImageRequest) return true
+
+                    override fun onResourceReady(
+                        resource: Drawable,
+                        model: Any,
+                        target: Target<Drawable>?,
+                        dataSource: DataSource,
+                        isFirstResource: Boolean,
+                    ): Boolean {
+                        // Accept both list-thumb preview and full photo for this bind.
+                        if (currentImageRequest != imageUri) return true
+                        avatarBackgroundLayer.isVisible = false
+                        avatarBackgroundLayer.background = null
                         avatarInitials.isVisible = false
                         avatarImage.isVisible = true
                         background = null
                         return false
                     }
                 })
-                .into(avatarImage)
+
+            // Detail/edit: paint list-cached 96px first (instant), then upgrade to full-size decode.
+            // Matches list RequestOptions so Glide hits MEMORY/RESOURCE cache from the contacts list.
+            if (!previewMode) {
+                val previewModel = source.previewUri?.takeIf { it.isNotBlank() }?.let { preview ->
+                    try {
+                        Uri.parse(preview)
+                    } catch (_: Exception) {
+                        null
+                    }
+                } ?: imageUri
+                request = request.thumbnail(
+                    Glide.with(this)
+                        .load(previewModel)
+                        .apply(photoRequestOptions(PREVIEW_MAX_SIZE, cacheSignature))
+                )
+            }
+
+            request.into(avatarImage)
         } else {
             // Invalid or unparseable URI - show fallback monogram if provided
             val fallback = source.fallbackMonogram
             if (fallback != null) {
+                clearImageRequest(keepBindState = true)
                 bindMonogram(
                     initials = fallback.initials,
                     gradientColors = fallback.gradientColors,
-                    drawableIndex = fallback.drawableIndex
+                    drawableIndex = fallback.drawableIndex,
+                    showProfileIcon = fallback.showProfileIcon,
+                    displayName = fallback.displayName,
                 )
             } else {
                 avatarImage.setImageDrawable(null)
+                avatarImage.isVisible = false
             }
+        }
+    }
+
+    private fun photoRequestOptions(size: Int, cacheSignature: Long?): RequestOptions {
+        val options = RequestOptions()
+            .diskCacheStrategy(DiskCacheStrategy.RESOURCE)
+            .override(size, size)
+            .circleCrop()
+            .error(null)
+        return if (cacheSignature != null) {
+            options.signature(ObjectKey(cacheSignature))
+        } else {
+            options
         }
     }
 
@@ -286,7 +391,8 @@ class ContactAvatarView @JvmOverloads constructor(
         if (backgroundDrawableIndex != null) {
             avatarBackgroundLayer.background = context.createAvatarGradientDrawable(
                 drawableIndex = backgroundDrawableIndex,
-                isDarkMode = isAvatarDarkMode()
+                isDarkMode = isAvatarDarkMode(),
+                forList = currentPreviewMode,
             )
         } else {
             avatarBackgroundLayer.background = GradientDrawable().apply {
@@ -339,14 +445,37 @@ class ContactAvatarView @JvmOverloads constructor(
         initials: String,
         gradientColors: List<Int>,
         drawableIndex: Int? = null,
-        showProfileIcon: Boolean = false
+        showProfileIcon: Boolean = false,
+        displayName: String = "",
     ) {
-        val monogramChar = extractFirstMonogramCharacter(initials)
+        val monogramChar = when {
+            initials.isNotBlank() -> initials.getNameLetter()
+            displayName.isNotBlank() -> displayName.getNameLetter()
+            else -> "A"
+        }
+        val dark = isAvatarDarkMode()
+        val monogramKey = "m:$drawableIndex:$dark:$monogramChar:$showProfileIcon:$currentPreviewMode"
+        if (currentMonogramKey == monogramKey &&
+            currentSourceType == "monogram" &&
+            avatarBackgroundLayer.isVisible
+        ) {
+            AvatarBindLogger.bindSkipped("SAME_MONOGRAM")
+            if (showProfileIcon) {
+                bindDefaultProfileIcon()
+            } else if (avatarInitials.isVisible) {
+                refreshMonogramLetterIfNeeded()
+            }
+            return
+        }
+        currentMonogramKey = monogramKey
+        currentSourceType = "monogram"
+        currentPhotoUri = null
 
         if (drawableIndex != null) {
             avatarBackgroundLayer.background = context.createAvatarGradientDrawable(
                 drawableIndex = drawableIndex,
-                isDarkMode = isAvatarDarkMode()
+                isDarkMode = dark,
+                forList = currentPreviewMode,
             )
         } else {
             avatarBackgroundLayer.background = GradientDrawable().apply {
@@ -388,12 +517,6 @@ class ContactAvatarView @JvmOverloads constructor(
         } else {
             post { updateMonogramTextSize() }
         }
-    }
-
-    private fun extractFirstMonogramCharacter(value: String): String {
-        val trimmed = value.trim()
-        val firstChar = trimmed.firstOrNull() ?: return "A"
-        return if (firstChar.isLetter()) firstChar.uppercaseChar().toString() else firstChar.toString()
     }
 
     private fun bindDefaultProfileIcon() {
@@ -458,7 +581,7 @@ class ContactAvatarView @JvmOverloads constructor(
      * Does not clear avatarBackgroundLayer so recycled views keep showing their last drawable/monogram
      * until rebound (avoids blank avatar when scrolling back).
      */
-    private fun clearImageRequest() {
+    private fun clearImageRequest(keepBindState: Boolean = false) {
         showingDefaultProfileIcon = false
         drawableIconInsetRatio = null
         if (currentImageRequest != null) {
@@ -468,6 +591,11 @@ class ContactAvatarView @JvmOverloads constructor(
                 // Activity destroyed; Glide will clean up with the activity lifecycle
             }
             currentImageRequest = null
+        }
+        if (!keepBindState) {
+            currentPhotoUri = null
+            currentCacheSignature = null
+            currentSourceType = null
         }
         avatarImage.setImageDrawable(null)
         avatarImage.isVisible = false
@@ -490,4 +618,13 @@ class ContactAvatarView @JvmOverloads constructor(
             drawableIconInsetRatio?.let { applyDrawableIconInsets(it) }
         }
     }
+}
+
+private fun GlideException?.hasFileNotFoundCause(): Boolean {
+    var cur: Throwable? = this
+    while (cur != null) {
+        if (cur is FileNotFoundException) return true
+        cur = cur.cause
+    }
+    return false
 }

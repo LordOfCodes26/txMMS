@@ -4,7 +4,7 @@
     android:id="@+id/filepicker_favorite_label"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="?attr/selectableItemBackground"
+    android:background="@drawable/tx_item_ripple"
     android:paddingStart="@dimen/small_margin"
     android:paddingTop="@dimen/activity_margin"
     android:paddingEnd="@dimen/normal_margin"

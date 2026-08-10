@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="@dimen/simple_list_item_height"
-    android:background="@drawable/ripple_background"
+    android:background="@drawable/tx_item_ripple"
     android:paddingHorizontal="@dimen/small_margin">
 
     <androidx.appcompat.widget.AppCompatImageView

@@ -37,7 +37,6 @@ import androidx.biometric.auth.AuthPromptCallback
 import androidx.biometric.auth.AuthPromptHost
 import androidx.biometric.auth.Class2BiometricAuthPrompt
 import androidx.core.content.res.ResourcesCompat
-import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.FragmentActivity
 import com.android.common.view.MDialog
@@ -60,38 +59,31 @@ import java.util.TreeSet
 import java.util.WeakHashMap
 import androidx.core.net.toUri
 
-private val activeDialogsByActivity = WeakHashMap<Activity, MutableList<WeakReference<Dialog>>>()
+private val activeMDialogsByActivity = WeakHashMap<Activity, MutableList<WeakReference<MDialog>>>()
 
-fun Activity.trackOpenDialog(dialog: Dialog) {
-    synchronized(activeDialogsByActivity) {
-        val refs = activeDialogsByActivity.getOrPut(this) { mutableListOf() }
+private fun Activity.trackMDialog(dialog: MDialog) {
+    synchronized(activeMDialogsByActivity) {
+        val refs = activeMDialogsByActivity.getOrPut(this) { mutableListOf() }
         refs.removeAll { ref ->
             val trackedDialog = ref.get()
-            trackedDialog == null || trackedDialog === dialog || !trackedDialog.isShowing
+            trackedDialog == null || trackedDialog == dialog || !trackedDialog.isShowing
         }
         refs.add(WeakReference(dialog))
     }
 }
 
-private fun Activity.trackMDialog(dialog: MDialog) = trackOpenDialog(dialog)
-
-private fun Activity.trackAlertDialog(dialog: AlertDialog) = trackOpenDialog(dialog)
-
-fun Activity.dismissTrackedMDialogs() = dismissOpenDialogs()
-
-fun Activity.dismissTrackedAlertDialogs() = dismissOpenDialogs()
-
-/** Dismisses any tracked dialog and the blocking progress overlay for this activity. */
-fun Activity.dismissOpenDialogs() {
-    val dialogsToDismiss = synchronized(activeDialogsByActivity) {
-        activeDialogsByActivity.remove(this).orEmpty().mapNotNull { it.get() }
+fun Activity.dismissTrackedMDialogs() {
+    val dialogsToDismiss = synchronized(activeMDialogsByActivity) {
+        val refs = activeMDialogsByActivity[this].orEmpty()
+        refs.mapNotNull { it.get() }.also {
+            activeMDialogsByActivity.remove(this)
+        }
     }
     dialogsToDismiss.forEach { dialog ->
         if (dialog.isShowing) {
             runCatching { dialog.dismiss() }
         }
     }
-    hideBlockingSpinnerOverlay()
 }
 
 fun Activity.appLaunched(appId: String) {
@@ -671,7 +663,12 @@ fun Activity.launchViewContactIntent(uri: Uri) {
     }
 }
 
-fun BaseSimpleActivity.launchCallIntent(recipient: String, handle: PhoneAccountHandle? = null, key: String = "") {
+fun BaseSimpleActivity.launchCallIntent(
+    recipient: String,
+    handle: PhoneAccountHandle? = null,
+    key: String = "",
+    videoState: Int = 0,
+) {
     handlePermission(PERMISSION_CALL_PHONE) {
         val action = if (it) Intent.ACTION_CALL else Intent.ACTION_DIAL
         Intent(action).apply {
@@ -681,6 +678,7 @@ fun BaseSimpleActivity.launchCallIntent(recipient: String, handle: PhoneAccountH
                 putExtra(TelecomManager.EXTRA_PHONE_ACCOUNT_HANDLE, handle)
             }
             putExtra(IS_RIGHT_APP, key)
+            putExtra(TelecomManager.EXTRA_START_CALL_WITH_VIDEO_STATE, videoState)
 
             if (isDefaultDialer()) {
                 val prefix = appPrefix()
@@ -1322,34 +1320,36 @@ fun Activity.hideKeyboard() {
 }
 
 fun Activity.hideKeyboardSync() {
+    // Coalesce rapid back-to-back hides (tab switch focus churn, multiple clearFocus paths).
+    val now = android.os.SystemClock.uptimeMillis()
+    val last = lastHideKeyboardUptimeMs.get()
+    if (now - last < HIDE_KEYBOARD_COALESCE_MS) return
+    lastHideKeyboardUptimeMs.set(now)
     val inputMethodManager = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
     inputMethodManager.hideSoftInputFromWindow((currentFocus ?: View(this)).windowToken, 0)
-    window!!.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN)
+    // Preserve ADJUST_* (e.g. adjustNothing) — setting STATE alone clears the adjust mask.
+    val adjustFlags =
+        window.attributes.softInputMode and WindowManager.LayoutParams.SOFT_INPUT_MASK_ADJUST
+    window!!.setSoftInputMode(
+        WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN or adjustFlags
+    )
     currentFocus?.clearFocus()
 }
 
+private val lastHideKeyboardUptimeMs = java.util.concurrent.atomic.AtomicLong(0L)
+private const val HIDE_KEYBOARD_COALESCE_MS = 80L
+
 fun Activity.showKeyboard(et: EditText) {
     et.requestFocus()
-    // hideKeyboard() sets SOFT_INPUT_STATE_ALWAYS_HIDDEN, which prevents SHOW_IMPLICIT from
-    // bringing the IME back even when the EditText is focused again.
-    val softInputMode = window.attributes.softInputMode
-    val state = softInputMode and WindowManager.LayoutParams.SOFT_INPUT_MASK_STATE
-    if (state == WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN ||
-        state == WindowManager.LayoutParams.SOFT_INPUT_STATE_HIDDEN
-    ) {
-        val adjust = softInputMode and WindowManager.LayoutParams.SOFT_INPUT_MASK_ADJUST
-        window.setSoftInputMode(adjust or WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE)
-    }
     val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-    et.post {
-        if (!et.hasFocus()) return@post
-        if (!imm.showSoftInput(et, InputMethodManager.SHOW_IMPLICIT)) {
-            WindowCompat.getInsetsController(window, et).show(WindowInsetsCompat.Type.ime())
-        }
-    }
+    imm.showSoftInput(et, InputMethodManager.SHOW_IMPLICIT)
 }
 
 fun Activity.hideKeyboard(view: View) {
+    val now = android.os.SystemClock.uptimeMillis()
+    val last = lastHideKeyboardUptimeMs.get()
+    if (now - last < HIDE_KEYBOARD_COALESCE_MS) return
+    lastHideKeyboardUptimeMs.set(now)
     val inputMethodManager = getSystemService(Activity.INPUT_METHOD_SERVICE) as InputMethodManager
     inputMethodManager.hideSoftInputFromWindow(view.windowToken, 0)
 }
@@ -1624,7 +1624,6 @@ fun Activity.setupDialogStuff(
         window?.setGravity(Gravity.BOTTOM)
         if (!isFinishing) {
             show()
-            trackAlertDialog(this)
         }
         getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(dialogButtonColor)
         getButton(AlertDialog.BUTTON_NEGATIVE).setTextColor(dialogButtonColor)

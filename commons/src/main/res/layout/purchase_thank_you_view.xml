@@ -4,7 +4,7 @@
     android:id="@+id/purchase_thank_you_holder"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="?attr/selectableItemBackground"
+    android:background="@drawable/tx_item_ripple"
     android:paddingEnd="@dimen/normal_margin"
     tools:ignore="RtlSymmetry">
 

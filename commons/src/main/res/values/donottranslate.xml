@@ -1,63 +1,51 @@
 <resources>
     <string name="package_name">com.goodwy.commons</string>
-    <string name="pro">Pro</string>
-    <string name="simple_commons">Goodwy Commons</string>
-    <string name="progress">%1$s / %2$s</string>
-    <string name="donate_url">https://www.goodwy.dev/support-project</string>
-    <string name="google_play_dev_url">https://play.google.com/store/apps/dev?id=6544655677105796673</string>
+    
+<string name="simple_commons">Goodwy Commons</string>
+    
+
+<string name="google_play_dev_url">https://play.google.com/store/apps/dev?id=6544655677105796673</string>
     <string name="google_play_dev_url_old">https://play.google.com/store/apps/dev?id=8268163890866913014</string>
     <string name="google_play_dev_url_fake">https://fake.app</string>
     <string name="github_dev_url">https://github.com/Goodwy</string>
     <string name="a_m">am</string>
     <string name="p_m">pm</string>
-    <string name="material_you">Material You</string>
-    <string name="beta">Beta</string>
+    
+<string name="beta">Beta</string>
     <string name="hex">HEX</string>
-    <string name="goodwy">Goodwy</string>
-    <string name="app_name">Commons</string>
+    
 
-    <!-- App names -->
-    <string name="playbook">PlayBook</string>
-    <string name="right_contacts">Right Contacts</string>
-    <string name="right_dialer">Right Dialer</string>
-    <string name="right_sms_messenger">Right Messages</string>
-    <string name="right_voice_recorder">Right Voice Memos</string>
-    <string name="right_gallery">Right Gallery</string>
-    <string name="right_files">Right Files</string>
-    <string name="right_calendar">Right Calendar</string>
-    <string name="right_keyboard">Inkwell Keyboard</string>
+<!-- App names -->
+<string name="right_contacts">Right Contacts</string>
+    
+<string name="right_sms_messenger">Right Messages</string>
+    
 
-    <!-- About -->
-    <string name="two_string_placeholder">%1$s%2$s</string>
-    <string name="my_website">https://www.goodwy.dev/</string>
+<!-- About -->
+<string name="my_website">https://www.goodwy.dev/</string>
     <string name="my_email">help@goodwy.dev</string>
     <string name="my_email_old">goodwy.dev@gmail.com</string>
     <string name="my_fake_email">noreply@gmail.com</string>
-    <string name="reddit">Reddit</string>
-    <string name="github">GitHub</string>
+    
+<string name="github">GitHub</string>
     <string name="copyright_new">© Goodwy, %s</string>
 
     <!-- Donation options -->
-    <string name="github_sponsors">GitHub Sponsors</string>
-    <string name="buymeacoffee">Buy Me a Coffee</string>
-    <string name="liberapay">Liberapay</string>
-    <string name="opencollective">Open Collective</string>
-    <string name="patreon">Patreon</string>
-    <string name="paypal">PayPal</string>
-    <string name="bitcoin_btc">Bitcoin (BTC)</string>
-    <string name="ethereum_eth">Ethereum (ETH)</string>
-    <string name="monero_xmr">Monero (XMR)</string>
-    <string name="tron_trx">Tron (TRX)</string>
+<string name="buymeacoffee">Buy Me a Coffee</string>
+    
 
-    <!-- Contributors -->
+<string name="patreon">Patreon</string>
+    
+
+<!-- Contributors -->
     <string name="contributors_developers">tibbi, Aga-C, AlbertoPellitteri, Alfavio, connyduck, correia55, dagkalis, DaPa, ForgottenUmbrella, KryptKode, naveensingh, qwertyfinger</string>
-    <string name="contributors_other_help"></string>
-    <string name="translators_arabic">karmac2015, unofficial-hima</string>
+    
+<string name="translators_arabic">karmac2015, unofficial-hima</string>
     <string name="translators_azerbaijani">Gozzwip</string>
     <string name="translators_basque">avtkal</string>
     <string name="translators_bengali">kabirnayeem99</string>
-    <string name="translators_breton"></string>
-    <string name="translators_brazil">Kazevic</string>
+    
+<string name="translators_brazil">Kazevic</string>
     <string name="translators_catalan">Solatec</string>
     <string name="translators_chinese_cn">dadaewq, fiepi, KrasnayaPloshchad, linsui, Pzqqt, waldens, WanderMax, xiaomingyan</string>
     <string name="translators_chinese_hk">1552980358</string>
@@ -94,8 +82,8 @@
     <string name="translators_tamil">GobinathAL</string>
     <string name="translators_turkish">akcansoft, ersen0, Fatih-BaKeR, HearBlast</string>
     <string name="translators_ukrainian">bac1, motomoto7, sawka6630</string>
-    <string name="translators_vietnamese"></string>
-    <string name="translators_welsh">Cymrodor</string>
+    
+<string name="translators_welsh">Cymrodor</string>
 
     <!-- License -->
     <string name="kotlin_text">Copyright 2010 - 2018 JetBrains s.r.o.\n\nLicensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.You may obtain a copy of the License at\n\nhttps://www.apache.org/licenses/LICENSE-2.0\n\nUnless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS,WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.See the License for the specific language governing permissions and limitations under the License.</string>
@@ -256,32 +244,4 @@
     <string name="typeface_bold_italic">Bold Italic</string>
     <string name="typeface_italic">Italic</string>
 
-    <!-- Messengers -->
-    <string name="im" translatable="false">IM</string>
-    <string name="aim" translatable="false">AIM</string>
-    <string name="windows_live" translatable="false">Windows Live</string>
-    <string name="yahoo" translatable="false">Yahoo</string>
-    <string name="skype" translatable="false">Skype</string>
-    <string name="qq" translatable="false">QQ</string>
-    <string name="hangouts" translatable="false">Hangouts</string>
-    <string name="icq" translatable="false">ICQ</string>
-    <string name="jabber" translatable="false">Jabber</string>
-    <string name="telegram" translatable="false">Telegram</string>
-    <string name="viber" translatable="false">Viber</string>
-    <string name="google_chat" translatable="false">Google Chat</string>
-    <string name="teams" translatable="false">Teams</string>
-    <string name="matrix" translatable="false">Matrix</string>
-    <string name="discord" translatable="false">Discord</string>
-    <string name="wechat" translatable="false">WeChat</string>
-    <string name="line" translatable="false">Line</string>
-    <string name="wecom" translatable="false">WeCom</string>
-    <string name="telegram_channel" translatable="false">Telegram channel</string>
-    <string name="whatsapp" translatable="false">WhatsApp</string>
-    <string name="instagram" translatable="false">Instagram</string>
-    <string name="facebook" translatable="false">Facebook</string>
-    <string name="signal" translatable="false">Signal</string>
-    <string name="twitter" translatable="false">X</string>
-    <string name="linkedin" translatable="false">LinkedIn</string>
-    <string name="threema" translatable="false">Threema</string>
-    <string name="max" translatable="false">MAX</string>
 </resources>

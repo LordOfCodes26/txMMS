@@ -6,9 +6,12 @@ import android.view.HapticFeedbackConstants
 import android.view.View
 import android.view.ViewGroup
 import android.view.ViewTreeObserver
+import android.widget.ImageView
 import android.view.animation.DecelerateInterpolator
 import android.view.animation.OvershootInterpolator
 import androidx.annotation.Px
+import androidx.core.content.ContextCompat
+import androidx.core.graphics.ColorUtils
 import androidx.core.view.marginBottom
 import androidx.core.view.marginLeft
 import androidx.core.view.marginRight
@@ -70,6 +73,23 @@ fun View.setupViewBackground(context: Context) {
     } else {
         resources.getDrawable(R.drawable.selector_clickable, this.context.theme)
     }
+}
+
+/** Full-width list row ripple from txCommon ([com.android.common.R.drawable.tx_item_ripple]). */
+@SuppressLint("UseCompatLoadingForDrawables")
+fun View.setupTxItemRippleBackground() {
+    background = resources.getDrawable(com.android.common.R.drawable.tx_item_ripple, context.theme)
+}
+
+/** Solid [com.android.common.R.color.tx_divider] at full opacity — shared by Recents and Contacts list rows. */
+fun ImageView.bindTabListDivider() {
+    val color = ColorUtils.setAlphaComponent(
+        ContextCompat.getColor(context, com.android.common.R.color.tx_divider),
+        0xFF,
+    )
+    setBackgroundColor(color)
+    alpha = 1f
+    imageAlpha = 255
 }
 
 /**

@@ -158,7 +158,8 @@ class BlockedNumbersListAdapter(
             holder.binding.itemContactInfoHolder.isVisible = inSelection
             holder.binding.itemContactCheckbox.isVisible = inSelection
             holder.binding.itemContactCheckbox.isChecked = payload.selected
-            holder.itemView.isSelected = payload.selected
+            // Checkbox shows selection; keep row unselected so selector_clickable does not grey out.
+            holder.itemView.isSelected = false
         } else {
             super.onBindViewHolder(holder, position, payloads)
         }
@@ -230,7 +231,9 @@ class BlockedNumbersListAdapter(
                 AvatarResolver.resolve(
                     photoUri = null,
                     displayName = displayName ?: displayNumber,
-                    preferProfileIconForPhoneIdentity = true,
+                    // Saved contact (even if name looks like a number) → monogram; unknown → person icon.
+                    preferProfileIconForPhoneIdentity = displayName == null,
+                    context = activity,
                 ),
                 previewMode = true,
             )
@@ -238,6 +241,8 @@ class BlockedNumbersListAdapter(
             binding.itemContactInfoHolder.isVisible = inSelection
             binding.itemContactCheckbox.isVisible = inSelection
             binding.itemContactCheckbox.isChecked = isRowSelected
+            // Don't change background on selection - checkbox shows selection state instead.
+            binding.root.isSelected = false
             binding.divider.isVisible = true
         }
     }

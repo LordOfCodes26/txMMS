@@ -1,0 +1,1056 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 8,
+    "identityHash": "764280ea0849327442050ed9f71ec250",
+    "entities": [
+      {
+        "tableName": "contact_summaries",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`contact_id` INTEGER NOT NULL, `lookup_key` TEXT NOT NULL, `display_name` TEXT NOT NULL, `photo_thumbnail_uri` TEXT NOT NULL, `has_phone_number` INTEGER NOT NULL, `last_updated_timestamp` INTEGER NOT NULL, `primary_raw_id` INTEGER NOT NULL DEFAULT 0, `account_name` TEXT NOT NULL DEFAULT '', `account_type` TEXT NOT NULL DEFAULT '', `first_phone` TEXT NOT NULL DEFAULT '', `first_email` TEXT NOT NULL DEFAULT '', PRIMARY KEY(`contact_id`))",
+        "fields": [
+          {
+            "fieldPath": "contactId",
+            "columnName": "contact_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lookupKey",
+            "columnName": "lookup_key",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "displayName",
+            "columnName": "display_name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "photoThumbnailUri",
+            "columnName": "photo_thumbnail_uri",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hasPhoneNumber",
+            "columnName": "has_phone_number",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastUpdatedTimestamp",
+            "columnName": "last_updated_timestamp",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "primaryRawId",
+            "columnName": "primary_raw_id",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "accountName",
+            "columnName": "account_name",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "''"
+          },
+          {
+            "fieldPath": "accountType",
+            "columnName": "account_type",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "''"
+          },
+          {
+            "fieldPath": "firstPhoneNormalized",
+            "columnName": "first_phone",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "''"
+          },
+          {
+            "fieldPath": "firstEmail",
+            "columnName": "first_email",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "''"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "contact_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_contact_summaries_display_name",
+            "unique": false,
+            "columnNames": [
+              "display_name"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_contact_summaries_display_name` ON `${TABLE_NAME}` (`display_name`)"
+          },
+          {
+            "name": "index_contact_summaries_primary_raw_id",
+            "unique": false,
+            "columnNames": [
+              "primary_raw_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_contact_summaries_primary_raw_id` ON `${TABLE_NAME}` (`primary_raw_id`)"
+          },
+          {
+            "name": "index_contact_summaries_account_name",
+            "unique": false,
+            "columnNames": [
+              "account_name"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_contact_summaries_account_name` ON `${TABLE_NAME}` (`account_name`)"
+          },
+          {
+            "name": "index_contact_summaries_account_type",
+            "unique": false,
+            "columnNames": [
+              "account_type"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_contact_summaries_account_type` ON `${TABLE_NAME}` (`account_type`)"
+          },
+          {
+            "name": "index_contact_summaries_last_updated_timestamp",
+            "unique": false,
+            "columnNames": [
+              "last_updated_timestamp"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_contact_summaries_last_updated_timestamp` ON `${TABLE_NAME}` (`last_updated_timestamp`)"
+          }
+        ]
+      },
+      {
+        "tableName": "contact_details",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`contact_id` INTEGER NOT NULL, `lookup_key` TEXT NOT NULL, `display_name` TEXT NOT NULL, `prefix` TEXT NOT NULL, `first_name` TEXT NOT NULL, `middle_name` TEXT NOT NULL, `surname` TEXT NOT NULL, `suffix` TEXT NOT NULL, `nickname` TEXT NOT NULL, `photo_uri` TEXT NOT NULL, `photo_thumbnail_uri` TEXT NOT NULL, `notes` TEXT NOT NULL, `company` TEXT NOT NULL, `job_position` TEXT NOT NULL, `starred` INTEGER NOT NULL, `source` TEXT NOT NULL, `ringtone` TEXT, `last_updated_timestamp` INTEGER NOT NULL, PRIMARY KEY(`contact_id`))",
+        "fields": [
+          {
+            "fieldPath": "contactId",
+            "columnName": "contact_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lookupKey",
+            "columnName": "lookup_key",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "displayName",
+            "columnName": "display_name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "prefix",
+            "columnName": "prefix",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "firstName",
+            "columnName": "first_name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "middleName",
+            "columnName": "middle_name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "surname",
+            "columnName": "surname",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "suffix",
+            "columnName": "suffix",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nickname",
+            "columnName": "nickname",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "photoUri",
+            "columnName": "photo_uri",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "photoThumbnailUri",
+            "columnName": "photo_thumbnail_uri",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "notes",
+            "columnName": "notes",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "company",
+            "columnName": "company",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "jobPosition",
+            "columnName": "job_position",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "starred",
+            "columnName": "starred",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "source",
+            "columnName": "source",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ringtone",
+            "columnName": "ringtone",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "lastUpdatedTimestamp",
+            "columnName": "last_updated_timestamp",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "contact_id"
+          ]
+        }
+      },
+      {
+        "tableName": "contact_phones",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `contact_id` INTEGER NOT NULL, `number` TEXT NOT NULL, `normalized_number` TEXT NOT NULL, `type` INTEGER NOT NULL, `label` TEXT NOT NULL, `is_primary` INTEGER NOT NULL, FOREIGN KEY(`contact_id`) REFERENCES `contact_details`(`contact_id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "contactId",
+            "columnName": "contact_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "number",
+            "columnName": "number",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "normalizedNumber",
+            "columnName": "normalized_number",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "type",
+            "columnName": "type",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "label",
+            "columnName": "label",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isPrimary",
+            "columnName": "is_primary",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_contact_phones_contact_id",
+            "unique": false,
+            "columnNames": [
+              "contact_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_contact_phones_contact_id` ON `${TABLE_NAME}` (`contact_id`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "contact_details",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "contact_id"
+            ],
+            "referencedColumns": [
+              "contact_id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "contact_emails",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `contact_id` INTEGER NOT NULL, `value` TEXT NOT NULL, `type` INTEGER NOT NULL, `label` TEXT NOT NULL, FOREIGN KEY(`contact_id`) REFERENCES `contact_details`(`contact_id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "contactId",
+            "columnName": "contact_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "value",
+            "columnName": "value",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "type",
+            "columnName": "type",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "label",
+            "columnName": "label",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_contact_emails_contact_id",
+            "unique": false,
+            "columnNames": [
+              "contact_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_contact_emails_contact_id` ON `${TABLE_NAME}` (`contact_id`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "contact_details",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "contact_id"
+            ],
+            "referencedColumns": [
+              "contact_id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "contact_phone_index",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `contact_id` INTEGER NOT NULL, `normalized_number` TEXT NOT NULL, `digits` TEXT NOT NULL, `phone_digits` TEXT NOT NULL DEFAULT '')",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "contactId",
+            "columnName": "contact_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "normalizedNumber",
+            "columnName": "normalized_number",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "digits",
+            "columnName": "digits",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "phoneDigits",
+            "columnName": "phone_digits",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "''"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_contact_phone_index_contact_id",
+            "unique": false,
+            "columnNames": [
+              "contact_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_contact_phone_index_contact_id` ON `${TABLE_NAME}` (`contact_id`)"
+          },
+          {
+            "name": "index_contact_phone_index_normalized_number",
+            "unique": false,
+            "columnNames": [
+              "normalized_number"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_contact_phone_index_normalized_number` ON `${TABLE_NAME}` (`normalized_number`)"
+          },
+          {
+            "name": "index_contact_phone_index_digits",
+            "unique": false,
+            "columnNames": [
+              "digits"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_contact_phone_index_digits` ON `${TABLE_NAME}` (`digits`)"
+          },
+          {
+            "name": "index_contact_phone_index_phone_digits",
+            "unique": false,
+            "columnNames": [
+              "phone_digits"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_contact_phone_index_phone_digits` ON `${TABLE_NAME}` (`phone_digits`)"
+          }
+        ]
+      },
+      {
+        "tableName": "contact_search_index",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`contact_id` INTEGER NOT NULL, `display_name_lower` TEXT NOT NULL, `name_t9_key` TEXT NOT NULL, PRIMARY KEY(`contact_id`))",
+        "fields": [
+          {
+            "fieldPath": "contactId",
+            "columnName": "contact_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "displayNameLower",
+            "columnName": "display_name_lower",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nameT9Key",
+            "columnName": "name_t9_key",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "contact_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_contact_search_index_contact_id",
+            "unique": false,
+            "columnNames": [
+              "contact_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_contact_search_index_contact_id` ON `${TABLE_NAME}` (`contact_id`)"
+          },
+          {
+            "name": "index_contact_search_index_display_name_lower",
+            "unique": false,
+            "columnNames": [
+              "display_name_lower"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_contact_search_index_display_name_lower` ON `${TABLE_NAME}` (`display_name_lower`)"
+          },
+          {
+            "name": "index_contact_search_index_name_t9_key",
+            "unique": false,
+            "columnNames": [
+              "name_t9_key"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_contact_search_index_name_t9_key` ON `${TABLE_NAME}` (`name_t9_key`)"
+          }
+        ]
+      },
+      {
+        "tableName": "call_log_entries",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`call_id` INTEGER NOT NULL, `phone_number` TEXT NOT NULL, `cached_name` TEXT NOT NULL, `cached_photo_uri` TEXT NOT NULL, `start_ts` INTEGER NOT NULL, `duration` INTEGER NOT NULL, `type` INTEGER NOT NULL, `sim_id` INTEGER NOT NULL, `sim_type_id` INTEGER NOT NULL, `sim_color` INTEGER NOT NULL, `contact_id` INTEGER, `features` INTEGER, `is_unknown_number` INTEGER NOT NULL, `is_voice_mail` INTEGER NOT NULL, `block_reason` INTEGER, `phone_account_id` TEXT NOT NULL, `normalized_number` TEXT NOT NULL, PRIMARY KEY(`call_id`))",
+        "fields": [
+          {
+            "fieldPath": "callId",
+            "columnName": "call_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "phoneNumber",
+            "columnName": "phone_number",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cachedName",
+            "columnName": "cached_name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cachedPhotoUri",
+            "columnName": "cached_photo_uri",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "startTS",
+            "columnName": "start_ts",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "duration",
+            "columnName": "duration",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "type",
+            "columnName": "type",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "simID",
+            "columnName": "sim_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "simTypeID",
+            "columnName": "sim_type_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "simColor",
+            "columnName": "sim_color",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "contactID",
+            "columnName": "contact_id",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "features",
+            "columnName": "features",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "isUnknownNumber",
+            "columnName": "is_unknown_number",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isVoiceMail",
+            "columnName": "is_voice_mail",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "blockReason",
+            "columnName": "block_reason",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "phoneAccountId",
+            "columnName": "phone_account_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "normalizedNumber",
+            "columnName": "normalized_number",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "call_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_call_log_entries_start_ts",
+            "unique": false,
+            "columnNames": [
+              "start_ts"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_call_log_entries_start_ts` ON `${TABLE_NAME}` (`start_ts`)"
+          },
+          {
+            "name": "index_call_log_entries_phone_number",
+            "unique": false,
+            "columnNames": [
+              "phone_number"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_call_log_entries_phone_number` ON `${TABLE_NAME}` (`phone_number`)"
+          },
+          {
+            "name": "index_call_log_entries_phone_account_id",
+            "unique": false,
+            "columnNames": [
+              "phone_account_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_call_log_entries_phone_account_id` ON `${TABLE_NAME}` (`phone_account_id`)"
+          }
+        ]
+      },
+      {
+        "tableName": "contact_display_cache",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`raw_id` INTEGER NOT NULL, `contact_id` INTEGER NOT NULL, `display_name` TEXT NOT NULL, `thumbnail_uri` TEXT NOT NULL, `photo_uri` TEXT NOT NULL, `source` TEXT NOT NULL, `account_type` TEXT NOT NULL, `first_phone` TEXT NOT NULL, `first_email` TEXT NOT NULL, `starred` INTEGER NOT NULL, `section_letter` TEXT NOT NULL, `sort_key` TEXT NOT NULL, `search_name` TEXT NOT NULL, `t9_key` TEXT NOT NULL, `phone_digits` TEXT NOT NULL, PRIMARY KEY(`raw_id`))",
+        "fields": [
+          {
+            "fieldPath": "rawId",
+            "columnName": "raw_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "contactId",
+            "columnName": "contact_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "displayName",
+            "columnName": "display_name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "thumbnailUri",
+            "columnName": "thumbnail_uri",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "photoUri",
+            "columnName": "photo_uri",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "source",
+            "columnName": "source",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "accountType",
+            "columnName": "account_type",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "firstPhone",
+            "columnName": "first_phone",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "firstEmail",
+            "columnName": "first_email",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "starred",
+            "columnName": "starred",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sectionLetter",
+            "columnName": "section_letter",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sortKey",
+            "columnName": "sort_key",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "searchName",
+            "columnName": "search_name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "t9Key",
+            "columnName": "t9_key",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "phoneDigits",
+            "columnName": "phone_digits",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "raw_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_contact_display_cache_sort_key",
+            "unique": false,
+            "columnNames": [
+              "sort_key"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_contact_display_cache_sort_key` ON `${TABLE_NAME}` (`sort_key`)"
+          },
+          {
+            "name": "index_contact_display_cache_search_name",
+            "unique": false,
+            "columnNames": [
+              "search_name"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_contact_display_cache_search_name` ON `${TABLE_NAME}` (`search_name`)"
+          },
+          {
+            "name": "index_contact_display_cache_t9_key",
+            "unique": false,
+            "columnNames": [
+              "t9_key"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_contact_display_cache_t9_key` ON `${TABLE_NAME}` (`t9_key`)"
+          }
+        ]
+      },
+      {
+        "tableName": "recent_display_cache",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`call_id` INTEGER NOT NULL, `phone_number` TEXT NOT NULL, `cached_name` TEXT NOT NULL, `photo_uri` TEXT NOT NULL, `start_ts` INTEGER NOT NULL, `duration` INTEGER NOT NULL, `type` INTEGER NOT NULL, `sim_id` INTEGER NOT NULL, `sim_type_id` INTEGER NOT NULL, `sim_color` INTEGER NOT NULL, `contact_id` INTEGER, `call_count` INTEGER NOT NULL, `grouped_call_ids` TEXT NOT NULL, `normalized_number` TEXT NOT NULL, `is_unknown_number` INTEGER NOT NULL, `is_voice_mail` INTEGER NOT NULL, `block_reason` INTEGER, `features` INTEGER, `group_by_contact` INTEGER NOT NULL, `display_order` INTEGER NOT NULL, `display_name` TEXT NOT NULL, `display_number` TEXT NOT NULL, `formatted_date_time` TEXT NOT NULL, `group_count_text` TEXT NOT NULL, `call_type_icon_key` TEXT NOT NULL, `sim_color_resolved` INTEGER NOT NULL, `sim_label` TEXT NOT NULL, `sim_visible` INTEGER NOT NULL, `avatar_initials` TEXT NOT NULL, `avatar_drawable_index` INTEGER NOT NULL, `avatar_show_profile_icon` INTEGER NOT NULL, `use_photo_avatar` INTEGER NOT NULL, `name_is_missed_color` INTEGER NOT NULL, `section_day_code` TEXT NOT NULL, `section_header_text` TEXT NOT NULL, PRIMARY KEY(`call_id`))",
+        "fields": [
+          {
+            "fieldPath": "callId",
+            "columnName": "call_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "phoneNumber",
+            "columnName": "phone_number",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cachedName",
+            "columnName": "cached_name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "photoUri",
+            "columnName": "photo_uri",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "startTS",
+            "columnName": "start_ts",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "duration",
+            "columnName": "duration",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "type",
+            "columnName": "type",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "simID",
+            "columnName": "sim_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "simTypeID",
+            "columnName": "sim_type_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "simColor",
+            "columnName": "sim_color",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "contactID",
+            "columnName": "contact_id",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "callCount",
+            "columnName": "call_count",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "groupedCallIds",
+            "columnName": "grouped_call_ids",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "normalizedNumber",
+            "columnName": "normalized_number",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isUnknownNumber",
+            "columnName": "is_unknown_number",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isVoiceMail",
+            "columnName": "is_voice_mail",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "blockReason",
+            "columnName": "block_reason",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "features",
+            "columnName": "features",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "groupByContact",
+            "columnName": "group_by_contact",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "displayOrder",
+            "columnName": "display_order",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "displayName",
+            "columnName": "display_name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "displayNumber",
+            "columnName": "display_number",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "formattedDateTime",
+            "columnName": "formatted_date_time",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "groupCountText",
+            "columnName": "group_count_text",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "callTypeIconKey",
+            "columnName": "call_type_icon_key",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "simColorResolved",
+            "columnName": "sim_color_resolved",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "simLabel",
+            "columnName": "sim_label",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "simVisible",
+            "columnName": "sim_visible",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "avatarInitials",
+            "columnName": "avatar_initials",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "avatarDrawableIndex",
+            "columnName": "avatar_drawable_index",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "avatarShowProfileIcon",
+            "columnName": "avatar_show_profile_icon",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "usePhotoAvatar",
+            "columnName": "use_photo_avatar",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nameIsMissedColor",
+            "columnName": "name_is_missed_color",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sectionDayCode",
+            "columnName": "section_day_code",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sectionHeaderText",
+            "columnName": "section_header_text",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "call_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_recent_display_cache_start_ts",
+            "unique": false,
+            "columnNames": [
+              "start_ts"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_recent_display_cache_start_ts` ON `${TABLE_NAME}` (`start_ts`)"
+          },
+          {
+            "name": "index_recent_display_cache_phone_number",
+            "unique": false,
+            "columnNames": [
+              "phone_number"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_recent_display_cache_phone_number` ON `${TABLE_NAME}` (`phone_number`)"
+          }
+        ]
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '764280ea0849327442050ed9f71ec250')"
+    ]
+  }
+}

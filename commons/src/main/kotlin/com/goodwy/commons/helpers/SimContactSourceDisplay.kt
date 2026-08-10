@@ -1,12 +1,16 @@
 package com.goodwy.commons.helpers
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.content.ContentUris
 import android.content.ContentValues
 import android.content.Context
+import android.content.pm.PackageManager
+import androidx.core.content.ContextCompat
 import android.graphics.Color
 import android.net.Uri
 import android.os.Build
+import android.os.SystemClock
 import android.util.Log
 import android.telephony.SubscriptionInfo
 import android.telephony.SubscriptionManager
@@ -23,6 +27,20 @@ private const val LOG_TAG_SIM_CONTACT_SAVE = "SimContactSave"
 fun isSimAccountTypeForPersistence(accountType: String): Boolean {
     val typeLower = accountType.lowercase(Locale.getDefault())
     return typeLower.contains("sim") || typeLower.contains("icc")
+}
+
+/**
+ * True for local phone storage or SIM/USIM accounts — the only sources shown in
+ * Contacts Settings → View contact and loaded by [ContactsHelper] list queries.
+ *
+ * Phone storage: blank account name/type (or a single space from protection), or name `"phone"`.
+ * SIM: [isSimAccountTypeForPersistence].
+ */
+fun isSimOrPhoneStorageAccount(accountName: String, accountType: String): Boolean {
+    val nameLower = accountName.lowercase(Locale.getDefault())
+    val isPhoneStorage = (accountName.isBlank() && accountType.isBlank()) ||
+        (nameLower.trim() == "phone" && accountType.isBlank())
+    return isPhoneStorage || isSimAccountTypeForPersistence(accountType)
 }
 
 private fun Context.loadActiveSubscriptionInfosSorted(): List<SubscriptionInfo> {
@@ -607,6 +625,104 @@ fun Context.deduplicateIccAdnForMerge(
         }
     }
     return 0
+}
+
+/**
+ * Is the SIM behind this RawContacts account physically present right now?
+ *
+ * Ejecting a SIM does not remove its contacts from the Contacts provider. Nothing calls
+ * `SimContacts.REMOVE_SIM_ACCOUNT_METHOD` on eject, and that method only deletes the `accounts`
+ * row anyway — the raw contacts survive. So any reconcile of our Room cache against the provider
+ * correctly reports zero deletions, and the rows stay on screen. Presence has to be asked of
+ * telephony; it cannot be inferred from the provider.
+ *
+ * Three-valued on purpose:
+ *  - `true`  — telephony lists a matching active subscription.
+ *  - `false` — telephony answered, and this SIM is not among the active subscriptions.
+ *  - `null`  — telephony could not answer (no [SubscriptionManager], or [READ_PHONE_STATE] not
+ *              granted). Callers must treat this as "keep the contacts". Collapsing it into
+ *              `false` would hide every SIM contact on any device where the permission is
+ *              missing, which is far worse than the staleness this fixes.
+ *
+ * The permission is checked explicitly rather than relying on the return of
+ * [SubscriptionManager.getActiveSubscriptionInfoList], which is `null` both for "no SIMs" and for
+ * "not allowed to look" — exactly the ambiguity that must not reach the caller.
+ */
+fun Context.isSimAccountPresentOrNull(accountName: String, accountType: String): Boolean? {
+    if (!isSimAccountTypeForPersistence(accountType)) return true
+    val key = "$accountName $accountType"
+    readSimPresenceMemo(key)?.let { return it }
+    if (getSystemService(Context.TELEPHONY_SUBSCRIPTION_SERVICE) !is SubscriptionManager) return null
+    val granted = ContextCompat.checkSelfPermission(this, Manifest.permission.READ_PHONE_STATE) ==
+        PackageManager.PERMISSION_GRANTED
+    if (!granted) return null
+    val present = try {
+        findSubscriptionInfoForSimAccount(accountName, accountType) != null
+    } catch (_: SecurityException) {
+        null
+    }
+    // Only definitive answers are memoized. A null means "could not ask" -- caching it would pin
+    // the uncertainty in place, so a permission granted mid-session would not take effect until
+    // the TTL expired. The unmemoized path for null costs nothing, because null is reached
+    // without the binder call in every case except a thrown SecurityException.
+    if (present != null) writeSimPresenceMemo(key, present)
+    return present
+}
+
+/**
+ * Memo for [isSimAccountPresentOrNull].
+ *
+ * The presence check runs inside `getAllContactSources`, which
+ * `getVisibleContactSources` calls twice per page on the contacts paging path -- so an
+ * un-memoized check turns into a `SubscriptionManager` binder round trip per SIM account per
+ * page. Phone-storage sources never reach here, so the saving is bounded by the SIM accounts,
+ * but the paging path is hot enough that the repeat is worth removing.
+ *
+ * Invalidated explicitly by `SimSourceRefresh` on every SIM state / airplane-mode transition,
+ * which is the only thing that changes the answer.
+ */
+private val simPresenceMemo = HashMap<String, Boolean>()
+
+private var simPresenceMemoStampMs = 0L
+
+/**
+ * Backstop for a presence change that arrives without a broadcast.
+ *
+ * Much shorter than the ten minutes used for the protected-number memo, and deliberately so: a
+ * stale protection answer briefly reveals a row, while a stale presence answer can leave real
+ * contacts *hidden*. Sixty seconds still collapses a paging burst -- which happens over a few
+ * seconds -- while keeping the worst case of a missed broadcast to something a user reads as a
+ * refresh rather than as lost data.
+ */
+private const val SIM_PRESENCE_MEMO_TTL_MS = 60_000L
+
+private fun readSimPresenceMemo(key: String): Boolean? = synchronized(simPresenceMemo) {
+    if (simPresenceMemoStampMs != 0L &&
+        SystemClock.elapsedRealtime() - simPresenceMemoStampMs > SIM_PRESENCE_MEMO_TTL_MS
+    ) {
+        simPresenceMemo.clear()
+        simPresenceMemoStampMs = 0L
+        return null
+    }
+    simPresenceMemo[key]
+}
+
+private fun writeSimPresenceMemo(key: String, present: Boolean) = synchronized(simPresenceMemo) {
+    if (simPresenceMemo.isEmpty()) simPresenceMemoStampMs = SystemClock.elapsedRealtime()
+    simPresenceMemo[key] = present
+}
+
+/** Drops memoized SIM presence answers. Safe to call from any thread. */
+fun invalidateSimPresenceCache(reason: String) {
+    val dropped = synchronized(simPresenceMemo) {
+        val size = simPresenceMemo.size
+        simPresenceMemo.clear()
+        simPresenceMemoStampMs = 0L
+        size
+    }
+    if (dropped > 0) {
+        Log.d(LOG_TAG_SIM_CONTACT_SAVE, "simPresenceMemo invalidated reason=$reason entries=$dropped")
+    }
 }
 
 /**

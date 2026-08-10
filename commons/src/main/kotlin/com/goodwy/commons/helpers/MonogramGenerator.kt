@@ -16,61 +16,25 @@ import kotlin.math.abs
 object MonogramGenerator {
 
     /**
-     * Generates initials from a name string.
-     * 
+     * Generates the monogram letter shown on contact avatars.
+     *
      * Rules:
-     * - For single word: returns first letter (e.g., "John" -> "J")
-     * - For multiple words: returns first letter of first and last word (e.g., "John Smith" -> "JS")
+     * - Returns the first user-visible grapheme of the display name (e.g. "John Smith" -> "J")
      * - Handles emojis: if name starts with emoji, returns the emoji
      * - Empty names: returns "A" as fallback
-     * 
-     * Examples:
-     * - "John Smith" -> "JS"
-     * - "Mary Jane Watson" -> "MW"
-     * - "John" -> "J"
-     * - "😀 John" -> "😀"
-     * - "" -> "A"
-     * 
-     * @param name The name to extract initials from
-     * @return The initials string (1-2 characters, or emoji)
      */
     fun generateInitials(name: String): String {
-        if (name.isEmpty()) {
-            return "A"
-        }
-
         val trimmedName = name.trim()
         if (trimmedName.isEmpty()) {
             return "A"
         }
 
-        // Check for emoji first (take first 2 characters to handle multi-byte emojis)
         val emoji = trimmedName.take(2)
         if (emoji.isEmoji()) {
             return emoji
         }
 
-        // Split by whitespace and filter out empty strings
-        val words = trimmedName.split("\\s+".toRegex())
-            .filter { it.isNotEmpty() }
-            .filter { word -> 
-                // Filter out words that are only punctuation/symbols
-                word.any { it.isLetterOrDigit() }
-            }
-
-        return when {
-            words.isEmpty() -> "A"
-            words.size == 1 -> {
-                // Single word: return first letter
-                words[0].getNameLetter()
-            }
-            else -> {
-                // Multiple words: return first letter of first and last word
-                val firstInitial = words.first().getNameLetter()
-                val lastInitial = words.last().getNameLetter()
-                "$firstInitial$lastInitial"
-            }
-        }
+        return trimmedName.getNameLetter()
     }
 
     /**

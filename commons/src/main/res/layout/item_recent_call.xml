@@ -6,14 +6,14 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:clickable="true"
-    android:focusable="true"
-    android:foreground="@drawable/selector">
+    android:focusable="true">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/itemRecentsFrameSelect"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:minHeight="@dimen/recent_call_height"
+        android:background="@drawable/tx_item_ripple"
         android:paddingStart="@dimen/activity_margin"
         android:paddingEnd="@dimen/normal_margin">
 
@@ -157,6 +157,7 @@
                 android:background="?attr/selectableItemBackgroundBorderless">
 
                 <ImageView
+                    android:id="@+id/item_recents_info_icon"
                     android:layout_width="@dimen/recent_call_info_size"
                     android:layout_height="@dimen/recent_call_info_size"
                     android:layout_centerInParent="true"

@@ -157,6 +157,8 @@ dependencies {
     implementation(libs.androidx.viewpager)
     implementation(libs.androidx.documentfile)
     implementation(libs.androidx.lifecycle.process)
+    implementation(libs.bundles.paging)
+    implementation(libs.androidx.paging.compose)
     implementation(libs.ez.vcard)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.bundles.room)

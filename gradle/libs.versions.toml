@@ -35,6 +35,9 @@ composeActivity = "1.11.0"
 # ---------------- Room ----------------
 room = "2.8.3"
 
+# ---------------- Paging ----------------
+paging = "3.3.6"
+
 # ---------------- Rx ----------------
 rxJava3 = "3.1.5"
 rxAnimation = "2.1.1"
@@ -115,6 +118,11 @@ androidx-lifecycle-viewModel-compose = { module = "androidx.lifecycle:lifecycle-
 androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
 androidx-room-ktx = { module = "androidx.room:room-ktx", version.ref = "room" }
 androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
+androidx-room-paging = { module = "androidx.room:room-paging", version.ref = "room" }
+
+# -------- Paging --------
+androidx-paging-runtime = { module = "androidx.paging:paging-runtime-ktx", version.ref = "paging" }
+androidx-paging-compose = { module = "androidx.paging:paging-compose", version.ref = "paging" }
 
 # -------- Compose --------
 compose-ui = { module = "androidx.compose.ui:ui", version.ref = "compose" }
@@ -188,6 +196,11 @@ lifecycle = [
 room = [
     "androidx-room-runtime",
     "androidx-room-ktx",
+    "androidx-room-paging",
+]
+
+paging = [
+    "androidx-paging-runtime",
 ]
 
 compose = [

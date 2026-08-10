@@ -21,7 +21,6 @@ import com.goodwy.commons.models.RadioItem
 import com.goodwy.commons.models.contacts.Contact
 import com.goodwy.commons.models.contacts.ContactSource
 import com.goodwy.commons.models.contacts.Organization
-import com.goodwy.commons.models.contacts.SocialAction
 import java.io.File
 import java.util.ArrayList
 import androidx.core.net.toUri
@@ -275,61 +274,27 @@ fun Context.getAllContactSources(): ArrayList<ContactSource> {
             (nameLower.trim() == "phone" && source.type.isBlank())
         
         val isSimCard = typeLower.contains("sim") || typeLower.contains("icc")
-        
+
         isPhoneStorage || isSimCard
     }
-    return phoneAndSimSources.toMutableList() as ArrayList<ContactSource>
-}
-
-fun Context.getSocialActions(id: Int): ArrayList<SocialAction> {
-    val uri = ContactsContract.Data.CONTENT_URI
-    val projection = arrayOf(
-        ContactsContract.Data._ID,
-        ContactsContract.Data.DATA3,
-        ContactsContract.Data.MIMETYPE,
-        ContactsContract.Data.ACCOUNT_TYPE_AND_DATA_SET
-    )
-
-    val socialActions = ArrayList<SocialAction>()
-    var curActionId = 0
-    val selection = "${ContactsContract.Data.RAW_CONTACT_ID} = ?"
-    val selectionArgs = arrayOf(id.toString())
-    queryCursor(uri, projection, selection, selectionArgs, null, true) { cursor ->
-        val mimetype = cursor.getStringValue(ContactsContract.Data.MIMETYPE)
-        val type = when (mimetype) {
-            // WhatsApp
-            "vnd.android.cursor.item/vnd.com.whatsapp.profile" -> SOCIAL_MESSAGE
-            "vnd.android.cursor.item/vnd.com.whatsapp.voip.call" -> SOCIAL_VOICE_CALL
-            "vnd.android.cursor.item/vnd.com.whatsapp.video.call" -> SOCIAL_VIDEO_CALL
-
-            // Viber
-            "vnd.android.cursor.item/vnd.com.viber.voip.viber_number_call" -> SOCIAL_VOICE_CALL
-            "vnd.android.cursor.item/vnd.com.viber.voip.viber_out_call_viber" -> SOCIAL_VOICE_CALL
-            "vnd.android.cursor.item/vnd.com.viber.voip.viber_out_call_none_viber" -> SOCIAL_VOICE_CALL
-            "vnd.android.cursor.item/vnd.com.viber.voip.viber_number_message" -> SOCIAL_MESSAGE
-
-            // Signal
-            "vnd.android.cursor.item/vnd.org.thoughtcrime.securesms.contact" -> SOCIAL_MESSAGE
-            "vnd.android.cursor.item/vnd.org.thoughtcrime.securesms.call" -> SOCIAL_VOICE_CALL
-
-            // Telegram
-            "vnd.android.cursor.item/vnd.org.telegram.messenger.android.call" -> SOCIAL_VOICE_CALL
-            "vnd.android.cursor.item/vnd.org.telegram.messenger.android.call.video" -> SOCIAL_VIDEO_CALL
-            "vnd.android.cursor.item/vnd.org.telegram.messenger.android.profile" -> SOCIAL_MESSAGE
-
-            // Threema
-            "vnd.android.cursor.item/vnd.ch.threema.app.profile" -> SOCIAL_MESSAGE
-            "vnd.android.cursor.item/vnd.ch.threema.app.call" -> SOCIAL_VOICE_CALL
-            else -> return@queryCursor
-        }
-
-        val label = cursor.getStringValue(ContactsContract.Data.DATA3)
-        val realID = cursor.getLongValue(ContactsContract.Data._ID)
-        val packageName = cursor.getStringValue(ContactsContract.Data.ACCOUNT_TYPE_AND_DATA_SET)
-        val socialAction = SocialAction(curActionId++, type, label, mimetype, realID, packageName)
-        socialActions.add(socialAction)
+    // A SIM's contacts must stop being visible once the SIM is out. They cannot be reconciled
+    // away: the provider keeps its SIM raw contacts after an eject (nothing deletes them), so as
+    // far as the cache is concerned they still exist. Presence is a telephony question, and this
+    // is the one place that decides which sources exist -- it feeds getVisibleContactSources (the
+    // per-page ContactSourceAccountFilter) and the source-picker UI alike, so gating here hides
+    // the contacts and stops offering an absent SIM as a destination in one move.
+    //
+    // Non-destructive by design: nothing is deleted, so reinserting the SIM brings the rows
+    // straight back with no re-import. isSimAccountPresentOrNull returns null when telephony
+    // cannot answer, and null keeps the source -- never hide contacts on a permission failure.
+    val presenceFiltered = phoneAndSimSources.filter { source ->
+        isSimAccountPresentOrNull(source.name, source.type) != false
     }
-    return socialActions
+    if (presenceFiltered.size != phoneAndSimSources.size) {
+        val dropped = phoneAndSimSources.filter { it !in presenceFiltered }.map { it.getFullIdentifier() }
+        android.util.Log.d("SimSourceRefresh", "getAllContactSources dropped absent SIM sources=$dropped")
+    }
+    return presenceFiltered.toMutableList() as ArrayList<ContactSource>
 }
 
 fun BaseSimpleActivity.initiateCall(contact: Contact, onStartCallIntent: (phoneNumber: String) -> Unit) {
@@ -379,25 +344,15 @@ fun Context.isContactBlocked(contact: Contact, callback: (Boolean) -> Unit) {
 }
 
 fun Context.blockContact(contact: Contact): Boolean {
-    var contactBlocked = true
-    ensureBackgroundThread {
-        contact.phoneNumbers.forEach {
-            val numberBlocked = addBlockedNumber(PhoneNumberUtils.stripSeparators(it.value))
-            contactBlocked = contactBlocked && numberBlocked
-        }
+    if (!isDefaultDialer()) return false
+    return contact.phoneNumbers.all {
+        addBlockedNumber(PhoneNumberUtils.stripSeparators(it.value))
     }
-
-    return contactBlocked
 }
 
 fun Context.unblockContact(contact: Contact): Boolean {
-    var contactUnblocked = true
-    ensureBackgroundThread {
-        contact.phoneNumbers.forEach {
-            val numberUnblocked = deleteBlockedNumber(PhoneNumberUtils.stripSeparators(it.value))
-            contactUnblocked = contactUnblocked && numberUnblocked
-        }
+    if (!isDefaultDialer()) return false
+    return contact.phoneNumbers.all {
+        deleteBlockedNumber(PhoneNumberUtils.stripSeparators(it.value))
     }
-
-    return contactUnblocked
 }

@@ -373,6 +373,69 @@ class PhonePrefixLocationHelper(private val context: Context) {
     }
 
     /**
+     * Load location+format mappings only when the DB table is empty.
+     * On subsequent cold starts the data is already present and the parse/insert is skipped,
+     * avoiding the delete-all + bulk-insert on every launch.
+     */
+    fun loadUnifiedLocationFormatsIfNeeded(resourceId: Int, callback: ((Int) -> Unit)? = null) {
+        ensureBackgroundThread {
+            val alreadyLoaded = try { formatDao.getAllFormats().isNotEmpty() } catch (_: Exception) { false }
+            if (alreadyLoaded) {
+                callback?.invoke(0)
+                return@ensureBackgroundThread
+            }
+            // Table is empty — perform the full parse + insert synchronously on this bg thread.
+            try {
+                val inputStream = context.resources.openRawResource(resourceId)
+                val jsonString = inputStream.bufferedReader().use { it.readText() }
+                val type = object : com.google.gson.reflect.TypeToken<List<UnifiedLocationFormatData>>() {}.type
+                val records: List<UnifiedLocationFormatData> = com.google.gson.Gson().fromJson(jsonString, type)
+
+                val phoneFormats = mutableListOf<com.goodwy.commons.models.PhoneNumberFormat>()
+                val seenPatternKeys = mutableSetOf<String>()
+                records.forEach { record ->
+                    val location = record.location?.asString?.trim().orEmpty()
+                    if (location.isEmpty()) return@forEach
+                    val formatTokens = record.numberFormat.split(",", "\n").map { it.trim() }.filter { it.isNotEmpty() }
+                    formatTokens.forEach { rawFormat ->
+                        val normalizedFormat = rawFormat.replace(" ", "").uppercase()
+                        val sections = normalizedFormat.split("-").filter { it.isNotEmpty() }
+                        if (sections.size < 3) return@forEach
+                        val prefix = sections[0]
+                        val districtCodePattern = sections[1]
+                        val templateTail = sections.drop(2).joinToString("-")
+                        val districtTemplate = "X".repeat(districtCodePattern.length)
+                        val formatTemplate = "$prefix-$districtTemplate-$templateTail"
+                        val uniquePatternKey = "$prefix|$districtCodePattern"
+                        if (!seenPatternKeys.add(uniquePatternKey)) return@forEach
+                        phoneFormats.add(
+                            com.goodwy.commons.models.PhoneNumberFormat(
+                                id = null,
+                                prefix = prefix,
+                                prefixLength = prefix.length,
+                                districtCodePattern = districtCodePattern,
+                                formatTemplate = formatTemplate,
+                                districtCodeLength = districtCodePattern.length,
+                                description = location
+                            )
+                        )
+                    }
+                }
+
+                val inserted = if (phoneFormats.isNotEmpty()) formatDao.insertOrUpdateFormats(phoneFormats) else emptyList()
+                try {
+                    val formatter = PhoneNumberFormatManager.customFormatter
+                    if (formatter is DatabasePhoneNumberFormatter) formatter.invalidateCache()
+                } catch (_: Exception) {}
+                callback?.invoke(inserted.size)
+            } catch (e: Exception) {
+                e.printStackTrace()
+                callback?.invoke(0)
+            }
+        }
+    }
+
+    /**
      * Check if formats are already loaded in the database
      */
     fun hasFormats(callback: (Boolean) -> Unit) {

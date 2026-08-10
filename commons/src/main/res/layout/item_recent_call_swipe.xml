@@ -225,6 +225,7 @@
                     android:background="?attr/selectableItemBackgroundBorderless">
 
                     <ImageView
+                        android:id="@+id/item_recents_info_icon"
                         android:layout_width="@dimen/recent_call_info_size"
                         android:layout_height="@dimen/recent_call_info_size"
                         android:layout_centerInParent="true"

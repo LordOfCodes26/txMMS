@@ -11,6 +11,7 @@ import android.provider.ContactsContract
 import android.provider.ContactsContract.*
 import android.provider.MediaStore
 import android.text.TextUtils
+import android.util.Log
 import android.util.SparseArray
 import com.goodwy.commons.R
 import com.goodwy.commons.extensions.*
@@ -28,6 +29,7 @@ import kotlin.math.max
 
 class ContactsHelper(val context: Context) {
     companion object {
+        private const val TAG_CONTACT_PHOTO = "ContactPhoto"
         private val contactSourcesCache = mutableMapOf<String, LinkedHashSet<ContactSource>>()
 
         /** Min distinct contacts before showing bulk favorite progress UI (list + select-contacts flow). */
@@ -258,21 +260,8 @@ class ContactsHelper(val context: Context) {
     }
 
     // Helper function to check if account is SIM card or phone storage
-    private fun isSimOrPhoneStorage(accountName: String, accountType: String): Boolean {
-        val nameLower = accountName.lowercase(Locale.getDefault())
-        val typeLower = accountType.lowercase(Locale.getDefault())
-        
-        // Phone storage: blank account name/type or "phone" account.
-        // Use isBlank() instead of isEmpty() because the protection mechanism stores
-        // a single space (' ') for account name/type rather than an empty string.
-        val isPhoneStorage = (accountName.isBlank() && accountType.isBlank()) ||
-            (nameLower.trim() == "phone" && accountType.isBlank())
-        
-        // SIM card: account type contains "sim" or "icc"
-        val isSimCard = typeLower.contains("sim") || typeLower.contains("icc")
-        
-        return isPhoneStorage || isSimCard
-    }
+    private fun isSimOrPhoneStorage(accountName: String, accountType: String): Boolean =
+        isSimOrPhoneStorageAccount(accountName, accountType)
 
     @SuppressLint("UseKtx")
     private fun getDeviceContacts(contacts: SparseArray<Contact>, ignoredContactSources: HashSet<String>?, gettingDuplicates: Boolean, loadExtendedFields: Boolean = true) {
@@ -391,11 +380,31 @@ class ContactsHelper(val context: Context) {
         // which does respect the unlock state.
         if (ContactProtectionHelper.isUnlockedInSession()) {
             val unlockedIds = ContactProtectionHelper.getUnlockedRawContactIds()
+            val sessionPin = ContactProtectionHelper.getSessionPin()
+            // "0" = normal space — unprotected contacts are already loaded from the Data pass;
+            // we only supplement with any PIN-"0" protected contacts on top.
+            // Any other PIN = secure space — show ONLY the unlocked protected contacts.
+            val isNormalSpace = sessionPin == "0"
+            Log.i("ProtectionFlow", "getDeviceContacts space=${ProtectionLogRedaction.space(sessionPin)}"
+                    + " isNormalSpace=$isNormalSpace"
+                    + " unlockedRawIds=${unlockedIds?.size ?: 0}"
+                    + " ids=${unlockedIds?.contentToString()}")
 
-            // Secure mode: show ONLY unlocked contacts
-            contacts.clear()
+            if (!isNormalSpace) {
+                // Secure space: show ONLY unlocked contacts
+                contacts.clear()
+            }
 
             if (unlockedIds != null && unlockedIds.isNotEmpty()) {
+                // Re-establish the unlock on this thread's provider connection immediately before
+                // the queries that depend on it. The ensureUnlockedForThread at the top of this
+                // function may have been a no-op if it ran before unlockAllWithPin set sessionPin
+                // (e.g. when this load was triggered by invalidateContactListCaches before the
+                // unlock background thread started). At this point sessionPin is guaranteed to be
+                // set (otherwise unlockedIds would be null), so this call will actually unlock
+                // the provider connection for the RawContacts and Contacts queries below.
+                com.goodwy.commons.helpers.ContactProtectionHelper.ensureUnlockedForThread(context)
+
                 val idsClause = unlockedIds.joinToString(",")
 
                 // Step 1 — raw_id → (contact_id, account_name)
@@ -456,6 +465,15 @@ class ContactsHelper(val context: Context) {
                 }
             }
 
+            val phoneNumbers = getPhoneNumbers(null)
+            val phoneSize = phoneNumbers.size
+            for (i in 0 until phoneSize) {
+                val key = phoneNumbers.keyAt(i)
+                contacts[key]?.let { it.phoneNumbers = phoneNumbers.valueAt(i) }
+            }
+
+            // Count only: these are the protected contacts, and logcat is not a private channel.
+            Log.i("ProtectionFlow", "getDeviceContacts secureMode loaded=${contacts.size()}")
             // IMPORTANT: stop further normal-list population after secure-mode handling
             return
         }
@@ -469,16 +487,22 @@ class ContactsHelper(val context: Context) {
             }
         }
 
-        applySparseArrayToContacts(getEmails()) { contact, emails -> contact.emails = emails }
-        applySparseArrayToContacts(getOrganizations()) { contact, org -> 
-            contact.organization = org
-            // If contact has no name but has organization, set firstName to organization name
-            // This ensures getNameToDisplay() works correctly for business contacts
-            if (contact.firstName.isEmpty()) {
-                val fullOrganization = if (org.company.isEmpty()) "" else "${org.company}, "
-                val fullCompanyName = (fullOrganization + org.jobPosition).trim().trimEnd(',')
-                if (fullCompanyName.isNotEmpty()) {
-                    contact.firstName = fullCompanyName
+        if (loadExtendedFields) {
+            applySparseArrayToContacts(getEmails()) { contact, emails -> contact.emails = emails }
+        }
+        // Load organizations only when at least one contact has no name yet (business contacts
+        // whose display name comes from their company). Skipping this query when every contact
+        // already has a firstName saves a full Data.CONTENT_URI scan on the common case.
+        val needsOrgLoad = (0 until contacts.size).any { contacts.valueAt(it).firstName.isEmpty() }
+        if (needsOrgLoad) {
+            applySparseArrayToContacts(getOrganizations()) { contact, org ->
+                contact.organization = org
+                if (contact.firstName.isEmpty()) {
+                    val fullOrganization = if (org.company.isEmpty()) "" else "${org.company}, "
+                    val fullCompanyName = (fullOrganization + org.jobPosition).trim().trimEnd(',')
+                    if (fullCompanyName.isNotEmpty()) {
+                        contact.firstName = fullCompanyName
+                    }
                 }
             }
         }
@@ -1110,35 +1134,107 @@ class ContactsHelper(val context: Context) {
         return null
     }
 
+    data class ContactPhotoFromProvider(
+        val photoUri: String,
+        val thumbnailUri: String,
+        val photoId: Long,
+        val hasBlob: Boolean,
+    )
+
     /**
-     * Refreshes contact.photoUri and contact.thumbnailUri from the aggregate Contacts table.
-     * When the aggregate returns empty (e.g. after save or aggregation lag), tries the contact's
-     * photo sub-URI (Contacts.CONTENT_URI/contactId/photo) so the photo still shows in list/view.
+     * Reads avatar URIs from the aggregate Contacts row, Photo Data rows, and photo-stream fallbacks.
+     */
+    fun queryContactPhotoFromProvider(contactId: Int, rawContactId: Int = 0): ContactPhotoFromProvider {
+        if (contactId == 0) {
+            return ContactPhotoFromProvider("", "", 0L, false)
+        }
+        if (!com.goodwy.commons.providercache.startup.StartupPhotoBackfillGate.allowProviderPhotoProbe()) {
+            return ContactPhotoFromProvider("", "", 0L, false)
+        }
+        if (com.goodwy.commons.providercache.startup.StartupPhotoBackfillGate.hasNegativePhotoResult(contactId)) {
+            return ContactPhotoFromProvider("", "", 0L, false)
+        }
+
+        var photoUri = ""
+        var thumbnailUri = ""
+        var photoId = 0L
+        var hasBlob = false
+
+        context.contentResolver.query(
+            Contacts.CONTENT_URI,
+            arrayOf(Contacts.PHOTO_URI, Contacts.PHOTO_THUMBNAIL_URI, Contacts.PHOTO_ID),
+            "${Contacts._ID} = ?",
+            arrayOf(contactId.toString()),
+            null,
+        )?.use { cursor ->
+            if (cursor.moveToFirst()) {
+                photoUri = cursor.getStringValue(Contacts.PHOTO_URI) ?: ""
+                thumbnailUri = cursor.getStringValue(Contacts.PHOTO_THUMBNAIL_URI) ?: ""
+                photoId = cursor.getLongValueOr(Contacts.PHOTO_ID, 0L)
+            }
+        }
+
+        val photoSelection = "${Data.CONTACT_ID} = ? AND ${Data.MIMETYPE} = ?"
+        val photoArgs = arrayOf(contactId.toString(), CommonDataKinds.Photo.CONTENT_ITEM_TYPE)
+        context.contentResolver.query(
+            Data.CONTENT_URI,
+            arrayOf(CommonDataKinds.Photo.PHOTO),
+            photoSelection,
+            photoArgs,
+            null,
+        )?.use { cursor ->
+            val photoCol = cursor.getColumnIndex(CommonDataKinds.Photo.PHOTO)
+            if (photoCol >= 0) {
+                while (cursor.moveToNext()) {
+                    if (!cursor.isNull(photoCol)) {
+                        val blob = cursor.getBlob(photoCol)
+                        if (blob != null && blob.isNotEmpty()) {
+                            hasBlob = true
+                            break
+                        }
+                    }
+                }
+            }
+        }
+
+        if (photoUri.isEmpty()) {
+            val fallback = getContactPhotoUriFromProvider(contactId, rawContactId)
+            if (fallback.isNotEmpty()) {
+                photoUri = fallback
+                if (thumbnailUri.isEmpty()) {
+                    thumbnailUri = fallback
+                }
+            }
+        } else if (thumbnailUri.isEmpty() && hasBlob) {
+            thumbnailUri = photoUri
+        }
+
+        if (photoUri.isEmpty() && hasBlob) {
+            val fallback = getContactPhotoUriFromProvider(contactId, rawContactId)
+            if (fallback.isNotEmpty()) {
+                photoUri = fallback
+                if (thumbnailUri.isEmpty()) {
+                    thumbnailUri = fallback
+                }
+            }
+        }
+
+        Log.d(
+            TAG_CONTACT_PHOTO,
+            "providerPhotoQuery contactId=$contactId photoUri=${photoUri.take(80)} " +
+                "thumbUri=${thumbnailUri.take(80)} photoId=$photoId hasBlob=$hasBlob",
+        )
+        return ContactPhotoFromProvider(photoUri, thumbnailUri, photoId, hasBlob)
+    }
+
+    /**
+     * Refreshes contact.photoUri and contact.thumbnailUri from the provider.
      */
     private fun refreshContactPhotoFromAggregate(contact: Contact) {
         if (contact.contactId == 0) return
-        val cursor = context.contentResolver.query(
-            Contacts.CONTENT_URI,
-            arrayOf(Contacts.PHOTO_URI, Contacts.PHOTO_THUMBNAIL_URI),
-            "${Contacts._ID} = ?",
-            arrayOf(contact.contactId.toString()),
-            null
-        )
-        cursor?.use { c ->
-            if (c.moveToFirst()) {
-                var photoUri = c.getStringValue(Contacts.PHOTO_URI) ?: ""
-                var thumbnailUri = c.getStringValue(Contacts.PHOTO_THUMBNAIL_URI) ?: ""
-                if (photoUri.isEmpty()) {
-                    val fallback = getContactPhotoUriFromProvider(contact.contactId, contact.id)
-                    if (!fallback.isEmpty()) {
-                        photoUri = fallback
-                        thumbnailUri = fallback
-                    }
-                }
-                contact.photoUri = photoUri
-                contact.thumbnailUri = thumbnailUri
-            }
-        }
+        val photo = queryContactPhotoFromProvider(contact.contactId, contact.id)
+        contact.photoUri = photo.photoUri
+        contact.thumbnailUri = photo.thumbnailUri
     }
 
     /**
@@ -1192,8 +1288,9 @@ class ContactsHelper(val context: Context) {
         }
         if (contactIds.isEmpty()) return
         val photoMap = mutableMapOf<Int, Pair<String, String>>()
-        // Chunk IN (...) to stay under SQLite limits and avoid huge single queries.
-        val idChunks = contactIds.chunked(450)
+        // IDs are embedded in the SQL string (not bind args) so SQLite's 999 bind-variable
+        // limit does not apply. Chunk at 900 to stay well below SQLITE_MAX_EXPR_DEPTH (~1000).
+        val idChunks = contactIds.chunked(900)
         for (chunk in idChunks) {
             val idList = chunk.joinToString(",")
             context.contentResolver.query(
@@ -2056,14 +2153,18 @@ class ContactsHelper(val context: Context) {
                 addFullSizePhoto(rawId, fullSizePhotoData)
             }
 
-            // favorite, ringtone
+            // favorite, ringtone — null CUSTOM_RINGTONE means system default (not silent).
             if (!isSimDestination) {
                 val userId = getRealContactId(rawId)
                 if (userId != 0) {
                     val uri = Uri.withAppendedPath(Contacts.CONTENT_URI, userId.toString())
                     val contentValues = ContentValues(2)
                     contentValues.put(Contacts.STARRED, contact.starred)
-                    contentValues.put(Contacts.CUSTOM_RINGTONE, contact.ringtone)
+                    if (contact.ringtone != null) {
+                        contentValues.put(Contacts.CUSTOM_RINGTONE, contact.ringtone)
+                    } else {
+                        contentValues.putNull(Contacts.CUSTOM_RINGTONE)
+                    }
                     context.contentResolver.update(uri, contentValues, null, null)
                 }
             }
@@ -2081,159 +2182,6 @@ class ContactsHelper(val context: Context) {
     /** Used by the host app batch contact import (VCF). */
     fun writeFullSizePhotoForRawContact(rawContactId: Long, photoBytes: ByteArray) {
         addFullSizePhoto(rawContactId, photoBytes)
-    }
-
-    /**
-     * Inserts a contact into the system ContactsProvider that is hidden from the main contacts list
-     * but still appears in search results (Contacts app or Dialer).
-     * 
-     * @param contact The contact to insert
-     * @param hiddenAccountName Custom account name for hidden contacts (default: "Hidden Contacts")
-     * @param hiddenAccountType Custom account type for hidden contacts (default: "com.goodwy.contacts.hidden")
-     * @return true if the contact was successfully inserted, false otherwise
-     */
-    fun insertHiddenContact(
-        contact: Contact,
-        hiddenAccountName: String = "Hidden Contacts",
-        hiddenAccountType: String = "com.goodwy.contacts.hidden"
-    ): Boolean {
-        try {
-            val operations = ArrayList<ContentProviderOperation>()
-            
-            // Insert raw contact with custom account
-            ContentProviderOperation.newInsert(RawContacts.CONTENT_URI).apply {
-                withValue(RawContacts.ACCOUNT_NAME, hiddenAccountName)
-                withValue(RawContacts.ACCOUNT_TYPE, hiddenAccountType)
-                operations.add(build())
-            }
-
-            // names - use single name field
-            ContentProviderOperation.newInsert(Data.CONTENT_URI).apply {
-                withValueBackReference(Data.RAW_CONTACT_ID, 0)
-                withValue(Data.MIMETYPE, CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE)
-                withValue(CommonDataKinds.StructuredName.PREFIX, "")
-                withValue(CommonDataKinds.StructuredName.GIVEN_NAME, contact.firstName)
-                withValue(CommonDataKinds.StructuredName.MIDDLE_NAME, "")
-                withValue(CommonDataKinds.StructuredName.FAMILY_NAME, "")
-                withValue(CommonDataKinds.StructuredName.SUFFIX, "")
-                operations.add(build())
-            }
-
-            // phone numbers
-            contact.phoneNumbers.forEach {
-                ContentProviderOperation.newInsert(Data.CONTENT_URI).apply {
-                    withValueBackReference(Data.RAW_CONTACT_ID, 0)
-                    withValue(Data.MIMETYPE, CommonDataKinds.Phone.CONTENT_ITEM_TYPE)
-                    withValue(CommonDataKinds.Phone.NUMBER, it.value)
-                    withValue(CommonDataKinds.Phone.NORMALIZED_NUMBER, it.normalizedNumber)
-                    withValue(CommonDataKinds.Phone.TYPE, it.type)
-                    withValue(CommonDataKinds.Phone.LABEL, it.label)
-                    withValue(CommonDataKinds.Phone.IS_PRIMARY, it.isPrimary)
-                    operations.add(build())
-                }
-            }
-
-            // emails
-            contact.emails.forEach {
-                ContentProviderOperation.newInsert(Data.CONTENT_URI).apply {
-                    withValueBackReference(Data.RAW_CONTACT_ID, 0)
-                    withValue(Data.MIMETYPE, CommonDataKinds.Email.CONTENT_ITEM_TYPE)
-                    withValue(CommonDataKinds.Email.DATA, it.value)
-                    withValue(CommonDataKinds.Email.TYPE, it.type)
-                    withValue(CommonDataKinds.Email.LABEL, it.label)
-                    operations.add(build())
-                }
-            }
-
-            // addresses
-            contact.addresses.forEach {
-                ContentProviderOperation.newInsert(Data.CONTENT_URI).apply {
-                    withValueBackReference(Data.RAW_CONTACT_ID, 0)
-                    withValue(Data.MIMETYPE, CommonDataKinds.StructuredPostal.CONTENT_ITEM_TYPE)
-                    withValue(CommonDataKinds.StructuredPostal.FORMATTED_ADDRESS, it.value)
-                    withValue(CommonDataKinds.StructuredPostal.COUNTRY, it.country)
-                    withValue(CommonDataKinds.StructuredPostal.REGION, it.region)
-                    withValue(CommonDataKinds.StructuredPostal.CITY, it.city)
-                    withValue(CommonDataKinds.StructuredPostal.POSTCODE, it.postcode)
-                    withValue(CommonDataKinds.StructuredPostal.POBOX, it.pobox)
-                    withValue(CommonDataKinds.StructuredPostal.STREET, it.street)
-                    withValue(CommonDataKinds.StructuredPostal.NEIGHBORHOOD, it.neighborhood)
-                    withValue(CommonDataKinds.StructuredPostal.TYPE, it.type)
-                    withValue(CommonDataKinds.StructuredPostal.LABEL, it.label)
-                    operations.add(build())
-                }
-            }
-
-            // events
-            contact.events
-                .filter { it.type == CommonDataKinds.Event.TYPE_BIRTHDAY }
-                .take(1)
-                .forEach {
-                ContentProviderOperation.newInsert(Data.CONTENT_URI).apply {
-                    withValueBackReference(Data.RAW_CONTACT_ID, 0)
-                    withValue(Data.MIMETYPE, CommonDataKinds.Event.CONTENT_ITEM_TYPE)
-                    withValue(CommonDataKinds.Event.START_DATE, it.value)
-                    withValue(CommonDataKinds.Event.TYPE, CommonDataKinds.Event.TYPE_BIRTHDAY)
-                    withValue(CommonDataKinds.Event.LABEL, "")
-                    operations.add(build())
-                }
-            }
-
-            // notes
-            ContentProviderOperation.newInsert(Data.CONTENT_URI).apply {
-                withValueBackReference(Data.RAW_CONTACT_ID, 0)
-                withValue(Data.MIMETYPE, CommonDataKinds.Note.CONTENT_ITEM_TYPE)
-                withValue(CommonDataKinds.Note.NOTE, contact.notes)
-                operations.add(build())
-            }
-
-            // organization
-            if (contact.organization.isNotEmpty()) {
-                ContentProviderOperation.newInsert(Data.CONTENT_URI).apply {
-                    withValueBackReference(Data.RAW_CONTACT_ID, 0)
-                    withValue(Data.MIMETYPE, CommonDataKinds.Organization.CONTENT_ITEM_TYPE)
-                    withValue(CommonDataKinds.Organization.COMPANY, contact.organization.company)
-                    withValue(CommonDataKinds.Organization.TYPE, DEFAULT_ORGANIZATION_TYPE)
-                    withValue(CommonDataKinds.Organization.TITLE, contact.organization.jobPosition)
-                    operations.add(build())
-                }
-            }
-
-            // groups (skip groups for hidden contacts to avoid visibility issues)
-            // contact.groups.forEach { ... }
-
-            // photo
-            var fullSizePhotoData: ByteArray? = null
-            if (contact.photoUri.isNotEmpty()) {
-                val photoUri = contact.photoUri.toUri()
-                fullSizePhotoData = context.contentResolver.openInputStream(photoUri)?.readBytes()
-            }
-
-            val results = context.contentResolver.applyBatch(AUTHORITY, operations)
-            val rawId = ContentUris.parseId(results[0].uri!!)
-            
-            // fullsize photo
-            if (contact.photoUri.isNotEmpty() && fullSizePhotoData != null) {
-                addFullSizePhoto(rawId, fullSizePhotoData)
-            }
-
-            // Get the contact ID and set it as hidden (IN_VISIBLE_GROUP = 0)
-            val userId = getRealContactId(rawId)
-            if (userId != 0) {
-                val uri = Uri.withAppendedPath(Contacts.CONTENT_URI, userId.toString())
-                val contentValues = ContentValues(3)
-                contentValues.put(Contacts.STARRED, contact.starred)
-                contentValues.put(Contacts.CUSTOM_RINGTONE, contact.ringtone)
-                // Set IN_VISIBLE_GROUP to 0 to hide from main list but keep searchable
-                contentValues.put(Contacts.IN_VISIBLE_GROUP, 0)
-                context.contentResolver.update(uri, contentValues, null, null)
-            }
-
-            return true
-        } catch (e: Exception) {
-            context.showErrorToast(e)
-            return false
-        }
     }
 
     private fun addFullSizePhoto(contactId: Long, fullSizePhotoData: ByteArray) {
@@ -2371,12 +2319,17 @@ class ContactsHelper(val context: Context) {
         }
     }
 
-    fun updateRingtone(contactId: String, newUri: String) {
+    fun updateRingtone(contactId: String, newUri: String?) {
         try {
             val operations = ArrayList<ContentProviderOperation>()
             val uri = Uri.withAppendedPath(Contacts.CONTENT_URI, contactId)
             ContentProviderOperation.newUpdate(uri).apply {
-                withValue(Contacts.CUSTOM_RINGTONE, newUri)
+                // null = system default; empty / SILENT = no sound. Never coerce null → "".
+                if (newUri == null) {
+                    withValue(Contacts.CUSTOM_RINGTONE, null as String?)
+                } else {
+                    withValue(Contacts.CUSTOM_RINGTONE, newUri)
+                }
                 operations.add(build())
             }
 
@@ -2694,6 +2647,11 @@ class ContactsHelper(val context: Context) {
      *  2. **Phone-number fallback** — for AOSP devices without those MTK columns, search the
      *     ICC provider for a row whose normalised `number` matches the contact's first phone.
      */
+    /** SIM ADN purge before bulk raw-contact deletes (e.g. [com.goodwy.commons.providercache.sync.ContactsBulkDeleteManager]). */
+    fun purgeSimAdnBeforeRawContactDelete(rawContactIds: List<Long>) {
+        purgeSimAdnEntriesBeforeRawContactsDelete(rawContactIds)
+    }
+
     fun deleteRawContactIds(
         rawContactIds: List<Long>,
         onProgress: ((deleted: Int, total: Int) -> Unit)? = null
@@ -3081,6 +3039,83 @@ class ContactsHelper(val context: Context) {
 
                 contacts.put(id, contact)
             }
+        }
+
+        // Supplementary load: Data.CONTENT_URI does not return protected contacts even after
+        // unlock_all_with_pin. Use RawContacts.CONTENT_URI + Contacts.CONTENT_URI instead.
+        // Normal space (PIN "0"): keep the Data-pass results and only add PIN-"0" protected
+        // contacts on top. Secure space: replace Data-pass results with only the unlocked ones.
+        if (ContactProtectionHelper.isUnlockedInSession()) {
+            val unlockedIds = ContactProtectionHelper.getUnlockedRawContactIds()
+            val sessionPin = ContactProtectionHelper.getSessionPin()
+            val isNormalSpace = sessionPin == "0"
+            Log.i("ProtectionFlow", "getDeviceContactsForRecents"
+                    + " space=${ProtectionLogRedaction.space(sessionPin)}"
+                    + " isNormalSpace=$isNormalSpace"
+                    + " unlockedRawIds=${unlockedIds?.size ?: 0}")
+            if (!isNormalSpace) contacts.clear()
+            if (unlockedIds != null && unlockedIds.isNotEmpty()) {
+                // ensureUnlockedForThread was called by getContactsForRecents before entering here,
+                // but call it again at this point so the queries below are definitely on an unlocked
+                // Binder connection (sessionPin is guaranteed set because unlockedIds is non-null).
+                ContactProtectionHelper.ensureUnlockedForThread(context)
+                val idsClause = unlockedIds.joinToString(",")
+                val rawIdToContactId = mutableMapOf<Int, Int>()
+                val rawIdToAccountName = mutableMapOf<Int, String>()
+                context.queryCursor(
+                    RawContacts.CONTENT_URI,
+                    arrayOf(RawContacts._ID, RawContacts.CONTACT_ID, RawContacts.ACCOUNT_NAME),
+                    "${RawContacts._ID} IN ($idsClause)", null, null, true
+                ) { cursor ->
+                    rawIdToContactId[cursor.getIntValue(RawContacts._ID)] =
+                        cursor.getIntValue(RawContacts.CONTACT_ID)
+                    rawIdToAccountName[cursor.getIntValue(RawContacts._ID)] =
+                        cursor.getStringValue(RawContacts.ACCOUNT_NAME) ?: ""
+                }
+                val contactIdSet = rawIdToContactId.values.toSet()
+                if (contactIdSet.isNotEmpty()) {
+                    data class CInfo(
+                        val displayName: String, val photoUri: String,
+                        val thumbnailUri: String, val starred: Int, val ringtone: String?
+                    )
+                    val infoMap = mutableMapOf<Int, CInfo>()
+                    context.queryCursor(
+                        Contacts.CONTENT_URI,
+                        arrayOf(
+                            Contacts._ID, Contacts.DISPLAY_NAME_PRIMARY,
+                            Contacts.PHOTO_URI, Contacts.PHOTO_THUMBNAIL_URI,
+                            Contacts.STARRED, Contacts.CUSTOM_RINGTONE
+                        ),
+                        "${Contacts._ID} IN (${contactIdSet.joinToString(",")})",
+                        null, null, true
+                    ) { cursor ->
+                        val cid = cursor.getIntValue(Contacts._ID)
+                        infoMap[cid] = CInfo(
+                            displayName = cursor.getStringValue(Contacts.DISPLAY_NAME_PRIMARY) ?: "",
+                            photoUri = cursor.getStringValue(Contacts.PHOTO_URI) ?: "",
+                            thumbnailUri = cursor.getStringValue(Contacts.PHOTO_THUMBNAIL_URI) ?: "",
+                            starred = cursor.getIntValue(Contacts.STARRED),
+                            ringtone = cursor.getStringValue(Contacts.CUSTOM_RINGTONE)
+                        )
+                    }
+                    for ((rawId, contactId) in rawIdToContactId) {
+                        val info = infoMap[contactId] ?: continue
+                        val accountName = rawIdToAccountName[rawId] ?: ""
+                        contacts.put(
+                            rawId,
+                            Contact(
+                                rawId, "", info.displayName, "", "", "", "",
+                                info.photoUri, ArrayList(), ArrayList(), ArrayList(), ArrayList(),
+                                accountName, info.starred, contactId, info.thumbnailUri,
+                                null, "", ArrayList(), Organization("", ""),
+                                ArrayList(),
+                                CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE, info.ringtone
+                            )
+                        )
+                    }
+                }
+            }
+            Log.i("ProtectionFlow", "getDeviceContactsForRecents secureMode loaded=${contacts.size()}")
         }
 
         // Helper function to apply SparseArray values to contacts

@@ -33,7 +33,6 @@
     <ID>CyclomaticComplexMethod:ContactsHelper.kt$ContactsHelper$fun updateContact(contact: Contact, photoUpdateStatus: Int): Boolean</ID>
     <ID>CyclomaticComplexMethod:ContactsHelper.kt$ContactsHelper$private fun getDeviceContacts(contacts: SparseArray&lt;Contact&gt;, ignoredContactSources: HashSet&lt;String&gt;?, gettingDuplicates: Boolean)</ID>
     <ID>CyclomaticComplexMethod:ContactsHelper.kt$ContactsHelper$private fun parseContactCursor(selection: String, selectionArgs: Array&lt;String&gt;): Contact?</ID>
-    <ID>CyclomaticComplexMethod:Context-contacts.kt$fun Context.getSocialActions(id: Int): ArrayList&lt;SocialAction&gt;</ID>
     <ID>CyclomaticComplexMethod:Context-storage.kt$fun Context.getFileOutputStreamSync(path: String, mimeType: String, parentDocumentFile: DocumentFile? = null): OutputStream?</ID>
     <ID>CyclomaticComplexMethod:Context-storage.kt$fun Context.getOTGItems(path: String, shouldShowHidden: Boolean, getProperFileSize: Boolean, callback: (ArrayList&lt;FileDirItem&gt;) -&gt; Unit)</ID>
     <ID>CyclomaticComplexMethod:Context-styling.kt$fun Context.updateTextColors(viewGroup: ViewGroup)</ID>
@@ -1583,7 +1582,6 @@
     <ID>MaxLineLength:SimpleLazyListScaffold.kt$topBar: @Composable (scrolledColor: Color, navigationInteractionSource: MutableInteractionSource, scrollBehavior: TopAppBarScrollBehavior, statusBarColor: Int, colorTransitionFraction: Float, contrastColor: Color) -&gt; Unit</ID>
     <ID>MaxLineLength:SimpleLazyListScaffold.kt$val (colorTransitionFraction, scrolledColor) = transitionFractionAndScrolledColor(scrollBehavior, contrastColor, darkStatusBarIcons)</ID>
     <ID>MaxLineLength:SimpleListItem.kt$SimpleListItem$data</ID>
-    <ID>MaxLineLength:SocialAction.kt$SocialAction</ID>
     <ID>MaxLineLength:StoragePickerDialog.kt$StoragePickerDialog$val layoutParams = RadioGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)</ID>
     <ID>MaxLineLength:String.kt$"${context.baseConfig.OTGTreeUri}/document/${context.baseConfig.OTGPartition}%3A${substring(context.baseConfig.OTGPath.length).replace("/", "%2F")}"</ID>
     <ID>MaxLineLength:String.kt$BitmapFactory.decodeStream(context.contentResolver.openInputStream(context.getAndroidSAFUri(this)), null, options)</ID>

@@ -1,5 +1,4 @@
-<resources xmlns:tools="http://schemas.android.com/tools"
-    xmlns:app="http://schemas.android.com/apk/res-auto">
+<resources xmlns:app="http://schemas.android.com/apk/res-auto" xmlns:tools="http://schemas.android.com/tools">
 
     <style name="AppTheme.Base" parent="Theme.Material3.Dark.NoActionBar">
         <item name="colorPrimary">@color/color_primary</item>
@@ -20,10 +19,10 @@
         <item name="windowActionModeOverlay">true</item>    <!-- replace casual top menu with contextual menu after long pressing an item -->
         <item name="android:actionOverflowButtonStyle">@style/ActionMenuOverflowIcon</item>
         <!-- so that when you re-open the splash screen was black -->
-        <item name="android:windowSplashScreenBackground" tools:targetApi="s">@color/tx_common_bg</item>
-<!--        <item name="android:windowBackground">#000000</item>-->
-<!--        <item name="android:statusBarColor">#000000</item>-->
-<!--        <item name="android:navigationBarColor">#000000</item>-->
+        <!--        <item name="android:windowSplashScreenBackground" tools:targetApi="s">#000000</item>-->
+        <!--        <item name="android:windowBackground">#000000</item>-->
+        <!--        <item name="android:statusBarColor">#000000</item>-->
+        <!--        <item name="android:navigationBarColor">#000000</item>-->
         <item name="android:radioButtonStyle">@style/MyRadioButtonStyle</item>
         <item name="radioButtonStyle">@style/MyRadioButtonStyle</item>
     </style>
@@ -176,10 +175,10 @@
 
     <!--<item name="android:windowBackground">@drawable/splash_screen</item>-->
     <style name="SplashTheme" parent="AppTheme.Base">
-<!--        <item name="android:windowSplashScreenBackground" tools:targetApi="s">#000000</item>-->
-<!--        <item name="android:windowBackground">#000000</item>-->
-<!--        <item name="android:statusBarColor">#000000</item>-->
-<!--        <item name="android:navigationBarColor">#000000</item>-->
+        <!--        <item name="android:windowSplashScreenBackground" tools:targetApi="s">#000000</item>-->
+        <!--        <item name="android:windowBackground">#000000</item>-->
+        <!--        <item name="android:statusBarColor">#000000</item>-->
+        <!--        <item name="android:navigationBarColor">#000000</item>-->
         <item name="android:windowBackground">@android:color/transparent</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
     </style>
@@ -302,7 +301,7 @@
         <item name="android:paddingStart">@dimen/big_margin</item>
         <item name="android:paddingTop">@dimen/small_margin</item>
         <item name="android:paddingEnd">@dimen/big_margin</item>
-<!--        <item name="android:paddingBottom">@dimen/big_margin</item>-->
+        <!--        <item name="android:paddingBottom">@dimen/big_margin</item>-->
         <item name="android:orientation">horizontal</item>
     </style>
 
@@ -415,6 +414,10 @@
     <style name="OverflowEditIconStyle">
         <item name="srcCompat">@drawable/ic_cmn_edit</item>
         <item name="android:background">?attr/selectableItemBackgroundBorderless</item>
+        <item name="android:paddingStart">@dimen/normal_margin</item>
+        <item name="android:paddingTop">@dimen/normal_margin</item>
+        <item name="android:paddingEnd">@dimen/normal_margin</item>
+        <item name="android:paddingBottom">@dimen/normal_margin</item>
     </style>
     <!-- end -->
 
@@ -481,16 +484,18 @@
     <style name="BottomSheetModalStyle" parent="Widget.Design.BottomSheet.Modal">
         <item name="android:background">@android:color/transparent</item>
     </style>
-    <!-- edited by sun -->
+
     <style name="SettingsSectionLabelStyle">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">wrap_content</item>
         <item name="android:textSize">@dimen/tx_section_title</item>
         <item name="android:textColor">@color/tx_sub_text</item>
         <!-- Match card outer inset (SettingsSectionHolder marginHorizontal), not a separate title gutter -->
-        <item name="android:layout_marginStart">@dimen/tx_cardview_card_title_margin_left</item>
+        <item name="android:layout_marginStart">@dimen/tx_cardview_margin_horizontal</item>
+        <item name="android:layout_marginEnd">@dimen/tx_cardview_margin_horizontal</item>
         <item name="android:layout_marginTop">@dimen/tx_cardview_card_title_margin_top</item>
         <item name="android:layout_marginBottom">@dimen/tx_cardview_card_title_margin_bottom</item>
+        <item name="android:paddingStart">@dimen/tx_cardview_padding_left</item>
     </style>
 
     <style name="MaterialSectionLabelStyle">
@@ -522,19 +527,28 @@
     <style name="SettingsHolderStyle">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">wrap_content</item>
+        <!-- Match txCommon card rows: horizontal press wash, not Material circular ripple. -->
+        <item name="android:background">@drawable/tx_item_ripple</item>
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
         <item name="android:paddingStart">@dimen/tx_cardview_padding_left</item>
         <item name="android:paddingEnd">@dimen/tx_cardview_padding_right</item>
         <item name="android:paddingTop">@dimen/tx_cardview_padding_vertical</item>
         <item name="android:paddingBottom">@dimen/tx_cardview_padding_vertical</item>
     </style>
-    <!-- edited by sun -->
+
     <style name="SettingsHolderSwitchStyle">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">wrap_content</item>
+        <!-- Match txCommon card rows: no Material circular ripple; use tx_item_ripple press wash. -->
+        <item name="android:background">@android:color/transparent</item>
+        <item name="android:foreground">@drawable/tx_item_ripple</item>
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
         <item name="android:paddingStart">@dimen/tx_cardview_padding_left</item>
-        <item name="android:paddingEnd">@dimen/tx_cardview_padding_right</item>
-        <item name="android:paddingTop">@dimen/tx_cardview_padding_vertical</item>
-        <item name="android:paddingBottom">@dimen/tx_cardview_padding_vertical</item>
+        <item name="android:paddingEnd">@dimen/normal_margin</item>
+        <item name="android:paddingTop">@dimen/setting_switch_item_vertical_margin</item>
+        <item name="android:paddingBottom">@dimen/setting_switch_item_vertical_margin</item>
     </style>
 
     <style name="SettingsCheckboxStyle">
@@ -544,14 +558,14 @@
         <item name="android:paddingStart">@dimen/normal_margin</item>
         <item name="android:textSize">@dimen/small_text_size</item>
     </style>
-    <!-- edited by sun -->
+
     <style name="SettingsSwitchStyle">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">wrap_content</item>
         <item name="android:background">@null</item>
         <item name="android:clickable">false</item>
-<!--        <item name="android:paddingStart">@dimen/settings_margin</item>-->
-        <item name="android:paddingEnd">@dimen/small_margin</item>
+        <!--        <item name="android:paddingStart">@dimen/settings_margin</item>-->
+        <!--        <item name="android:paddingEnd">@dimen/settings_margin</item>-->
         <item name="android:textSize">@dimen/tx_normal_text</item>
         <item name="android:textColor">@color/tx_cardview_title</item>
         <item name="android:minHeight">16dp</item>
@@ -571,22 +585,21 @@
     <style name="SettingsTextSummaryStyle">
         <item name="android:layout_width">wrap_content</item>
         <item name="android:layout_height">wrap_content</item>
-<!--        <item name="android:paddingStart">@dimen/settings_margin</item>-->
-<!--        <item name="android:paddingEnd">@dimen/settings_margin</item>-->
+        <!--        <item name="android:paddingStart">@dimen/settings_margin</item>-->
+        <!--        <item name="android:paddingEnd">@dimen/settings_margin</item>-->
         <item name="android:paddingTop">@dimen/smaller_margin</item>
         <item name="android:textSize">@dimen/tx_small_text</item>
         <item name="android:textColor">@color/tx_cardview_summary</item>
-<!--        <item name="android:alpha">0.6</item>-->
+        <!--        <item name="android:alpha">0.6</item>-->
     </style>
-    <!-- edited by sun -->
+
     <style name="SettingsTextValueStyle">
         <item name="android:layout_width">wrap_content</item>
-        <item name="android:layout_height">@dimen/tx_cardview_icon_size</item>
+        <item name="android:layout_height">wrap_content</item>
         <item name="android:layout_centerVertical">true</item>
         <item name="android:textSize">@dimen/tx_small_text</item>
         <item name="android:textColor">@color/tx_cardview_summary</item>
-        <item name="android:paddingEnd">@dimen/medium_margin</item>
-        <item name="android:gravity">end|center_vertical</item>
+        <item name="android:gravity">end</item>
         <item name="android:alpha">1</item>
         <item name="android:textAlignment">viewEnd</item>
     </style>

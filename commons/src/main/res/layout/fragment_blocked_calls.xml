@@ -37,7 +37,7 @@
             android:layout_marginTop="@dimen/medium_normal_margin"
             android:gravity="center"
             android:text="@string/no_blocked_calls"
-            android:textColor="@color/tx_sub_text"
+            android:textColor="@color/empty_placeholder"
             android:textSize="@dimen/tx_dialog_content" />
     </LinearLayout>
 </FrameLayout>

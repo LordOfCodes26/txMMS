@@ -2720,7 +2720,6 @@ class NewConversationActivity : SimpleActivity() {
             }
         }
         dialog.show()
-        trackOpenDialog(dialog)
     }
 
     private data class NewConversationExitSnapshot(

@@ -98,6 +98,8 @@ class CustomToolbar @JvmOverloads constructor(
     private var navigationIconDrawable: Drawable? = null
     /** Blur target for overflow popups and optional wiring; set via [bindBlurTarget]. */
     private var boundBlurTarget: BlurTarget? = null
+    /** Activity passed to the last [bindBlurTarget]; needed to re-apply blur after [setActionBarsOverlay]. */
+    private var boundBlurActivity: Activity? = null
     private var isSearchBound = false
     private var searchAnimator: ValueAnimator? = null
 
@@ -696,25 +698,25 @@ class CustomToolbar @JvmOverloads constructor(
      * [MActionBar.bindBlurTarget]).
      */
     fun bindBlurTarget(activity: Activity, blurTarget: BlurTarget) {
+        boundBlurActivity = activity
         boundBlurTarget = blurTarget
-        navigationMActionBar()?.bindBlurTarget(activity, blurTarget)
-        actionMActionBar()?.bindBlurTarget(activity, blurTarget)
+        rebindActionBarBlur()
     }
 
     /**
      * Binds blur target with optional overlay tint (`0` keeps each bar’s current resolved overlay).
+     *
+     * When [overlayColor] is non-zero, also calls [MActionBar.setOverlay] so the tint survives a
+     * later [setActionBarsThemeStyle] (bind-only color is wiped by [MActionBar.setTheme]).
      */
     fun bindBlurTarget(activity: Activity, blurTarget: BlurTarget, @ColorInt overlayColor: Int) {
+        boundBlurActivity = activity
         boundBlurTarget = blurTarget
-        val nav = navigationMActionBar()
-        val action = actionMActionBar()
         if (overlayColor != 0) {
-            nav?.bindBlurTarget(activity, blurTarget, overlayColor)
-            action?.bindBlurTarget(activity, blurTarget, overlayColor)
-        } else {
-            nav?.bindBlurTarget(activity, blurTarget)
-            action?.bindBlurTarget(activity, blurTarget)
+            navigationMActionBar()?.setOverlay(overlayColor)
+            actionMActionBar()?.setOverlay(overlayColor)
         }
+        rebindActionBarBlur()
     }
 
     /**
@@ -730,12 +732,15 @@ class CustomToolbar @JvmOverloads constructor(
         }
         navigationMActionBar()?.setTheme(normalizedStyle)
         actionMActionBar()?.setTheme(normalizedStyle)
+        // Theme re-resolves overlay; re-run setupWith so the painted tint matches (see [rebindActionBarBlur]).
+        rebindActionBarBlur()
     }
 
     /** Type-safe overload for [setActionBarsThemeStyle]. */
     fun setActionBarsThemeStyle(mode: MActionBar.ThemeMode) {
         navigationMActionBar()?.setTheme(mode)
         actionMActionBar()?.setTheme(mode)
+        rebindActionBarBlur()
     }
 
     /**
@@ -745,6 +750,9 @@ class CustomToolbar @JvmOverloads constructor(
     fun setActionBarsOverlay(@ColorInt overlayColor: Int) {
         navigationMActionBar()?.setOverlay(overlayColor)
         actionMActionBar()?.setOverlay(overlayColor)
+        // MActionBar.setOverlay only calls BlurView.setOverlayColor; re-bind so setupWith applies it
+        // (same approach as MRippleToolBar.configureBlur after setOverlay).
+        rebindActionBarBlur()
     }
 
     /**
@@ -753,6 +761,18 @@ class CustomToolbar @JvmOverloads constructor(
     fun setActionBarsOverlay(@ColorInt overlayColor: Int, keepDefaultAlpha: Boolean) {
         navigationMActionBar()?.setOverlay(overlayColor, keepDefaultAlpha)
         actionMActionBar()?.setOverlay(overlayColor, keepDefaultAlpha)
+        rebindActionBarBlur()
+    }
+
+    /**
+     * Re-runs [MActionBar.bindBlurTarget] so the current resolved overlay is applied via
+     * `setupWith(...).setOverlayColor(...)`. No-op until [bindBlurTarget] has been called.
+     */
+    private fun rebindActionBarBlur() {
+        val activity = boundBlurActivity ?: return
+        val blurTarget = boundBlurTarget ?: return
+        navigationMActionBar()?.bindBlurTarget(activity, blurTarget)
+        actionMActionBar()?.bindBlurTarget(activity, blurTarget)
     }
 
     private fun getLiveActionBarMenu(): Menu? {

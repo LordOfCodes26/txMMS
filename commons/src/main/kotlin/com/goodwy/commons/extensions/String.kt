@@ -291,6 +291,16 @@ private val KOREAN_CHOSEONG_COMPAT = charArrayOf(
 
 private val KOREAN_COMPAT_CONSONANTS = KOREAN_CHOSEONG_COMPAT.toSet()
 
+/** Double consonants collapse to their single form for contact index rails (ㄲ→ㄱ, …). */
+private fun Char.toKoreanIndexChoseong(): Char = when (this) {
+    'ㄲ' -> 'ㄱ'
+    'ㄸ' -> 'ㄷ'
+    'ㅃ' -> 'ㅂ'
+    'ㅆ' -> 'ㅅ'
+    'ㅉ' -> 'ㅈ'
+    else -> this
+}
+
 /**
  * For a Hangul character, returns a normalized leading consonant (compatibility Jamo: ㄱ..ㅎ).
  * - Syllable (e.g. 구) -> ㄱ
@@ -321,25 +331,22 @@ private const val FAST_SCROLL_NON_LATIN_LETTER_BUCKET = "\u00B7" // middle dot �
 
 /**
  * Maps [getFirstLetter]-style output to a short rail: merge all Latin / English letters into `"A"`;
- * keep Hangul (Korean choseong ㄱ..ㅎ) distinct; Han (Chinese characters) into `"汉"`; merge digits,
+ * keep Hangul index choseong (ㄱㄴㄷㄹㅁㅂㅅㅇㅈㅊㅋㅌㅍㅎ); Han into `"汉"`; merge digits,
  * symbols/emoji, and other scripts into fixed buckets.
  */
 fun String.toFastScrollBucket(): String {
     if (isEmpty()) return ""
     if (length > 1) return FAST_SCROLL_SYMBOL_BUCKET
     val c = this[0]
+    c.toKoreanChoseongOrNull()?.let { return it.toKoreanIndexChoseong().toString() }
     return when {
         c.isDigit() -> FAST_SCROLL_DIGIT_BUCKET
         c in 'A'..'Z' || c in 'a'..'z' -> FAST_SCROLL_LATIN_BUCKET
         Character.isLetter(c) -> {
             when (Character.UnicodeScript.of(c.code)) {
                 Character.UnicodeScript.LATIN -> FAST_SCROLL_LATIN_BUCKET
-                Character.UnicodeScript.HANGUL -> c.toString()
                 Character.UnicodeScript.HAN -> FAST_SCROLL_HAN_BUCKET
-                else -> {
-                    if (c in KOREAN_COMPAT_CONSONANTS) c.toString()
-                    else FAST_SCROLL_NON_LATIN_LETTER_BUCKET
-                }
+                else -> FAST_SCROLL_NON_LATIN_LETTER_BUCKET
             }
         }
         else -> FAST_SCROLL_SYMBOL_BUCKET

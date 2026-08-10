@@ -44,7 +44,6 @@ import com.goodwy.commons.extensions.isDynamicTheme
 import com.goodwy.commons.extensions.isSystemInDarkMode
 import com.goodwy.commons.extensions.showErrorToast
 import com.goodwy.commons.extensions.toast
-import com.goodwy.commons.extensions.trackOpenDialog
 import com.goodwy.commons.extensions.updateTextColors
 import com.goodwy.commons.helpers.ensureBackgroundThread
 import com.goodwy.commons.views.showMPopupMenu
@@ -428,7 +427,6 @@ class SimMessagesActivity : SimpleActivity() {
             }
         }
         dialog.show()
-        trackOpenDialog(dialog)
     }
 
     private fun deleteFromSim(message: SimMessage) {

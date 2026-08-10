@@ -29,12 +29,16 @@ android {
     defaultConfig {
         minSdk = libs.versions.app.build.minimumSDK.get().toInt()
         vectorDrawables.useSupportLibrary = true
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         ksp {
             arg("room.schemaLocation", "$projectDir/schemas")
         }
     }
 
     buildTypes {
+        debug {
+            buildConfigField("boolean", "CACHE_FAILURE_HOOKS_ENABLED", "true")
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(
@@ -42,6 +46,7 @@ android {
                 "proguard-rules.pro"
             )
             consumerProguardFiles("proguard-rules.pro")
+            buildConfigField("boolean", "CACHE_FAILURE_HOOKS_ENABLED", "false")
         }
     }
 
@@ -52,6 +57,11 @@ android {
     buildFeatures {
         viewBinding = true
         compose = true
+        buildConfig = true
+    }
+
+    testOptions {
+        unitTests.isReturnDefaultValues = true
     }
 
     compileOptions {
@@ -87,6 +97,8 @@ android {
 
     sourceSets {
         getByName("main").java.srcDirs("src/main/kotlin")
+        getByName("androidTest").java.srcDirs("src/androidTest/kotlin")
+        getByName("androidTest").assets.srcDirs("$projectDir/schemas")
     }
 }
 
@@ -146,6 +158,7 @@ dependencies {
     ksp(libs.glide.compiler)
 
     api(libs.bundles.room)
+    api(libs.bundles.paging)
     ksp(libs.androidx.room.compiler)
     detektPlugins(libs.compose.detekt)
 
@@ -165,4 +178,12 @@ dependencies {
 
     // add tx common library
     api(files("libs/common.aar"))
+
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
+    androidTestImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
+
+    androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation("androidx.test:runner:1.6.2")
+    androidTestImplementation("androidx.room:room-testing:${libs.versions.room.get()}")
 }

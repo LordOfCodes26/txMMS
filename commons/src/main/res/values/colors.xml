@@ -19,6 +19,9 @@
     <color name="bottom_tabs_black_background">#FF1B1B1B</color> <!--#44666666 transparency sometimes gets in the way-->
     <color name="disabled_text_color_highlight">#00FFFFFF</color>
 
+    <!-- Empty list / illustration + caption (matches app token) -->
+    <color name="empty_placeholder">#B2B2B2</color>
+
     <color name="hint_white">#99FFFFFF</color>
     <color name="hint_black">#66000000</color>
     <color name="light_grey_stroke">#40FFFFFF</color>

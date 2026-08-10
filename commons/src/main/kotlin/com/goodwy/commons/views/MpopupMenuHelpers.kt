@@ -22,7 +22,6 @@ import eightbitlab.com.blurview.BlurTarget
 const val MPOPUP_USE_DEFAULT_END_INSET = Int.MIN_VALUE
 
 /** Shows [MPopup] with optional blur and toolbar-style end inset. */
-@SuppressLint("RestrictedApi")
 fun showMPopupMenu(
     context: Context,
     anchor: View,
@@ -36,6 +35,11 @@ fun showMPopupMenu(
     horizontalEndInsetPx: Int = MPOPUP_USE_DEFAULT_END_INSET,
     showIcons: Boolean = false,
     showGroupDividers: Boolean = false,
+    /** "dark", "light", or "system". Null keeps [MPopup] default (system). */
+    themeStyle: String? = null,
+    /** Blur overlay tint; `0` leaves [MPopup] default. Pass contact card color on detail screens. */
+    overlayColor: Int = 0,
+    keepDefaultOverlayAlpha: Boolean = true,
     listener: MenuItem.OnMenuItemClickListener?,
 ) {
     if (showGroupDividers && menu is MenuBuilder){
@@ -50,6 +54,9 @@ fun showMPopupMenu(
         xThreshold.coerceIn(0f, 1f),
         yThreshold.coerceIn(0f, 1f),
     )
+    if (!themeStyle.isNullOrBlank()) {
+        popupDelegate.setTheme(themeStyle)
+    }
     if (!showIcons) {
         removeAllMenuIcons(menu)
     }
@@ -59,6 +66,9 @@ fun showMPopupMenu(
     val resolvedBlurTarget = blurTarget ?: (context as? Activity)?.findViewById(R.id.mainBlurTarget)
     if (resolvedBlurTarget != null) {
         popupDelegate.setBlurTarget(resolvedBlurTarget)
+    }
+    if (overlayColor != 0) {
+        popupDelegate.setOverlay(overlayColor, keepDefaultOverlayAlpha)
     }
 
     val endInset = resolveHorizontalEndInsetPx(context, gravity, touchX, horizontalEndInsetPx)

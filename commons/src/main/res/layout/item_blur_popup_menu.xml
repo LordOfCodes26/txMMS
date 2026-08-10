@@ -8,7 +8,7 @@
     android:paddingEnd="@dimen/activity_margin"
     android:paddingTop="@dimen/normal_margin"
     android:paddingBottom="@dimen/normal_margin"
-    android:background="?attr/selectableItemBackground"
+    android:background="@drawable/tx_item_ripple"
     android:minHeight="48dp">
 
     <com.goodwy.commons.views.MyTextView

@@ -20,16 +20,14 @@ class DatabasePhoneNumberFormatter(
     private val context: Context
 ) : PhoneNumberFormatter {
     
-    // Cache formats in memory to avoid database queries on main thread
     private var cachedFormats: List<PhoneNumberFormat>? = null
+    // Pre-sorted list used directly in formatPhoneNumber to avoid re-sorting on every call.
+    private var sortedFormatsCache: List<PhoneNumberFormat>? = null
     private var formatsCacheInitialized = false
-    
-    /**
-     * Invalidate the cache to force reload of formats
-     * Call this after formats are loaded/updated in the database
-     */
+
     fun invalidateCache() {
         cachedFormats = null
+        sortedFormatsCache = null
         formatsCacheInitialized = false
         android.util.Log.d("DatabasePhoneNumberFormatter", "Cache invalidated, formats will be reloaded")
     }
@@ -46,22 +44,16 @@ class DatabasePhoneNumberFormatter(
         return try {
             val db = PhoneNumberDatabase.getInstance(context)
             val formatDao = db.PhoneNumberFormatDao()
-            
-            // Get formats (database now allows main thread queries, but we cache for performance)
             val formats = formatDao.getAllFormats()
-            
-            android.util.Log.d("DatabasePhoneNumberFormatter", "Loaded ${formats.size} formats from database")
             if (formats.isNotEmpty()) {
-                // Log first few formats for debugging
-                formats.take(5).forEach { format ->
-                    android.util.Log.d("DatabasePhoneNumberFormatter", "Format: prefix=${format.prefix}, pattern=${format.districtCodePattern}, template=${format.formatTemplate}")
-                }
                 cachedFormats = formats
+                sortedFormatsCache = formats.sortedWith(
+                    compareByDescending<PhoneNumberFormat> { it.prefixLength }
+                        .thenByDescending { PhoneNumberFormatHelper.getPatternSpecificity(it.districtCodePattern) }
+                        .thenByDescending { it.districtCodeLength }
+                )
                 formatsCacheInitialized = true
-            } else {
-                android.util.Log.w("DatabasePhoneNumberFormatter", "No formats found in database - formats may not be loaded yet")
             }
-            
             formats
         } catch (e: Exception) {
             android.util.Log.e("DatabasePhoneNumberFormatter", "Error loading formats", e)
@@ -89,22 +81,13 @@ class DatabasePhoneNumberFormatter(
             val allFormats = getFormats()
             if (allFormats.isEmpty()) {
                 // No formats in database or cache, fall back to default
-                // Try to load formats in background for next time
                 if (!formatsCacheInitialized) {
-                    com.goodwy.commons.helpers.ensureBackgroundThread {
-                        getFormats() // Load formats in background
-                    }
+                    com.goodwy.commons.helpers.ensureBackgroundThread { getFormats() }
                 }
                 return formatWithDefault(phoneNumber, normalizedNumber, countryCode)
             }
             
-            // Prefer longer prefixes and more specific district patterns first
-            // (e.g., 58X before 5XX when both match).
-            val sortedFormats = allFormats.sortedWith(
-                compareByDescending<PhoneNumberFormat> { it.prefixLength }
-                    .thenByDescending { PhoneNumberFormatHelper.getPatternSpecificity(it.districtCodePattern) }
-                    .thenByDescending { it.districtCodeLength }
-            )
+            val sortedFormats = sortedFormatsCache ?: allFormats
             
             // Calculate maximum expected length from all formats
             // Format typically needs: prefix + district + 4 digits for NUMBER4
@@ -112,10 +95,7 @@ class DatabasePhoneNumberFormatter(
                 it.prefixLength + it.districtCodeLength + 4 
             } ?: Int.MAX_VALUE
             
-            // If number is significantly longer than any format expects, return normalized number
-            // Allow some buffer (e.g., 2 extra digits) before considering it overflow
             if (normalizedNumber.length > maxExpectedLength + 2) {
-                android.util.Log.d("DatabasePhoneNumberFormatter", "Number length overflow: $normalizedNumber (length=${normalizedNumber.length}, max expected=$maxExpectedLength)")
                 return normalizedNumber
             }
             
@@ -145,15 +125,10 @@ class DatabasePhoneNumberFormatter(
                     format.prefixLength + format.districtCodeLength
                 )
                 
-                // Check if district code matches the pattern
-                val patternMatches = PhoneNumberFormatHelper.matchesPattern(districtCode, format.districtCodePattern)
-                android.util.Log.v("DatabasePhoneNumberFormatter", "Trying format: prefix=${format.prefix}, pattern=${format.districtCodePattern}, extracted prefix=$prefix, district=$districtCode, matches=$patternMatches")
-                
-                if (patternMatches) {
+                if (PhoneNumberFormatHelper.matchesPattern(districtCode, format.districtCodePattern)) {
                     matchedFormat = format
                     matchedPrefix = prefix
                     matchedDistrictCode = districtCode
-                    android.util.Log.d("DatabasePhoneNumberFormatter", "✓ Matched: $normalizedNumber -> prefix=$prefix, district=$districtCode, pattern=${format.districtCodePattern}, template=${format.formatTemplate}")
                     break
                 }
             }
@@ -174,20 +149,12 @@ class DatabasePhoneNumberFormatter(
                     matchedDistrictCode,
                     numberPart
                 )
-                // If the template could not be fully resolved (e.g. short number leaves XXXX),
-                // fall back to the original input to avoid showing placeholder characters in UI.
                 if (formattedNumber.any { it.equals('X', ignoreCase = true) }) {
-                    android.util.Log.d(
-                        "DatabasePhoneNumberFormatter",
-                        "Template unresolved for $normalizedNumber with ${matchedFormat.formatTemplate}, returning original number"
-                    )
                     phoneNumber
                 } else {
                     formattedNumber
                 }
             } else {
-                // No database format matched, fall back to default
-                android.util.Log.d("DatabasePhoneNumberFormatter", "No format matched for: $normalizedNumber (length=${normalizedNumber.length})")
                 formatWithDefault(phoneNumber, normalizedNumber, countryCode)
             }
         } catch (e: Exception) {
