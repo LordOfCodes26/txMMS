@@ -13,6 +13,7 @@ import android.provider.Settings
 import android.telephony.SmsManager
 import android.text.InputType
 import android.view.View
+import android.view.ViewGroup
 import android.widget.EditText
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresPermission
@@ -27,6 +28,7 @@ import com.goodwy.commons.dialogs.*
 import com.goodwy.commons.extensions.*
 import com.goodwy.commons.helpers.*
 import com.goodwy.commons.models.RadioItem
+import com.goodwy.commons.views.MyLiquidSwitch
 import com.android.mms.R
 import com.android.mms.databinding.ActivitySettingsBinding
 import com.android.mms.dialogs.ExportMessagesDialog
@@ -290,8 +292,13 @@ class SettingsActivity : SimpleActivity() {
                 settingsMmsHolder,
                 settingsOutgoingMessagesHolder,
                 settingsBackupsHolder
-            ).forEach {
-                it.setCardBackgroundColor(cardBgColor)
+            ).forEach { card ->
+                card.setCardBackgroundColor(cardBgColor)
+                // MSwitch draws an opaque backdrop behind the track; keep it matching the card
+                // so a white rectangle does not show on the row (txDial / txCommon pattern).
+                for (i in 0 until card.childCount) {
+                    applySwitchBackground(card.getChildAt(i), cardBgColor)
+                }
             }
 
             val properTextColor = getProperTextColor()
@@ -305,19 +312,6 @@ class SettingsActivity : SimpleActivity() {
             ).forEach {
                 it.applyColorFilter(properTextColor)
             }
-//            deleted by sun
-//            because duplicate style and text color
-//            ------------->
-//            arrayOf(
-//                settingsDeliveryReportSummary,
-//                settingsShowPhoneNumberSummary,
-//                settingsShowSmsRemainedCountSummary
-//            ).forEach {
-//                it.setColors(com.android.common.R.color.tx_cardview_summary,
-//                    com.android.common.R.color.tx_cardview_summary,
-//                    com.android.common.R.color.tx_cardview_summary)
-//            }
-//            <--------------
         }
         isRebindingSettings = false
         binding.settingsMenu.translationY = 0f
@@ -752,32 +746,32 @@ class SettingsActivity : SimpleActivity() {
     }
 
     private fun setupShowPhoneNumber() = binding.apply {
-        settingsShowPhoneNumber.isChecked = config.showPhoneNumber
-        settingsShowPhoneNumber.setOnCheckedChangeListener { isChecked ->
+        setupSwitchSetting(
+            settingsShowPhoneNumberHolder,
+            settingsShowPhoneNumber,
+            config.showPhoneNumber
+        ) { isChecked ->
             config.showPhoneNumber = isChecked
-        }
-        settingsShowPhoneNumberHolder.setOnClickListener {
-            settingsShowPhoneNumber.toggle()
         }
     }
 
     private fun setupShowSmsRemainedCount() = binding.apply {
-        settingsShowSmsRemainedCount.isChecked = config.showSmsRemainedCount
-        settingsShowSmsRemainedCount.setOnCheckedChangeListener { isChecked ->
+        setupSwitchSetting(
+            settingsShowSmsRemainedCountHolder,
+            settingsShowSmsRemainedCount,
+            config.showSmsRemainedCount
+        ) { isChecked ->
             config.showSmsRemainedCount = isChecked
-        }
-        settingsShowSmsRemainedCountHolder.setOnClickListener {
-            settingsShowSmsRemainedCount.toggle()
         }
     }
 
     private fun setupShowCharacterCounter() = binding.apply {
-        settingsShowCharacterCounter.isChecked = config.showCharacterCounter
-        settingsShowCharacterCounter.setOnCheckedChangeListener { isChecked ->
+        setupSwitchSetting(
+            settingsShowCharacterCounterHolder,
+            settingsShowCharacterCounter,
+            config.showCharacterCounter
+        ) { isChecked ->
             config.showCharacterCounter = isChecked
-        }
-        settingsShowCharacterCounterHolder.setOnClickListener {
-            settingsShowCharacterCounter.toggle()
         }
     }
 
@@ -853,23 +847,23 @@ class SettingsActivity : SimpleActivity() {
     )
 
     private fun setupSoundOnOutGoingMessages() = binding.apply {
-        settingsSoundOnOutGoingMessages.isChecked = config.soundOnOutGoingMessages
-        settingsSoundOnOutGoingMessages.setOnCheckedChangeListener { isChecked ->
+        setupSwitchSetting(
+            settingsSoundOnOutGoingMessagesHolder,
+            settingsSoundOnOutGoingMessages,
+            config.soundOnOutGoingMessages
+        ) { isChecked ->
             config.soundOnOutGoingMessages = isChecked
-        }
-        settingsSoundOnOutGoingMessagesHolder.setOnClickListener {
-            settingsSoundOnOutGoingMessages.toggle()
         }
     }
 
     private fun setupEnableDeliveryReports() = binding.apply {
-        settingsEnableDeliveryReports.isChecked = config.enableDeliveryReports
-        settingsEnableDeliveryReports.setOnCheckedChangeListener { isChecked ->
+        setupSwitchSetting(
+            settingsEnableDeliveryReportsHolder,
+            settingsEnableDeliveryReports,
+            config.enableDeliveryReports
+        ) { isChecked ->
             config.enableDeliveryReports = isChecked
             updateDeliveryReportSoundVisibility()
-        }
-        settingsEnableDeliveryReportsHolder.setOnClickListener {
-            settingsEnableDeliveryReports.toggle()
         }
         updateDeliveryReportSoundVisibility()
     }
@@ -968,12 +962,44 @@ class SettingsActivity : SimpleActivity() {
     }
 
     private fun setupNotifyTurnsOnScreen() = binding.apply {
-        settingsNotifyTurnsOnScreen.isChecked = config.notifyTurnsOnScreen
-        settingsNotifyTurnsOnScreen.setOnCheckedChangeListener { isChecked ->
+        setupSwitchSetting(
+            settingsNotifyTurnsOnScreenHolder,
+            settingsNotifyTurnsOnScreen,
+            config.notifyTurnsOnScreen
+        ) { isChecked ->
             config.notifyTurnsOnScreen = isChecked
         }
-        settingsNotifyTurnsOnScreenHolder.setOnClickListener {
-            settingsNotifyTurnsOnScreen.toggle()
+    }
+
+    private fun applySwitchBackground(view: View, color: Int) {
+        when (view) {
+            is MyLiquidSwitch -> view.setSwitchBackgroundColor(color)
+            is ViewGroup -> {
+                for (i in 0 until view.childCount) {
+                    applySwitchBackground(view.getChildAt(i), color)
+                }
+            }
+        }
+    }
+
+    /**
+     * Syncs prefs when the user toggles [MyLiquidSwitch].
+     * Clears the listener while applying [checked] so [onResume] does not treat it as user input,
+     * then uses [MyLiquidSwitch.toggle] (animated) from the row holder — same as txDial.
+     */
+    private inline fun setupSwitchSetting(
+        holder: View,
+        switch: MyLiquidSwitch,
+        checked: Boolean,
+        crossinline onChecked: (Boolean) -> Unit
+    ) {
+        switch.setOnCheckedChangeListener { }
+        switch.isChecked = checked
+        switch.setOnCheckedChangeListener { isChecked ->
+            onChecked(isChecked)
+        }
+        holder.setOnClickListener {
+            switch.toggle()
         }
     }
 

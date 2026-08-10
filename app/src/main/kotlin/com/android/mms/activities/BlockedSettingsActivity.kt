@@ -3,6 +3,7 @@ package com.android.mms.activities
 import android.graphics.Color
 import android.os.Bundle
 import android.view.View
+import android.view.ViewGroup
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -12,6 +13,7 @@ import com.goodwy.commons.extensions.hideKeyboard
 import com.goodwy.commons.extensions.isSystemInDarkMode
 import com.goodwy.commons.extensions.updateTextColors
 import com.goodwy.commons.extensions.viewBinding
+import com.goodwy.commons.views.MyLiquidSwitch
 
 class BlockedSettingsActivity : SimpleActivity() {
     private val binding by viewBinding(ActivityBlockedSettingsBinding::inflate)
@@ -114,19 +116,59 @@ class BlockedSettingsActivity : SimpleActivity() {
         setupSettingsTopAppBar()
         scrollingView = binding.settingsNestedScrollview
         setupShowNotification()
+        applySettingsCardBackgrounds()
         updateTextColors(binding.rootView)
         binding.settingsNestedScrollview.post {
             refreshSideFrameBlurAndInsets()
         }
     }
 
+    private fun applySettingsCardBackgrounds() {
+        val cardBgColor = resources.getColor(com.android.common.R.color.tx_cardview_bg)
+        binding.settingsNotificationsHolder.apply {
+            setCardBackgroundColor(cardBgColor)
+            // MSwitch draws an opaque backdrop behind the track; keep it matching the card
+            // so a white rectangle does not show on the row (txDial / txCommon pattern).
+            for (i in 0 until childCount) {
+                applySwitchBackground(getChildAt(i), cardBgColor)
+            }
+        }
+    }
+
+    private fun applySwitchBackground(view: View, color: Int) {
+        when (view) {
+            is MyLiquidSwitch -> view.setSwitchBackgroundColor(color)
+            is ViewGroup -> {
+                for (i in 0 until view.childCount) {
+                    applySwitchBackground(view.getChildAt(i), color)
+                }
+            }
+        }
+    }
+
     private fun setupShowNotification() = binding.apply {
-        settingsShowNotification.isChecked = config.showBlockedNumbers
-        settingsShowNotification.setOnCheckedChangeListener { isChecked ->
+        setupSwitchSetting(
+            settingsShowNotificationHolder,
+            settingsShowNotification,
+            config.showBlockedNumbers
+        ) { isChecked ->
             config.showBlockedNumbers = isChecked
         }
-        settingsShowNotificationHolder.setOnClickListener {
-            settingsShowNotification.toggle()
+    }
+
+    private inline fun setupSwitchSetting(
+        holder: View,
+        switch: MyLiquidSwitch,
+        checked: Boolean,
+        crossinline onChecked: (Boolean) -> Unit
+    ) {
+        switch.setOnCheckedChangeListener { }
+        switch.isChecked = checked
+        switch.setOnCheckedChangeListener { isChecked ->
+            onChecked(isChecked)
+        }
+        holder.setOnClickListener {
+            switch.toggle()
         }
     }
 
