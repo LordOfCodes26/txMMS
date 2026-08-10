@@ -2421,18 +2421,9 @@ class NewConversationActivity : SimpleActivity() {
                 .replace(R.id.fragment_container, fragment)
                 .addToBackStack(null)
                 .commit()
-
-            // Update fragment title for new conversation
-            fragment.view?.post {
-                updateFragmentTitle(fragment)
-            } ?: run {
-                // If view is null, post with a small delay
-                android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                    fragment.view?.post {
-                        updateFragmentTitle(fragment)
-                    }
-                }, 100)
-            }
+            // Apply title in the same frame as the first draw (no post/delay → no name/number flash).
+            supportFragmentManager.executePendingTransactions()
+            updateFragmentTitle(fragment)
         }
     }
 

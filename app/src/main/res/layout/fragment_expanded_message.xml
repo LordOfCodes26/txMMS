@@ -4,7 +4,8 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:layout_marginTop="@dimen/smaller_margin">
+    android:layout_marginTop="@dimen/smaller_margin"
+    android:animateLayoutChanges="false">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/topDetailsLargeExpanded"
@@ -12,6 +13,7 @@
         android:layout_height="wrap_content"
         android:paddingBottom="4dp"
         android:paddingHorizontal="@dimen/tx_search_view_margin_right"
+        android:animateLayoutChanges="false"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">

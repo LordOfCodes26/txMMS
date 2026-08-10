@@ -115,24 +115,32 @@ class ExpandedMessageFragment : Fragment() {
                 onMinimize?.invoke()
             }
         }
-        
 
-        binding.topDetailsLargeExpanded.beGone()
-        
         // Same top bar fill as main thread / new conversation (large + compact headers).
         binding.topDetailsLargeExpanded.setBackgroundColor(topBarColor)
+        // Avoid GONE→VISIBLE after first draw (looks like a flash / top-down drop of name+number).
+        // Match [config.threadTopStyle] immediately; activities apply title in the same frame.
+        (binding.root as? ViewGroup)?.layoutTransition = null
+        binding.topDetailsLargeExpanded.layoutTransition = null
+        if (activity.config.threadTopStyle == THREAD_TOP_LARGE) {
+            binding.topDetailsLargeExpanded.beVisible()
+        } else {
+            binding.topDetailsLargeExpanded.beGone()
+        }
+        applyTopDetailsStatusBarPadding()
 
         // Handle system window insets to avoid status bar overlap
         ViewCompat.setOnApplyWindowInsetsListener(binding.topDetailsLargeExpanded) { view, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            val statusTop = insets.getInsetsIgnoringVisibility(WindowInsetsCompat.Type.statusBars()).top
             view.setPadding(
                 view.paddingLeft,
-                systemBars.top,
+                statusTop,
                 view.paddingRight,
                 view.paddingBottom
             )
             insets
         }
+        ViewCompat.requestApplyInsets(binding.topDetailsLargeExpanded)
         
 
         // Edge-to-edge hosts (ThreadActivity / NewConversationActivity) do not resize for IME; pad the
@@ -228,6 +236,22 @@ class ExpandedMessageFragment : Fragment() {
         checkSendMessageAvailability()
         getCurrentSIMCardIndex()
         updateAvailableMessageCountForCurrentSim()
+    }
+
+    /** Apply status-bar top padding before the first layout so the header does not jump downward. */
+    private fun applyTopDetailsStatusBarPadding() {
+        val rootInsets = ViewCompat.getRootWindowInsets(requireActivity().window.decorView)
+            ?: ViewCompat.getRootWindowInsets(binding.root)
+        val statusTop = rootInsets
+            ?.getInsetsIgnoringVisibility(WindowInsetsCompat.Type.statusBars())
+            ?.top
+            ?: 0
+        binding.topDetailsLargeExpanded.setPadding(
+            binding.topDetailsLargeExpanded.paddingLeft,
+            statusTop,
+            binding.topDetailsLargeExpanded.paddingRight,
+            binding.topDetailsLargeExpanded.paddingBottom
+        )
     }
 
     @RequiresPermission(Manifest.permission.READ_PHONE_STATE)

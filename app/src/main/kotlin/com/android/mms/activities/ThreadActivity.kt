@@ -35,7 +35,6 @@ import android.util.Log
 import android.view.View
 import android.view.ViewTreeObserver
 import android.view.WindowManager
-import android.os.Handler
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.annotation.StringRes
@@ -3538,16 +3537,6 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
 
         // Update fragment thread title after fragment is created
         expandedMessageFragment?.let { fragment ->
-            // Set up lifecycle observer BEFORE committing transaction to ensure it catches the lifecycle events
-            val observer = object : androidx.lifecycle.DefaultLifecycleObserver {
-                override fun onResume(owner: androidx.lifecycle.LifecycleOwner) {
-                    // Update when fragment resumes (view is guaranteed to be created by then)
-                    updateFragmentThreadTitle(fragment)
-                    fragment.lifecycle.removeObserver(this)
-                }
-            }
-            fragment.lifecycle.addObserver(observer)
-
             // Hide the main content and show the fragment container (sibling of thread_coordinator)
             findViewById<View>(R.id.thread_coordinator)?.beGone()
             findViewById<View>(R.id.fragment_container)?.beVisible()
@@ -3556,19 +3545,9 @@ class ThreadActivity : SimpleActivity(), ActionModeToolbarHost {
                 .replace(R.id.fragment_container, fragment)
                 .addToBackStack(null)
                 .commit()
-
-            // Also try immediate update if view is already available (for faster execution)
-            // Use postDelayed to give the fragment time to create its view
-            fragment.view?.post {
-                updateFragmentThreadTitle(fragment)
-            } ?: run {
-                // If view is null, post with a small delay
-                Handler(android.os.Looper.getMainLooper()).postDelayed({
-                    fragment.view?.post {
-                        updateFragmentThreadTitle(fragment)
-                    }
-                }, 100)
-            }
+            // Apply title in the same frame as the first draw (no post/delay → no name/number flash).
+            supportFragmentManager.executePendingTransactions()
+            updateFragmentThreadTitle(fragment)
         }
     }
 
