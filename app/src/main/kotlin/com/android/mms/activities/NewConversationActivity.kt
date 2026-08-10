@@ -2337,12 +2337,19 @@ class NewConversationActivity : SimpleActivity() {
         val numbers = phoneNumber.split(";").toSet()
         val number = if (numbers.size == 1) phoneNumber else Gson().toJson(numbers)
         val threadText = body ?: intent.getStringExtra(Intent.EXTRA_TEXT).orEmpty()
+        // Match BlockedConversationsFragment: without this, getMessages() drops inbox rows from blocked senders
+        // while outgoing messages still show (ADDRESS is the recipient).
+        val blockedNumbers = getBlockedNumbers()
+        val showBlockedMessages = numbers.any { isNumberBlocked(it, blockedNumbers) }
         Intent(this, ThreadActivity::class.java).apply {
             putExtra(THREAD_ID, threadId ?: getThreadId(numbers))
             putExtra(THREAD_TITLE, name)
             putExtra(THREAD_TEXT, threadText)
             putExtra(THREAD_NUMBER, number)
             putExtra(THREAD_URI, photoUri)
+            if (showBlockedMessages) {
+                putExtra(THREAD_SHOW_BLOCKED_MESSAGES, true)
+            }
 
             if (body != "" && intent.action == Intent.ACTION_SEND && intent.extras?.containsKey(Intent.EXTRA_STREAM) == true) {
                 val uri = intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)
