@@ -62,8 +62,9 @@ class ConversationsAdapter(
     activity: BaseSimpleActivity,
     recyclerView: MyRecyclerView,
     onRefresh: () -> Unit,
-    itemClick: (Any) -> Unit
-) : BaseConversationsAdapter(activity, recyclerView, onRefresh, itemClick) {
+    itemClick: (Any) -> Unit,
+    isBlockedList: Boolean = false,
+) : BaseConversationsAdapter(activity, recyclerView, onRefresh, itemClick, isBlockedList = isBlockedList) {
 
     private var getBlockedNumbers = activity.getBlockedNumbers()
 

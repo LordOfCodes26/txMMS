@@ -1,6 +1,7 @@
 package com.android.mms.adapters
 
 import android.annotation.SuppressLint
+import android.content.res.ColorStateList
 import android.os.Handler
 import android.os.Looper
 import android.provider.Telephony
@@ -65,6 +66,7 @@ import me.thanel.swipeactionview.SwipeDirection
 import me.thanel.swipeactionview.SwipeGestureListener
 import java.util.Calendar
 import java.util.HashMap
+import androidx.core.view.isVisible
 
 @Suppress("LeakingThis")
 abstract class BaseConversationsAdapter(
@@ -74,6 +76,7 @@ abstract class BaseConversationsAdapter(
     itemClick: (Any) -> Unit,
     var isArchived: Boolean = false,
     var isRecycleBin: Boolean = false,
+    var isBlockedList: Boolean = false,
 ) : MyRecyclerViewListAdapter<ConversationListItem>(
     activity = activity,
     recyclerView = recyclerView,
@@ -501,6 +504,13 @@ abstract class BaseConversationsAdapter(
                 }
                 else -> conversationMessageType.beGone()
             }
+            if (conversationMessageType.isVisible) {
+                conversationMessageType.imageTintList = when {
+                    lastMessageType == Telephony.Sms.MESSAGE_TYPE_FAILED -> null
+                    isBlockedList -> ColorStateList.valueOf(colorRed)
+                    else -> ColorStateList.valueOf(resources.getColor(R.color.txt_empty_sms, activity.theme))
+                }
+            }
 
 
 //            draftClear.apply {
@@ -546,22 +556,21 @@ abstract class BaseConversationsAdapter(
             val titleForDisplay = resolvedTitle.takeIf { it.isNotBlank() }
                 ?: conversation.phoneNumber.takeIf { it.isNotBlank() }
                 ?: activity.getString(com.goodwy.commons.R.string.unknown)
+            val titleColor = if (isBlockedList || !conversation.read) colorRed else blackDarkTextColor
             conversationAddress.apply {
                 text = titleForDisplay
                 setTextSize(TypedValue.COMPLEX_UNIT_PX, fontSize )
-                if(!conversation.read /*|| conversation.isBlocked*/) {
-                    setTextColor(colorRed)
-                }
-                else {
-                    setTextColor(blackDarkTextColor)
-                }
+                setTextColor(titleColor)
             }
             if (conversation.messageCount > 1) {
                 conversationAddressCount.beVisible()
                 conversationAddressCount.apply {
                     text = "(${conversation.messageCount})"
                     setTextSize(TypedValue.COMPLEX_UNIT_PX, smallFontSize)
-                    if(!conversation.read || conversation.isBlocked) setTextColor(colorRed) else setTextColor(blackDarkTextColor)
+                    setTextColor(
+                        if (!isBlockedList && (!conversation.read || conversation.isBlocked)) colorRed
+                        else blackDarkTextColor
+                    )
                 }
             } else {
                 conversationAddressCount.beGone()
@@ -580,14 +589,10 @@ abstract class BaseConversationsAdapter(
                 //setTextSize(TypedValue.COMPLEX_UNIT_PX, smallFontSize)
             }
 
-            if (conversation.isBlocked) {
-                arrayListOf(conversationBodyShort, conversationDate).forEach {
-                    it.setTextColor(colorRed)
-                }
-            } else {
-                arrayListOf(conversationBodyShort, conversationDate).forEach {
-                    it.setTextColor(blackDarkTextColor)
-                }
+            val snippetColor =
+                if (conversation.isBlocked && !isBlockedList) colorRed else blackDarkTextColor
+            arrayListOf(conversationBodyShort, conversationDate).forEach {
+                it.setTextColor(snippetColor)
             }
 
 //            if (activity.config.unreadIndicatorPosition == UNREAD_INDICATOR_START) {

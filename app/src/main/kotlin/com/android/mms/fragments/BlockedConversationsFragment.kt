@@ -168,6 +168,7 @@ class BlockedConversationsFragment : BlockedMessagesFragment() {
                 recyclerView = list,
                 onRefresh = { loadBlockedConversations() },
                 itemClick = { openConversation(act, it as Conversation) },
+                isBlockedList = true,
             )
             list.adapter = curr
             adapter = curr
