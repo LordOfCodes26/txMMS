@@ -26,6 +26,7 @@ import com.android.mms.models.SimMessage
 import com.goodwy.commons.extensions.applyColorFilter
 import com.goodwy.commons.extensions.beGone
 import com.goodwy.commons.extensions.beVisible
+import com.goodwy.commons.extensions.beVisibleIf
 import com.goodwy.commons.extensions.formatDateOrTime
 import com.goodwy.commons.extensions.formatTime
 import com.goodwy.commons.extensions.getLetterBackgroundColors
@@ -63,24 +64,24 @@ class SimMessageAdapter(
         @SuppressLint("SetTextI18n")
         fun bind(message: SimMessage) {
             val timeStr = formatTime(message.date)
+            val bodyText = bodyWithAddress(message)
 
             if (message.isIncoming) {
                 binding.simMsgReceivedContainer.beVisible()
                 binding.simMsgSentContainer.beGone()
-                binding.simMsgBody.text = message.address + " : " + message.body
+                binding.simMsgBody.text = bodyText
                 binding.simMsgTime.text = timeStr
+                binding.simMsgTime.beVisibleIf(timeStr.isNotEmpty())
                 setupReceivedBubble(binding.simMsgBubbleReceived)
 
             } else {
                 binding.simMsgSentContainer.beVisible()
                 binding.simMsgReceivedContainer.beGone()
-                binding.simMsgBodySent.text = message.body
+                binding.simMsgBodySent.text = bodyText
                 binding.simMsgTimeSent.text = timeStr
+                binding.simMsgTimeSent.beVisibleIf(timeStr.isNotEmpty())
                 setupSendBubble(binding.simMsgBubbleSent)
             }
-
-            if (timeStr.isEmpty())
-                binding.simMsgTime.visibility = View.GONE
 
             binding.root.setOnLongClickListener {
                 onLongClick(message, itemView)
@@ -88,6 +89,12 @@ class SimMessageAdapter(
             }
         }
 
+    }
+
+    /** SIM records hold the sender for received messages and the recipient for sent ones. */
+    private fun bodyWithAddress(message: SimMessage): String {
+        val address = message.address.trim()
+        return if (address.isEmpty()) message.body else "$address : ${message.body}"
     }
 
     private fun formatTime(millis: Long): String {

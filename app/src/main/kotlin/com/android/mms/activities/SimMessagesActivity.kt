@@ -1,7 +1,6 @@
 package com.android.mms.activities
 
 import android.annotation.SuppressLint
-import android.content.ContentValues
 import android.content.Intent
 import android.graphics.Color
 import android.net.Uri
@@ -26,9 +25,12 @@ import com.android.mms.R
 import com.android.mms.adapters.SimMessageAdapter
 import com.android.mms.databinding.ActivitySimMessagesBinding
 import com.android.mms.extensions.getThreadId
+import com.android.mms.extensions.insertNewSMS
 import com.android.mms.helpers.THREAD_ID
 import com.android.mms.helpers.THREAD_NUMBER
 import com.android.mms.helpers.THREAD_TITLE
+import com.android.mms.helpers.refreshConversations
+import com.android.mms.helpers.refreshMessages
 import com.android.mms.messaging.getSmsManager
 import com.android.mms.messaging.isShortCodeWithLetters
 import com.android.mms.models.SimMessage
@@ -382,27 +384,57 @@ class SimMessagesActivity : SimpleActivity() {
 
     }
 
+    /**
+     * The message is stored with a resolved thread id and the SIM it came from, then the same refresh
+     * events an incoming SMS posts are broadcast. [MainActivity] stays registered on the bus while it
+     * is paused behind this screen, so its list already reflects the copy when the user navigates back.
+     */
     private fun copyToPhone(message: SimMessage) {
         Thread {
             try {
-                val values = ContentValues().apply {
-                    put(Telephony.Sms.ADDRESS, message.address)
-                    put(Telephony.Sms.BODY, message.body)
-                    put(Telephony.Sms.DATE, message.date)
-                    put(Telephony.Sms.READ, 1)
-                    put(
-                        Telephony.Sms.TYPE,
-                        if (message.isIncoming) Telephony.Sms.MESSAGE_TYPE_INBOX
-                        else Telephony.Sms.MESSAGE_TYPE_SENT
-                    )
+                val address = message.address.trim()
+                if (address.isEmpty()) {
+                    // Without an address the telephony provider cannot resolve a thread, so the copy
+                    // would be stored but never shown in any conversation.
+                    runOnUiThread { toast(R.string.invalid_contact_or_number) }
+                    return@Thread
                 }
-                contentResolver.insert(Telephony.Sms.CONTENT_URI, values)
-                runOnUiThread { toast(R.string.sim_message_copied) }
+                val newMessageId = insertNewSMS(
+                    address = address,
+                    subject = "",
+                    body = message.body,
+                    date = resolveCopyDateMillis(message),
+                    read = 1,
+                    threadId = getThreadId(address),
+                    type = if (message.isIncoming) {
+                        Telephony.Sms.MESSAGE_TYPE_INBOX
+                    } else {
+                        Telephony.Sms.MESSAGE_TYPE_SENT
+                    },
+                    subscriptionId = subscriptionId,
+                )
+                runOnUiThread {
+                    if (newMessageId == 0L) {
+                        toast(com.goodwy.commons.R.string.unknown_error_occurred)
+                        return@runOnUiThread
+                    }
+                    toast(R.string.sim_message_copied)
+                    refreshMessages()
+                    refreshConversations()
+                }
             } catch (e: Exception) {
                 runOnUiThread { showErrorToast(e) }
             }
         }.start()
     }
+
+    /**
+     * SMS-SUBMIT records on the SIM carry no service centre timestamp, so sent messages are read back
+     * with date 0. Copying that verbatim dates them to 1970 and pins them to the top of the thread in
+     * [ThreadActivity], so fall back to the copy time — the same fallback used when copying to the SIM.
+     */
+    private fun resolveCopyDateMillis(message: SimMessage): Long =
+        if (message.date > 0) message.date else System.currentTimeMillis()
 
     private fun confirmDelete(message: SimMessage) {
         showMConfirmDialog(resources.getString(R.string.sim_confirm_delete)) {
