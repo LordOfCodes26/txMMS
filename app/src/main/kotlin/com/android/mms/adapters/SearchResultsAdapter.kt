@@ -7,6 +7,7 @@ import android.util.TypedValue
 import android.view.Menu
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.view.setPadding
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.behaviorule.arturdumchev.library.pixels
@@ -247,6 +248,12 @@ class SearchResultsAdapter(
             }
             searchResultMessageType.apply {
                 val type = searchResult.lastMessageType
+                setPadding(
+                    when (type) {
+                        Telephony.Sms.MESSAGE_TYPE_INBOX, Telephony.Sms.MESSAGE_TYPE_SENT -> 0
+                        else -> resources.getDimensionPixelSize(R.dimen.message_status_icon_padding)
+                    }
+                )
                 when {
                     type == Telephony.Sms.MESSAGE_TYPE_INBOX -> {
                         setImageResource(com.android.common.R.drawable.ic_cmn_msg_in)

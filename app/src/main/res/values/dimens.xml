@@ -12,6 +12,10 @@
     <dimen name="attachment_preview_max_width">156dp</dimen>
     <dimen name="remove_attachment_size">24dp</dimen>
     <dimen name="pin_icon_size">18dp</dimen>
+    <dimen name="message_status_icon_size">20dp</dimen>
+    <!-- ic_cmn_msg_in/out are drawn with empty space around the glyph, the other status icons fill their
+         viewport, so they get this much padding to end up with the same visual size. -->
+    <dimen name="message_status_icon_padding">4dp</dimen>
     <dimen name="vcard_property_start_margin">64dp</dimen>
     <dimen name="small_icon_size">20dp</dimen>
     <dimen name="medium_icon_size">38dp</dimen>

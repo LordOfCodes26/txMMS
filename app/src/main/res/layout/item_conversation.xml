@@ -208,8 +208,8 @@
 
                 <ImageView
                     android:id="@+id/conversationMessageType"
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
+                    android:layout_width="@dimen/message_status_icon_size"
+                    android:layout_height="@dimen/message_status_icon_size"
                     android:layout_marginTop="@dimen/small_margin"
                     android:contentDescription="@null"
                     android:scaleType="fitCenter"

@@ -505,6 +505,12 @@ abstract class BaseConversationsAdapter(
                 else -> conversationMessageType.beGone()
             }
             if (conversationMessageType.isVisible) {
+                conversationMessageType.setPadding(
+                    when (lastMessageType) {
+                        Telephony.Sms.MESSAGE_TYPE_INBOX, Telephony.Sms.MESSAGE_TYPE_SENT -> 0
+                        else -> resources.getDimensionPixelSize(R.dimen.message_status_icon_padding)
+                    }
+                )
                 conversationMessageType.imageTintList = when {
                     lastMessageType == Telephony.Sms.MESSAGE_TYPE_FAILED -> null
                     isBlockedList -> ColorStateList.valueOf(colorRed)
