@@ -1178,6 +1178,7 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
             return
         }
         binding.actionModeRippleToolbar.setTabs(this, items, blurTarget)
+        applyRippleToolbarBottomInset()
         binding.actionModeRippleToolbar.setOnClickedListener { index ->
             adapter.dispatchRippleToolbarAction(index)
         }
@@ -1185,6 +1186,22 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         val hasSelection = adapter.getSelectedItems().isNotEmpty()
         for (i in 0 until items.size) {
             binding.actionModeRippleToolbar.setRippleTabEnabledWidthAlpha(i, hasSelection && tabEnabled.getOrElse(i) { true})
+        }
+    }
+
+    /**
+     * `MRippleToolBar` lifts itself above the navigation bar through its own bottom margin, so that
+     * margin is the only place the bar's bottom inset may live — [R.id.lyt_action] must stay at zero
+     * or the two offsets stack up and the bar creeps upwards. The bar only refreshes its margin when
+     * the system dispatches insets again, so seed it whenever the tabs are (re)built.
+     */
+    private fun applyRippleToolbarBottomInset(
+        insets: WindowInsetsCompat? = ViewCompat.getRootWindowInsets(binding.root),
+    ) {
+        val nav = insets?.getInsets(WindowInsetsCompat.Type.navigationBars())?.bottom ?: 0
+        val ime = insets?.getInsets(WindowInsetsCompat.Type.ime())?.bottom ?: 0
+        binding.actionModeRippleToolbar.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+            bottomMargin = maxOf(nav, ime)
         }
     }
 
@@ -1805,18 +1822,10 @@ open class MainActivity : SimpleActivity(), ActionModeToolbarHost {
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
             val nav = insets.getInsets(WindowInsetsCompat.Type.navigationBars())
             val navHeight = nav.bottom
-            val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
             val dp5 = (5 * resources.displayMetrics.density).toInt()
             binding.mVerticalSideFrameBottom.layoutParams =
                 binding.mVerticalSideFrameBottom.layoutParams.apply { height = navHeight + dp5 }
-            val barLp = binding.lytAction.layoutParams as ViewGroup.MarginLayoutParams
-            val activityMargin = (0 * resources.displayMetrics.density).toInt()
-            if (ime.bottom > 0) {
-                barLp.bottomMargin = ime.bottom + activityMargin
-            } else {
-                barLp.bottomMargin = navHeight + activityMargin
-            }
-            binding.lytAction.layoutParams = barLp
+            applyRippleToolbarBottomInset(insets)
             insets
         }
     }
