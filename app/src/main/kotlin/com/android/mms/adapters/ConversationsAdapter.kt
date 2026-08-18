@@ -123,7 +123,10 @@ class ConversationsAdapter(
         }
 
         //redraw underline when start | hide a action mode
-        if ((activity as? MainActivity)?.getActionModeState() == true){
+        // The date (which the divider ends at) shifts left by the checkbox once it becomes visible,
+        // so pull the divider end back out to keep the same width as outside of selection mode.
+        val inSelectionMode = (activity as? MainActivity)?.getActionModeState() ?: isActionModeActive()
+        if (inSelectionMode) {
             binding.divider.apply {
                 updateMarginWithBase(0,  0, -80, 0)
             }
