@@ -355,22 +355,20 @@ class ContactPickerAdapter(
 
             if (hasContactName) {
                 nameTextView.text = highlightedText(contact.name)
-                nameTextView.setTextColor(
-                    if (row.callType == Calls.MISSED_TYPE) missedColor
-                    else ContextCompat.getColor(context, com.android.common.R.color.tx_content_text),
-                )
-                if (contact.phoneNumber.isNotEmpty()) {
-                    numberTextView.text = highlightedText(contact.phoneNumber, ignoreCharsBetweenDigits = true)
-                    numberTextView.visibility = View.VISIBLE
-                } else {
-                    numberTextView.visibility = View.GONE
-                }
             } else {
+                // Unknown numbers: title is the phone number, same as txDial Recents.
                 nameTextView.text = highlightedText(contact.phoneNumber, ignoreCharsBetweenDigits = true)
-                nameTextView.setTextColor(
-                    if (row.callType == Calls.MISSED_TYPE) missedColor
-                    else ContextCompat.getColor(context, com.android.common.R.color.tx_content_text),
-                )
+            }
+            nameTextView.setTextColor(
+                if (row.callType == Calls.MISSED_TYPE) missedColor
+                else ContextCompat.getColor(context, com.android.common.R.color.tx_content_text),
+            )
+            // Always show the number on the second line, including when the title is also the number.
+            if (contact.phoneNumber.isNotEmpty()) {
+                numberTextView.text = highlightedText(contact.phoneNumber, ignoreCharsBetweenDigits = true)
+                numberTextView.setTextColor(ContextCompat.getColor(context, com.android.common.R.color.tx_sub_text))
+                numberTextView.visibility = View.VISIBLE
+            } else {
                 numberTextView.text = ""
                 numberTextView.visibility = View.GONE
             }
