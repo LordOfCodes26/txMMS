@@ -193,6 +193,7 @@ class SimpleContactsHelper(val context: Context) {
             return ArrayList()
         }
 
+        applyStructuredDisplayNames(contactsMap.values)
         val merged = contactsMap.values.mapNotNull { contact ->
             if (contact.phoneNumbers.isEmpty()) {
                 return@mapNotNull null
@@ -328,10 +329,10 @@ class SimpleContactsHelper(val context: Context) {
      * because aggregated [Contacts._ID] rows often only carry numbers on Google/other accounts;
      * filtering there produced an empty picker.
      *
-     * **Performance**: contact metadata (name, photo) is collected from the outer cursor window
-     * in one pass, then a single batch `WHERE CONTACT_ID IN (...)` fetches all phone numbers for
-     * the entire page. This replaces the previous per-contact phone lookup (N+1 queries) with
-     * exactly 2 queries per page regardless of batch size.
+     * **Performance**: contact ids/photos are collected from the outer cursor window in one pass,
+     * then batch `WHERE CONTACT_ID IN (...)` queries fetch phone numbers and structured display
+     * names for the page. Display names use [composeStructuredRowDisplayName]
+     * (same as Dial) rather than [Contacts.DISPLAY_NAME_PRIMARY], which can reverse prefix/family.
      *
      * @param contactCursorOffset row index in the sorted contacts cursor to start from
      * @param maxCursorRows maximum contact **cursor** rows to scan this call (advance offset by this amount, capped at row count)
@@ -457,12 +458,17 @@ class SimpleContactsHelper(val context: Context) {
         val contactIdList = pageRows.map { it.contactId }
         val phonesMap = loadAllPhonesForAggregatedContactsBatch(contactIdList)
         phoneLookupMs = SystemClock.elapsedRealtime() - tp
+        // Prefer StructuredName.DISPLAY_NAME (same as Dial contacts tab) over aggregated
+        // Contacts.DISPLAY_NAME_PRIMARY, which can reverse prefix/family (e.g. "Bladen Mr").
+        val structuredNames = loadStructuredDisplayNamesForAggregatedContacts(contactIdList)
 
         // ── Phase 3: assemble SimpleContact objects ───────────────────────────────────────────
         for (row in pageRows) {
             val (rawId, phones) = phonesMap[row.contactId] ?: continue
             if (phones.isNotEmpty()) {
-                val name = row.displayName.ifEmpty { phones.first().value }
+                val name = structuredNames[row.contactId]
+                    ?.takeIf { it.isNotEmpty() }
+                    ?: row.displayName.ifEmpty { phones.first().value }
                 out.add(
                     SimpleContact(
                         rawId = rawId,
@@ -538,6 +544,75 @@ class SimpleContactsHelper(val context: Context) {
         return result
     }
 
+    /**
+     * Overlay Dial-matching display names onto [contacts] that already have a [SimpleContact.contactId].
+     */
+    private fun applyStructuredDisplayNames(contacts: Collection<SimpleContact>) {
+        if (contacts.isEmpty()) return
+        val names = loadStructuredDisplayNamesForAggregatedContacts(contacts.map { it.contactId })
+        if (names.isEmpty()) return
+        contacts.forEach { contact ->
+            val structured = names[contact.contactId]
+            if (!structured.isNullOrEmpty()) {
+                contact.name = structured
+            }
+        }
+    }
+
+    /**
+     * Batch StructuredName lookup for [contactIds]. Prefers phone/SIM raw contacts, then any
+     * non-empty composed name. Matches Dial's ContactsHelper composeStructuredRowDisplayName so the
+     * Messages picker shows the same labels as the Dial contacts tab.
+     */
+    private fun loadStructuredDisplayNamesForAggregatedContacts(
+        contactIds: List<Int>,
+    ): Map<Int, String> {
+        val distinctIds = contactIds.filter { it > 0 }.distinct()
+        if (distinctIds.isEmpty()) return emptyMap()
+        data class NamedRow(val name: String, val preferredAccount: Boolean)
+        val best = HashMap<Int, NamedRow>(distinctIds.size * 2)
+        val projection = arrayOf(
+            Data.CONTACT_ID,
+            StructuredName.DISPLAY_NAME,
+            StructuredName.PREFIX,
+            StructuredName.GIVEN_NAME,
+            StructuredName.MIDDLE_NAME,
+            StructuredName.FAMILY_NAME,
+            StructuredName.SUFFIX,
+            RawContacts.ACCOUNT_NAME,
+            RawContacts.ACCOUNT_TYPE,
+        )
+        distinctIds.chunked(400).forEach { chunk ->
+            val placeholders = chunk.joinToString(",") { "?" }
+            val selection = "${Data.MIMETYPE} = ? AND ${Data.CONTACT_ID} IN ($placeholders)"
+            val selectionArgs = arrayOf(StructuredName.CONTENT_ITEM_TYPE) + chunk.map { it.toString() }
+            context.queryCursor(Data.CONTENT_URI, projection, selection, selectionArgs) { cursor ->
+                val contactId = cursor.getIntValue(Data.CONTACT_ID)
+                val existing = best[contactId]
+                if (existing?.preferredAccount == true) return@queryCursor
+                val prefix = cursor.getStringValue(StructuredName.PREFIX) ?: ""
+                val givenName = cursor.getStringValue(StructuredName.GIVEN_NAME) ?: ""
+                val middleName = cursor.getStringValue(StructuredName.MIDDLE_NAME) ?: ""
+                val familyName = cursor.getStringValue(StructuredName.FAMILY_NAME) ?: ""
+                val suffix = cursor.getStringValue(StructuredName.SUFFIX) ?: ""
+                val name = composeStructuredRowDisplayName(
+                    cursor, prefix, givenName, middleName, familyName, suffix,
+                )
+                if (name.isEmpty()) return@queryCursor
+                val accountName = cursor.getStringValue(RawContacts.ACCOUNT_NAME) ?: ""
+                val accountType = cursor.getStringValue(RawContacts.ACCOUNT_TYPE) ?: ""
+                val preferred = isSimOrPhoneStorage(accountName, accountType)
+                if (existing == null || (preferred && !existing.preferredAccount)) {
+                    best[contactId] = NamedRow(name, preferred)
+                }
+            }
+        }
+        if (best.isEmpty()) return emptyMap()
+        val result = HashMap<Int, String>(best.size * 2)
+        best.forEach { (id, row) -> result[id] = row.name }
+        return result
+    }
+
     private fun getContactNames(favoritesOnly: Boolean): List<SimpleContact> {
         val contacts = ArrayList<SimpleContact>()
         val startNameWithSurname = context.baseConfig.startNameWithSurname
@@ -550,6 +625,7 @@ class SimpleContactsHelper(val context: Context) {
             StructuredName.MIDDLE_NAME,
             StructuredName.FAMILY_NAME,
             StructuredName.SUFFIX,
+            StructuredName.DISPLAY_NAME,
             StructuredName.PHOTO_THUMBNAIL_URI,
             Organization.COMPANY,
             Organization.TITLE,
@@ -590,14 +666,10 @@ class SimpleContactsHelper(val context: Context) {
                 val middleName = cursor.getStringValue(StructuredName.MIDDLE_NAME) ?: ""
                 val familyName = cursor.getStringValue(StructuredName.FAMILY_NAME) ?: ""
                 val suffix = cursor.getStringValue(StructuredName.SUFFIX) ?: ""
-                // Combine all name parts into a single name field
-                if (givenName.isNotEmpty() || middleName.isNotEmpty() || familyName.isNotEmpty()) {
-                    val nameParts = listOf(prefix, givenName, middleName, familyName, suffix).filter { it.isNotEmpty() }
-                    val fullName = if (nameParts.isNotEmpty()) {
-                        nameParts.joinToString(" ").trim()
-                    } else {
-                        ""
-                    }
+                val fullName = composeStructuredRowDisplayName(
+                    cursor, prefix, givenName, middleName, familyName, suffix,
+                )
+                if (fullName.isNotEmpty()) {
                     val contact = SimpleContact(rawId, contactId, fullName, photoUri, ArrayList(), ArrayList(), ArrayList())
                     contacts.add(contact)
                 }
@@ -1048,5 +1120,56 @@ class SimpleContactsHelper(val context: Context) {
             val contact = contacts.firstOrNull { it.doesHavePhoneNumber(number) }
             callback.invoke(contact != null)
         }
+    }
+
+    /**
+     * Prefer [StructuredName.DISPLAY_NAME] when the provider stored it (SIM/USIM sync often keeps
+     * the full ADN string there while splitting [StructuredName.GIVEN_NAME]/[StructuredName.FAMILY_NAME]).
+     * Same rule as Dial's contacts tab.
+     */
+    private fun composeStructuredRowDisplayName(
+        cursor: android.database.Cursor,
+        prefix: String,
+        givenName: String,
+        middleName: String,
+        familyName: String,
+        suffix: String,
+    ): String {
+        val idx = cursor.getColumnIndex(StructuredName.DISPLAY_NAME)
+        if (idx >= 0) {
+            val direct = cursor.getString(idx)?.trim().orEmpty()
+            if (direct.isNotEmpty()) return direct
+        }
+        return buildDisplayName(prefix, givenName, middleName, familyName, suffix)
+    }
+
+    private fun buildDisplayName(
+        prefix: String, givenName: String, middleName: String,
+        familyName: String, suffix: String
+    ): String {
+        val eastern = familyName.isNotBlank() && givenName.isNotBlank() &&
+            (isEasternScript(familyName) || isEasternScript(givenName))
+        return if (eastern) {
+            listOf(prefix, familyName + givenName, middleName, suffix)
+                .filter { it.isNotBlank() }.joinToString(" ").trim()
+        } else {
+            val sb = StringBuilder()
+            if (prefix.isNotEmpty()) sb.append(prefix).append(" ")
+            if (givenName.isNotEmpty()) sb.append(givenName).append(" ")
+            if (middleName.isNotEmpty()) sb.append(middleName).append(" ")
+            if (familyName.isNotEmpty()) sb.append(familyName).append(" ")
+            if (suffix.isNotEmpty()) sb.append(suffix).append(" ")
+            sb.trim().toString()
+        }
+    }
+
+    private fun isEasternScript(s: String): Boolean = s.any { c ->
+        c in '\uAC00'..'\uD7AF' ||
+        c in '\u1100'..'\u11FF' ||
+        c in '\u3130'..'\u318F' ||
+        c in '\uA960'..'\uA97F' ||
+        c in '\uD7B0'..'\uD7FF' ||
+        c in '\u4E00'..'\u9FFF' ||
+        c in '\u3400'..'\u4DBF'
     }
 }

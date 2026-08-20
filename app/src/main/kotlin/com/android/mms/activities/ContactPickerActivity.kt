@@ -85,7 +85,7 @@ class ContactPickerActivity : SimpleActivity() {
 
         // ── Contact cache ──────────────────────────────────────────────────────────────────────
         /** Bump this when the serialised Contact field layout changes. Stale files are discarded. */
-        private const val CONTACTS_CACHE_SCHEMA = 1
+        private const val CONTACTS_CACHE_SCHEMA = 2
         private const val CONTACTS_CACHE_FILE = "contact_picker_v${CONTACTS_CACHE_SCHEMA}.bin"
         /** Set to false to skip cache reads during testing (writes still occur for inspection). */
         private const val CONTACTS_CACHE_READ_ENABLED = true
